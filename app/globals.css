@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  /*
+   * "Stadium" theme — scoped to the authenticated dashboard only (applied via
+   * a `dark` class on the dashboard root, see app/dashboard/layout.tsx). The
+   * public marketing site and pre-auth auth screens never render inside
+   * `.dark` and keep the bright :root palette above untouched.
+   */
+  .dark {
+    --background: 229 31% 7%; /* Pitch Dark #0C0E17 */
+    --foreground: 0 0% 100%;
+
+    --card: 228 29% 17%; /* Stadium Teal #1F2438 */
+    --card-foreground: 0 0% 100%;
+
+    --popover: 228 29% 17%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 152 100% 50%; /* Matchday Mint #00FF87 */
+    --primary-foreground: 229 31% 7%;
+
+    --secondary: 228 29% 17%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 228 20% 14%;
+    --muted-foreground: 220 15% 65%;
+
+    --accent: 228 25% 22%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 339 100% 50%; /* Red Card Pink #FF005A */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 20% 22%;
+    --input: 228 20% 22%;
+    --ring: 152 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .animate-marquee {
+    animation: marquee 26s linear infinite;
+  }
+}
