@@ -34,7 +34,7 @@ export function SiteFooter() {
         <FooterColumn
           title="Product"
           links={[
-            { label: "Competitions", href: "#competitions" },
+            { label: "Rooms & Global", href: "#rooms" },
             { label: "How it works", href: "#how-it-works" },
           ]}
         />

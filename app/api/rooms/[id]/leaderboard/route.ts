@@ -17,17 +17,20 @@ import type { Fixture } from "@/lib/api-football/types";
 import type { CustomQuestionAnswer } from "@/types";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  // Global has no membership boundary — anyone can watch the board, signed
+  // in or not. Predictions still require an account (enforced elsewhere).
   const session = await getSession();
-  if (!session) {
+  if (id !== "global" && !session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { id } = await params;
   const room = getEffectiveRoom(id);
   if (!room) {
     return NextResponse.json({ error: "Room not found." }, { status: 404 });
   }
-  if (!canAccessRoom(id, session.userId)) {
+  if (id !== "global" && !canAccessRoom(id, session!.userId)) {
     return NextResponse.json({ error: "You're not a member of this room." }, { status: 403 });
   }
 
@@ -36,8 +39,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   let participantIds: string[];
   if (id === "global") {
     participantIds = getParticipantIdsForScope(null);
-    // Always include the current viewer, even before they've made a pick.
-    if (!participantIds.includes(session.userId)) participantIds = [...participantIds, session.userId];
+    // Include the current viewer too, even before they've made a pick.
+    if (session && !participantIds.includes(session.userId)) participantIds = [...participantIds, session.userId];
   } else {
     participantIds = getRoomMembers(id).map((m) => m.userId);
   }
@@ -46,7 +49,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .map((userId) => {
       const user = findUserById(userId);
       if (!user) return null;
-      return { userId, displayName: user.full_name ?? user.username };
+      return { userId, displayName: user.displayName || user.id };
     })
     .filter((p): p is { userId: string; displayName: string } => p !== null);
 

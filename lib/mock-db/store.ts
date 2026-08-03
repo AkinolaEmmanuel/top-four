@@ -49,7 +49,7 @@ export const GLOBAL_ROOM: Room = {
   lonely_wolf_enabled: false,
 };
 
-type MockUser = Profile & { email: string; passwordHash: string };
+type MockUser = Profile & { passwordHash: string };
 
 type MockStore = {
   users: Map<string, MockUser>; // by id
@@ -123,8 +123,7 @@ export function verifyPassword(user: MockUser, password: string) {
 
 export function createUser(input: {
   email: string;
-  username: string;
-  fullName?: string | null;
+  displayName: string;
   password: string;
 }): MockUser {
   const email = input.email.toLowerCase();
@@ -133,16 +132,12 @@ export function createUser(input: {
   }
 
   const id = randomUUID();
-  const timestamp = nowIso();
   const user: MockUser = {
     id,
     email,
-    username: input.username,
-    full_name: input.fullName ?? null,
-    avatar_url: null,
+    displayName: input.displayName,
+    emailVerified: false,
     passwordHash: hashPassword(input.password),
-    created_at: timestamp,
-    updated_at: timestamp,
   };
 
   users.set(id, user);
@@ -167,8 +162,7 @@ export function getOrCreateDemoUser(): MockUser {
 
   const user = createUser({
     email: DEMO_EMAIL,
-    username: "demo_manager",
-    fullName: "Demo Manager",
+    displayName: "Demo Manager",
     password: randomUUID(),
   });
   seedDemoData(user.id);
@@ -188,24 +182,21 @@ function seedDemoData(demoUserId: string) {
     findUserByEmail("sam@demo.topfour.app") ??
     createUser({
       email: "sam@demo.topfour.app",
-      username: "sam_striker",
-      fullName: "Sam Striker",
+      displayName: "Sam Striker",
       password: randomUUID(),
     });
   const robin =
     findUserByEmail("robin@demo.topfour.app") ??
     createUser({
       email: "robin@demo.topfour.app",
-      username: "robin_winger",
-      fullName: "Robin Winger",
+      displayName: "Robin Winger",
       password: randomUUID(),
     });
   const casey =
     findUserByEmail("casey@demo.topfour.app") ??
     createUser({
       email: "casey@demo.topfour.app",
-      username: "casey_keeper",
-      fullName: "Casey Keeper",
+      displayName: "Casey Keeper",
       password: randomUUID(),
     });
 
@@ -310,8 +301,8 @@ function seedDemoData(demoUserId: string) {
 }
 
 export function toProfile(user: MockUser): Profile {
-  const { id, username, full_name, avatar_url, created_at, updated_at } = user;
-  return { id, username, full_name, avatar_url, created_at, updated_at };
+  const { id, email, displayName, emailVerified } = user;
+  return { id, email, displayName, emailVerified };
 }
 
 export function getRoomsForUser(

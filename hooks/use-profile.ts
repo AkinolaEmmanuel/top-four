@@ -6,11 +6,12 @@ import type { Profile } from "@/types";
 
 export const profileQueryKey = ["profile"] as const;
 
-export function useProfile() {
+export function useProfile(enabled: boolean = true) {
   return useQuery<Profile, Error>({
     queryKey: profileQueryKey,
     queryFn: fetchCurrentProfile,
     staleTime: 5 * 60 * 1000, // 5 min — profile data is low-churn
     retry: 1,
+    enabled,
   });
 }

@@ -36,39 +36,42 @@
   }
 
   /*
-   * "Stadium" theme — scoped to the authenticated dashboard only (applied via
-   * a `dark` class on the dashboard root, see app/dashboard/layout.tsx). The
-   * public marketing site and pre-auth auth screens never render inside
-   * `.dark` and keep the bright :root palette above untouched.
+   * "Stadium" theme — applied site-wide via a `dark` class on <body> (see
+   * app/layout.tsx), so the public landing page and the authenticated
+   * dashboard share one continuous visual language. The bright :root palette
+   * above is kept only for the login/signup form panel, which forces
+   * bg-white regardless of this class (see components/auth/auth-shell.tsx).
+   * True neutral grays throughout (0% saturation) — monochrome, with
+   * destructive kept as the one non-monochrome color for error states.
    */
   .dark {
-    --background: 229 31% 7%; /* Pitch Dark #0C0E17 */
+    --background: 0 0% 5%; /* Pitch Dark */
     --foreground: 0 0% 100%;
 
-    --card: 228 29% 17%; /* Stadium Teal #1F2438 */
+    --card: 0 0% 12%; /* Stadium Charcoal */
     --card-foreground: 0 0% 100%;
 
-    --popover: 228 29% 17%;
+    --popover: 0 0% 12%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 152 100% 50%; /* Matchday Mint #00FF87 */
-    --primary-foreground: 229 31% 7%;
+    --primary: 0 0% 100%; /* Matchday Chalk */
+    --primary-foreground: 0 0% 5%;
 
-    --secondary: 228 29% 17%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 228 20% 14%;
-    --muted-foreground: 220 15% 65%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 228 25% 22%;
+    --accent: 0 0% 16%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 339 100% 50%; /* Red Card Pink #FF005A */
+    --destructive: 4 90% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 228 20% 22%;
-    --input: 228 20% 22%;
-    --ring: 152 100% 50%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 100%;
   }
 }
 

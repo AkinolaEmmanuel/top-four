@@ -16,14 +16,14 @@ export default function RoomsIndexPage() {
         </div>
         <div className="flex gap-2">
           <Link
-            href="/dashboard/rooms/join"
+            href="/rooms/join"
             className="flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
           >
             <LogIn className="h-4 w-4" />
             Join a room
           </Link>
           <Link
-            href="/dashboard/rooms/new"
+            href="/rooms/new"
             className="flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             <PlusCircle className="h-4 w-4" />
@@ -52,7 +52,7 @@ export default function RoomsIndexPage() {
         {rooms?.map(({ room, role }) => (
           <Link
             key={room.id}
-            href={`/dashboard/rooms/${room.id}`}
+            href={`/rooms/${room.id}`}
             className="rounded-xl border border-border bg-card p-5 transition-colors hover:bg-accent"
           >
             <div className="flex items-start justify-between">

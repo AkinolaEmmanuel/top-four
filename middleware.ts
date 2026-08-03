@@ -1,15 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSessionFromRequest } from "@/lib/mock-auth/session";
 
-export function middleware(request: NextRequest) {
-  const session = getSessionFromRequest(request);
-
-  if (!session && request.nextUrl.pathname.startsWith("/dashboard")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
+// Auth-gating intentionally lives in route layouts/pages (e.g. app/(game)/layout.tsx,
+// app/onboarding/page.tsx), not here — see those for the actual redirect-if-no-session checks.
+export function middleware(_request: NextRequest) {
   return NextResponse.next();
 }
 

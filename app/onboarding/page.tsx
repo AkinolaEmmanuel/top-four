@@ -33,19 +33,19 @@ export default async function OnboardingPage() {
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           <ChoiceCard
-            href="/dashboard/rooms/new"
+            href="/rooms/new"
             icon={Users}
             title="Create a Group"
             description="Start a room and invite your group chat."
           />
           <ChoiceCard
-            href="/dashboard/rooms/join"
+            href="/rooms/join"
             icon={LogIn}
             title="Join a Group"
             description="Got an invite code? Drop into their room."
           />
           <ChoiceCard
-            href="/dashboard/global"
+            href="/global"
             icon={Globe2}
             title="Go Global"
             description="No room required — predict against everyone."
@@ -53,7 +53,7 @@ export default async function OnboardingPage() {
         </div>
 
         <Link
-          href="/dashboard"
+          href="/"
           className="mt-8 inline-block text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           Skip for now →

@@ -5,13 +5,12 @@ import { COOKIE_OPTIONS, encodeSession, SESSION_COOKIE } from "@/lib/mock-auth/s
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim() : "";
-  const username = typeof body?.username === "string" ? body.username.trim() : "";
-  const fullName = typeof body?.fullName === "string" ? body.fullName.trim() : "";
+  const displayName = typeof body?.displayName === "string" ? body.displayName.trim() : "";
   const password = typeof body?.password === "string" ? body.password : "";
 
-  if (!email || !username || password.length < 6) {
+  if (!email || !displayName || password.length < 6) {
     return NextResponse.json(
-      { error: "Enter a valid email, username, and a password of at least 6 characters." },
+      { error: "Enter a valid email, display name, and a password of at least 6 characters." },
       { status: 400 }
     );
   }
@@ -23,7 +22,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = createUser({ email, username, fullName: fullName || null, password });
+  const user = createUser({ email, displayName, password });
   const profile = toProfile(user);
 
   const response = NextResponse.json({ profile }, { status: 201 });

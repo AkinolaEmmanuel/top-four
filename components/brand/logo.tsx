@@ -10,7 +10,7 @@ type LogoProps = {
 
 /**
  * Brand mark — four ascending standings bars, the last (top position)
- * picked out in mint. Reads as a table/ranking climb — literally "top
+ * picked out in white. Reads as a table/ranking climb — literally "top
  * four" — rather than a generic sports icon. Each instance gets a unique
  * gradient id via useId so multiple logos can render on one page without
  * colliding <linearGradient> ids.
@@ -28,14 +28,14 @@ export function Logo({ size = 32, className }: LogoProps) {
       aria-label="topfour.app"
     >
       <rect width="32" height="32" rx="9" fill={`url(#${gradId})`} />
-      <rect x="6" y="19" width="4" height="6" rx="1.2" fill="white" fillOpacity="0.55" />
-      <rect x="12" y="15" width="4" height="10" rx="1.2" fill="white" fillOpacity="0.75" />
-      <rect x="18" y="11" width="4" height="14" rx="1.2" fill="white" />
-      <rect x="24" y="7" width="4" height="18" rx="1.2" fill="#00FF87" />
+      <rect x="6" y="19" width="4" height="6" rx="1.2" fill="white" fillOpacity="0.35" />
+      <rect x="12" y="15" width="4" height="10" rx="1.2" fill="white" fillOpacity="0.55" />
+      <rect x="18" y="11" width="4" height="14" rx="1.2" fill="white" fillOpacity="0.8" />
+      <rect x="24" y="7" width="4" height="18" rx="1.2" fill="white" />
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#37003C" />
-          <stop offset="100%" stopColor="#E90052" />
+          <stop offset="0%" stopColor="#0A0A0A" />
+          <stop offset="100%" stopColor="#262626" />
         </linearGradient>
       </defs>
     </svg>

@@ -21,7 +21,7 @@ export default function JoinRoomPage() {
     joinRoom.mutate(
       { code },
       {
-        onSuccess: (room) => router.push(`/dashboard/rooms/${room.id}`),
+        onSuccess: (room) => router.push(`/rooms/${room.id}`),
         onError: (err) => setError(err.message),
       }
     );

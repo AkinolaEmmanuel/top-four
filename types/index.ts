@@ -1,10 +1,8 @@
 export type Profile = {
   id: string;
-  username: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  created_at: string;
-  updated_at: string;
+  email: string;
+  displayName: string;
+  emailVerified: boolean;
 };
 
 // Phase 1 markets only. Phase 2 will add: "anytime_scorer", "player_card",
@@ -153,3 +151,45 @@ export type CustomQuestionAnswer = {
   answer: string;
   submitted_at: string;
 };
+
+// ── Gamification System Types ──────────────────────────────────────────
+
+export type PowerUpType = "double_down" | "streak_shield" | "exact_score_boost";
+
+export type GamificationStats = {
+  xp: number;
+  level: number;
+  creds: number;
+  current_streak: number;
+  best_streak: number;
+  streak_shields: number;
+  double_downs_remaining: number;
+  total_predictions: number;
+  exact_scores_hit: number;
+  perfect_gameweeks: number;
+  rank_title: string;
+};
+
+export type Badge = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  unlocked_at?: string;
+  rarity: "common" | "rare" | "epic" | "legendary";
+};
+
+export type Quest = {
+  id: string;
+  title: string;
+  description: string;
+  xp_reward: number;
+  creds_reward: number;
+  progress: number;
+  max_progress: number;
+  completed: boolean;
+  claimed: boolean;
+  category: "daily" | "gameweek" | "milestone";
+};
+

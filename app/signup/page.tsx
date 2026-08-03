@@ -12,8 +12,7 @@ import { signUp } from "@/lib/mock-auth/client";
 
 export default function SignupPage() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
-  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +24,8 @@ export default function SignupPage() {
     setIsSubmitting(true);
 
     try {
-      await signUp({ email, username, fullName, password });
-      router.push("/onboarding");
+      await signUp({ email, displayName, password });
+      router.push("/login");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -43,26 +42,14 @@ export default function SignupPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1.5">
-          <Label htmlFor="fullName">Full name</Label>
+          <Label htmlFor="displayName">Display name</Label>
           <Input
-            id="fullName"
+            id="displayName"
             autoComplete="name"
             required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Alex Morgan"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="username">Username</Label>
-          <Input
-            id="username"
-            autoComplete="username"
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="alexm"
           />
         </div>
 

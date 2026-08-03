@@ -1,56 +1,70 @@
 import type { Profile } from "@/types";
+import { apiFetch } from "@/lib/api/fetcher";
 
 export type AuthError = { message: string };
 
-async function parseJson(res: Response) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data?.error ?? "Something went wrong. Please try again.");
-  }
-  return data;
-}
-
 export async function signUp(input: {
   email: string;
-  username: string;
-  fullName?: string;
+  displayName: string;
   password: string;
 }): Promise<Profile> {
-  const res = await fetch("/api/auth/signup", {
+  const data = await apiFetch<{ user: Profile; verificationEmailScheduled: boolean }>("/auth/register", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      email: input.email,
+      displayName: input.displayName,
+      password: input.password,
+    }),
   });
-  const data = await parseJson(res);
-  return data.profile;
+  return data.user;
 }
 
 export async function signIn(input: {
   email: string;
   password: string;
 }): Promise<Profile> {
-  const res = await fetch("/api/auth/login", {
+  const data = await apiFetch<{ user: Profile; csrfToken: string }>("/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      email: input.email,
+      password: input.password,
+    }),
   });
-  const data = await parseJson(res);
-  return data.profile;
+  return data.user;
 }
 
 export async function demoSignIn(): Promise<Profile> {
-  const res = await fetch("/api/auth/demo", { method: "POST" });
-  const data = await parseJson(res);
-  return data.profile;
+  // Try sign in with default guest/demo credentials
+  try {
+    return await signIn({
+      email: "demo@topfour.app",
+      password: "password123",
+    });
+  } catch (e) {
+    // If not registered, auto-register then login
+    try {
+      await signUp({
+        email: "demo@topfour.app",
+        displayName: "Demo Pundit",
+        password: "password123",
+      });
+      return await signIn({
+        email: "demo@topfour.app",
+        password: "password123",
+      });
+    } catch (regErr) {
+      throw new Error("Demo sign in failed. Please create a custom account.");
+    }
+  }
 }
 
 export async function signOut(): Promise<void> {
-  const res = await fetch("/api/auth/logout", { method: "POST" });
-  if (!res.ok) throw new Error("Sign-out failed. Please try again.");
+  await apiFetch("/auth/logout", {
+    method: "POST",
+  });
 }
 
 export async function fetchCurrentProfile(): Promise<Profile> {
-  const res = await fetch("/api/auth/me");
-  const data = await parseJson(res);
-  return data.profile;
+  const data = await apiFetch<{ user: Profile; csrfToken: string }>("/auth/me");
+  return data.user;
 }

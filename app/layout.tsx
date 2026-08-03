@@ -3,6 +3,8 @@ import { Space_Grotesk } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { QueryClientProvider } from "@/lib/providers/query-client-provider";
+import { SiteHeader } from "@/components/layout/site-header";
+import { getCurrentUser } from "@/lib/mock-auth/server";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -19,12 +21,12 @@ export const metadata: Metadata = {
     "Create a group, predict with friends — group chat predictions for the Premier League, Champions League, and more. Global tournaments too.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${spaceGrotesk.variable} font-sans antialiased`}>
+      <body className={`${spaceGrotesk.variable} dark bg-background font-sans text-foreground antialiased`}>
         <QueryClientProvider>
           {children}
           <Toaster position="bottom-right" richColors closeButton />
@@ -33,3 +35,4 @@ export default function RootLayout({
     </html>
   );
 }
+

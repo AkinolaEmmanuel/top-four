@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Loader2, Lock, Copy, Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { GREEN, CYAN, RED_CARD_PINK } from "@/lib/brand/colors";
+import { CHALK, ERROR_RED } from "@/lib/brand/colors";
 import { useRoom } from "@/hooks/use-room";
 import { useFixtures } from "@/hooks/use-fixtures";
 import { usePredictions, useSubmitPrediction } from "@/hooks/use-predictions";
@@ -99,7 +99,7 @@ function RoomHeader({ room, roomId, myRole }: { room: Room; roomId: string; myRo
 // ── Lobby ─────────────────────────────────────────────────────────────────
 
 function LobbyTab({ roomId, room, canManage }: { roomId: string; room: Room; canManage: boolean }) {
-  const { data: fixtures, isLoading: fixturesLoading } = useFixtures("NS", room.competitions);
+  const { data: fixtures, isLoading: fixturesLoading } = useFixtures(roomId);
   const { data: predictions, isLoading: predictionsLoading } = usePredictions(roomId);
   const { data: totalGoalsLines } = useTotalGoalsLines(roomId);
   const submit = useSubmitPrediction(roomId);
@@ -346,7 +346,7 @@ function TotalGoalsRow({
 // ── Vault ─────────────────────────────────────────────────────────────────
 
 function VaultTab({ roomId, room }: { roomId: string; room: Room }) {
-  const { data: fixtures, isLoading: fixturesLoading } = useFixtures(undefined, room.competitions);
+  const { data: fixtures, isLoading: fixturesLoading } = useFixtures(roomId);
   const { data: predictions, isLoading: predictionsLoading } = usePredictions(roomId);
   const { data: totalGoalsLines } = useTotalGoalsLines(roomId);
 
@@ -409,8 +409,8 @@ function VaultRow({
     grade === "pending"
       ? { text: "🔒 RECEIPT LOCKED", color: undefined }
       : grade === "correct"
-        ? { text: `${MARKET_LABELS[prediction.market].toUpperCase()} — CORRECT (+${earned} PTS)`, color: GREEN }
-        : { text: `${MARKET_LABELS[prediction.market].toUpperCase()} — INCORRECT (0 PTS)`, color: RED_CARD_PINK };
+        ? { text: `${MARKET_LABELS[prediction.market].toUpperCase()} — CORRECT (+${earned} PTS)`, color: CHALK }
+        : { text: `${MARKET_LABELS[prediction.market].toUpperCase()} — INCORRECT (0 PTS)`, color: ERROR_RED };
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
@@ -559,7 +559,7 @@ function QuestionCard({
             Accepted: <span className="font-semibold text-foreground">{question.correct_answer!.join(", ")}</span>
           </p>
           {myAnswer && (
-            <p className="mt-1 font-semibold" style={{ color: myGrade?.grade === "correct" ? GREEN : RED_CARD_PINK }}>
+            <p className="mt-1 font-semibold" style={{ color: myGrade?.grade === "correct" ? CHALK : ERROR_RED }}>
               Your answer &ldquo;{myAnswer}&rdquo; was {myGrade?.grade === "correct" ? `correct (+${question.points} pts)` : "incorrect"}.
             </p>
           )}
@@ -768,7 +768,7 @@ function getCountdownLabel(fixtures: Fixture[] | undefined): string | null {
 
 function AwardsTab({ roomId }: { roomId: string }) {
   const { data: picks } = useAwardPicks(roomId);
-  const { data: fixtures } = useFixtures("NS");
+  const { data: fixtures } = useFixtures(roomId);
   const submit = useSubmitAwardPick(roomId);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const lockLabel = getCountdownLabel(fixtures);

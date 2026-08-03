@@ -84,7 +84,7 @@ export default function NewRoomPage() {
         lonely_wolf_enabled: lonelyWolf,
       },
       {
-        onSuccess: (room) => router.push(`/dashboard/rooms/${room.id}`),
+        onSuccess: (room) => router.push(`/rooms/${room.id}`),
         onError: (err) => setError(err.message),
       }
     );
