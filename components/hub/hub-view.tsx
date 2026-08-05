@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { GlobalLeaderboardWidget } from "./global-leaderboard-widget";
 import { MatchdayScoresHub } from "./matchday-scores-hub";
 import { LeagueTablesWidget } from "./league-tables-widget";
+import { PlayerStatsWidget } from "./player-stats-widget";
 import { DemoButton } from "@/components/auth/demo-button";
 
 export async function HubView({ user }: { user?: any }) {
@@ -81,9 +82,10 @@ export async function HubView({ user }: { user?: any }) {
           <LeagueTablesWidget />
         </div>
 
-        {/* Right 4 Cols: Global Leaderboard & Private Rooms Widgets */}
+        {/* Right 4 Cols: Global Leaderboard, Top Performers & Private Rooms Widgets */}
         <div className="lg:col-span-4 space-y-6">
           <GlobalLeaderboardWidget />
+          <PlayerStatsWidget />
 
           {/* Featured Prediction Rooms Widget */}
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 shadow-elevation-dark-1">
