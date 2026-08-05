@@ -18,6 +18,8 @@ import type { Fixture } from "@/lib/api-football/types";
 import type { AwardCategory, CustomQuestion, CustomQuestionType, MarketType, Prediction, PredictionValue, Room } from "@/types";
 import { MARKET_LABELS } from "@/types";
 
+import { CollectibleReceiptTicket, type TicketPick } from "@/components/gamification/CollectibleReceiptTicket";
+
 const TABS = ["Lobby", "Board", "Vault", "Questions", "Awards"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -35,16 +37,16 @@ export function RoomView({ roomId }: { roomId: string }) {
     <div className="space-y-6">
       <RoomHeader room={room} roomId={roomId} myRole={myRole} />
 
-      <div className="flex gap-1 overflow-x-auto border-b border-border">
+      <div className="flex gap-1 overflow-x-auto border-b border-slate-800">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors",
+              "-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold transition-all",
               tab === t
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "border-sky-500 text-sky-400 font-bold"
+                : "border-transparent text-slate-400 hover:text-slate-200"
             )}
           >
             {t}
@@ -69,14 +71,17 @@ function RoomHeader({ room, roomId, myRole }: { room: Room; roomId: string; myRo
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{room.name}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">{room.name}</h1>
           {myRole && myRole !== "participant" && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
+            <span className={cn(
+              "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase border",
+              myRole === "owner" ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-400" : "border-sky-500/40 bg-sky-500/10 text-sky-400"
+            )}>
               {myRole}
             </span>
           )}
         </div>
-        {room.description && <p className="mt-1 text-sm text-muted-foreground">{room.description}</p>}
+        {room.description && <p className="mt-1 text-sm text-slate-400">{room.description}</p>}
       </div>
       {!isGlobal && (
         <button
@@ -86,10 +91,10 @@ function RoomHeader({ room, roomId, myRole }: { room: Room; roomId: string; myRo
             toast.success("Invite code copied.");
             setTimeout(() => setCopied(false), 1500);
           }}
-          className="flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/80 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
         >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          {room.invite_code}
+          {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-slate-400" />}
+          <span className="font-mono">{room.invite_code}</span>
         </button>
       )}
     </div>
@@ -111,32 +116,56 @@ function LobbyTab({ roomId, room, canManage }: { roomId: string; room: Room; can
   }
 
   const lineByFixture = new Map((totalGoalsLines ?? []).map((l) => [l.fixture_id, l.line]));
+  
+  // Transform predictions to TicketPicks for the Receipt Gamification Component
+  const receiptPicks: TicketPick[] = (predictions ?? []).map((p) => {
+    const fixture = fixtures.find((f) => f.id === p.fixture_id);
+    return {
+      fixtureId: p.fixture_id,
+      homeTeam: fixture ? fixture.teams.home.name : "HOME",
+      awayTeam: fixture ? fixture.teams.away.name : "AWAY",
+      pickType: p.market,
+      value: p.value,
+      points: room.scoring_config[p.market] ?? 0,
+    };
+  });
 
   return (
-    <div className="space-y-4">
-      {fixtures.map((fixture) => (
-        <FixtureCard
-          key={fixture.id}
-          fixture={fixture}
-          room={room}
-          predictions={predictions ?? []}
-          line={lineByFixture.get(fixture.id)}
-          canManage={canManage}
-          pending={submit.isPending}
-          onSubmit={(market, value) =>
-            submit.mutate(
-              { fixtureId: fixture.id, market, value },
-              { onSuccess: () => toast.success("Prediction locked in."), onError: (err) => toast.error(err.message) }
-            )
-          }
-          onSetLine={(line) =>
-            setLine.mutate(
-              { fixtureId: fixture.id, line },
-              { onSuccess: () => toast.success("Line set."), onError: (err) => toast.error(err.message) }
-            )
-          }
+    <div className="grid lg:grid-cols-[1fr,380px] gap-8 items-start">
+      <div className="space-y-4">
+        {fixtures.map((fixture) => (
+          <FixtureCard
+            key={fixture.id}
+            fixture={fixture}
+            room={room}
+            predictions={predictions ?? []}
+            line={lineByFixture.get(fixture.id)}
+            canManage={canManage}
+            pending={submit.isPending}
+            onSubmit={(market, value) =>
+              submit.mutate(
+                { fixtureId: fixture.id, market, value },
+                { onSuccess: () => toast.success("Prediction locked in."), onError: (err) => toast.error(err.message) }
+              )
+            }
+            onSetLine={(line) =>
+              setLine.mutate(
+                { fixtureId: fixture.id, line },
+                { onSuccess: () => toast.success("Line set."), onError: (err) => toast.error(err.message) }
+              )
+            }
+          />
+        ))}
+      </div>
+      
+      {/* Receipt Column */}
+      <div className="sticky top-24 hidden lg:block">
+        <CollectibleReceiptTicket 
+          picks={receiptPicks}
+          ticketNumber={`RCPT-${roomId.slice(0, 4).toUpperCase()}`}
+          status={receiptPicks.length > 0 ? "locked" : "draft"}
         />
-      ))}
+      </div>
     </div>
   );
 }
@@ -261,7 +290,8 @@ function ScoreInput({ value, onChange }: { value: number; onChange: (v: number) 
 }
 
 function BttsRow({ existing, pending, onSubmit }: { existing: Prediction | undefined; pending: boolean; onSubmit: (v: { market: "btts"; pick: boolean }) => void }) {
-  const [pick, setPick] = useState<boolean>(existing?.value.market === "btts" ? existing.value.pick : true);
+  const initialPick = existing?.value.market === "btts" ? (typeof existing.value.pick === "boolean" ? existing.value.pick : existing.value.pick === "yes") : true;
+  const [pick, setPick] = useState<boolean>(initialPick);
 
   return (
     <MarketRowShell label={MARKET_LABELS.btts} pending={pending} onLockIn={() => onSubmit({ market: "btts", pick })}>
@@ -378,16 +408,20 @@ function VaultTab({ roomId, room }: { roomId: string; room: Room }) {
 }
 
 function describePredictionValue(prediction: Prediction): string {
-  const v = prediction.value;
+  const v = prediction.value as any;
   switch (v.market) {
     case "match_result":
       return `Predicted ${v.pick.toUpperCase()}`;
     case "exact_score":
       return `Predicted ${v.home}–${v.away}`;
     case "btts":
-      return `Predicted BTTS: ${v.pick ? "Yes" : "No"}`;
+      return `Predicted BTTS: ${v.pick === "yes" || v.pick === true ? "Yes" : "No"}`;
     case "total_goals":
       return `Predicted ${v.pick.toUpperCase()}`;
+    case "double_chance":
+      return `Predicted Double Chance: ${v.pick}`;
+    default:
+      return "Predicted";
   }
 }
 
@@ -445,35 +479,87 @@ function BoardTab({ roomId }: { roomId: string }) {
 
   if (isLoading) return <LoadingState />;
   if (!leaderboard || leaderboard.length === 0) {
-    return <EmptyState text="No one's on the board yet." />;
+    return <EmptyState text="SYSTEM BOOTING... WAITING FOR PLAYERS" />;
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            <th className="px-4 py-3">Pos</th>
-            <th className="px-4 py-3">Manager</th>
-            <th className="px-4 py-3 text-right">Points</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {leaderboard.map((row, i) => {
-            const tied = leaderboard.filter((r) => r.rank === row.rank).length > 1;
-            return (
-              <tr key={row.userId}>
-                <td className="px-4 py-3 font-bold text-foreground">
-                  {tied && "="}
-                  {row.rank}
-                </td>
-                <td className="px-4 py-3 text-foreground">{row.displayName}</td>
-                <td className="px-4 py-3 text-right font-mono font-extrabold text-foreground">{row.points}</td>
+    <div className="relative overflow-hidden rounded-3xl border-4 border-[#222] bg-[#0A0A0A] p-6 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]">
+      {/* Scanline overlay */}
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,0,0,0.3)_2px,rgba(0,0,0,0.3)_4px)] opacity-50" />
+      
+      {/* Glare effect */}
+      <div className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
+
+      <div className="relative z-30">
+        <div className="mb-8 text-center border-b-2 border-[#00FF66]/20 pb-4">
+          <h2 className="text-3xl font-black uppercase tracking-[0.2em] text-[#00FF66] animate-pulse drop-shadow-[0_0_15px_rgba(0,255,102,0.8)]">
+            HIGH SCORES
+          </h2>
+          <p className="mt-2 text-xs font-mono font-bold tracking-widest text-[#00FF66]/60">
+            CURRENT STANDINGS • INSERT COIN TO JOIN
+          </p>
+        </div>
+
+        <div className="w-full">
+          <table className="w-full text-sm font-mono">
+            <thead>
+              <tr className="border-b border-[#00FF66]/20 text-left text-[10px] font-black uppercase tracking-widest text-[#00FF66]/50">
+                <th className="px-4 py-3 w-16">RANK</th>
+                <th className="px-4 py-3">PLAYER ID</th>
+                <th className="px-4 py-3 text-right">SCORE (PTS)</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody className="divide-y divide-[#00FF66]/10">
+              {leaderboard.map((row, i) => {
+                const tied = leaderboard.filter((r) => r.rank === row.rank).length > 1;
+                const isTop3 = row.rank <= 3;
+                return (
+                  <tr 
+                    key={row.userId}
+                    className={cn(
+                      "transition-colors hover:bg-[#00FF66]/5",
+                      row.rank === 1 && "bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.15),transparent)]"
+                    )}
+                  >
+                    <td className="px-4 py-4 text-lg font-black">
+                      <span className={cn(
+                        "inline-block min-w-[28px] text-center",
+                        row.rank === 1 ? "text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]" :
+                        row.rank === 2 ? "text-slate-300 drop-shadow-[0_0_8px_rgba(203,213,225,0.6)]" :
+                        row.rank === 3 ? "text-amber-700 drop-shadow-[0_0_8px_rgba(180,83,9,0.6)]" :
+                        "text-[#00FF66]/70"
+                      )}>
+                        {tied && "="}{row.rank}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className={cn(
+                        "text-base font-bold uppercase tracking-wider",
+                        isTop3 ? "text-white" : "text-white/70"
+                      )}>
+                        {row.displayName}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className={cn(
+                        "text-xl font-black tracking-widest",
+                        row.rank === 1 ? "text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]" : "text-[#00FF66]"
+                      )}>
+                        {String(row.points).padStart(4, '0')}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="mt-8 text-center flex items-center justify-center gap-2 text-[#00FF66]/40 text-[10px] font-bold tracking-widest uppercase">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00FF66] animate-ping" />
+          SYSTEM ONLINE • NETWORK SYNCED
+        </div>
+      </div>
     </div>
   );
 }

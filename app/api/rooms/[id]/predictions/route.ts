@@ -27,14 +27,21 @@ function parseValue(market: MarketType, raw: unknown): PredictionValue | null {
     }
     case "btts": {
       const pick = value?.pick;
-      if (typeof pick !== "boolean") return null;
-      return { market, pick };
+      if (typeof pick !== "boolean" && pick !== "yes" && pick !== "no") return null;
+      return { market, pick: pick === true || pick === "yes" ? "yes" : "no" } as any;
     }
     case "total_goals": {
       const pick = value?.pick;
       if (pick !== "over" && pick !== "under") return null;
       return { market, pick };
     }
+    case "double_chance": {
+      const pick = value?.pick;
+      if (pick !== "1X" && pick !== "12" && pick !== "X2") return null;
+      return { market, pick } as any;
+    }
+    default:
+      return null;
   }
 }
 
