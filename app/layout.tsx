@@ -28,6 +28,17 @@ export const metadata: Metadata = {
     "Create a group, predict with friends — group chat predictions for the Premier League, Champions League, and more. Global tournaments too.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#06090e" },
+  ],
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -35,7 +46,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${sora.variable} bg-background font-sans text-foreground antialiased relative min-h-screen pb-20 md:pb-0 transition-colors duration-300`}>
+      <body className={`${dmSans.variable} ${sora.variable} bg-background font-sans text-foreground antialiased relative min-h-screen w-full overflow-x-hidden pb-20 md:pb-0 transition-colors duration-300`}>
         {/* Subtle noise texture overlay */}
         <div 
           className="pointer-events-none fixed inset-0 z-50 h-full w-full opacity-[0.03] mix-blend-overlay"

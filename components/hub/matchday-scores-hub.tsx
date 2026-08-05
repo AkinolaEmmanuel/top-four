@@ -29,33 +29,33 @@ export function MatchdayScoresHub() {
   });
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-6 shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 sm:space-y-6 shadow-sm dark:shadow-elevation-dark-1">
       
       {/* Header & Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border pb-3.5">
         <div>
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-sky-500 animate-ping" />
-            <h3 className="text-lg font-black tracking-tight text-foreground uppercase flex items-center gap-2 font-heading">
+            <h3 className="text-base sm:text-lg font-black tracking-tight text-foreground uppercase flex items-center gap-2 font-heading">
               Matchday Scores & Fixtures Hub
             </h3>
           </div>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5">
+          <p className="text-[11px] sm:text-xs text-muted-foreground font-mono mt-0.5">
             Live scores, finished results, and upcoming fixtures across Europe.
           </p>
         </div>
 
-        {/* Status Sub-Filters */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-secondary border border-border">
+        {/* Status Sub-Filters Grid */}
+        <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-secondary/80 border border-border w-full sm:w-auto text-center">
           {[
             { id: "all", label: "ALL" },
-            { id: "ft", label: "RESULTS (FT)" },
+            { id: "ft", label: "RESULTS" },
             { id: "ns", label: "UPCOMING" },
           ].map((st) => (
             <button
               key={st.id}
               onClick={() => setStatusFilter(st.id as any)}
-              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+              className={`px-2 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-bold transition-all whitespace-nowrap active:scale-95 duration-150 ${
                 statusFilter === st.id
                   ? "bg-sky-500 text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -68,15 +68,15 @@ export function MatchdayScoresHub() {
       </div>
 
       {/* Top 5 Leagues & UCL Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
         {LEAGUE_TABS.map((l) => (
           <button
             key={l.id}
             onClick={() => setSelectedLeagueId(l.id)}
-            className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition-all border ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold transition-all border active:scale-95 duration-150 ${
               selectedLeagueId === l.id
                 ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
-                : "border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                : "border-border bg-slate-50/80 dark:bg-slate-900/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
             <span>{l.flag}</span>
@@ -86,7 +86,7 @@ export function MatchdayScoresHub() {
       </div>
 
       {/* Fixtures Grid */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2">
         {filteredFixtures.length === 0 ? (
           <div className="col-span-full py-8 text-center text-muted-foreground font-mono text-xs">
             No fixtures match the selected filter.
@@ -95,11 +95,11 @@ export function MatchdayScoresHub() {
           filteredFixtures.map((f) => (
             <div
               key={f.id}
-              className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-sm hover:border-sky-500/30 transition-colors"
+              className="rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-3.5 sm:p-4 space-y-3 shadow-sm hover:border-sky-500/30 transition-colors"
             >
               {/* Round & Status Bar */}
               <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-                <span className="font-semibold text-foreground">{f.round}</span>
+                <span className="font-semibold text-foreground text-[11px] sm:text-xs">{f.round}</span>
                 <span className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase border ${
                   f.status === "FT" || f.status === "PEN"
                     ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
@@ -113,16 +113,16 @@ export function MatchdayScoresHub() {
               <div className="grid grid-cols-3 items-center text-center my-2">
                 {/* Home */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <div className="h-10 w-10 p-1.5 rounded-xl bg-secondary border border-border flex items-center justify-center">
+                  <div className="h-9 w-9 sm:h-10 sm:w-10 p-1.5 rounded-xl bg-card border border-border flex items-center justify-center shadow-xs">
                     <TeamLogo src={f.teams.home.logo} teamName={f.teams.home.name} />
                   </div>
-                  <span className="text-xs font-bold text-foreground truncate max-w-[85px]">{f.teams.home.name}</span>
+                  <span className="text-xs font-bold text-foreground truncate max-w-[80px] sm:max-w-[95px]">{f.teams.home.name}</span>
                 </div>
 
                 {/* Score or VS */}
                 <div className="flex flex-col items-center justify-center font-mono">
                   {f.status === "FT" || f.status === "PEN" ? (
-                    <span className="text-xl font-black tracking-wider text-emerald-500">
+                    <span className="text-lg sm:text-xl font-black tracking-wider text-emerald-500">
                       {f.goals.home} - {f.goals.away}
                     </span>
                   ) : (
@@ -137,10 +137,10 @@ export function MatchdayScoresHub() {
 
                 {/* Away */}
                 <div className="flex flex-col items-center gap-1.5">
-                  <div className="h-10 w-10 p-1.5 rounded-xl bg-secondary border border-border flex items-center justify-center">
+                  <div className="h-9 w-9 sm:h-10 sm:w-10 p-1.5 rounded-xl bg-card border border-border flex items-center justify-center shadow-xs">
                     <TeamLogo src={f.teams.away.logo} teamName={f.teams.away.name} />
                   </div>
-                  <span className="text-xs font-bold text-foreground truncate max-w-[85px]">{f.teams.away.name}</span>
+                  <span className="text-xs font-bold text-foreground truncate max-w-[80px] sm:max-w-[95px]">{f.teams.away.name}</span>
                 </div>
               </div>
 

@@ -14,7 +14,7 @@ const MOCK_WIDGET_LEADERBOARD = [
 
 export function GlobalLeaderboardWidget() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 space-y-5 shadow-sm dark:shadow-elevation-dark-1">
       
       {/* Widget Header */}
       <div className="flex items-center justify-between">
