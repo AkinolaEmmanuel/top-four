@@ -12,5 +12,5 @@ export default async function GameLayout({
     redirect("/login");
   }
 
-  return <main className="mx-auto max-w-6xl p-6">{children}</main>;
+  return <main className="mx-auto max-w-8xl px-4 py-6 sm:px-6">{children}</main>;
 }
