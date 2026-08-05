@@ -8,6 +8,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DemoButton } from "@/components/auth/demo-button";
 import { signUp } from "@/lib/mock-auth/client";
 
 export default function SignupPage() {
@@ -91,6 +92,14 @@ export default function SignupPage() {
           Create account
         </Button>
       </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-black/10" />
+        <span className="text-xs font-medium uppercase tracking-wide text-black/40">or</span>
+        <div className="h-px flex-1 bg-black/10" />
+      </div>
+
+      <DemoButton variant="sky" className="w-full py-2.5 h-10" />
 
       <p className="mt-6 text-center text-sm text-black/50">
         Already have an account?{" "}

@@ -34,28 +34,10 @@ export async function signIn(input: {
 }
 
 export async function demoSignIn(): Promise<Profile> {
-  // Try sign in with default guest/demo credentials
-  try {
-    return await signIn({
-      email: "demo@topfour.app",
-      password: "password123",
-    });
-  } catch (e) {
-    // If not registered, auto-register then login
-    try {
-      await signUp({
-        email: "demo@topfour.app",
-        displayName: "Demo Pundit",
-        password: "password123",
-      });
-      return await signIn({
-        email: "demo@topfour.app",
-        password: "password123",
-      });
-    } catch (regErr) {
-      throw new Error("Demo sign in failed. Please create a custom account.");
-    }
-  }
+  const data = await apiFetch<{ profile: Profile }>("/auth/demo", {
+    method: "POST",
+  });
+  return data.profile;
 }
 
 export async function signOut(): Promise<void> {
@@ -64,7 +46,12 @@ export async function signOut(): Promise<void> {
   });
 }
 
-export async function fetchCurrentProfile(): Promise<Profile> {
-  const data = await apiFetch<{ user: Profile; csrfToken: string }>("/auth/me");
-  return data.user;
+export async function fetchCurrentProfile(): Promise<Profile | null> {
+  try {
+    const data = await apiFetch<{ profile?: Profile; user?: Profile; csrfToken?: string }>("/auth/me");
+    return data?.profile ?? data?.user ?? null;
+  } catch (err: any) {
+    // Return null when unauthenticated (401 / 404) so TanStack Query caches logged-out state cleanly
+    return null;
+  }
 }

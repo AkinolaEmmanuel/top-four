@@ -23,14 +23,11 @@ export async function getSession(): Promise<SessionPayload | null> {
  */
 export const getCurrentUser = cache(async (): Promise<Profile | undefined> => {
   try {
-    const data = await apiFetch<{ user: Profile; csrfToken: string }>("/auth/me", {
+    const data = await apiFetch<{ profile?: Profile; user?: Profile; csrfToken?: string }>("/auth/me", {
       cache: "no-store",
     });
-    return data.user;
+    return data?.profile ?? data?.user;
   } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
-      return undefined;
-    }
     return undefined;
   }
 });

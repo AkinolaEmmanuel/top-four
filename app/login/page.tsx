@@ -40,7 +40,7 @@ export default function LoginPage() {
 
     try {
       await demoSignIn();
-      router.push("/");
+      router.push("/predict");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
