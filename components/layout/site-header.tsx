@@ -155,42 +155,8 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
             </div>
           )}
 
-          {/* Mobile Hamburger Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-muted-foreground hover:text-foreground transition-transform duration-150 ease-out active:scale-90 md:hidden"
-            aria-label="Toggle Navigation"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
       </div>
-
-      {/* ── Mobile Nav Dropdown ── */}
-      {mobileMenuOpen && (
-        <div className="border-t border-border bg-card px-4 py-3 md:hidden shadow-lg">
-          <nav className="flex flex-col gap-1.5">
-            {APP_NAV_TABS.map((tab) => {
-              const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-150 active:scale-95",
-                    active
-                      ? "bg-sky-500/15 border border-sky-500/30 text-sky-500"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      )}
     </header>
   );
 }

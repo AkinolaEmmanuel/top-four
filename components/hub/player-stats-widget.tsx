@@ -116,12 +116,12 @@ export function PlayerStatsWidget() {
   const currentData = PLAYER_STATS_DATA[activeLeagueId] || PLAYER_STATS_DATA[39];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-5 shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 sm:space-y-5 shadow-sm dark:shadow-elevation-dark-1">
       
       {/* Widget Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border pb-3.5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm shrink-0">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
@@ -130,11 +130,11 @@ export function PlayerStatsWidget() {
           </div>
         </div>
 
-        {/* Goals / Assists Toggle */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-secondary border border-border">
+        {/* Goals / Assists Toggle Grid */}
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-secondary/80 border border-border w-full sm:w-auto text-center">
           <button
             onClick={() => setStatsTab("scorers")}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 duration-150 active:scale-95 ${
+            className={`px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-mono font-bold transition-all flex items-center justify-center gap-1.5 duration-150 active:scale-95 ${
               statsTab === "scorers"
                 ? "bg-amber-500 text-slate-950 shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -145,7 +145,7 @@ export function PlayerStatsWidget() {
           </button>
           <button
             onClick={() => setStatsTab("assists")}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 duration-150 active:scale-95 ${
+            className={`px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-mono font-bold transition-all flex items-center justify-center gap-1.5 duration-150 active:scale-95 ${
               statsTab === "assists"
                 ? "bg-sky-500 text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -158,7 +158,7 @@ export function PlayerStatsWidget() {
       </div>
 
       {/* League Selection Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
         {Object.entries(PLAYER_STATS_DATA).map(([idStr, data]) => {
           const id = Number(idStr);
           return (
@@ -168,7 +168,7 @@ export function PlayerStatsWidget() {
               className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border duration-150 ease-out active:scale-95 ${
                 activeLeagueId === id
                   ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
-                  : "border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  : "border-border bg-slate-50/80 dark:bg-slate-900/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               <span>{data.flag}</span>
@@ -179,47 +179,47 @@ export function PlayerStatsWidget() {
       </div>
 
       {/* Stats Table List */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex items-center justify-between pb-3 text-xs font-bold text-foreground border-b border-border/60">
-          <span className="font-heading uppercase tracking-wide">
+      <div className="overflow-hidden rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-3 sm:p-4 shadow-sm">
+        <div className="flex items-center justify-between pb-2.5 text-xs font-bold text-foreground border-b border-border/60">
+          <span className="font-heading uppercase tracking-wide text-[11px] sm:text-xs truncate max-w-[200px]">
             {currentData.flag} {currentData.name} — {statsTab === "scorers" ? "Top Goalscorers" : "Top Assist Providers"}
           </span>
-          <span className="text-[10px] text-muted-foreground font-mono font-normal">SEASON 2025</span>
+          <span className="text-[10px] text-muted-foreground font-mono font-normal shrink-0">SEASON 2025</span>
         </div>
 
         <div className="space-y-2.5 font-mono text-xs divide-y divide-border/40 pt-1">
           {statsTab === "scorers"
             ? currentData.topScorers.map((s) => (
-                <div key={s.rank} className="flex items-center justify-between pt-2.5">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-muted-foreground border border-border">
+                <div key={s.rank} className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-lg bg-secondary text-[10px] sm:text-xs font-bold text-muted-foreground border border-border">
                       #{s.rank}
                     </span>
-                    <TeamLogo src={s.logo} teamName={s.team} size={22} />
-                    <div>
-                      <p className="font-bold text-foreground font-sans text-sm truncate max-w-[160px] sm:max-w-[220px]">{s.player}</p>
-                      <p className="text-[11px] text-muted-foreground">{s.team}</p>
+                    <TeamLogo src={s.logo} teamName={s.team} size={20} />
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground font-sans text-xs sm:text-sm truncate max-w-[110px] sm:max-w-[220px]">{s.player}</p>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{s.team}</p>
                     </div>
                   </div>
-                  <span className="font-black text-amber-400 text-base bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
-                    {s.goals} <span className="text-xs text-muted-foreground font-normal">GOALS</span>
+                  <span className="font-black text-amber-500 text-xs sm:text-sm bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 shrink-0">
+                    {s.goals} <span className="text-[10px] text-muted-foreground font-normal">GOALS</span>
                   </span>
                 </div>
               ))
             : currentData.topAssists.map((a) => (
-                <div key={a.rank} className="flex items-center justify-between pt-2.5">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-muted-foreground border border-border">
+                <div key={a.rank} className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-lg bg-secondary text-[10px] sm:text-xs font-bold text-muted-foreground border border-border">
                       #{a.rank}
                     </span>
-                    <TeamLogo src={a.logo} teamName={a.team} size={22} />
-                    <div>
-                      <p className="font-bold text-foreground font-sans text-xs truncate max-w-[160px] sm:max-w-[220px]">{a.player}</p>
-                      <p className="text-[11px] text-muted-foreground">{a.team}</p>
+                    <TeamLogo src={a.logo} teamName={a.team} size={20} />
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground font-sans text-xs sm:text-sm truncate max-w-[110px] sm:max-w-[220px]">{a.player}</p>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{a.team}</p>
                     </div>
                   </div>
-                  <span className="font-black text-sky-400 text-base bg-sky-500/10 px-3 py-1 rounded-xl border border-sky-500/20">
-                    {a.assists} <span className="text-xs text-muted-foreground font-normal">ASSISTS</span>
+                  <span className="font-black text-sky-500 text-xs sm:text-sm bg-sky-500/10 px-2.5 py-1 rounded-lg border border-sky-500/20 shrink-0">
+                    {a.assists} <span className="text-[10px] text-muted-foreground font-normal">ASSISTS</span>
                   </span>
                 </div>
               ))}

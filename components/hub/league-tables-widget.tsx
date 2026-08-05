@@ -157,7 +157,7 @@ export function LeagueTablesWidget() {
   const currentData = LEAGUE_STANDINGS_DATA[activeLeagueId] || LEAGUE_STANDINGS_DATA[39];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-6 shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 sm:space-y-6 shadow-sm dark:shadow-elevation-dark-1">
       
       {/* Widget Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
@@ -172,7 +172,7 @@ export function LeagueTablesWidget() {
         </div>
 
         {/* League Selection Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
           {Object.entries(LEAGUE_STANDINGS_DATA).map(([idStr, data]) => {
             const id = Number(idStr);
             return (
@@ -182,7 +182,7 @@ export function LeagueTablesWidget() {
                 className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border duration-150 ease-out active:scale-95 ${
                   activeLeagueId === id
                     ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
-                    : "border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    : "border-border bg-slate-50/80 dark:bg-slate-900/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
                 <span>{data.flag}</span>
@@ -202,8 +202,8 @@ export function LeagueTablesWidget() {
           <span className="text-[10px] text-muted-foreground font-mono">SEASON 2025</span>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-border bg-card p-1 shadow-sm">
-          <table className="w-full text-left font-mono text-xs">
+        <div className="overflow-x-auto rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-1 shadow-sm">
+          <table className="w-full min-w-[480px] text-left font-mono text-xs">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-[10px] uppercase">
                 <th className="py-2.5 pl-3 w-10 text-center">POS</th>
@@ -218,7 +218,7 @@ export function LeagueTablesWidget() {
             </thead>
             <tbody className="divide-y divide-border/60">
               {currentData.table.map((row) => (
-                <tr key={row.rank} className="hover:bg-muted/40 transition-colors">
+                <tr key={row.rank} className="hover:bg-secondary/60 transition-colors">
                   <td className="py-3 pl-3 text-center font-bold">
                     <span className={`inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs ${
                       row.rank <= 4

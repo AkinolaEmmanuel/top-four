@@ -24,11 +24,11 @@ const LEAGUE_TABS = [
 ];
 
 const MARKET_TABS: { id: MarketType; label: string; pts: number }[] = [
-  { id: "match_result", label: "RESULT (1X2)", pts: 2 },
-  { id: "exact_score", label: "EXACT SCORE", pts: 5 },
-  { id: "btts", label: "BTTS", pts: 1 },
-  { id: "total_goals", label: "GOALS (O/U)", pts: 1 },
-  { id: "anytime_scorer", label: "GOALSCORER", pts: 5 },
+  { id: "match_result", label: "RESULT (1X2)", pts: 5 },
+  { id: "exact_score", label: "EXACT SCORE", pts: 3 },
+  { id: "btts", label: "BTTS", pts: 4 },
+  { id: "total_goals", label: "GOALS (O/U)", pts: 3 },
+  { id: "anytime_scorer", label: "GOALSCORER", pts: 2 },
   { id: "player_card", label: "CARDED", pts: 4 },
   { id: "custom_question", label: "CUSTOM Q", pts: 3 },
 ];
@@ -65,30 +65,30 @@ export function ArcadeMatchPickCenter({
   });
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 space-y-5 shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 sm:space-y-5 shadow-sm dark:shadow-elevation-dark-1">
       
       {/* ── Top Control Bar ── */}
-      <div className="space-y-4 border-b border-border pb-4">
+      <div className="space-y-3.5 border-b border-border pb-4">
         
         {/* Header Title & Subtitle */}
         <div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
-            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-foreground uppercase font-heading flex items-center gap-2">
+            <h2 className="text-base sm:text-xl font-extrabold tracking-tight text-foreground uppercase font-heading flex items-center gap-2">
               MATCHDAY PREDICTOR BOARD
             </h2>
           </div>
-          <p className="text-xs text-muted-foreground font-mono mt-1">
+          <p className="text-[11px] sm:text-xs text-muted-foreground font-mono mt-0.5">
             Filter competition & prediction market below. Picks appear directly under each match.
           </p>
         </div>
 
         {/* 1. League Competition Filter Tabs */}
-        <div className="space-y-1.5">
-          <span className="text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-wider">
+        <div className="space-y-1">
+          <span className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-wider">
             SELECT COMPETITION
           </span>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
             {LEAGUE_TABS.map((l) => (
               <button
                 key={l.id}
@@ -96,7 +96,7 @@ export function ArcadeMatchPickCenter({
                 className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border ${
                   selectedLeagueId === l.id
                     ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
-                    : "border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    : "border-border bg-slate-50/80 dark:bg-slate-900/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
                 <span>{l.flag}</span>
@@ -106,17 +106,17 @@ export function ArcadeMatchPickCenter({
           </div>
         </div>
 
-        {/* 2. Prediction Market Switcher Tabs (Non-scrolling Grid) */}
-        <div className="space-y-1.5 pt-1">
-          <span className="text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-wider">
+        {/* 2. Prediction Market Switcher Tabs */}
+        <div className="space-y-1 pt-0.5">
+          <span className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-wider">
             PREDICTION MARKET
           </span>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 p-1 rounded-xl bg-secondary border border-border w-full">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none p-1 rounded-xl bg-secondary/80 border border-border w-full -mx-1 px-1">
             {MARKET_TABS.map((m) => (
               <button
                 key={m.id}
                 onClick={() => setActiveMarket(m.id)}
-                className={`px-2 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-bold text-center transition-all ${
+                className={`flex-1 min-w-[95px] shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-bold text-center transition-all active:scale-95 duration-150 ${
                   activeMarket === m.id
                     ? "bg-sky-500 text-white shadow-glow-sky"
                     : "text-muted-foreground hover:text-foreground hover:bg-card"
@@ -373,8 +373,8 @@ function ExactScoreUnderPicker({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2.5 rounded-lg bg-card border border-border text-xs font-mono">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-lg bg-card border border-border text-xs font-mono">
+      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
         <span className="font-bold text-foreground">SET SCORELINE:</span>
         
         {/* Home Counter */}
@@ -386,18 +386,18 @@ function ExactScoreUnderPicker({
               setHomeScore(next);
               handleApply(next, awayScore);
             }}
-            className="h-7 w-7 rounded bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold"
+            className="h-9 w-9 rounded-lg bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold text-base active:scale-90 transition-transform touch-manipulation border border-border"
           >
             -
           </button>
-          <span className="text-base font-black text-sky-500 w-5 text-center">{homeScore}</span>
+          <span className="text-lg font-black text-sky-500 w-6 text-center">{homeScore}</span>
           <button
             onClick={() => {
               const next = homeScore + 1;
               setHomeScore(next);
               handleApply(next, awayScore);
             }}
-            className="h-7 w-7 rounded bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold"
+            className="h-9 w-9 rounded-lg bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold text-base active:scale-90 transition-transform touch-manipulation border border-border"
           >
             +
           </button>
@@ -413,18 +413,18 @@ function ExactScoreUnderPicker({
               setAwayScore(next);
               handleApply(homeScore, next);
             }}
-            className="h-7 w-7 rounded bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold"
+            className="h-9 w-9 rounded-lg bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold text-base active:scale-90 transition-transform touch-manipulation border border-border"
           >
             -
           </button>
-          <span className="text-base font-black text-sky-500 w-5 text-center">{awayScore}</span>
+          <span className="text-lg font-black text-sky-500 w-6 text-center">{awayScore}</span>
           <button
             onClick={() => {
               const next = awayScore + 1;
               setAwayScore(next);
               handleApply(homeScore, next);
             }}
-            className="h-7 w-7 rounded bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold"
+            className="h-9 w-9 rounded-lg bg-secondary hover:bg-accent text-foreground flex items-center justify-center font-bold text-base active:scale-90 transition-transform touch-manipulation border border-border"
           >
             +
           </button>

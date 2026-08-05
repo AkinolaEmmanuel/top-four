@@ -27,8 +27,8 @@ export function MobileNav() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-2 md:hidden">
-      <nav className="pointer-events-auto flex w-[96%] max-w-md items-center justify-around rounded-2xl border border-sky-500/20 bg-card/95 px-1.5 py-2 shadow-elevation-dark-2 backdrop-blur-xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card/95 border-t border-border backdrop-blur-2xl px-2 py-1.5 shadow-2xl pb-[calc(0.375rem+env(safe-area-inset-bottom))]">
+      <nav className="flex w-full items-center justify-around">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -41,14 +41,17 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center rounded-xl px-2 py-1.5 transition-all duration-150 ease-out active:scale-90 text-center",
+                "relative flex flex-1 flex-col items-center justify-center rounded-xl py-1.5 px-0.5 transition-all duration-150 ease-out active:scale-90 text-center touch-manipulation min-h-[48px]",
                 isActive
-                  ? "bg-sky-500/15 text-sky-500 font-bold shadow-sm"
+                  ? "bg-sky-500/15 text-sky-500 font-bold"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("h-5 w-5", isActive ? "stroke-[2.5]" : "stroke-[1.75]")} />
-              <span className="mt-1 text-[9px] font-mono leading-none truncate max-w-[64px]">{item.label}</span>
+              {isActive && (
+                <span className="absolute top-0 h-1 w-6 rounded-full bg-sky-500 shadow-glow-sky" />
+              )}
+              <Icon className={cn("h-5 w-5 transition-transform mt-0.5", isActive ? "stroke-[2.5] scale-110" : "stroke-[1.75]")} />
+              <span className="mt-1 text-[10px] font-mono leading-none truncate max-w-[56px]">{item.label}</span>
             </Link>
           );
         })}
