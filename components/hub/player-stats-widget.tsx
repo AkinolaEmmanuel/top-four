@@ -106,6 +106,7 @@ const PLAYER_STATS_DATA: Record<number, {
       { rank: 2, player: "Achraf Hakimi", team: "PSG", logo: "/football/teams/50.svg", assists: 7 },
       { rank: 3, player: "Takumi Minamino", team: "Monaco", logo: "/football/teams/52.svg", assists: 6 },
       { rank: 4, player: "Rayan Cherki", team: "Lyon", logo: "/football/teams/53.svg", assists: 5 },
+    ],
   },
 };
 
