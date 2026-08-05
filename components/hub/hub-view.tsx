@@ -53,19 +53,19 @@ export async function HubView({ user }: { user?: any }) {
 
           {/* Stat Pill Grid Cards */}
           <div className="grid grid-cols-2 gap-3 shrink-0 w-full md:w-auto">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-center shadow-sm">
+            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 text-center shadow-sm">
               <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">ACTIVE SLIPS</span>
               <p className="mt-1 text-2xl font-black text-white font-mono">3 SLIPS</p>
             </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-center shadow-sm">
+            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 text-center shadow-sm">
               <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">PTS BALANCE</span>
               <p className="mt-1 text-2xl font-black text-crown font-mono">1,250 PTS</p>
             </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-center shadow-sm">
+            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 text-center shadow-sm">
               <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">ACCURACY</span>
               <p className="mt-1 text-2xl font-black text-emerald-400 font-mono">84% WIN</p>
             </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-center shadow-sm">
+            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 text-center shadow-sm">
               <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">HOT STREAK</span>
               <p className="mt-1 text-2xl font-black text-amber-400 font-mono">3🔥</p>
             </div>
@@ -88,47 +88,47 @@ export async function HubView({ user }: { user?: any }) {
           <PlayerStatsWidget />
 
           {/* Featured Prediction Rooms Widget */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 space-y-4 shadow-elevation-dark-1">
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-elevation-dark-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20">
                   <Users className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white font-heading">Private Clubs</h3>
-                  <p className="text-[11px] text-slate-400 font-mono">FEATURED ROOMS</p>
+                  <h3 className="text-base font-bold text-foreground font-heading">Private Clubs</h3>
+                  <p className="text-[11px] text-muted-foreground font-mono">FEATURED ROOMS</p>
                 </div>
               </div>
 
-              <Link href="/rooms" className="text-xs font-bold text-sky-400 hover:text-sky-300">
+              <Link href="/rooms" className="text-xs font-bold text-sky-500 hover:text-sky-600 dark:hover:text-sky-400">
                 All Rooms →
               </Link>
             </div>
 
             <div className="space-y-3 pt-2">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 space-y-2">
+              <div className="rounded-xl border border-border bg-secondary/50 p-3.5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-white uppercase">Premier League Pundits</h4>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                  <h4 className="text-xs font-bold text-foreground uppercase">Premier League Pundits</h4>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-500 border border-sky-500/30">
                     PUBLIC
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
                   <span>148 MEMBERS</span>
-                  <span className="text-emerald-400">ACTIVE MATCHDAY</span>
+                  <span className="text-emerald-500">ACTIVE MATCHDAY</span>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 space-y-2">
+              <div className="rounded-xl border border-border bg-secondary/50 p-3.5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-white uppercase">Champions League Elite</h4>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-yellow-500/10 text-crown border border-yellow-500/30">
+                  <h4 className="text-xs font-bold text-foreground uppercase">Champions League Elite</h4>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-crown border border-amber-500/30">
                     VIP ROOM
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
                   <span>92 MEMBERS</span>
-                  <span className="text-emerald-400">ACTIVE MATCHDAY</span>
+                  <span className="text-emerald-500">ACTIVE MATCHDAY</span>
                 </div>
               </div>
             </div>

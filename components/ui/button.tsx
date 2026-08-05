@@ -13,8 +13,8 @@ const buttonVariants = cva(
         crown: "bg-crown text-slate-950 font-bold hover:bg-yellow-400 focus-visible:ring-yellow-400 shadow-sm",
         glow: "bg-sky-500 text-white shadow-glow-sky hover:bg-sky-600 focus-visible:ring-sky-400 font-bold",
         outline:
-          "border border-slate-700 bg-slate-900/50 text-foreground hover:bg-slate-800 hover:border-slate-600 focus-visible:ring-sky-500",
-        ghost: "bg-transparent text-foreground hover:bg-slate-800/60 focus-visible:ring-sky-500",
+          "border border-border bg-card text-foreground hover:bg-secondary hover:border-slate-300 dark:hover:border-slate-700 focus-visible:ring-sky-500 shadow-sm",
+        ghost: "bg-transparent text-foreground hover:bg-secondary focus-visible:ring-sky-500",
         destructive: "bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500 shadow-sm",
       },
       size: {
