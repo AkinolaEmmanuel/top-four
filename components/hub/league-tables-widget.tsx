@@ -152,7 +152,7 @@ const LEAGUE_STANDINGS_DATA: Record<number, {
 
 export function LeagueTablesWidget() {
   const [activeLeagueId, setActiveLeagueId] = useState<number>(39);
-  const [viewMode, setViewMode] = useState<"standings" | "scorers" | "assists">("standings");
+  const [statsTab, setStatsTab] = useState<"scorers" | "assists">("scorers");
   const currentData = LEAGUE_STANDINGS_DATA[activeLeagueId] || LEAGUE_STANDINGS_DATA[39];
 
   return (
@@ -160,182 +160,171 @@ export function LeagueTablesWidget() {
       
       {/* Widget Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20">
-            <Trophy className="h-4 w-4" />
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shadow-sm">
+            <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground font-heading">Official League Hub & Stats</h3>
-            <p className="text-[11px] text-muted-foreground font-mono">STANDINGS, TOP SCORERS & ASSISTS</p>
+            <h3 className="text-base font-bold text-foreground font-heading">Official League Hub & Player Stats</h3>
+            <p className="text-[11px] text-muted-foreground font-mono">STANDINGS · GOALS · ASSISTS</p>
           </div>
         </div>
 
-        {/* View Mode Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-secondary border border-border">
-          <button
-            onClick={() => setViewMode("standings")}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-              viewMode === "standings"
-                ? "bg-sky-500 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            TABLE
-          </button>
-          <button
-            onClick={() => setViewMode("scorers")}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
-              viewMode === "scorers"
-                ? "bg-sky-500 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Flame className="h-3 w-3 text-amber-400" />
-            GOALS
-          </button>
-          <button
-            onClick={() => setViewMode("assists")}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
-              viewMode === "assists"
-                ? "bg-sky-500 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Target className="h-3 w-3 text-sky-400" />
-            ASSISTS
-          </button>
+        {/* League Selection Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {Object.entries(LEAGUE_STANDINGS_DATA).map(([idStr, data]) => {
+            const id = Number(idStr);
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveLeagueId(id)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border duration-150 ease-out active:scale-95 ${
+                  activeLeagueId === id
+                    ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
+                    : "border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                <span>{data.flag}</span>
+                <span>{data.name}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* League Selection Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {Object.entries(LEAGUE_STANDINGS_DATA).map(([idStr, data]) => {
-          const id = Number(idStr);
-          return (
-            <button
-              key={id}
-              onClick={() => setActiveLeagueId(id)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border ${
-                activeLeagueId === id
-                  ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
-                  : "border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              <span>{data.flag}</span>
-              <span>{data.name}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Main Display Grid */}
+      {/* Main Display Grid: Standings Table (Left 7 Cols) + Player Stats Side Table (Right 5 Cols) */}
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         
-        {/* Table View (8 Cols on Wide Screen or Full Width) */}
-        <div className={viewMode === "standings" ? "lg:col-span-12" : "lg:col-span-7"}>
-          {viewMode === "standings" || viewMode === "scorers" || viewMode === "assists" ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                <span>{currentData.flag} {currentData.name} — Standings</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left font-mono text-xs">
-                  <thead>
-                    <tr className="border-b border-border text-muted-foreground text-[10px] uppercase">
-                      <th className="pb-2 pl-2 w-8 text-center">POS</th>
-                      <th className="pb-2 font-sans font-bold">CLUB</th>
-                      <th className="pb-2 text-center w-8">P</th>
-                      <th className="pb-2 text-center w-8">W</th>
-                      <th className="pb-2 text-center w-8">D</th>
-                      <th className="pb-2 text-center w-8">L</th>
-                      <th className="pb-2 text-center w-10">GD</th>
-                      <th className="pb-2 pr-2 text-right w-12 font-bold text-foreground">PTS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {currentData.table.map((row) => (
-                      <tr key={row.rank} className="hover:bg-secondary/40 transition-colors">
-                        <td className="py-2.5 pl-2 text-center font-bold">
-                          <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[11px] ${
-                            row.rank <= 4
-                              ? "bg-sky-500/15 text-sky-500 font-black border border-sky-500/30"
-                              : "text-muted-foreground"
-                          }`}>
-                            {row.rank}
-                          </span>
-                        </td>
-                        <td className="py-2.5 font-sans font-bold text-foreground">
-                          <div className="flex items-center gap-2">
-                            <TeamLogo src={row.logo} teamName={row.team} size={20} />
-                            <span className="truncate max-w-[130px] sm:max-w-[170px]">{row.team}</span>
-                          </div>
-                        </td>
-                        <td className="py-2.5 text-center text-muted-foreground">{row.p}</td>
-                        <td className="py-2.5 text-center text-emerald-400 font-bold">{row.w}</td>
-                        <td className="py-2.5 text-center text-muted-foreground">{row.d}</td>
-                        <td className="py-2.5 text-center text-destructive">{row.l}</td>
-                        <td className="py-2.5 text-center text-muted-foreground">{row.gd}</td>
-                        <td className="py-2.5 pr-2 text-right font-black text-foreground text-sm">{row.pts}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : null}
+        {/* Main Standings Table (7 Cols) */}
+        <div className="lg:col-span-7 space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+            <span className="flex items-center gap-1.5 font-heading">
+              <span className="text-sm">{currentData.flag}</span> {currentData.name} — League Table
+            </span>
+            <span className="text-[10px] text-muted-foreground font-mono">LIVE STANDINGS</span>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-border bg-slate-950/40 p-1">
+            <table className="w-full text-left font-mono text-xs">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground text-[10px] uppercase">
+                  <th className="py-2.5 pl-2.5 w-8 text-center">POS</th>
+                  <th className="py-2.5 font-sans font-bold">CLUB</th>
+                  <th className="py-2.5 text-center w-8">P</th>
+                  <th className="py-2.5 text-center w-8">W</th>
+                  <th className="py-2.5 text-center w-8">D</th>
+                  <th className="py-2.5 text-center w-8">L</th>
+                  <th className="py-2.5 text-center w-10">GD</th>
+                  <th className="py-2.5 pr-2.5 text-right w-12 font-bold text-foreground">PTS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {currentData.table.map((row) => (
+                  <tr key={row.rank} className="hover:bg-secondary/40 transition-colors">
+                    <td className="py-2.5 pl-2.5 text-center font-bold">
+                      <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[11px] ${
+                        row.rank <= 4
+                          ? "bg-sky-500/15 text-sky-500 font-black border border-sky-500/30"
+                          : "text-muted-foreground"
+                      }`}>
+                        {row.rank}
+                      </span>
+                    </td>
+                    <td className="py-2.5 font-sans font-bold text-foreground">
+                      <div className="flex items-center gap-2">
+                        <TeamLogo src={row.logo} teamName={row.team} size={20} />
+                        <span className="truncate max-w-[120px] sm:max-w-[160px]">{row.team}</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 text-center text-muted-foreground">{row.p}</td>
+                    <td className="py-2.5 text-center text-emerald-400 font-bold">{row.w}</td>
+                    <td className="py-2.5 text-center text-muted-foreground">{row.d}</td>
+                    <td className="py-2.5 text-center text-destructive">{row.l}</td>
+                    <td className="py-2.5 text-center text-muted-foreground">{row.gd}</td>
+                    <td className="py-2.5 pr-2.5 text-right font-black text-foreground text-sm">{row.pts}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Top Scorers or Assists Sidebar Table (5 Cols) */}
-        {viewMode !== "standings" && (
-          <div className="lg:col-span-5 rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-foreground font-heading uppercase flex items-center gap-1.5">
-                {viewMode === "scorers" ? (
-                  <>
-                    <Flame className="h-3.5 w-3.5 text-amber-400" />
-                    Top Scorers (Goals)
-                  </>
-                ) : (
-                  <>
-                    <Target className="h-3.5 w-3.5 text-sky-400" />
-                    Top Assists Leaderboard
-                  </>
-                )}
-              </h4>
-              <span className="text-[10px] text-muted-foreground font-mono">SEASON 2025</span>
-            </div>
+        {/* Player Stats Side Table: Goals & Assists (Right 5 Cols) */}
+        <div className="lg:col-span-5 rounded-2xl border border-border bg-secondary/30 p-4 space-y-4 shadow-sm">
+          
+          {/* Side Table Header & Stats Selector */}
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h4 className="text-xs font-bold text-foreground font-heading uppercase flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-sky-400" />
+              Player Leaders
+            </h4>
 
-            <div className="space-y-2 font-mono text-xs divide-y divide-border/40">
-              {viewMode === "scorers"
-                ? currentData.topScorers.map((s) => (
-                    <div key={s.rank} className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-muted-foreground w-4 text-center">#{s.rank}</span>
-                        <TeamLogo src={s.logo} teamName={s.team} size={18} />
-                        <div>
-                          <p className="font-bold text-foreground font-sans text-xs truncate max-w-[110px]">{s.player}</p>
-                          <p className="text-[10px] text-muted-foreground">{s.team}</p>
-                        </div>
-                      </div>
-                      <span className="font-black text-amber-400 text-sm">{s.goals} <span className="text-[10px] text-muted-foreground">G</span></span>
-                    </div>
-                  ))
-                : currentData.topAssists.map((a) => (
-                    <div key={a.rank} className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-muted-foreground w-4 text-center">#{a.rank}</span>
-                        <TeamLogo src={a.logo} teamName={a.team} size={18} />
-                        <div>
-                          <p className="font-bold text-foreground font-sans text-xs truncate max-w-[110px]">{a.player}</p>
-                          <p className="text-[10px] text-muted-foreground">{a.team}</p>
-                        </div>
-                      </div>
-                      <span className="font-black text-sky-400 text-sm">{a.assists} <span className="text-[10px] text-muted-foreground">A</span></span>
-                    </div>
-                  ))}
+            {/* Goals / Assists Sub-Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-card border border-border">
+              <button
+                onClick={() => setStatsTab("scorers")}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center gap-1.5 duration-150 active:scale-95 ${
+                  statsTab === "scorers"
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Flame className="h-3 w-3 text-amber-400" />
+                GOALS
+              </button>
+              <button
+                onClick={() => setStatsTab("assists")}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center gap-1.5 duration-150 active:scale-95 ${
+                  statsTab === "assists"
+                    ? "bg-sky-500/20 text-sky-400 border border-sky-500/30 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Target className="h-3 w-3 text-sky-400" />
+                ASSISTS
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Stats List */}
+          <div className="space-y-2.5 font-mono text-xs divide-y divide-border/40">
+            {statsTab === "scorers"
+              ? currentData.topScorers.map((s) => (
+                  <div key={s.rank} className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-bold text-muted-foreground">
+                        {s.rank}
+                      </span>
+                      <TeamLogo src={s.logo} teamName={s.team} size={20} />
+                      <div>
+                        <p className="font-bold text-foreground font-sans text-xs truncate max-w-[130px]">{s.player}</p>
+                        <p className="text-[10px] text-muted-foreground">{s.team}</p>
+                      </div>
+                    </div>
+                    <span className="font-black text-amber-400 text-sm bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                      {s.goals} <span className="text-[10px] text-muted-foreground font-normal">G</span>
+                    </span>
+                  </div>
+                ))
+              : currentData.topAssists.map((a) => (
+                  <div key={a.rank} className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-bold text-muted-foreground">
+                        {a.rank}
+                      </span>
+                      <TeamLogo src={a.logo} teamName={a.team} size={20} />
+                      <div>
+                        <p className="font-bold text-foreground font-sans text-xs truncate max-w-[130px]">{a.player}</p>
+                        <p className="text-[10px] text-muted-foreground">{a.team}</p>
+                      </div>
+                    </div>
+                    <span className="font-black text-sky-400 text-sm bg-sky-500/10 px-2 py-0.5 rounded-lg border border-sky-500/20">
+                      {a.assists} <span className="text-[10px] text-muted-foreground font-normal">A</span>
+                    </span>
+                  </div>
+                ))}
+          </div>
+        </div>
       </div>
     </div>
   );
