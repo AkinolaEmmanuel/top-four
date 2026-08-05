@@ -1,9 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Zap, Share2, Printer, Shield, Sparkles } from "lucide-react";
+import { Check, Zap, Printer, Sparkles } from "lucide-react";
 import { PredictionValue, MarketType } from "@/types";
-import { PITCH_GREEN } from "@/lib/brand/colors";
 
 export type TicketPick = {
   fixtureId: number;
@@ -44,20 +43,19 @@ export function CollectibleReceiptTicket({
   const basePoints = picks.reduce((acc, p) => acc + p.points, 0);
   const totalMultiplier = isDoubleDownActive ? 2 : 1;
   const finalPoints = basePoints * totalMultiplier;
-  const potentialXp = picks.length * 50 * totalMultiplier;
 
   return (
     <div className="relative w-full max-w-sm mx-auto font-mono">
       
       {/* Printer Slot Chrome Top Header */}
-      <div className="flex items-center justify-between px-4 py-2 rounded-t-xl bg-[#1A1A1A] border-t border-x border-white/10 text-xs text-white/60">
+      <div className="flex items-center justify-between px-4 py-2 rounded-t-xl bg-slate-900 border-t border-x border-slate-800 text-xs text-slate-400">
         <div className="flex items-center gap-2">
-          <Printer className="h-3.5 w-3.5 text-[#00FF66]" />
+          <Printer className="h-3.5 w-3.5 text-sky-400" />
           <span className="font-bold tracking-wider text-white">THERMAL PRINTER</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-[#00FF66] animate-ping" />
-          <span className="text-[10px] text-[#00FF66] font-bold">READY</span>
+          <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+          <span className="text-[10px] text-sky-400 font-bold">READY</span>
         </div>
       </div>
 
@@ -69,11 +67,14 @@ export function CollectibleReceiptTicket({
       {/* Thermal Receipt Paper Body */}
       <motion.div
         layout
-        className="bg-white text-black p-6 relative shadow-2xl space-y-4"
+        className="bg-white text-black p-6 relative shadow-2xl space-y-4 group overflow-hidden"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
       >
+        {/* Holographic Foil Hover Sweep */}
+        <div className="pointer-events-none absolute inset-0 z-20 translate-x-[-150%] bg-gradient-to-r from-transparent via-[rgba(14,165,233,0.15)] to-transparent opacity-0 transition-all duration-[1000ms] ease-in-out group-hover:translate-x-[150%] group-hover:opacity-100 mix-blend-overlay" />
+        
         {/* Receipt Header */}
         <div className="text-center border-b-2 border-dashed border-black/20 pb-4 space-y-1">
           <h3 className="text-2xl font-black tracking-tighter uppercase">TOPFOUR.APP MATCH TICKET</h3>
@@ -88,33 +89,21 @@ export function CollectibleReceiptTicket({
               </span>
             )}
             {status === "locked" && (
-              <span className="inline-block px-3 py-0.5 rounded bg-black text-[#00FF66] font-black text-xs tracking-wider animate-pulse">
+              <span className="inline-block px-3 py-0.5 rounded bg-black text-sky-400 font-black text-xs tracking-wider animate-pulse">
                 ✓ LOCKED IN FOR MATCHDAY
               </span>
             )}
             {status === "settled" && (
               <motion.span
-                initial={{ scale: 1.5, rotate: -5 }}
+                initial={{ scale: 1.2, rotate: -3 }}
                 animate={{ scale: 1, rotate: 0 }}
-                className="inline-block px-4 py-1 rounded bg-[#00FF66] text-black font-black text-xs tracking-widest border-2 border-black shadow-lg"
+                className="inline-block px-4 py-1 rounded bg-emerald-500 text-slate-950 font-black text-xs tracking-widest border-2 border-black shadow-lg"
               >
                 ★ WINNER: +{settledPointsEarned} PTS EARNED! ★
               </motion.span>
             )}
           </div>
         </div>
-
-        {/* Double Down Badge */}
-        {isDoubleDownActive && (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center justify-center gap-1.5 p-2 rounded bg-black text-[#00FF66] font-black text-xs tracking-wider"
-          >
-            <Zap className="h-4 w-4 fill-current" />
-            DOUBLE DOWN 2X MULTIPLIER ACTIVE
-          </motion.div>
-        )}
 
         {/* Selected Picks Listing */}
         <div className="space-y-3 min-h-[140px]">
@@ -148,7 +137,7 @@ export function CollectibleReceiptTicket({
                     <span className="inline-block px-2 py-0.5 rounded bg-black text-white font-bold text-xs">
                       {getPickLabel(pick.value)}
                     </span>
-                    <p className="text-[10px] font-bold text-emerald-600">+{pick.points * totalMultiplier} PTS</p>
+                    <p className="text-[10px] font-bold text-emerald-600">+{pick.points} PTS</p>
                   </div>
                 </motion.div>
               ))
@@ -162,21 +151,16 @@ export function CollectibleReceiptTicket({
             <span>SELECTIONS:</span>
             <span>{picks.length} MATCHES</span>
           </div>
-          <div className="flex justify-between text-black/70">
-            <span>XP MULTIPLIER:</span>
-            <span className="text-emerald-700">+{potentialXp} XP</span>
-          </div>
           <div className="flex justify-between text-sm font-black border-t border-dashed border-black/20 pt-2 text-black">
             <span>{status === "settled" ? "FINAL PTS WON:" : "EST. MAX PAYOUT:"}</span>
             <span className="text-emerald-600 text-base">
-              {status === "settled" ? settledPointsEarned : finalPoints} PTS
+              {status === "settled" ? settledPointsEarned : basePoints} PTS
             </span>
           </div>
         </div>
 
         {/* Barcode & Stamps */}
         <div className="border-t border-black/20 pt-4 flex flex-col items-center justify-center space-y-2">
-          {/* Simulated Barcode */}
           <div className="h-10 w-full bg-[repeating-linear-gradient(90deg,#000_0px,#000_2px,transparent_2px,transparent_4px,#000_4px,#000_7px)]" />
           <p className="text-[9px] tracking-widest text-black/50">||| | |||| || ||| |||| | |||</p>
         </div>
@@ -192,25 +176,12 @@ export function CollectibleReceiptTicket({
         {status === "draft" && (
           <>
             <div className="flex items-center gap-2">
-              {onToggleDoubleDown && (
-                <button
-                  onClick={onToggleDoubleDown}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border font-bold text-xs transition-all ${
-                    isDoubleDownActive
-                      ? "bg-[#00FF66] border-[#00FF66] text-black shadow-[0_0_15px_rgba(0,255,102,0.4)]"
-                      : "bg-white/5 border-white/20 text-white hover:bg-white/10"
-                  }`}
-                >
-                  <Zap className="h-4 w-4 fill-current" />
-                  {isDoubleDownActive ? "2X DOUBLE DOWN ON" : "USE DOUBLE DOWN (2X)"}
-                </button>
-              )}
               {onClearPicks && picks.length > 0 && (
                 <button
                   onClick={onClearPicks}
-                  className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/20 text-white/60 hover:text-white hover:border-white/40 text-xs font-bold"
+                  className="w-full py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-bold"
                 >
-                  CLEAR
+                  CLEAR PICKS
                 </button>
               )}
             </div>
@@ -219,10 +190,10 @@ export function CollectibleReceiptTicket({
               <button
                 onClick={onLockInPicks}
                 disabled={picks.length === 0}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#00FF66] text-black font-black text-sm hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 transition-all shadow-[0_0_20px_rgba(0,255,102,0.3)]"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm hover:bg-sky-600 disabled:opacity-40 transition-all shadow-glow-sky"
               >
                 <Check className="h-4 w-4" />
-                STEP 2: LOCK IN RECEIPT
+                LOCK IN RECEIPT SLIP
               </button>
             )}
           </>
@@ -231,7 +202,7 @@ export function CollectibleReceiptTicket({
         {status === "locked" && onSimulateMatch && (
           <button
             onClick={onSimulateMatch}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-400 text-black font-black text-sm hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(251,191,36,0.4)]"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-crown text-slate-950 font-extrabold text-sm hover:bg-yellow-400 transition-all shadow-md"
           >
             <Sparkles className="h-4 w-4" />
             STEP 3: SIMULATE MATCHES & GRADE RECEIPT
@@ -241,7 +212,7 @@ export function CollectibleReceiptTicket({
         {status === "settled" && onClearPicks && (
           <button
             onClick={onClearPicks}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 border border-white/20 text-white font-bold text-xs hover:bg-white/20 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white font-bold text-xs hover:bg-slate-800 transition-all"
           >
             PLAY ANOTHER MATCHDAY SLIP
           </button>
@@ -252,10 +223,30 @@ export function CollectibleReceiptTicket({
 }
 
 function getPickLabel(val: PredictionValue): string {
-
-  if (val.market === "match_result") return val.pick.toUpperCase();
-  if (val.market === "exact_score") return `${val.home} - ${val.away}`;
-  if (val.market === "btts") return val.pick ? "YES" : "NO";
-  if (val.market === "total_goals") return val.pick.toUpperCase();
+  const v = val as any;
+  if (v.market === "match_result") {
+    return v.pick === "home" ? "HOME (1)" : v.pick === "away" ? "AWAY (2)" : "DRAW (X)";
+  }
+  if (v.market === "exact_score") {
+    return `${v.home} - ${v.away}`;
+  }
+  if (v.market === "btts") {
+    return v.pick === "yes" || v.pick === true ? "BTTS: YES" : "BTTS: NO";
+  }
+  if (v.market === "total_goals") {
+    return v.pick === "over" ? "OVER 2.5" : "UNDER 2.5";
+  }
+  if (v.market === "double_chance") {
+    return v.pick === "1X" ? "1X (HOME/DRAW)" : v.pick === "12" ? "12 (HOME/AWAY)" : "X2 (DRAW/AWAY)";
+  }
+  if (v.market === "anytime_scorer") {
+    return `SCORER: ${v.player}`;
+  }
+  if (v.market === "player_card") {
+    return `CARDED: ${v.player}`;
+  }
+  if (v.market === "custom_question") {
+    return `ANS: ${v.answer}`;
+  }
   return "PICKED";
 }
