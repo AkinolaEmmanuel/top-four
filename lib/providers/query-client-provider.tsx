@@ -12,9 +12,8 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // With SSR, set staleTime above 0 to prevent an immediate refetch
-        // on the client after server-rendering hydrated data.
-        staleTime: 60 * 1000, // 1 minute
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        refetchOnWindowFocus: false,
         retry: 1,
       },
     },

@@ -9,7 +9,15 @@ export type Profile = {
 // "final_standings", "lineups" — deferred per the coverage/data-source
 // analysis (they need /fixtures/events and /fixtures/lineups, which carry
 // real coverage risk on domestic cups).
-export type MarketType = "match_result" | "exact_score" | "btts" | "total_goals";
+export type MarketType =
+  | "match_result"
+  | "exact_score"
+  | "btts"
+  | "total_goals"
+  | "double_chance"
+  | "anytime_scorer"
+  | "player_card"
+  | "custom_question";
 
 export type LeagueScopeType = "gameweek" | "range" | "season";
 
@@ -42,21 +50,28 @@ export const LOCK_PRESET_LABELS: Record<LockPreset, string> = {
   "2h": "2 hours before",
 };
 
-export type ScoringConfig = Record<MarketType | "custom_question", number>;
+export type ScoringConfig = Record<MarketType, number>;
 
 export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
   match_result: 2,
   exact_score: 5,
   btts: 1,
   total_goals: 1,
+  double_chance: 1,
+  anytime_scorer: 5,
+  player_card: 4,
   custom_question: 3,
 };
 
 export const MARKET_LABELS: Record<MarketType, string> = {
-  match_result: "Match Result",
+  match_result: "Match Result (1X2)",
   exact_score: "Exact Score",
-  btts: "Both Teams to Score",
-  total_goals: "Total Goals",
+  btts: "Both Teams To Score",
+  total_goals: "Total Goals (O/U 2.5)",
+  double_chance: "Double Chance",
+  anytime_scorer: "Anytime Goalscorer",
+  player_card: "Player Card",
+  custom_question: "Custom Question",
 };
 
 export type Room = {
@@ -95,8 +110,12 @@ export type RoomMember = {
 export type PredictionValue =
   | { market: "match_result"; pick: "home" | "draw" | "away" }
   | { market: "exact_score"; home: number; away: number }
-  | { market: "btts"; pick: boolean }
-  | { market: "total_goals"; pick: "over" | "under" };
+  | { market: "btts"; pick: boolean | "yes" | "no" }
+  | { market: "total_goals"; pick: "over" | "under" }
+  | { market: "double_chance"; pick: "1X" | "12" | "X2" }
+  | { market: "anytime_scorer"; player: string }
+  | { market: "player_card"; player: string }
+  | { market: "custom_question"; answer: string };
 
 export type Prediction = {
   id: string;

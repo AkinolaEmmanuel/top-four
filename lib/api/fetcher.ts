@@ -1,6 +1,6 @@
 import { getCsrfToken, setCsrfToken } from "./csrf";
 
-const DEFAULT_API_URL = "http://localhost:3000/v1";
+const DEFAULT_API_URL = "http://localhost:3000/api";
 
 function getBaseUrl(): string {
   if (typeof window === "undefined") {
@@ -29,12 +29,12 @@ export class ApiError extends Error {
 }
 
 /**
- * Custom fetch wrapper to connect to the TopFour NestJS API.
+ * Custom fetch wrapper to connect to the TopFour API.
  * Automatically injects:
  * - credentials: "include" for HttpOnly cookies
  * - x-csrf-token on state-changing requests
  * - Idempotency-Key on resource creation endpoints
- * - Server-side cookie forwarding when run inside Server Components.
+ * - 5-second safety timeout to prevent hanging connections
  */
 export async function apiFetch<T = any>(path: string, options: FetchOptions = {}): Promise<T> {
   const baseUrl = getBaseUrl();
@@ -48,12 +48,13 @@ export async function apiFetch<T = any>(path: string, options: FetchOptions = {}
     headers.set("Content-Type", "application/json");
   }
 
-  // Set credentials for session cookie delivery
+  // Set credentials & 5-second timeout signal
   const fetchConfig: RequestInit = {
     ...options,
     method,
     headers,
     credentials: "include",
+    signal: options.signal || AbortSignal.timeout(5000),
   };
 
   // Server-side context cookie forwarding
