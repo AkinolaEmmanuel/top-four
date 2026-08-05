@@ -106,23 +106,6 @@ const PLAYER_STATS_DATA: Record<number, {
       { rank: 2, player: "Achraf Hakimi", team: "PSG", logo: "/football/teams/50.svg", assists: 7 },
       { rank: 3, player: "Takumi Minamino", team: "Monaco", logo: "/football/teams/52.svg", assists: 6 },
       { rank: 4, player: "Rayan Cherki", team: "Lyon", logo: "/football/teams/53.svg", assists: 5 },
-    ],
-  },
-  2: {
-    name: "Champions League",
-    flag: "🇪🇺",
-    topScorers: [
-      { rank: 1, player: "Raphinha", team: "Barcelona", logo: "/football/teams/21.svg", goals: 8 },
-      { rank: 2, player: "Robert Lewandowski", team: "Barcelona", logo: "/football/teams/21.svg", goals: 7 },
-      { rank: 3, player: "Harry Kane", team: "Bayern Munich", logo: "/football/teams/40.svg", goals: 6 },
-      { rank: 4, player: "Vinícius Júnior", team: "Real Madrid", logo: "/football/teams/20.svg", goals: 5 },
-    ],
-    topAssists: [
-      { rank: 1, player: "Lamine Yamal", team: "Barcelona", logo: "/football/teams/21.svg", assists: 6 },
-      { rank: 2, player: "Raphinha", team: "Barcelona", logo: "/football/teams/21.svg", assists: 5 },
-      { rank: 3, player: "Mohamed Salah", team: "Liverpool", logo: "/football/teams/3.svg", assists: 4 },
-      { rank: 4, player: "Bukayo Saka", team: "Arsenal", logo: "/football/teams/1.svg", assists: 4 },
-    ],
   },
 };
 
