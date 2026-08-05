@@ -59,7 +59,7 @@ export function Hero() {
             initial="hidden"
             animate="show"
             variants={fadeUp}
-            transition={{ duration: 0.6, delay: 0.08 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1], delay: 0.04 }}
             className="text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl"
           >
             Make Predictions{" "}
@@ -76,7 +76,7 @@ export function Hero() {
             initial="hidden"
             animate="show"
             variants={fadeUp}
-            transition={{ duration: 0.6, delay: 0.16 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1], delay: 0.08 }}
             className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-white/70 lg:mx-0"
           >
             Create a room and predict with your friends, or jump straight
@@ -88,19 +88,19 @@ export function Hero() {
             initial="hidden"
             animate="show"
             variants={fadeUp}
-            transition={{ duration: 0.6, delay: 0.24 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1], delay: 0.12 }}
             className="mt-10 flex items-center justify-center gap-3 lg:justify-start"
           >
             <Link
               href="/signup"
-              className="group inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-bold text-black transition-transform hover:scale-105"
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-bold text-black transition-all duration-150 ease-out active:scale-95 hover:scale-105"
             >
               Get Started
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:bg-white/15"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-7 py-3.5 text-sm font-bold text-white transition-all duration-150 ease-out active:scale-95 hover:bg-white/15"
             >
               Sign in to play
             </Link>
@@ -109,9 +109,9 @@ export function Hero() {
 
         {/* ── Right: the actual Lobby, locked ── */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
+          transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1], delay: 0.16 }}
           className="overflow-hidden rounded-2xl border border-white/10 bg-card/95 shadow-2xl backdrop-blur"
         >
           <PreviewCardChrome title="Premier League" subtitle="Gameweek 2 · Lobby" />

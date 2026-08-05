@@ -55,10 +55,10 @@ export function Competitions() {
             </ShowcaseReveal>
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1], delay: 0.08 }}
               className="relative hidden overflow-hidden rounded-2xl border border-border lg:col-span-2 lg:block"
             >
               <Image
@@ -108,10 +108,10 @@ export function Competitions() {
             </ShowcaseReveal>
 
             <div className="grid gap-6 sm:grid-cols-2">
-              <ShowcaseReveal delay={0.1}>
+              <ShowcaseReveal delay={0.08}>
                 <FixturesPreview league="Premier League" competitionId={39} />
               </ShowcaseReveal>
-              <ShowcaseReveal delay={0.18}>
+              <ShowcaseReveal delay={0.14}>
                 <FixturesPreview league="La Liga" competitionId={140} />
               </ShowcaseReveal>
             </div>
@@ -133,12 +133,12 @@ function ShowcaseReveal({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, delay }}
-      whileHover={{ y: -4 }}
-      className={cn("h-full", className)}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1], delay }}
+      whileHover={{ y: -3 }}
+      className={cn("h-full transition-transform duration-150 ease-out", className)}
     >
       {children}
     </motion.div>
