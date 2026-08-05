@@ -48,14 +48,14 @@ export function CollectibleReceiptTicket({
     <div className="relative w-full max-w-sm mx-auto font-mono">
       
       {/* Printer Slot Chrome Top Header */}
-      <div className="flex items-center justify-between px-4 py-2 rounded-t-xl bg-slate-900 border-t border-x border-slate-800 text-xs text-slate-400">
+      <div className="flex items-center justify-between px-4 py-2 rounded-t-xl bg-card border-t border-x border-border text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
-          <Printer className="h-3.5 w-3.5 text-sky-400" />
-          <span className="font-bold tracking-wider text-white">THERMAL PRINTER</span>
+          <Printer className="h-3.5 w-3.5 text-sky-500" />
+          <span className="font-bold tracking-wider text-foreground">THERMAL PRINTER</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
-          <span className="text-[10px] text-sky-400 font-bold">READY</span>
+          <span className="h-2 w-2 rounded-full bg-sky-500 animate-ping" />
+          <span className="text-[10px] text-sky-500 font-bold">READY</span>
         </div>
       </div>
 

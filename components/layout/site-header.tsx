@@ -168,7 +168,7 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
 
       {/* ── Mobile Nav Dropdown ── */}
       {mobileMenuOpen && (
-        <div className="border-t border-slate-800 bg-slate-950 px-4 py-3 md:hidden">
+        <div className="border-t border-border bg-card px-4 py-3 md:hidden shadow-lg">
           <nav className="flex flex-col gap-1.5">
             {APP_NAV_TABS.map((tab) => {
               const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
@@ -178,10 +178,10 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
                   href={tab.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    "rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all",
+                    "rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-150 active:scale-95",
                     active
-                      ? "bg-sky-500/15 border border-sky-500/30 text-sky-300"
-                      : "text-slate-400 hover:bg-slate-900 hover:text-white"
+                      ? "bg-sky-500/15 border border-sky-500/30 text-sky-500"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                 >
                   {tab.label}

@@ -28,7 +28,7 @@ export function MobileNav() {
 
   return (
     <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-2 md:hidden">
-      <nav className="pointer-events-auto flex w-[96%] max-w-md items-center justify-around rounded-2xl border border-sky-500/20 bg-slate-950/95 px-1.5 py-2 shadow-elevation-dark-2 backdrop-blur-xl">
+      <nav className="pointer-events-auto flex w-[96%] max-w-md items-center justify-around rounded-2xl border border-sky-500/20 bg-card/95 px-1.5 py-2 shadow-elevation-dark-2 backdrop-blur-xl">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -43,8 +43,8 @@ export function MobileNav() {
               className={cn(
                 "flex flex-col items-center justify-center rounded-xl px-2 py-1.5 transition-all duration-150 ease-out active:scale-90 text-center",
                 isActive
-                  ? "bg-sky-500/15 text-sky-400 font-bold shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-sky-500/15 text-sky-500 font-bold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Icon className={cn("h-5 w-5", isActive ? "stroke-[2.5]" : "stroke-[1.75]")} />
