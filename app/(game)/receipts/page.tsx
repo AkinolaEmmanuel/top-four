@@ -213,18 +213,18 @@ export default function ReceiptsPage() {
   });
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8 px-4 py-6 sm:py-8 pb-24 sm:pb-8">
       
       {/* ── Top Header & Stats Summary ── */}
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shadow-sm">
-                <Receipt className="h-6 w-6" />
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shadow-sm shrink-0">
+                <Receipt className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground uppercase font-heading">
+                <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-foreground uppercase font-heading">
                   My Prediction Receipts Vault
                 </h1>
                 <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground font-mono">
@@ -235,10 +235,10 @@ export default function ReceiptsPage() {
           </div>
 
           {/* Action Tabs Switcher */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-secondary border border-border self-start md:self-auto">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none p-1 rounded-xl bg-secondary border border-border w-full md:w-auto -mx-1 px-1">
             <button
               onClick={() => setActiveTab("receipts")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
+              className={`flex shrink-0 items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
                 activeTab === "receipts"
                   ? "bg-sky-500 text-white shadow-glow-sky"
                   : "text-muted-foreground hover:text-foreground hover:bg-card"
@@ -249,7 +249,7 @@ export default function ReceiptsPage() {
             </button>
             <button
               onClick={() => setActiveTab("outrights")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
+              className={`flex shrink-0 items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
                 activeTab === "outrights"
                   ? "bg-sky-500 text-white shadow-glow-sky"
                   : "text-muted-foreground hover:text-foreground hover:bg-card"
@@ -260,7 +260,7 @@ export default function ReceiptsPage() {
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
+              className={`flex shrink-0 items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-mono font-bold uppercase transition-all ${
                 activeTab === "history"
                   ? "bg-sky-500 text-white shadow-glow-sky"
                   : "text-muted-foreground hover:text-foreground hover:bg-card"
@@ -273,44 +273,44 @@ export default function ReceiptsPage() {
         </div>
 
         {/* HUD Quick Stats Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shrink-0">
-              <Receipt className="h-5 w-5" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-3.5 sm:p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shrink-0">
+              <Receipt className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div>
-              <p className="text-[10px] font-mono text-muted-foreground uppercase font-bold">TOTAL SLIPS PRINTED</p>
-              <p className="text-xl font-extrabold text-foreground font-heading">14 RECEIPTS</p>
+              <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold">TOTAL SLIPS PRINTED</p>
+              <p className="text-base sm:text-xl font-extrabold text-foreground font-heading">14 RECEIPTS</p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-              <Flame className="h-5 w-5" />
+          <div className="p-3.5 sm:p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+              <Flame className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div>
-              <p className="text-[10px] font-mono text-muted-foreground uppercase font-bold">LIFETIME POINTS</p>
-              <p className="text-xl font-extrabold text-emerald-400 font-heading">128 PTS</p>
+              <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold">LIFETIME POINTS</p>
+              <p className="text-base sm:text-xl font-extrabold text-emerald-500 font-heading">128 PTS</p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-crown/10 text-crown border border-crown/20 shrink-0">
-              <Trophy className="h-5 w-5" />
+          <div className="p-3.5 sm:p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-amber-500/10 text-crown border border-amber-500/20 shrink-0">
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div>
-              <p className="text-[10px] font-mono text-muted-foreground uppercase font-bold">PRE-SEASON OUTRIGHTS</p>
-              <p className="text-xl font-extrabold text-crown font-heading">5 LOCKED</p>
+              <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold">OUTRIGHTS</p>
+              <p className="text-base sm:text-xl font-extrabold text-crown font-heading">5 LOCKED</p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0">
-              <ShieldCheck className="h-5 w-5" />
+          <div className="p-3.5 sm:p-4 rounded-2xl border border-border bg-card shadow-sm flex items-center gap-3">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 shrink-0">
+              <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div>
-              <p className="text-[10px] font-mono text-muted-foreground uppercase font-bold">ACCURACY RATE</p>
-              <p className="text-xl font-extrabold text-purple-400 font-heading">74.2%</p>
+              <p className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold">ACCURACY RATE</p>
+              <p className="text-base sm:text-xl font-extrabold text-purple-500 font-heading">74.2%</p>
             </div>
           </div>
         </div>
@@ -321,7 +321,7 @@ export default function ReceiptsPage() {
         <div className="space-y-6">
           
           {/* Sub-Filters & Search Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border border-border bg-card shadow-sm">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <input
@@ -333,12 +333,12 @@ export default function ReceiptsPage() {
               />
             </div>
 
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-secondary border border-border">
+            <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-secondary border border-border w-full sm:w-auto text-center">
               {(["all", "active", "settled"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setStatusFilter(f)}
-                  className={`px-3 py-1 text-xs font-mono font-bold uppercase transition-all ${
+                  className={`px-3 py-1.5 text-xs font-mono font-bold uppercase transition-all active:scale-95 duration-150 ${
                     statusFilter === f
                       ? "bg-sky-500 text-white shadow-glow-sky"
                       : "text-muted-foreground hover:text-foreground hover:bg-card"
@@ -351,7 +351,7 @@ export default function ReceiptsPage() {
           </div>
 
           {/* Thermal Receipt Cards Grid */}
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-start">
+          <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3 items-start">
             {filteredReceipts.map((rcpt) => (
               <div key={rcpt.id} className="space-y-2">
                 <div className="flex items-center justify-between px-2 text-xs font-mono text-muted-foreground">
@@ -374,45 +374,45 @@ export default function ReceiptsPage() {
       {/* ── TAB 2: Season Outrights (Pre-Season Predictions) ── */}
       {activeTab === "outrights" && (
         <div className="space-y-6">
-          <div className="p-6 rounded-2xl border border-border bg-card shadow-elevation-dark-1 space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="p-4 sm:p-6 rounded-2xl border border-border bg-card shadow-sm dark:shadow-elevation-dark-1 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-foreground uppercase font-heading flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-foreground uppercase font-heading flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-crown" />
                   Season Outrights & Pre-Season Picks
                 </h3>
-                <p className="text-xs text-muted-foreground font-mono mt-1">
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">
                   Predictions locked at the start of the 2026/27 season. Settled at season conclusion.
                 </p>
               </div>
 
-              <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-crown/10 text-crown border border-crown/30">
-                🔒 ALL PRE-SEASON PICKS LOCKED
+              <span className="text-[11px] sm:text-xs font-mono font-bold px-3 py-1 rounded-full bg-crown/10 text-crown border border-crown/30 self-start sm:self-auto">
+                🔒 PRE-SEASON PICKS LOCKED
               </span>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3.5 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {MOCK_SEASON_OUTRIGHTS.map((item) => (
                 <div
                   key={item.id}
-                  className="p-5 rounded-xl border border-border bg-secondary/30 hover:border-crown/40 transition-colors shadow-sm space-y-3"
+                  className="p-4 sm:p-5 rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 hover:border-crown/40 transition-colors shadow-sm space-y-3"
                 >
                   <div className="flex items-center justify-between text-xs font-mono">
                     <span className="font-bold text-crown flex items-center gap-1.5">
                       <Award className="h-4 w-4" />
                       {item.category}
                     </span>
-                    <span className="text-emerald-400 font-bold">+{item.potentialPoints} PTS</span>
+                    <span className="text-emerald-500 font-bold">+{item.potentialPoints} PTS</span>
                   </div>
 
                   <div className="p-3 rounded-lg bg-card border border-border">
                     <p className="text-xs text-muted-foreground font-mono uppercase text-[10px]">YOUR LOCKED PICK</p>
-                    <p className="text-sm font-black text-foreground font-heading mt-0.5">{item.pick}</p>
+                    <p className="text-xs sm:text-sm font-black text-foreground font-heading mt-0.5">{item.pick}</p>
                   </div>
 
                   <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground pt-1 border-t border-border/40">
                     <span>{item.competition}</span>
-                    <span className="flex items-center gap-1 text-sky-400 font-bold">
+                    <span className="flex items-center gap-1 text-sky-500 font-bold">
                       <Clock className="h-3 w-3" />
                       Locked {item.lockedDate}
                     </span>
@@ -426,14 +426,14 @@ export default function ReceiptsPage() {
 
       {/* ── TAB 3: Saved Prediction History Log ── */}
       {activeTab === "history" && (
-        <div className="p-6 rounded-2xl border border-border bg-card shadow-elevation-dark-1 space-y-4">
+        <div className="p-4 sm:p-6 rounded-2xl border border-border bg-card shadow-sm dark:shadow-elevation-dark-1 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
             <div>
-              <h3 className="text-lg font-extrabold text-foreground uppercase font-heading flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-extrabold text-foreground uppercase font-heading flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-sky-500" />
                 Complete Saved Prediction History Log
               </h3>
-              <p className="text-xs text-muted-foreground font-mono mt-1">
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">
                 Chronological record of every individual prediction submitted across all rooms.
               </p>
             </div>
@@ -450,8 +450,8 @@ export default function ReceiptsPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
+          <div className="overflow-x-auto rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-1 shadow-sm">
+            <table className="w-full min-w-[640px] text-left text-xs font-mono">
               <thead>
                 <tr className="border-b border-border text-muted-foreground uppercase text-[10px]">
                   <th className="py-3 px-3">Date / Gameweek</th>
@@ -466,11 +466,11 @@ export default function ReceiptsPage() {
               <tbody className="divide-y divide-border/60">
                 {MOCK_RECEIPTS.flatMap((r) =>
                   r.picks.map((p, idx) => (
-                    <tr key={`${r.id}-${idx}`} className="hover:bg-secondary/40 transition-colors">
+                    <tr key={`${r.id}-${idx}`} className="hover:bg-secondary/60 transition-colors">
                       <td className="py-3 px-3 text-foreground font-bold">{r.gameweek} ({r.date})</td>
                       <td className="py-3 px-3 text-muted-foreground">{r.roomName}</td>
                       <td className="py-3 px-3 font-bold text-foreground">{p.homeTeam} vs {p.awayTeam}</td>
-                      <td className="py-3 px-3 text-sky-400 font-bold uppercase">{p.pickType.replace("_", " ")}</td>
+                      <td className="py-3 px-3 text-sky-500 font-bold uppercase">{p.pickType.replace("_", " ")}</td>
                       <td className="py-3 px-3 font-bold text-foreground">
                         {p.pickType === "match_result" && `Winner: ${String((p.value as any).pick).toUpperCase()}`}
                         {p.pickType === "exact_score" && `Score: ${(p.value as any).home} - ${(p.value as any).away}`}
@@ -479,9 +479,9 @@ export default function ReceiptsPage() {
                         {p.pickType === "anytime_scorer" && `Scorer: ${(p.value as any).player}`}
                         {p.pickType === "player_card" && `Card: ${(p.value as any).player}`}
                       </td>
-                      <td className="py-3 px-3 text-right font-bold text-emerald-400">+{p.points} PTS</td>
+                      <td className="py-3 px-3 text-right font-bold text-emerald-500">+{p.points} PTS</td>
                       <td className="py-3 px-3 text-right">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.status === "settled" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-sky-500/10 text-sky-400 border border-sky-500/30"}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.status === "settled" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/30" : "bg-sky-500/10 text-sky-500 border border-sky-500/30"}`}>
                           {r.status.toUpperCase()}
                         </span>
                       </td>

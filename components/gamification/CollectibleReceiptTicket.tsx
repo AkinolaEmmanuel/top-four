@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Zap, Printer, Sparkles } from "lucide-react";
+import { Check, Zap, Printer, Ticket } from "lucide-react";
 import { PredictionValue, MarketType } from "@/types";
 
 export type TicketPick = {
@@ -18,6 +18,7 @@ export type TicketStatus = "draft" | "locked" | "settled";
 
 interface CollectibleReceiptTicketProps {
   picks: TicketPick[];
+  agreedClaims?: string[];
   ticketNumber?: string;
   isDoubleDownActive?: boolean;
   status?: TicketStatus;
@@ -30,6 +31,7 @@ interface CollectibleReceiptTicketProps {
 
 export function CollectibleReceiptTicket({
   picks,
+  agreedClaims = [],
   ticketNumber = "RCPT-8894-01",
   isDoubleDownActive = false,
   status = "draft",
@@ -40,7 +42,7 @@ export function CollectibleReceiptTicket({
   onClearPicks,
 }: CollectibleReceiptTicketProps) {
 
-  const basePoints = picks.reduce((acc, p) => acc + p.points, 0);
+  const basePoints = picks.reduce((acc, p) => acc + p.points, 0) + (agreedClaims.length * 50);
   const totalMultiplier = isDoubleDownActive ? 2 : 1;
   const finalPoints = basePoints * totalMultiplier;
 
@@ -51,11 +53,11 @@ export function CollectibleReceiptTicket({
       <div className="flex items-center justify-between px-4 py-2 rounded-t-xl bg-card border-t border-x border-border text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <Printer className="h-3.5 w-3.5 text-sky-500" />
-          <span className="font-bold tracking-wider text-foreground">THERMAL PRINTER</span>
+          <span className="font-bold tracking-wider text-foreground">Receipt slip</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-sky-500 animate-ping" />
-          <span className="text-[10px] text-sky-500 font-bold">READY</span>
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-xs text-muted-foreground">Ready</span>
         </div>
       </div>
 
@@ -85,38 +87,38 @@ export function CollectibleReceiptTicket({
           <div className="pt-1">
             {status === "draft" && (
               <span className="inline-block px-2.5 py-0.5 rounded bg-black/10 text-black/60 font-bold text-[10px]">
-                • DRAFT PREDICTION SLIP •
+                Draft slip
               </span>
             )}
             {status === "locked" && (
-              <span className="inline-block px-3 py-0.5 rounded bg-black text-sky-400 font-black text-xs tracking-wider animate-pulse">
-                ✓ LOCKED IN FOR MATCHDAY
+              <span className="inline-block px-3 py-0.5 rounded bg-black text-sky-400 font-bold text-xs tracking-wide animate-pulse">
+                ✓ Locked in
               </span>
             )}
             {status === "settled" && (
               <motion.span
                 initial={{ scale: 1.2, rotate: -3 }}
                 animate={{ scale: 1, rotate: 0 }}
-                className="inline-block px-4 py-1 rounded bg-emerald-500 text-slate-950 font-black text-xs tracking-widest border-2 border-black shadow-lg"
+                className="inline-block px-4 py-1 rounded bg-emerald-500 text-slate-950 font-black text-xs tracking-wide border-2 border-black shadow-lg"
               >
-                ★ WINNER: +{settledPointsEarned} PTS EARNED! ★
+                ★ +{settledPointsEarned} pts earned
               </motion.span>
             )}
           </div>
         </div>
 
         {/* Selected Picks Listing */}
-        <div className="space-y-3 min-h-[140px]">
+        <div className="space-y-3 min-h-[120px]">
           <AnimatePresence mode="popLayout">
-            {picks.length === 0 ? (
+            {picks.length === 0 && agreedClaims.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center py-8 text-center text-black/40 space-y-2"
               >
-                <Sparkles className="h-8 w-8 stroke-[1.5]" />
-                <p className="text-xs font-bold uppercase">No picks selected yet</p>
-                <p className="text-[10px]">Click fixture outcomes to print your receipt</p>
+                <Ticket className="h-8 w-8 stroke-[1.5]" />
+                <p className="text-xs font-semibold">Your slip is empty</p>
+                <p className="text-[10px]">Pick a match outcome below to get started.</p>
               </motion.div>
             ) : (
               picks.map((pick, i) => (
@@ -145,16 +147,31 @@ export function CollectibleReceiptTicket({
           </AnimatePresence>
         </div>
 
+        {/* Agreed Claims Section on Receipt */}
+        {agreedClaims.length > 0 && (
+          <div className="border-t-2 border-dashed border-black/20 pt-3 space-y-1.5">
+            <span className="text-[10px] font-black tracking-wider text-black/70 block uppercase flex items-center gap-1">
+              <span>★ AGREED COMMUNITY CLAIMS</span>
+            </span>
+            {agreedClaims.map((claimTitle, idx) => (
+              <div key={idx} className="flex items-center justify-between text-[11px] bg-sky-500/10 p-2 rounded-lg border border-sky-500/20">
+                <span className="font-bold text-black truncate flex-1 pr-2">✓ "{claimTitle}"</span>
+                <span className="font-black text-emerald-600 text-[10px] shrink-0 font-mono">+50 PTS</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Summary & Payout Totals */}
         <div className="border-t-2 border-black pt-3 space-y-1.5 text-xs font-bold">
           <div className="flex justify-between text-black/70">
-            <span>SELECTIONS:</span>
-            <span>{picks.length} MATCHES</span>
+            <span>TOTAL SELECTIONS:</span>
+            <span>{picks.length + agreedClaims.length} PICKS</span>
           </div>
           <div className="flex justify-between text-sm font-black border-t border-dashed border-black/20 pt-2 text-black">
             <span>{status === "settled" ? "FINAL PTS WON:" : "EST. MAX PAYOUT:"}</span>
             <span className="text-emerald-600 text-base">
-              {status === "settled" ? settledPointsEarned : basePoints} PTS
+              {status === "settled" ? settledPointsEarned : finalPoints} PTS
             </span>
           </div>
         </div>
@@ -179,9 +196,9 @@ export function CollectibleReceiptTicket({
               {onClearPicks && picks.length > 0 && (
                 <button
                   onClick={onClearPicks}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-bold"
+                  className="w-full py-2.5 rounded-xl bg-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-accent text-xs font-bold transition-all active:scale-95 duration-150"
                 >
-                  CLEAR PICKS
+                  Clear picks
                 </button>
               )}
             </div>
@@ -190,31 +207,21 @@ export function CollectibleReceiptTicket({
               <button
                 onClick={onLockInPicks}
                 disabled={picks.length === 0}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm hover:bg-sky-600 disabled:opacity-40 transition-all shadow-glow-sky"
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-sky-500 text-white font-bold text-sm hover:bg-sky-600 disabled:opacity-40 transition-all shadow-glow-sky active:scale-95 duration-150"
               >
                 <Check className="h-4 w-4" />
-                LOCK IN RECEIPT SLIP
+                Lock in my picks
               </button>
             )}
           </>
         )}
 
-        {status === "locked" && onSimulateMatch && (
-          <button
-            onClick={onSimulateMatch}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-crown text-slate-950 font-extrabold text-sm hover:bg-yellow-400 transition-all shadow-md"
-          >
-            <Sparkles className="h-4 w-4" />
-            STEP 3: SIMULATE MATCHES & GRADE RECEIPT
-          </button>
-        )}
-
         {status === "settled" && onClearPicks && (
           <button
             onClick={onClearPicks}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white font-bold text-xs hover:bg-slate-800 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-secondary border border-border text-foreground font-bold text-xs hover:bg-accent transition-all active:scale-95 duration-150"
           >
-            PLAY ANOTHER MATCHDAY SLIP
+            Start a new slip
           </button>
         )}
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, Target, Sparkles } from "lucide-react";
+import { Trophy, Target, Award, Flame } from "lucide-react";
 import { TeamLogo } from "@/components/ui/team-logo";
 
 const PLAYER_STATS_DATA: Record<number, {
@@ -116,13 +116,13 @@ export function PlayerStatsWidget() {
   const currentData = PLAYER_STATS_DATA[activeLeagueId] || PLAYER_STATS_DATA[39];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 sm:space-y-5 shadow-sm dark:shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3 sm:p-6 space-y-4 sm:space-y-5 shadow-sm dark:shadow-elevation-dark-1 w-full max-w-full min-w-0 overflow-hidden">
       
       {/* Widget Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border pb-3.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm shrink-0">
-            <Sparkles className="h-5 w-5" />
+            <Trophy className="h-5 w-5" />
           </div>
           <div>
             <h3 className="text-base font-bold text-foreground font-heading">Top Performers & Stats</h3>
@@ -191,13 +191,13 @@ export function PlayerStatsWidget() {
           {statsTab === "scorers"
             ? currentData.topScorers.map((s) => (
                 <div key={s.rank} className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-lg bg-secondary text-[10px] sm:text-xs font-bold text-muted-foreground border border-border">
                       #{s.rank}
                     </span>
                     <TeamLogo src={s.logo} teamName={s.team} size={20} />
-                    <div className="min-w-0">
-                      <p className="font-bold text-foreground font-sans text-xs sm:text-sm truncate max-w-[110px] sm:max-w-[220px]">{s.player}</p>
+                    <div className="min-w-0 flex-1 pr-1">
+                      <p className="font-bold text-foreground font-sans text-xs sm:text-sm truncate">{s.player}</p>
                       <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{s.team}</p>
                     </div>
                   </div>
@@ -207,14 +207,14 @@ export function PlayerStatsWidget() {
                 </div>
               ))
             : currentData.topAssists.map((a) => (
-                <div key={a.rank} className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div key={a.rank} className="flex items-center justify-between pt-2 gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <span className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-lg bg-secondary text-[10px] sm:text-xs font-bold text-muted-foreground border border-border">
                       #{a.rank}
                     </span>
                     <TeamLogo src={a.logo} teamName={a.team} size={20} />
-                    <div className="min-w-0">
-                      <p className="font-bold text-foreground font-sans text-xs sm:text-sm truncate max-w-[110px] sm:max-w-[220px]">{a.player}</p>
+                    <div className="min-w-0 flex-1 pr-1">
+                      <p className="font-bold text-foreground font-sans text-xs sm:text-sm truncate">{a.player}</p>
                       <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{a.team}</p>
                     </div>
                   </div>

@@ -15,13 +15,13 @@ type AuthShellProps = {
 
 export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps) {
   return (
-    <div className="flex min-h-screen bg-white dark:bg-white">
-      {/* ── Left: black football panel ── */}
-      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-black lg:flex">
+    <div className="flex min-h-screen bg-background text-foreground">
+      {/* ── Left: Pitch & Football Panel ── */}
+      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-slate-950 lg:flex border-r border-border">
         {/* dot grid backdrop */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] bg-[size:28px_28px]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(#0055ff22_1px,transparent_1px)] dark:bg-[radial-gradient(#ffffff15_1px,transparent_1px)] bg-[size:28px_28px]"
         />
 
         {/* pitch markings */}
@@ -41,7 +41,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         <div className="relative flex flex-1 flex-col justify-between p-10">
           <Link href="/" className="flex items-center gap-2 text-white">
             <Logo size={32} />
-            <span className="text-base font-semibold tracking-tight">topfour.app</span>
+            <span className="text-base font-bold tracking-tight font-heading">topfour.app</span>
           </Link>
 
           <div>
@@ -54,60 +54,59 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
                 rotate: { duration: 9, repeat: Infinity, ease: "linear" },
               }}
             >
-              <FootballBall className="h-16 w-16 text-white" />
+              <FootballBall className="h-16 w-16 text-sky-400" />
             </motion.div>
 
             <motion.h2
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="max-w-sm text-3xl font-bold leading-tight tracking-tight text-white"
+              className="max-w-sm text-3xl font-black leading-tight tracking-tight text-white uppercase font-heading"
             >
-              Create a group. Predict with friends.
+              Create a room. Predict with friends.
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="mt-3 max-w-sm text-sm leading-relaxed text-white/50"
+              className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400 font-sans"
             >
-              Predict scores in your group chat — or the world&apos;s
-              biggest one — and let the table settle every argument.
+              Predict scorelines in your private prediction clubs — or the global leaderboard — and let the table settle every argument.
             </motion.p>
           </div>
 
-          <p className="text-xs text-white/30">
-            &copy; {new Date().getFullYear()} topfour.app
+          <p className="text-xs text-slate-500 font-mono">
+            &copy; {new Date().getFullYear()} topfour.app • All rights reserved
           </p>
         </div>
       </div>
 
-      {/* ── Right: white form panel ── */}
-      <div className="flex flex-1 items-center justify-center bg-white px-6 py-12">
+      {/* ── Right: Form Panel ── */}
+      <div className="flex flex-1 items-center justify-center bg-background px-4 py-8 sm:px-6 sm:py-12 pb-24 sm:pb-12">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="w-full max-w-sm"
+          className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm dark:shadow-elevation-dark-2"
         >
           {/* Mobile brand mark */}
           <Link
             href="/"
-            className="mb-8 flex items-center gap-2 text-black lg:hidden"
+            className="mb-6 flex items-center gap-2 text-foreground lg:hidden"
           >
             <Logo size={32} />
-            <span className="text-base font-semibold tracking-tight">topfour.app</span>
+            <span className="text-base font-extrabold tracking-tight font-heading">topfour.app</span>
           </Link>
 
-          <p className="text-xs font-semibold uppercase tracking-widest text-black/40">
+          <p className="text-xs font-mono font-bold uppercase tracking-widest text-sky-500">
             {eyebrow}
           </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-black">
+          <h1 className="mt-1.5 text-2xl font-black tracking-tight text-foreground uppercase font-heading">
             {title}
           </h1>
-          <p className="mt-1.5 text-sm text-black/50">{subtitle}</p>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground font-sans">{subtitle}</p>
 
-          <div className="mt-8">{children}</div>
+          <div className="mt-6">{children}</div>
         </motion.div>
       </div>
     </div>

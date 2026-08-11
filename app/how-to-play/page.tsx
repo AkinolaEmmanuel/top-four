@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function HowToPlayPage() {
   return (
-    <div className="mx-auto max-w-5xl space-y-12 px-4 py-12 sm:px-6">
+    <div className="mx-auto max-w-5xl space-y-8 sm:space-y-12 px-4 py-6 sm:py-12 pb-24 sm:pb-8">
       
       {/* Page Header */}
       <div className="text-center space-y-4 max-w-2xl mx-auto">
