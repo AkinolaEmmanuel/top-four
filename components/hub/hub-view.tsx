@@ -1,143 +1,96 @@
-import Link from "next/link";
-import { ArrowRight, Trophy, Receipt, Activity, Users, Flame, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { GlobalLeaderboardWidget } from "./global-leaderboard-widget";
-import { MatchdayScoresHub } from "./matchday-scores-hub";
-import { LeagueTablesWidget } from "./league-tables-widget";
-import { PlayerStatsWidget } from "./player-stats-widget";
-import { DemoButton } from "@/components/auth/demo-button";
+"use client";
 
-export async function HubView({ user }: { user?: any }) {
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight, Activity, BookOpen, Flame, Shield, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StatTicker } from "./stat-ticker";
+import { QuickPickPanel } from "./quick-pick-panel";
+import { ContextTabsWidget } from "./context-tabs-widget";
+import { MatchdayScoresHub } from "./matchday-scores-hub";
+
+export function HubView({ user }: { user?: any }) {
+  const isLoggedIn = Boolean(user);
   const name = user?.displayName || user?.email || "Predictor";
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-10 px-3 sm:px-6 py-4 sm:py-8 pb-24 sm:pb-8">
-      
-      {/* ── Hero Banner & Quick Actions ── */}
-      <section className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-4 sm:p-10 shadow-elevation-dark-2">
-        <div
-          className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full blur-[120px]"
-          style={{ backgroundColor: "rgba(14, 165, 233, 0.2)" }}
-        />
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-10 px-3 sm:px-6 py-4 sm:py-8 pb-24 sm:pb-8 w-full max-w-full min-w-0 overflow-hidden">
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-8">
-          <div className="space-y-3 max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-0.5 sm:px-3.5 sm:py-1 text-[11px] sm:text-xs font-mono font-bold text-sky-400">
-              <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
-              EUROPEAN MATCHDAY 2 IS LIVE
-            </span>
-            <h1 className="text-xl sm:text-5xl font-black tracking-tight text-white uppercase font-heading">
-              Welcome to <span className="text-sky-400">TopFour</span>, {name} 👋
-            </h1>
-            <p className="text-xs sm:text-base text-slate-300 font-sans leading-relaxed">
-              Predict match outcomes, generate thermal receipt slips, and compete in private prediction clubs.
-            </p>
+      {/* ── ZONE 1: Hero Section ── */}
+      <section className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-10 shadow-elevation-dark-2 w-full max-w-full min-w-0">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-500/10 via-transparent to-amber-500/5" />
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-              <Link href="/predict">
-                <Button variant="glow" size="lg" className="gap-2 font-bold w-full sm:w-auto justify-center">
-                  <Activity className="h-4 w-4" />
-                  MAKE PREDICTIONS
+        <div className="relative z-10 flex flex-col gap-6 w-full max-w-full min-w-0">
+          <div className="space-y-4 max-w-3xl min-w-0 flex-1">
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white font-heading"
+            >
+              {isLoggedIn ? (
+                <>Welcome back, <span className="text-sky-400">{name}</span> 👋</>
+              ) : (
+                <>Predict outcomes. <br/><span className="text-sky-400">Prove your ball knowledge.</span></>
+              )}
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+              className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-2xl"
+            >
+              {isLoggedIn
+                ? "You have 3 matches left to predict for today's fixtures."
+                : "Join thousands of fans making predictions, building receipt slips, and climbing the global leaderboard."}
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+              className="pt-2"
+            >
+              <Link href={isLoggedIn ? "/predict" : "/signup"}>
+                <Button variant="sky" size="lg" className="gap-2 font-bold transition-transform active:scale-95 shadow-glow-sky">
+                  {isLoggedIn ? "Predict now" : "Get started free"}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <DemoButton variant="sky" className="py-2.5 h-11 px-5 w-full sm:w-auto justify-center" />
-              <Link href="/how-to-play">
-                <Button variant="outline" size="lg" className="gap-2 w-full sm:w-auto justify-center">
-                  <BookOpen className="h-4 w-4 text-sky-400" />
-                  HOW TO PLAY
-                </Button>
-              </Link>
-            </div>
-          </div>
+            </motion.div>
 
-          {/* Stat Pill Grid Cards */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 shrink-0 w-full md:w-auto">
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-3 sm:p-4 text-center shadow-sm">
-              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase font-mono">ACTIVE SLIPS</span>
-              <p className="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-black text-white font-mono">3 SLIPS</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-3 sm:p-4 text-center shadow-sm">
-              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase font-mono">PTS BALANCE</span>
-              <p className="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-black text-crown font-mono">1,250 PTS</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-3 sm:p-4 text-center shadow-sm">
-              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase font-mono">ACCURACY</span>
-              <p className="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-black text-emerald-400 font-mono">84% WIN</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-3 sm:p-4 text-center shadow-sm">
-              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase font-mono">HOT STREAK</span>
-              <p className="mt-0.5 sm:mt-1 text-lg sm:text-2xl font-black text-amber-400 font-mono">3🔥</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
+            >
+              <StatTicker />
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ── Main Dashboard Layout: Matchday Hub + Standings + Sidebar ── */}
-      <div className="grid gap-6 sm:gap-8 lg:grid-cols-12 items-start">
+      {/* ── ZONE 2 & 3: Main Layout ── */}
+      <div className="grid gap-8 lg:grid-cols-12 items-start w-full max-w-full min-w-0 overflow-hidden">
         
-        {/* Left 8 Cols: Matchday Scores & Official League Standings Tables */}
-        <div className="lg:col-span-8 space-y-6 sm:space-y-8">
+        {/* Left 8 Cols: Zone 2 (Matchday Scores Hub) */}
+        <div className="lg:col-span-8 space-y-8 w-full max-w-full min-w-0 overflow-hidden">
           <MatchdayScoresHub />
-          <LeagueTablesWidget />
+          
+          {/* Zone 3 (Context Tabs) - Shown below scores on desktop */}
+          <div className="hidden lg:block pt-4 border-t border-border">
+            <ContextTabsWidget isLoggedIn={isLoggedIn} />
+          </div>
         </div>
 
-        {/* Right 4 Cols: Global Leaderboard, Top Performers & Private Rooms Widgets */}
-        <div className="lg:col-span-4 space-y-6">
-          <GlobalLeaderboardWidget />
-          <PlayerStatsWidget />
+        {/* Right 4 Cols: Zone 2 (Quick Pick) */}
+        <div className="lg:col-span-4 space-y-8 w-full max-w-full min-w-0 overflow-hidden">
+          <QuickPickPanel />
 
-          {/* Featured Prediction Rooms Widget */}
-          <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 shadow-sm dark:shadow-elevation-dark-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shrink-0">
-                  <Users className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground font-heading">Private Clubs</h3>
-                  <p className="text-[11px] text-muted-foreground font-mono">FEATURED ROOMS</p>
-                </div>
-              </div>
-
-              <Link href="/rooms" className="text-xs font-bold text-sky-500 hover:text-sky-600 dark:hover:text-sky-400">
-                All Rooms →
-              </Link>
-            </div>
-
-            <div className="space-y-3 pt-1">
-              <div className="rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-foreground uppercase font-sans">Premier League Pundits</h4>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-500 border border-sky-500/30 font-bold">
-                    PUBLIC
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-                  <span>148 MEMBERS</span>
-                  <span className="text-emerald-500 font-bold">ACTIVE MATCHDAY</span>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-foreground uppercase font-sans">Champions League Elite</h4>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-crown border border-amber-500/30 font-bold">
-                    VIP ROOM
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-                  <span>92 MEMBERS</span>
-                  <span className="text-emerald-500 font-bold">ACTIVE MATCHDAY</span>
-                </div>
-              </div>
-            </div>
-
-            <Link href="/rooms/new" className="block pt-1">
-              <Button variant="outline" size="sm" className="w-full text-xs font-bold justify-center">
-                + Create Private Room
-              </Button>
-            </Link>
+          {/* Zone 3 (Context Tabs) - Shown below quick pick on mobile */}
+          <div className="lg:hidden pt-4 border-t border-border">
+            <ContextTabsWidget isLoggedIn={isLoggedIn} />
           </div>
         </div>
       </div>

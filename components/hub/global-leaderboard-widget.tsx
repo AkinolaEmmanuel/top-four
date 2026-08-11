@@ -14,12 +14,12 @@ const MOCK_WIDGET_LEADERBOARD = [
 
 export function GlobalLeaderboardWidget() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 space-y-5 shadow-sm dark:shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3 sm:p-6 space-y-4 sm:space-y-5 shadow-sm dark:shadow-elevation-dark-1 w-full max-w-full min-w-0 overflow-hidden">
       
       {/* Widget Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-crown border border-amber-500/20">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-crown border border-amber-500/20 shrink-0">
             <Trophy className="h-4 w-4" />
           </div>
           <div>
@@ -30,7 +30,7 @@ export function GlobalLeaderboardWidget() {
 
         <Link
           href="/table"
-          className="inline-flex items-center gap-1 text-xs font-bold text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-bold text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors shrink-0"
         >
           Full Table <ArrowRight className="h-3.5 w-3.5" />
         </Link>
@@ -41,30 +41,30 @@ export function GlobalLeaderboardWidget() {
         {MOCK_WIDGET_LEADERBOARD.map((row) => (
           <div
             key={row.rank}
-            className={`flex items-center justify-between py-3 transition-colors ${
+            className={`flex items-center justify-between py-2.5 sm:py-3 gap-2 transition-colors ${
               row.rank === 1 ? "text-crown" : "text-muted-foreground"
             }`}
           >
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 w-6 justify-center">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="flex items-center gap-1 w-5 justify-center shrink-0">
                 {row.rank === 1 && <Crown className="h-4 w-4 text-crown" />}
                 {row.rank === 2 && <Medal className="h-3.5 w-3.5 text-slate-400" />}
                 {row.rank === 3 && <Medal className="h-3.5 w-3.5 text-amber-600" />}
                 {row.rank > 3 && <span className="text-muted-foreground font-bold">#{row.rank}</span>}
               </div>
 
-              <span className="font-bold text-foreground font-sans text-sm truncate max-w-[130px] sm:max-w-[160px]">
+              <span className="font-bold text-foreground font-sans text-xs sm:text-sm truncate min-w-0 flex-1">
                 {row.name}
               </span>
             </div>
 
-            <div className="flex items-center gap-3 text-right">
-              <span className="text-muted-foreground text-[11px] flex items-center gap-1">
+            <div className="flex items-center gap-2.5 text-right shrink-0">
+              <span className="text-muted-foreground text-[10px] sm:text-[11px] flex items-center gap-0.5">
                 <Flame className="h-3 w-3 text-amber-500" />
                 {row.streak}
               </span>
-              <span className="font-black text-foreground text-sm">
-                {row.points} <span className="text-[10px] text-muted-foreground">PTS</span>
+              <span className="font-black text-foreground text-xs sm:text-sm">
+                {row.points} <span className="text-[9px] sm:text-[10px] text-muted-foreground">PTS</span>
               </span>
             </div>
           </div>

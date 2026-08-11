@@ -100,8 +100,11 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "DM Sans", ...fontFamily.sans],
-        heading: ["var(--font-heading)", "Sora", ...fontFamily.sans],
+        // DM Sans → headings, labels (font-heading)
+        // Sora → body, descriptions, captions (font-sans)
+        // layout.tsx loads: DM_Sans → --font-sans, Sora → --font-heading
+        sans: ["var(--font-heading)", "Sora", ...fontFamily.sans],
+        heading: ["var(--font-sans)", "DM Sans", ...fontFamily.sans],
       },
       keyframes: {
         "accordion-down": {

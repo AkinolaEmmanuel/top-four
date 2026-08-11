@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { TeamLogo } from "@/components/ui/team-logo";
-import { Clock, Flame, Target, HelpCircle, ShieldAlert, Sparkles } from "lucide-react";
+import { Clock, Flame, Target, HelpCircle, ShieldAlert } from "lucide-react";
 import { Fixture } from "@/lib/api-football/types";
 import { PredictionValue, MarketType, DEFAULT_SCORING_CONFIG } from "@/types";
 import { TicketPick } from "@/components/gamification/CollectibleReceiptTicket";
@@ -65,30 +65,24 @@ export function ArcadeMatchPickCenter({
   });
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 sm:space-y-5 shadow-sm dark:shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3 sm:p-6 space-y-4 sm:space-y-5 shadow-sm dark:shadow-elevation-dark-1 overflow-hidden w-full max-w-full min-w-0">
       
       {/* ── Top Control Bar ── */}
-      <div className="space-y-3.5 border-b border-border pb-4">
+      <div className="space-y-3.5 border-b border-border pb-4 w-full min-w-0 max-w-full overflow-hidden">
         
-        {/* Header Title & Subtitle */}
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
-            <h2 className="text-base sm:text-xl font-extrabold tracking-tight text-foreground uppercase font-heading flex items-center gap-2">
-              MATCHDAY PREDICTOR BOARD
-            </h2>
-          </div>
-          <p className="text-[11px] sm:text-xs text-muted-foreground font-mono mt-0.5">
-            Filter competition & prediction market below. Picks appear directly under each match.
+        {/* Header */}
+        <div className="w-full min-w-0 max-w-full">
+          <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground font-heading">
+            Matchday predictor
+          </h2>
+          <p className="text-xs text-muted-foreground font-sans mt-0.5 leading-tight">
+            Choose a competition and prediction type, then pick your outcomes.
           </p>
         </div>
 
-        {/* 1. League Competition Filter Tabs */}
-        <div className="space-y-1">
-          <span className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-wider">
-            SELECT COMPETITION
-          </span>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+        <div className="space-y-1 w-full min-w-0 max-w-full">
+          <span className="text-xs font-sans text-muted-foreground block">Competition</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none w-full min-w-0 max-w-full -mx-1 px-1">
             {LEAGUE_TABS.map((l) => (
               <button
                 key={l.id}
@@ -106,23 +100,20 @@ export function ArcadeMatchPickCenter({
           </div>
         </div>
 
-        {/* 2. Prediction Market Switcher Tabs */}
-        <div className="space-y-1 pt-0.5">
-          <span className="text-[9px] sm:text-[10px] font-mono text-muted-foreground uppercase font-bold tracking-wider">
-            PREDICTION MARKET
-          </span>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none p-1 rounded-xl bg-secondary/80 border border-border w-full -mx-1 px-1">
+        <div className="space-y-1 pt-0.5 w-full min-w-0 max-w-full">
+          <span className="text-xs font-sans text-muted-foreground block">Prediction type</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none p-1 rounded-xl bg-secondary/80 border border-border w-full min-w-0 max-w-full -mx-1 px-1">
             {MARKET_TABS.map((m) => (
               <button
                 key={m.id}
                 onClick={() => setActiveMarket(m.id)}
-                className={`flex-1 min-w-[95px] shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-bold text-center transition-all active:scale-95 duration-150 ${
+                className={`flex-1 min-w-[90px] shrink-0 px-2 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-bold text-center transition-all active:scale-95 duration-150 ${
                   activeMarket === m.id
                     ? "bg-sky-500 text-white shadow-glow-sky"
                     : "text-muted-foreground hover:text-foreground hover:bg-card"
                 }`}
               >
-                <span>{m.label}</span>
+                <span className="block truncate">{m.label}</span>
                 <span className="block text-[9px] opacity-80">+{m.pts}PTS</span>
               </button>
             ))}
@@ -143,44 +134,45 @@ export function ArcadeMatchPickCenter({
             return (
               <div
                 key={fixture.id}
-                className="p-4 rounded-xl border border-border bg-secondary/30 hover:border-sky-500/40 transition-colors shadow-sm space-y-3"
+                className="p-2.5 sm:p-4 rounded-xl border border-border bg-secondary/30 hover:border-sky-500/40 transition-colors shadow-sm space-y-3 overflow-hidden min-w-0"
               >
-                {/* Top Section: Match Teams & Kickoff Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
-                  {/* Left: Kickoff Time */}
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5 text-sky-500" />
-                    <span>{new Date(fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                {/* Top Section: Match Header */}
+                <div className="space-y-2 border-b border-border/50 pb-3">
+                  {/* Info Bar: Time & Points Badge */}
+                  <div className="flex items-center justify-between text-xs font-mono font-bold">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5 text-sky-500" />
+                      <span>{new Date(fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                      +{DEFAULT_SCORING_CONFIG[activeMarket]} PTS
+                    </span>
                   </div>
 
-                  {/* Center: Home Team — VS — Away Team (Spacious Center) */}
-                  <div className="flex items-center justify-center gap-3 sm:gap-6 flex-1 my-1">
+                  {/* Teams Bar: Home vs Away centered in full width */}
+                  <div className="flex items-center justify-center gap-2 sm:gap-6 w-full py-1">
                     {/* Home Team */}
-                    <div className="flex items-center gap-2.5 font-sans font-bold text-xs sm:text-sm text-foreground text-right">
-                      <span className="truncate max-w-[120px] sm:max-w-[200px]">{fixture.teams.home.name}</span>
-                      <div className="h-8 w-8 p-1 rounded-lg bg-card border border-border shrink-0 flex items-center justify-center">
-                        <TeamLogo src={fixture.teams.home.logo} teamName={fixture.teams.home.name} size={22} />
+                    <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 font-sans font-bold text-xs sm:text-sm text-foreground text-right flex-1 min-w-0">
+                      <span className="truncate max-w-[100px] sm:max-w-[180px]">{fixture.teams.home.name}</span>
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 p-1 rounded-lg bg-card border border-border shrink-0 flex items-center justify-center">
+                        <TeamLogo src={fixture.teams.home.logo} teamName={fixture.teams.home.name} size={20} />
                       </div>
                     </div>
 
                     {/* VS Badge */}
-                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded bg-secondary text-muted-foreground border border-border shrink-0">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-secondary text-muted-foreground border border-border shrink-0">
                       VS
                     </span>
 
                     {/* Away Team */}
-                    <div className="flex items-center gap-2.5 font-sans font-bold text-xs sm:text-sm text-foreground text-left">
-                      <div className="h-8 w-8 p-1 rounded-lg bg-card border border-border shrink-0 flex items-center justify-center">
-                        <TeamLogo src={fixture.teams.away.logo} teamName={fixture.teams.away.name} size={22} />
+                    <div className="flex items-center justify-start gap-1.5 sm:gap-2.5 font-sans font-bold text-xs sm:text-sm text-foreground text-left flex-1 min-w-0">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 p-1 rounded-lg bg-card border border-border shrink-0 flex items-center justify-center">
+                        <TeamLogo src={fixture.teams.away.logo} teamName={fixture.teams.away.name} size={20} />
                       </div>
-                      <span className="truncate max-w-[120px] sm:max-w-[200px]">{fixture.teams.away.name}</span>
+                      <span className="truncate max-w-[100px] sm:max-w-[180px]">{fixture.teams.away.name}</span>
                     </div>
                   </div>
-
-                  {/* Right: Points Awarded Badge */}
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 self-start sm:self-auto">
-                    +{DEFAULT_SCORING_CONFIG[activeMarket]} PTS
-                  </span>
                 </div>
 
                 {/* Bottom Section (Directly UNDER the Match): Full-Width Outcome Picker */}
@@ -322,7 +314,7 @@ function MatchResultUnderPicker({
   const currentPick = (selectedPick?.value as any)?.market === "match_result" ? (selectedPick?.value as any).pick : null;
 
   return (
-    <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-xs w-full">
       {[
         { label: "1 — HOME WIN", sub: fixture.teams.home.name, pick: "home" as const },
         { label: "X — DRAW", sub: "Equaled Score", pick: "draw" as const },
@@ -334,14 +326,14 @@ function MatchResultUnderPicker({
           <button
             key={item.pick}
             onClick={() => onSelect({ market: "match_result", pick: item.pick })}
-            className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-lg border font-bold transition-all ${
+            className={`flex items-center justify-between sm:flex-col sm:justify-center py-2.5 px-3 sm:py-3 rounded-xl border font-bold transition-all touch-manipulation active:scale-[0.98] w-full ${
               isSelected
                 ? "bg-sky-500 border-sky-400 text-white shadow-glow-sky"
                 : "bg-card border-border text-foreground hover:bg-secondary hover:border-sky-500/40"
             }`}
           >
-            <span className="text-xs sm:text-sm font-black">{item.label}</span>
-            <span className={`text-[10px] truncate max-w-[120px] mt-0.5 ${isSelected ? "text-white" : "text-muted-foreground"}`}>
+            <span className="text-xs sm:text-sm font-black tracking-tight">{item.label}</span>
+            <span className={`text-xs sm:text-[10px] font-sans font-medium truncate ${isSelected ? "text-white/90" : "text-muted-foreground"}`}>
               {item.sub}
             </span>
           </button>
@@ -452,10 +444,10 @@ function BttsUnderPicker({
   const currentPick = (selectedPick?.value as any)?.market === "btts" ? (selectedPick?.value as any).pick : null;
 
   return (
-    <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+    <div className="grid grid-cols-2 gap-1.5 sm:gap-2 font-mono text-xs">
       {[
-        { label: "BOTH TEAMS TO SCORE: YES", pick: "yes" as const },
-        { label: "BOTH TEAMS TO SCORE: NO", pick: "no" as const },
+        { labelShort: "BTTS: YES", labelFull: "BOTH TEAMS TO SCORE: YES", pick: "yes" as const },
+        { labelShort: "BTTS: NO", labelFull: "BOTH TEAMS TO SCORE: NO", pick: "no" as const },
       ].map((item) => {
         const isSelected = currentPick === item.pick || (currentPick === true && item.pick === "yes");
 
@@ -463,13 +455,14 @@ function BttsUnderPicker({
           <button
             key={item.pick}
             onClick={() => onSelect({ market: "btts", pick: item.pick } as any)}
-            className={`py-2.5 px-3 rounded-lg border font-bold text-xs transition-all ${
+            className={`py-2.5 px-2 sm:px-3 rounded-lg border font-bold text-[11px] sm:text-xs transition-all touch-manipulation active:scale-95 ${
               isSelected
                 ? "bg-emerald-500 border-emerald-400 text-white shadow-glow-emerald"
                 : "bg-card border-border text-foreground hover:bg-secondary hover:border-emerald-500/40"
             }`}
           >
-            {item.label}
+            <span className="hidden sm:inline">{item.labelFull}</span>
+            <span className="sm:hidden">{item.labelShort}</span>
           </button>
         );
       })}
@@ -487,10 +480,10 @@ function TotalGoalsUnderPicker({
   const currentPick = (selectedPick?.value as any)?.market === "total_goals" ? (selectedPick?.value as any).pick : null;
 
   return (
-    <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+    <div className="grid grid-cols-2 gap-1.5 sm:gap-2 font-mono text-xs">
       {[
-        { label: "OVER 2.5 TOTAL GOALS", pick: "over" as const },
-        { label: "UNDER 2.5 TOTAL GOALS", pick: "under" as const },
+        { labelShort: "OVER 2.5 GOALS", labelFull: "OVER 2.5 TOTAL GOALS", pick: "over" as const },
+        { labelShort: "UNDER 2.5 GOALS", labelFull: "UNDER 2.5 TOTAL GOALS", pick: "under" as const },
       ].map((item) => {
         const isSelected = currentPick === item.pick;
 
@@ -498,13 +491,14 @@ function TotalGoalsUnderPicker({
           <button
             key={item.pick}
             onClick={() => onSelect({ market: "total_goals", pick: item.pick } as any)}
-            className={`py-2.5 px-3 rounded-lg border font-bold text-xs transition-all ${
+            className={`py-2.5 px-2 sm:px-3 rounded-lg border font-bold text-[11px] sm:text-xs transition-all touch-manipulation active:scale-95 ${
               isSelected
                 ? "bg-sky-500 border-sky-400 text-white shadow-glow-sky"
                 : "bg-card border-border text-foreground hover:bg-secondary hover:border-sky-500/40"
             }`}
           >
-            {item.label}
+            <span className="hidden sm:inline">{item.labelFull}</span>
+            <span className="sm:hidden">{item.labelShort}</span>
           </button>
         );
       })}
@@ -606,10 +600,10 @@ function CustomQuestionUnderPicker({
   return (
     <div className="p-3 rounded-lg bg-card border border-border space-y-2 font-mono text-xs">
       <div className="flex items-center gap-1.5 text-sky-500 font-bold">
-        <HelpCircle className="h-4 w-4" />
-        <span>CREATOR QUESTION: Will there be a Red Card in this match? (+3 PTS)</span>
+        <HelpCircle className="h-4 w-4 shrink-0" />
+        <span className="text-xs">CREATOR QUESTION: Will there be a Red Card in this match? (+3 PTS)</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {["YES (Red Card Shown)", "NO (No Red Card)"].map((ans) => {
           const isSelected = currentAnswer === ans;
 
@@ -617,7 +611,7 @@ function CustomQuestionUnderPicker({
             <button
               key={ans}
               onClick={() => onSelect({ market: "custom_question", answer: ans } as any)}
-              className={`py-2 px-2 rounded-lg border font-bold text-xs transition-all ${
+              className={`py-2 px-2 rounded-lg border font-bold text-xs transition-all touch-manipulation active:scale-95 ${
                 isSelected
                   ? "bg-sky-500 border-sky-400 text-white shadow-glow-sky"
                   : "bg-secondary border-border text-foreground hover:bg-accent"

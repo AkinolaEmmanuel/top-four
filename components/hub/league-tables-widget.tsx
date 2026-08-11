@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Trophy, ArrowRight, Flame, Target, Sparkles } from "lucide-react";
+import { Trophy, ArrowRight, Flame, Target } from "lucide-react";
 import { TeamLogo } from "@/components/ui/team-logo";
 
 const LEAGUE_STANDINGS_DATA: Record<number, {
@@ -152,100 +152,260 @@ const LEAGUE_STANDINGS_DATA: Record<number, {
   },
 };
 
+const PRIVATE_LEAGUES_DATA = [
+  {
+    id: "pl-pundits",
+    name: "Premier League Pundits Club",
+    badge: "PRIVATE GROUP",
+    role: "Owner",
+    membersCount: 148,
+    standings: [
+      { rank: 1, name: "Akinola Emmanuel (You)", avatar: "AE", role: "Owner", exactScores: 4, correctResults: 12, claimPts: 150, pts: 1250, isUser: true },
+      { rank: 2, name: "Dave_Gooner99", avatar: "DG", role: "Admin", exactScores: 3, correctResults: 11, claimPts: 100, pts: 1120, isUser: false },
+      { rank: 3, name: "Tactical_Guru", avatar: "TG", role: "Member", exactScores: 3, correctResults: 10, claimPts: 50, pts: 980, isUser: false },
+      { rank: 4, name: "Sammy_Striker", avatar: "SS", role: "Member", exactScores: 2, correctResults: 9, claimPts: 50, pts: 890, isUser: false },
+      { rank: 5, name: "Villa_Fanatic", avatar: "VF", role: "Member", exactScores: 2, correctResults: 8, claimPts: 0, pts: 780, isUser: false },
+    ]
+  },
+  {
+    id: "champions-elite",
+    name: "Champions League Elite Pundits",
+    badge: "VIP GROUP",
+    role: "Admin",
+    membersCount: 92,
+    standings: [
+      { rank: 1, name: "VIP_Tactician", avatar: "VT", role: "Owner", exactScores: 5, correctResults: 14, claimPts: 200, pts: 1420, isUser: false },
+      { rank: 2, name: "Akinola Emmanuel (You)", avatar: "AE", role: "Admin", exactScores: 4, correctResults: 12, claimPts: 150, pts: 1250, isUser: true },
+      { rank: 3, name: "Madridista_9", avatar: "M9", role: "Member", exactScores: 3, correctResults: 11, claimPts: 100, pts: 1050, isUser: false },
+      { rank: 4, name: "Bavarian_King", avatar: "BK", role: "Member", exactScores: 2, correctResults: 10, claimPts: 50, pts: 920, isUser: false },
+    ]
+  }
+];
+
 export function LeagueTablesWidget() {
+  const [tableCategory, setTableCategory] = useState<"private" | "official">("private");
+  const [activePrivateLeagueId, setActivePrivateLeagueId] = useState<string>("pl-pundits");
   const [activeLeagueId, setActiveLeagueId] = useState<number>(39);
-  const currentData = LEAGUE_STANDINGS_DATA[activeLeagueId] || LEAGUE_STANDINGS_DATA[39];
+
+  const currentOfficialData = LEAGUE_STANDINGS_DATA[activeLeagueId] || LEAGUE_STANDINGS_DATA[39];
+  const currentPrivateData = PRIVATE_LEAGUES_DATA.find((l) => l.id === activePrivateLeagueId) || PRIVATE_LEAGUES_DATA[0];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-6 space-y-4 sm:space-y-6 shadow-sm dark:shadow-elevation-dark-1">
+    <div className="rounded-2xl border border-border bg-card p-3 sm:p-6 space-y-4 sm:space-y-6 shadow-sm dark:shadow-elevation-dark-1 w-full max-w-full min-w-0 overflow-hidden">
       
-      {/* Widget Header */}
+      {/* Widget Header & Category Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 shadow-sm">
             <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground font-heading">Official League Standings</h3>
-            <p className="text-[11px] text-muted-foreground font-mono">LIVE FOOTBALL STANDINGS</p>
+            <h3 className="text-base font-bold text-foreground font-heading">League & Group Standings</h3>
+            <p className="text-[11px] text-muted-foreground font-mono">YOUR GROUPS & OFFICIAL TABLES</p>
           </div>
         </div>
 
-        {/* League Selection Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
-          {Object.entries(LEAGUE_STANDINGS_DATA).map(([idStr, data]) => {
-            const id = Number(idStr);
-            return (
+        {/* Category Selector Tabs */}
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-secondary border border-border">
+          <button
+            onClick={() => setTableCategory("private")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              tableCategory === "private"
+                ? "bg-sky-500 text-white shadow-glow-sky font-black"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Your Private Groups ({PRIVATE_LEAGUES_DATA.length})
+          </button>
+          <button
+            onClick={() => setTableCategory("official")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              tableCategory === "official"
+                ? "bg-sky-500 text-white shadow-glow-sky font-black"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Official Standings
+          </button>
+        </div>
+      </div>
+
+      {/* PRIVATE GROUPS VIEW */}
+      {tableCategory === "private" && (
+        <div className="space-y-4">
+          {/* Private Group Selector Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {PRIVATE_LEAGUES_DATA.map((league) => (
               <button
-                key={id}
-                onClick={() => setActiveLeagueId(id)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border duration-150 ease-out active:scale-95 ${
-                  activeLeagueId === id
+                key={league.id}
+                onClick={() => setActivePrivateLeagueId(league.id)}
+                className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold border transition-all ${
+                  activePrivateLeagueId === league.id
                     ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
                     : "border-border bg-slate-50/80 dark:bg-slate-900/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
-                <span>{data.flag}</span>
-                <span>{data.name}</span>
+                <span>{league.name}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400">
+                  {league.membersCount} Members
+                </span>
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
 
-      {/* Main Standings Table */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs font-bold text-foreground">
-          <span className="flex items-center gap-1.5 font-heading">
-            <span className="text-sm">{currentData.flag}</span> {currentData.name} — Standings
-          </span>
-          <span className="text-[10px] text-muted-foreground font-mono">SEASON 2025</span>
-        </div>
+          {/* Group Leaderboard Table */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-foreground">
+              <span className="flex items-center gap-1.5 font-heading">
+                🏆 {currentPrivateData.name} — Leaderboard
+              </span>
+              <span className="text-[10px] text-emerald-500 font-mono font-bold flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                LIVE PROVISIONAL PTS
+              </span>
+            </div>
 
-        <div className="overflow-x-auto rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-1 shadow-sm">
-          <table className="w-full min-w-[480px] text-left font-mono text-xs">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground text-[10px] uppercase">
-                <th className="py-2.5 pl-3 w-10 text-center">POS</th>
-                <th className="py-2.5 font-sans font-bold">CLUB</th>
-                <th className="py-2.5 text-center w-10">P</th>
-                <th className="py-2.5 text-center w-10">W</th>
-                <th className="py-2.5 text-center w-10">D</th>
-                <th className="py-2.5 text-center w-10">L</th>
-                <th className="py-2.5 text-center w-12">GD</th>
-                <th className="py-2.5 pr-3 text-right w-16 font-bold text-foreground">PTS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {currentData.table.map((row) => (
-                <tr key={row.rank} className="hover:bg-secondary/60 transition-colors">
-                  <td className="py-3 pl-3 text-center font-bold">
-                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs ${
-                      row.rank <= 4
-                        ? "bg-sky-500/15 text-sky-500 font-black border border-sky-500/30"
-                        : "text-muted-foreground"
-                    }`}>
-                      {row.rank}
-                    </span>
-                  </td>
-                  <td className="py-3 font-sans font-bold text-foreground">
-                    <div className="flex items-center gap-2.5">
-                      <TeamLogo src={row.logo} teamName={row.team} size={22} />
-                      <span className="truncate max-w-[160px] sm:max-w-[240px]">{row.team}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 text-center text-muted-foreground">{row.p}</td>
-                  <td className="py-3 text-center text-emerald-400 font-bold">{row.w}</td>
-                  <td className="py-3 text-center text-muted-foreground">{row.d}</td>
-                  <td className="py-3 text-center text-destructive">{row.l}</td>
-                  <td className="py-3 text-center text-muted-foreground">{row.gd}</td>
-                  <td className="py-3 pr-3 text-right font-black text-foreground text-sm">{row.pts}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="overflow-x-auto rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-1 shadow-sm">
+              <table className="w-full min-w-[520px] text-left font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground text-[10px] uppercase">
+                    <th className="py-2.5 pl-3 w-10 text-center">POS</th>
+                    <th className="py-2.5 font-sans font-bold">PREDICTOR</th>
+                    <th className="py-2.5 text-center">ROLE</th>
+                    <th className="py-2.5 text-center">EXACT SCORES</th>
+                    <th className="py-2.5 text-center">RESULTS</th>
+                    <th className="py-2.5 text-center">CLAIM PTS</th>
+                    <th className="py-2.5 pr-3 text-right font-bold text-foreground">TOTAL PTS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {currentPrivateData.standings.map((user) => (
+                    <tr
+                      key={user.rank}
+                      className={`transition-colors ${user.isUser ? "bg-sky-500/10 font-bold" : "hover:bg-secondary/60"}`}
+                    >
+                      <td className="py-3 pl-3 text-center">
+                        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs ${
+                          user.rank === 1
+                            ? "bg-amber-500/20 text-crown font-black border border-amber-500/40"
+                            : user.rank === 2
+                            ? "bg-slate-300/20 text-slate-300 font-black"
+                            : user.rank === 3
+                            ? "bg-amber-700/20 text-amber-600 font-black"
+                            : "text-muted-foreground"
+                        }`}>
+                          {user.rank}
+                        </span>
+                      </td>
+                      <td className="py-3 font-sans font-bold text-foreground">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full bg-sky-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {user.avatar}
+                          </div>
+                          <span>{user.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                          user.role === "Owner"
+                            ? "bg-amber-500/10 text-crown border border-amber-500/30"
+                            : user.role === "Admin"
+                            ? "bg-sky-500/10 text-sky-400 border border-sky-500/30"
+                            : "bg-slate-500/10 text-muted-foreground"
+                        }`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="py-3 text-center text-emerald-400 font-bold">{user.exactScores}</td>
+                      <td className="py-3 text-center text-foreground">{user.correctResults}</td>
+                      <td className="py-3 text-center text-amber-400 font-bold">+{user.claimPts}</td>
+                      <td className="py-3 pr-3 text-right font-black text-sky-400 text-sm">{user.pts} PTS</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* OFFICIAL LEAGUES VIEW */}
+      {tableCategory === "official" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+            {Object.entries(LEAGUE_STANDINGS_DATA).map(([idStr, data]) => {
+              const id = Number(idStr);
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveLeagueId(id)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all border duration-150 ease-out active:scale-95 ${
+                    activeLeagueId === id
+                      ? "bg-sky-500/15 border-sky-500/40 text-sky-500 shadow-sm"
+                      : "border-border bg-slate-50/80 dark:bg-slate-900/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  <span>{data.flag}</span>
+                  <span>{data.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-foreground">
+              <span className="flex items-center gap-1.5 font-heading">
+                <span className="text-sm">{currentOfficialData.flag}</span> {currentOfficialData.name} — Standings
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">SEASON 2025</span>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-border bg-slate-50/80 dark:bg-slate-900/60 p-1 shadow-sm">
+              <table className="w-full min-w-[480px] text-left font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground text-[10px] uppercase">
+                    <th className="py-2.5 pl-3 w-10 text-center">POS</th>
+                    <th className="py-2.5 font-sans font-bold">CLUB</th>
+                    <th className="py-2.5 text-center w-10">P</th>
+                    <th className="py-2.5 text-center w-10">W</th>
+                    <th className="py-2.5 text-center w-10">D</th>
+                    <th className="py-2.5 text-center w-10">L</th>
+                    <th className="py-2.5 text-center w-12">GD</th>
+                    <th className="py-2.5 pr-3 text-right w-16 font-bold text-foreground">PTS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {currentOfficialData.table.map((row) => (
+                    <tr key={row.rank} className="hover:bg-secondary/60 transition-colors">
+                      <td className="py-3 pl-3 text-center font-bold">
+                        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs ${
+                          row.rank <= 4
+                            ? "bg-sky-500/15 text-sky-500 font-black border border-sky-500/30"
+                            : "text-muted-foreground"
+                        }`}>
+                          {row.rank}
+                        </span>
+                      </td>
+                      <td className="py-3 font-sans font-bold text-foreground">
+                        <div className="flex items-center gap-2.5">
+                          <TeamLogo src={row.logo} teamName={row.team} size={22} />
+                          <span className="truncate max-w-[160px] sm:max-w-[240px]">{row.team}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-center text-muted-foreground">{row.p}</td>
+                      <td className="py-3 text-center text-emerald-400 font-bold">{row.w}</td>
+                      <td className="py-3 text-center text-muted-foreground">{row.d}</td>
+                      <td className="py-3 text-center text-destructive">{row.l}</td>
+                      <td className="py-3 text-center text-muted-foreground">{row.gd}</td>
+                      <td className="py-3 pr-3 text-right font-black text-foreground text-sm">{row.pts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

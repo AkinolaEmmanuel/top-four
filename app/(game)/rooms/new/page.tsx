@@ -34,6 +34,7 @@ export default function NewRoomPage() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [initialClaim, setInitialClaim] = useState("");
   const [competitions, setCompetitions] = useState<number[]>([39]); // Premier League
   const [scopeType, setScopeType] = useState<LeagueScopeType>("season");
   const [joinPolicy, setJoinPolicy] = useState<JoinPolicy>("always_open");
@@ -50,7 +51,7 @@ export default function NewRoomPage() {
 
   function toggleMarket(market: MarketType) {
     setEnabledMarkets((m) => (m.includes(market) ? m.filter((x) => x !== market) : [...m, market]));
-    setTiebreakers((t) => t.filter((x) => x !== market)); // drop from tiebreakers if disabled
+    setTiebreakers((t) => t.filter((x) => x !== market));
   }
 
   function toggleTiebreaker(market: MarketType) {
@@ -73,7 +74,7 @@ export default function NewRoomPage() {
     createRoom.mutate(
       {
         name,
-        description,
+        description: initialClaim ? `${description} • Claim: "${initialClaim}"` : description,
         competitions,
         scope: { type: scopeType },
         join_policy: joinPolicy,
@@ -91,56 +92,71 @@ export default function NewRoomPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl pb-12">
+    <div className="mx-auto max-w-3xl pb-12 px-4">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-primary animate-pulse" />
-          <h1 className="text-3xl font-black tracking-tight text-white uppercase">INITIALIZE ROOM</h1>
+          <span className="h-2.5 w-2.5 rounded-full bg-sky-500 animate-pulse" />
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground uppercase font-heading">CREATE NEW GROUP</h1>
         </div>
-        <p className="text-sm text-white/60 font-mono">
-          CONFIGURE SYSTEM PARAMETERS FOR YOUR NEW PREDICTION CLUB.
+        <p className="text-xs sm:text-sm text-muted-foreground font-sans">
+          Set up your private prediction group for your friends and club members.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* MODULE 1: TERMINAL ID */}
-        <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-xl transition-all hover:border-primary/40 group">
-          <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
-            <span className="text-xs font-black tracking-widest text-primary">MODULE 01</span>
-            <h2 className="text-sm font-bold tracking-widest text-white uppercase">TERMINAL IDENTITY</h2>
+        {/* MODULE 1: GROUP IDENTITY */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <span className="text-xs font-mono font-black tracking-widest text-sky-500">STEP 01</span>
+            <h2 className="text-sm font-bold text-foreground uppercase">GROUP DETAILS & BANTER CLAIMS</h2>
           </div>
-          
+
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs font-bold text-white/60 uppercase tracking-widest">Room Name</Label>
-              <Input 
-                id="name" 
-                required 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                placeholder="E.g. The Invincibles" 
-                className="h-12 bg-black/50 border-white/10 font-mono text-white focus-visible:ring-primary focus-visible:border-primary"
+              <Label htmlFor="name" className="text-xs font-bold text-foreground uppercase">Group Name</Label>
+              <Input
+                id="name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="E.g. Premier League Pundits"
+                className="h-11 bg-background text-foreground"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-xs font-bold text-white/60 uppercase tracking-widest">Description <span className="text-white/30">(OPTIONAL)</span></Label>
+              <Label htmlFor="description" className="text-xs font-bold text-foreground uppercase">Group Description</Label>
               <Input
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Sunday league banter only"
-                className="h-12 bg-black/50 border-white/10 font-mono text-white focus-visible:ring-primary focus-visible:border-primary"
+                placeholder="Matchday banter only"
+                className="h-11 bg-background text-foreground"
               />
             </div>
           </div>
+
+          {/* Featured Claim Input */}
+          <div className="space-y-2 pt-2 border-t border-border/50">
+            <Label htmlFor="initialClaim" className="text-xs font-bold text-sky-500 uppercase flex items-center gap-1.5">
+              <span>🔥 FEATURED INITIAL CLAIM / BANTER STATEMENT</span>
+              <span className="text-[10px] font-mono text-muted-foreground">(FEATURED ON GROUP HOMEPAGE)</span>
+            </Label>
+            <Input
+              id="initialClaim"
+              value={initialClaim}
+              onChange={(e) => setInitialClaim(e.target.value)}
+              placeholder="E.g. Arsenal will win the Champions League by 2+ goals in the final"
+              className="h-11 bg-sky-500/5 border-sky-500/30 text-foreground font-medium"
+            />
+          </div>
         </div>
 
-        {/* MODULE 2: RULES OF ENGAGEMENT */}
-        <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-xl transition-all hover:border-primary/40 group">
-          <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
-            <span className="text-xs font-black tracking-widest text-primary">MODULE 02</span>
-            <h2 className="text-sm font-bold tracking-widest text-white uppercase">RULES OF ENGAGEMENT</h2>
+        {/* MODULE 2: GROUP RULES & COMPETITIONS */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <span className="text-xs font-mono font-black tracking-widest text-sky-500">STEP 02</span>
+            <h2 className="text-sm font-bold text-foreground uppercase">GROUP RULES & COMPETITIONS</h2>
           </div>
 
           <div className="space-y-8">
@@ -297,15 +313,15 @@ export default function NewRoomPage() {
         <button 
           type="submit" 
           disabled={createRoom.isPending}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-5 text-sm font-black tracking-widest text-black transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_20px_rgba(0,255,102,0.3)] uppercase"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-600 px-8 py-4 text-sm font-black tracking-wider text-white transition-all active:scale-[0.99] shadow-glow-sky uppercase"
         >
           {createRoom.isPending ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              INITIALIZING SYSTEM...
+              CREATING GROUP...
             </>
           ) : (
-            "INITIALIZE ROOM NOW"
+            "CREATE GROUP NOW"
           )}
         </button>
       </form>

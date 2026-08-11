@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Zap } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,41 +83,41 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          <p className="rounded-xl bg-destructive/10 border border-destructive/20 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-destructive">
             {error}
           </p>
         )}
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" className="w-full h-11 sm:h-12 text-sm font-bold tracking-wide" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
           Sign in
         </Button>
       </form>
 
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-black/10" />
-        <span className="text-xs font-medium uppercase tracking-wide text-black/40">or</span>
-        <div className="h-px flex-1 bg-black/10" />
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">or</span>
+        <div className="h-px flex-1 bg-border" />
       </div>
 
       <Button
         type="button"
         variant="outline"
-        className="w-full"
+        className="w-full h-11 sm:h-12 text-xs sm:text-sm font-bold"
         onClick={handleDemoSignIn}
         disabled={isDemoLoading}
       >
         {isDemoLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <Sparkles className="h-4 w-4" />
+          <Zap className="h-4 w-4 text-sky-400" />
         )}
         Try the demo — no account needed
       </Button>
 
-      <p className="mt-6 text-center text-sm text-black/50">
+      <p className="mt-5 text-center text-xs sm:text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-semibold text-black hover:underline">
+        <Link href="/signup" className="font-bold text-foreground hover:text-sky-500 hover:underline">
           Create one
         </Link>
       </p>
