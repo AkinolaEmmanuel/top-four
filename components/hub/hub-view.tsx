@@ -1,99 +1,426 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Activity, BookOpen, Flame, Shield, Trophy } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { StatTicker } from "./stat-ticker";
-import { QuickPickPanel } from "./quick-pick-panel";
-import { ContextTabsWidget } from "./context-tabs-widget";
-import { MatchdayScoresHub } from "./matchday-scores-hub";
+import { Crest } from "@/components/ui/crest";
+import { ArrowRight, ChevronRight, Clock, Trophy, CheckCircle2 } from "lucide-react";
+
+import { LandingHome } from "@/components/landing/landing-home";
 
 export function HubView({ user }: { user?: any }) {
   const isLoggedIn = Boolean(user);
-  const name = user?.displayName || user?.email || "Predictor";
+  if (!isLoggedIn) {
+    return <LandingHome />;
+  }
+
+  const displayName = user?.displayName || user?.email || "Predictor";
+
+  // Data modelled directly on Home.dc.html
+  const nextLock = {
+    league: "Premier Predictors",
+    home: "ARS",
+    away: "CHE",
+    homeName: "Arsenal",
+    awayName: "Chelsea",
+    clock: "4h 12m",
+    clockSub: "until match result locks",
+    kickoff: "Today 16:30",
+    progress: "3 of 7 answered",
+    barPercent: 43,
+    cta: "Answer 4 markets →",
+  };
+
+  const queue = [
+    {
+      id: "q-1",
+      home: "ARS",
+      away: "CHE",
+      match: "Arsenal v Chelsea",
+      league: "Premier Predictors · GW2",
+      time: "4h 12m",
+      missing: "4 of 7 missing",
+      urgent: true,
+    },
+    {
+      id: "q-2",
+      home: "LIV",
+      away: "TOT",
+      match: "Liverpool v Spurs",
+      league: "Premier Predictors · GW2",
+      time: "6h 40m",
+      missing: "2 of 7 missing",
+      urgent: false,
+    },
+    {
+      id: "q-3",
+      home: "MCI",
+      away: "EVE",
+      match: "Man City v Everton",
+      league: "Office League · GW2",
+      time: "8h 05m",
+      missing: "6 of 6 missing",
+      urgent: false,
+    },
+  ];
+
+  const weekendPayoff = {
+    kicker: "THIS WEEKEND",
+    badge: "GW 2 SETTLED",
+    points: "38",
+    sub: "points earned across 3 leagues",
+    breakdown: [
+      { mark: "✓", label: "Arsenal 2-1 Chelsea (Exact Score)", pts: "+5", correct: true },
+      { mark: "✓", label: "Liverpool vs Spurs (Match Result)", pts: "+2", correct: true },
+      { mark: "✓", label: "Man City (Over 2.5 Goals)", pts: "+1", correct: true },
+      { mark: "✓", label: "Haaland Anytime Goalscorer", pts: "+5", correct: true },
+    ],
+  };
+
+  const leagues = [
+    {
+      id: "l-1",
+      name: "Premier Predictors",
+      crest: "PP",
+      crestBg: "var(--brand-fill)",
+      meta: "128 members · Gameweek 2",
+      position: "#4",
+      points: "1,080 pts",
+    },
+    {
+      id: "l-2",
+      name: "Office League 2026",
+      crest: "OL",
+      crestBg: "var(--tf-blue-700)",
+      meta: "18 members · Gameweek 2",
+      position: "#2",
+      points: "840 pts",
+    },
+    {
+      id: "l-3",
+      name: "Champions League Elite",
+      crest: "CL",
+      crestBg: "var(--tf-navy-800)",
+      meta: "42 members · Round 1",
+      position: "#6",
+      points: "520 pts",
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-10 px-3 sm:px-6 py-4 sm:py-8 pb-24 sm:pb-8 w-full max-w-full min-w-0 overflow-hidden">
+    <div className="space-y-6 px-2 md:px-5 pb-24 md:pb-8 w-full min-w-0 font-sans">
+      {/* ── HERO: The Next Lock Anywhere ── */}
+      <section
+        className="relative overflow-hidden rounded-2xl p-5 sm:p-6"
+        style={{
+          background: "linear-gradient(180deg, var(--pitch-bg-top) 0%, var(--pitch-bg-bottom) 100%)",
+          color: "var(--tf-white)",
+          boxShadow: "var(--elev-3)",
+        }}
+      >
+        {/* Stadium center pitch circle overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-15"
+          style={{
+            backgroundImage: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 65%)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute left-0 right-0 top-1/2 h-px"
+          style={{ background: "var(--pitch-line)" }}
+        />
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 rounded-full"
+          style={{ border: "1px solid var(--pitch-line)" }}
+        />
 
-      {/* ── ZONE 1: Hero Section ── */}
-      <section className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-10 shadow-elevation-dark-2 w-full max-w-full min-w-0">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-500/10 via-transparent to-amber-500/5" />
-
-        <div className="relative z-10 flex flex-col gap-6 w-full max-w-full min-w-0">
-          <div className="space-y-4 max-w-3xl min-w-0 flex-1">
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white font-heading"
+        <div className="relative z-10">
+          {/* Kicker + League Badge */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="h-2 w-2 rounded-full animate-pulse"
+                style={{ background: "var(--tf-red-400)" }}
+              />
+              <span
+                className="text-[10px] font-bold tracking-wider uppercase font-heading"
+                style={{ color: "var(--tf-red-300)" }}
+              >
+                NEXT LOCK
+              </span>
+            </div>
+            <span
+              className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase font-heading"
+              style={{ background: "rgba(255,255,255,0.12)", color: "var(--tf-white)" }}
             >
-              {isLoggedIn ? (
-                <>Welcome back, <span className="text-sky-400">{name}</span> 👋</>
-              ) : (
-                <>Predict outcomes. <br/><span className="text-sky-400">Prove your ball knowledge.</span></>
-              )}
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-              className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-2xl"
-            >
-              {isLoggedIn
-                ? "You have 3 matches left to predict for today's fixtures."
-                : "Join thousands of fans making predictions, building receipt slips, and climbing the global leaderboard."}
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
-              className="pt-2"
-            >
-              <Link href={isLoggedIn ? "/predict" : "/signup"}>
-                <Button variant="sky" size="lg" className="gap-2 font-bold transition-transform active:scale-95 shadow-glow-sky">
-                  {isLoggedIn ? "Predict now" : "Get started free"}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
-            >
-              <StatTicker />
-            </motion.div>
+              {nextLock.league}
+            </span>
           </div>
+
+          {/* Large Countdown Clock */}
+          <div className="flex items-baseline gap-2.5 mt-2">
+            <span
+              className="text-4xl sm:text-5xl font-black tracking-tight font-heading tabular-nums"
+              style={{ color: "var(--tf-white)" }}
+            >
+              {nextLock.clock}
+            </span>
+            <span
+              className="text-xs font-sans"
+              style={{ color: "rgba(255,255,255,0.72)" }}
+            >
+              {nextLock.clockSub}
+            </span>
+          </div>
+
+          {/* Teams Row */}
+          <div className="flex items-center justify-between gap-3 mt-5 py-3 border-y border-white/10">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Crest code={nextLock.home} size="lg" />
+              <span className="font-bold text-sm sm:text-base font-heading truncate">
+                {nextLock.homeName}
+              </span>
+            </div>
+
+            <span className="text-[11px] font-bold font-heading uppercase px-2 py-0.5 rounded bg-black/20 text-white/80 shrink-0">
+              {nextLock.kickoff}
+            </span>
+
+            <div className="flex items-center gap-3 min-w-0 flex-1 justify-end">
+              <span className="font-bold text-sm sm:text-base font-heading truncate text-right">
+                {nextLock.awayName}
+              </span>
+              <Crest code={nextLock.away} size="lg" />
+            </div>
+          </div>
+
+          {/* Answer Progress Bar */}
+          <div className="flex items-center gap-3 mt-4">
+            <div className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${nextLock.barPercent}%`,
+                  background: "var(--color-brand)",
+                }}
+              />
+            </div>
+            <span className="text-[11px] font-bold font-heading tabular-nums shrink-0 text-white/90">
+              {nextLock.progress}
+            </span>
+          </div>
+
+          {/* CTA Button */}
+          <Link
+            href="/predict"
+            className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl text-xs sm:text-sm font-bold font-heading transition-transform active:scale-[0.98]"
+            style={{
+              background: "var(--brand-fill)",
+              color: "var(--color-on-brand)",
+              boxShadow: "var(--elev-2)",
+            }}
+          >
+            {nextLock.cta}
+          </Link>
         </div>
       </section>
 
-      {/* ── ZONE 2 & 3: Main Layout ── */}
-      <div className="grid gap-8 lg:grid-cols-12 items-start w-full max-w-full min-w-0 overflow-hidden">
-        
-        {/* Left 8 Cols: Zone 2 (Matchday Scores Hub) */}
-        <div className="lg:col-span-8 space-y-8 w-full max-w-full min-w-0 overflow-hidden">
-          <MatchdayScoresHub />
-          
-          {/* Zone 3 (Context Tabs) - Shown below scores on desktop */}
-          <div className="hidden lg:block pt-4 border-t border-border">
-            <ContextTabsWidget isLoggedIn={isLoggedIn} />
-          </div>
+      {/* ── THE QUEUE: Next Deadlines in Order ── */}
+      <section className="space-y-2.5">
+        <div className="flex items-baseline justify-between px-1">
+          <span
+            className="text-[10px] font-bold tracking-wider uppercase font-heading"
+            style={{ color: "var(--text-muted)" }}
+          >
+            NEXT DEADLINES
+          </span>
+          <Link
+            href="/predict"
+            className="text-[11px] font-bold font-heading hover:underline"
+            style={{ color: "var(--text-link)" }}
+          >
+            OPEN FULL QUEUE →
+          </Link>
         </div>
 
-        {/* Right 4 Cols: Zone 2 (Quick Pick) */}
-        <div className="lg:col-span-4 space-y-8 w-full max-w-full min-w-0 overflow-hidden">
-          <QuickPickPanel />
+        <div
+          className="rounded-2xl overflow-hidden divide-y divide-[var(--surface-border)]"
+          style={{
+            background: "var(--surface-card)",
+            border: "1px solid var(--surface-border)",
+            boxShadow: "var(--elev-1)",
+          }}
+        >
+          {queue.map((q) => (
+            <Link
+              key={q.id}
+              href="/predict"
+              className="flex items-center gap-3.5 p-3.5 sm:p-4 hover:bg-[var(--surface-subtle)] transition-colors active:scale-[0.99]"
+              style={{
+                background: q.urgent ? "var(--accent-surface)" : undefined,
+                boxShadow: q.urgent ? "inset 3px 0 0 0 var(--color-brand)" : undefined,
+              }}
+            >
+              {/* Stacked Crests */}
+              <div className="flex flex-col gap-1 shrink-0">
+                <Crest code={q.home} size="xs" />
+                <Crest code={q.away} size="xs" />
+              </div>
 
-          {/* Zone 3 (Context Tabs) - Shown below quick pick on mobile */}
-          <div className="lg:hidden pt-4 border-t border-border">
-            <ContextTabsWidget isLoggedIn={isLoggedIn} />
-          </div>
+              {/* Title & League */}
+              <div className="flex-1 min-w-0">
+                <div
+                  className="font-bold text-sm font-heading truncate"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {q.match}
+                </div>
+                <div
+                  className="text-[11px] font-sans truncate mt-0.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {q.league}
+                </div>
+              </div>
+
+              {/* Deadline & Missing Answers */}
+              <div className="text-right shrink-0">
+                <div
+                  className="text-xs sm:text-sm font-bold font-heading tabular-nums"
+                  style={{
+                    color: q.urgent ? "var(--danger-text)" : "var(--text-primary)",
+                  }}
+                >
+                  {q.time}
+                </div>
+                <div
+                  className="text-[10px] font-sans mt-0.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {q.missing}
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
-      </div>
+      </section>
+
+      {/* ── THE PAYOFF: Weekend Points Breakdown ── */}
+      <section
+        className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, var(--tf-navy-950) 0%, var(--tf-navy-800) 100%)",
+          border: "1px solid var(--surface-border)",
+          boxShadow: "var(--elev-2)",
+        }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 font-heading">
+            {weekendPayoff.kicker}
+          </span>
+          <span className="px-2 py-0.5 rounded text-[9.5px] font-bold uppercase font-heading bg-white text-slate-950">
+            {weekendPayoff.badge}
+          </span>
+        </div>
+
+        <div className="flex items-baseline gap-2 mt-2">
+          <span className="text-3xl sm:text-4xl font-black font-heading tabular-nums">
+            {weekendPayoff.points}
+          </span>
+          <span className="text-xs text-white/70">
+            {weekendPayoff.sub}
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-2 pt-3 border-t border-white/10 text-xs">
+          {weekendPayoff.breakdown.map((row, idx) => (
+            <div key={idx} className="flex items-center justify-between gap-3 text-white/90">
+              <div className="flex items-center gap-2 truncate">
+                <span className="text-emerald-400 font-bold">{row.mark}</span>
+                <span className="truncate">{row.label}</span>
+              </div>
+              <span className="font-bold font-heading tabular-nums text-emerald-400 shrink-0">
+                {row.pts} pts
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── YOUR LEAGUES: Summary Strip ── */}
+      <section className="space-y-2.5">
+        <div className="flex items-baseline justify-between px-1">
+          <span
+            className="text-[10px] font-bold tracking-wider uppercase font-heading"
+            style={{ color: "var(--text-muted)" }}
+          >
+            YOUR LEAGUES
+          </span>
+          <Link
+            href="/rooms"
+            className="text-[11px] font-bold font-heading hover:underline"
+            style={{ color: "var(--text-link)" }}
+          >
+            SEE ALL {leagues.length} →
+          </Link>
+        </div>
+
+        <div
+          className="rounded-2xl overflow-hidden divide-y divide-[var(--surface-border)]"
+          style={{
+            background: "var(--surface-card)",
+            border: "1px solid var(--surface-border)",
+            boxShadow: "var(--elev-1)",
+          }}
+        >
+          {leagues.map((l) => (
+            <Link
+              key={l.id}
+              href="/rooms"
+              className="flex items-center gap-3.5 p-3.5 sm:p-4 hover:bg-[var(--surface-subtle)] transition-colors active:scale-[0.99]"
+            >
+              <div
+                className="w-[30px] h-[33px] flex items-center justify-center font-bold text-xs font-heading shrink-0"
+                style={{
+                  clipPath: "var(--crest-clip)",
+                  background: l.crestBg,
+                  color: "var(--tf-white)",
+                }}
+              >
+                {l.crest}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div
+                  className="font-bold text-sm font-heading truncate"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {l.name}
+                </div>
+                <div
+                  className="text-[11px] font-sans truncate mt-0.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {l.meta}
+                </div>
+              </div>
+
+              <div className="text-right shrink-0">
+                <div
+                  className="text-sm font-bold font-heading tabular-nums"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {l.position}
+                </div>
+                <div
+                  className="text-[10px] font-sans mt-0.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {l.points}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -18,107 +18,176 @@ const config: Config = {
       },
     },
     extend: {
+      maxWidth: {
+        content: "1080px",
+        mobile: "430px",
+      },
+      /* ── Colours ──────────────────────────────────────────────────────
+         These now resolve through the design-system semantic tokens
+         imported from fig-tokens.css → globals.css bridge layer.
+         Tailwind utilities like bg-background, text-foreground, etc.
+         pull directly from the design spec.
+         ────────────────────────────────────────────────────────────── */
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border:     "var(--border)",
+        input:      "var(--input)",
+        ring:       "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT:    "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT:    "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT:    "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT:    "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT:    "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT:    "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT:    "var(--card)",
+          foreground: "var(--card-foreground)",
         },
+
+        /* Domain tokens from the design spec */
         brand: {
-          DEFAULT: "#0EA5E9",
-          foreground: "#FFFFFF",
+          DEFAULT:    "var(--color-brand)",
+          fill:       "var(--brand-fill)",
+          hover:      "var(--color-brand-hover)",
+          active:     "var(--color-brand-active)",
+          foreground: "var(--color-on-brand)",
         },
         crown: {
-          DEFAULT: "#FACC15",
-          foreground: "#0F172A",
+          DEFAULT: "var(--color-crown)",
         },
-        emerald: {
-          50: "#ECFDF5",
-          100: "#D1FAE5",
-          400: "#34D399",
-          500: "#10B981",
-          600: "#059669",
-          700: "#047857",
+
+        /* Nav chrome — dark in both themes */
+        nav: {
+          surface:   "var(--nav-surface)",
+          surface2:  "var(--nav-surface-2)",
+          text:      "var(--nav-text)",
+          quiet:     "var(--nav-text-quiet)",
+          faint:     "var(--nav-text-faint)",
+          border:    "var(--nav-border)",
+          fill:      "var(--nav-fill)",
+          accent:    "var(--nav-accent)",
+          onaccent:  "var(--nav-on-accent)",
         },
-        sky: {
-          50: "#F0F9FF",
-          100: "#E0F2FE",
-          200: "#BAE6FD",
-          300: "#7DD3FC",
-          400: "#38BDF8",
-          500: "#0EA5E9",
-          600: "#0284C7",
-          700: "#0369A1",
-          800: "#075985",
-          900: "#0C4A6E",
-          950: "#082F49",
+
+        /* Prediction outcome colours */
+        prediction: {
+          correct:   "var(--prediction-correct)",
+          incorrect: "var(--prediction-incorrect)",
+          partial:   "var(--prediction-partial)",
+        },
+
+        /* State colours */
+        state: {
+          live:        "var(--state-live)",
+          locked:      "var(--state-locked)",
+          provisional: "var(--state-provisional)",
+        },
+
+        /* Role colours */
+        role: {
+          owner:       "var(--role-owner)",
+          admin:       "var(--role-admin)",
+          participant: "var(--role-participant)",
+        },
+
+        /* Status fills + text (design spec pairs) */
+        danger: {
+          DEFAULT:    "var(--color-danger)",
+          text:       "var(--danger-text)",
+          surface:    "var(--danger-surface)",
+          border:     "var(--danger-border)",
+        },
+        success: {
+          DEFAULT:    "var(--color-success)",
+          text:       "var(--success-text)",
+          surface:    "var(--success-surface)",
+          border:     "var(--success-border)",
+        },
+        warn: {
+          DEFAULT:    "var(--color-warning)",
+          text:       "var(--warn-text)",
+          surface:    "var(--warn-surface)",
+          border:     "var(--warn-border)",
         },
       },
+
+      /* ── Elevation / Shadows ─────────────────────────────────────── */
       boxShadow: {
-        "glow-sky": "0 10px 36px rgba(14, 165, 233, 0.45)",
+        "elev-1":    "var(--elev-1)",
+        "elev-2":    "var(--elev-2)",
+        "elev-3":    "var(--elev-3)",
+        "elev-4":    "var(--elev-4)",
+        "elev-glow": "var(--elev-glow)",
+        /* Keep the branded glows for backward compat */
+        "glow-sky":     "0 10px 36px rgba(14, 165, 233, 0.45)",
         "glow-emerald": "0 10px 36px rgba(16, 185, 129, 0.35)",
-        "elevation-1": "0 1px 3px rgba(10, 28, 51, 0.06)",
-        "elevation-2": "0 4px 12px rgba(10, 28, 51, 0.08)",
-        "elevation-3": "0 8px 24px rgba(10, 28, 51, 0.12)",
-        "elevation-dark-1": "0 2px 10px rgba(0, 0, 0, 0.45)",
-        "elevation-dark-2": "0 8px 20px rgba(0, 0, 0, 0.55)",
       },
+
+      /* ── Border Radius ───────────────────────────────────────────── */
       borderRadius: {
         "3xl": "24px",
         "2xl": "16px",
-        xl: "12px",
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        xl:    "12px",
+        lg:    "var(--radius)",
+        md:    "calc(var(--radius) - 2px)",
+        sm:    "calc(var(--radius) - 4px)",
       },
+
+      /* ── Typography ──────────────────────────────────────────────
+         Design spec: DM Sans (--family-primary) for headings,
+                      Sora   (--family-secondary) for body.
+         The CSS variables --font-heading and --font-body are set
+         in app/layout.tsx by next/font/google.
+         ──────────────────────────────────────────────────────────── */
       fontFamily: {
-        // DM Sans → headings, labels (font-heading)
-        // Sora → body, descriptions, captions (font-sans)
-        // layout.tsx loads: DM_Sans → --font-sans, Sora → --font-heading
-        sans: ["var(--font-heading)", "Sora", ...fontFamily.sans],
-        heading: ["var(--font-sans)", "DM Sans", ...fontFamily.sans],
+        heading: ["var(--font-heading)", "DM Sans", ...fontFamily.sans],
+        sans:    ["var(--font-body)", "Sora", ...fontFamily.sans],
       },
+
+      /* ── Spacing (density tokens from spec) ──────────────────────── */
+      spacing: {
+        "gutter":      "var(--gutter)",
+        "tap-min":     "var(--tap-min)",
+        "row-compact": "var(--row-compact)",
+        "row-default": "var(--row-default)",
+        "row-relaxed": "var(--row-relaxed)",
+      },
+
+
+
+      /* ── Keyframes ───────────────────────────────────────────────── */
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
+          to:   { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+          to:   { height: "0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
+        "accordion-up":   "accordion-up 0.2s ease-out",
       },
     },
   },

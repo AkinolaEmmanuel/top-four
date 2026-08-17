@@ -1,7 +1,7 @@
 "use client";
 
-import { ArcadeLobbyView } from "@/components/arcade/ArcadeLobbyView";
+import { PredictView } from "@/components/predictions/PredictView";
 
 export default function PredictPage() {
-  return <ArcadeLobbyView />;
+  return <PredictView />;
 }

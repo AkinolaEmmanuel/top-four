@@ -12,5 +12,11 @@ export default async function GameLayout({
     redirect("/login");
   }
 
-  return <main className="mx-auto max-w-8xl px-3 sm:px-6 py-4 sm:py-6 overflow-x-hidden min-w-0 w-full">{children}</main>;
+  /* Desktop chrome contract: centred column capped at 1080px, 24px gutters.
+     Mobile contract: centred container capped at 430px with generous 24px-32px side padding so cards don't take full width. */
+  return (
+    <div className="mx-auto w-full max-w-mobile md:max-w-content px-6 sm:px-8 md:px-10 py-5 sm:py-8 min-w-0">
+      {children}
+    </div>
+  );
 }

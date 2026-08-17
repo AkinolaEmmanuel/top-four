@@ -2,17 +2,14 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Users, ShieldCheck, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Loader2, ArrowRight } from "lucide-react";
 import { useJoinRoom } from "@/hooks/use-room-actions";
 
 export default function JoinRoomPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const joinRoom = useJoinRoom();
-  
+
   const initialCode = searchParams.get("code") || "";
   const [code, setCode] = useState(initialCode);
   const [error, setError] = useState<string | null>(null);
@@ -37,76 +34,88 @@ export default function JoinRoomPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 space-y-6">
+    <div className="mx-auto max-w-md px-4 py-8 space-y-6 font-sans">
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="h-2 w-2 rounded-full bg-sky-500 animate-ping" />
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground uppercase font-heading">
-            Join a Prediction Group
-          </h1>
-        </div>
-        <p className="text-xs sm:text-sm text-muted-foreground font-sans">
-          Enter the invite code shared in your WhatsApp or Telegram group chat.
+        <h1
+          className="text-2xl font-bold tracking-tight font-heading"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Join a league
+        </h1>
+        <p
+          className="text-xs sm:text-sm font-sans mt-1"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          Enter the invite code shared with you to join your friends.
         </p>
       </div>
 
-      {/* Featured Invite Link Preview Card if URL parameter is present */}
-      {code && (
-        <div className="rounded-2xl border-2 border-sky-500/40 bg-sky-500/10 p-5 space-y-3 shadow-glow-sky">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">
-              INVITATION DETECTED
-            </span>
-            <span className="text-xs font-mono font-bold text-muted-foreground">CODE: {code}</span>
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-foreground font-heading">
-              {code.includes("ELITE") ? "Champions League Elite Pundits" : "Premier League Pundits Club"}
-            </h3>
-            <p className="text-xs text-muted-foreground font-sans">
-              Invited by <span className="text-foreground font-bold">Dave_Gooner99</span> • 148 Active Predictors
-            </p>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 rounded-2xl p-6 shadow-elev-1"
+        style={{
+          background: "var(--surface-card)",
+          border: "1px solid var(--surface-border)",
+        }}
+      >
         <div className="space-y-2">
-          <Label htmlFor="code" className="text-xs font-bold uppercase text-foreground">Invite Code</Label>
-          <Input
+          <label
+            htmlFor="code"
+            className="text-[10px] font-bold uppercase font-heading block"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Invite Code
+          </label>
+          <input
             id="code"
             required
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="E.g. PL-PUNDITS"
-            className="h-12 font-mono tracking-widest text-lg font-bold bg-background text-foreground"
+            placeholder="e.g. PP-2026"
+            className="w-full h-11 px-4 rounded-xl font-mono tracking-widest text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]"
+            style={{
+              background: "var(--surface-subtle)",
+              border: "1px solid var(--surface-border)",
+              color: "var(--text-primary)",
+            }}
           />
         </div>
 
         {error && (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive">
+          <p
+            className="rounded-xl px-3.5 py-2 text-xs font-bold font-heading"
+            style={{
+              background: "var(--danger-surface)",
+              color: "var(--danger-text)",
+              border: "1px solid var(--danger-border)",
+            }}
+          >
             {error}
           </p>
         )}
 
-        <Button
+        <button
           type="submit"
           disabled={joinRoom.isPending}
-          className="w-full h-12 bg-sky-500 hover:bg-sky-600 font-bold text-white shadow-glow-sky active:scale-95 transition-transform"
+          className="w-full h-11 rounded-xl font-bold text-xs font-heading flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
+          style={{
+            background: "var(--brand-fill)",
+            color: "var(--color-on-brand)",
+            boxShadow: "var(--elev-1)",
+          }}
         >
           {joinRoom.isPending ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              JOINING GROUP...
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Joining league...
             </>
           ) : (
             <>
-              JOIN GROUP NOW
-              <ArrowRight className="h-4 w-4 ml-1" />
+              Join league
+              <ArrowRight className="h-3.5 w-3.5" />
             </>
           )}
-        </Button>
+        </button>
       </form>
     </div>
   );

@@ -3,24 +3,24 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Loader2, Menu, X, ArrowRight, User, Sun, Moon, BookOpen } from "lucide-react";
+import { LogOut, Loader2, Bell, User, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/logo";
 import { signOut } from "@/lib/mock-auth/client";
 import { useProfile } from "@/hooks/use-profile";
-import { DemoPersonaSwitcher } from "@/components/auth/demo-persona-switcher";
 import { cn } from "@/lib/utils";
 
-const LOGGED_IN_NAV_TABS = [
-  { href: "/", label: "Home" },
-  { href: "/predict", label: "Predictor" },
-  { href: "/receipts", label: "My Receipts" },
-  { href: "/table", label: "League Table" },
-  { href: "/rooms", label: "My Groups" },
-  { href: "/how-to-play", label: "How to Play" },
+/* ── Product nav (Level 1) ─────────────────────────────────────────── */
+const LOGGED_IN_NAV = [
+  { href: "/",        label: "Home" },
+  { href: "/predict", label: "Predict" },
+  { href: "/table",   label: "Standings" },
+  { href: "/rooms",   label: "Leagues" },
+  { href: "/receipts", label: "Results" },
+  { href: "/operator", label: "Operator" },
 ];
 
-const LOGGED_OUT_NAV_TABS = [
+const LOGGED_OUT_NAV = [
   { href: "/how-to-play", label: "How to Play" },
 ];
 
@@ -28,7 +28,6 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
   const { data: profile, isLoading } = useProfile(Boolean(userEmail));
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
 
   const isAuthPage =
@@ -36,13 +35,11 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
     pathname === "/signup" ||
     pathname.startsWith("/onboarding");
 
-  if (isAuthPage) {
-    return null;
-  }
+  if (isAuthPage) return null;
 
   const displayName = profile?.displayName || userEmail || "Guest";
   const initials = getInitials(displayName);
-  const navTabs = userEmail ? LOGGED_IN_NAV_TABS : LOGGED_OUT_NAV_TABS;
+  const navTabs = userEmail ? LOGGED_IN_NAV : LOGGED_OUT_NAV;
 
   function toggleTheme() {
     const root = document.documentElement;
@@ -67,211 +64,175 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-card/90 backdrop-blur-md transition-colors">
-      <div className="mx-auto flex h-16 max-w-8xl items-center justify-between px-4 sm:px-6">
-
-        {/* ── Brand Logo ── */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 transition-transform duration-150 ease-out active:scale-95">
-            <Logo size={28} />
-            <span className="text-base font-black tracking-tight text-foreground uppercase font-heading">
-              TOPFOUR<span className="text-sky-500">.APP</span>
-            </span>
-          </Link>
-
-          {/* ── Desktop Primary Navigation Tabs ── */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navTabs.map((tab) => {
-              const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={cn(
-                    "rounded-xl px-3.5 py-2 text-xs font-bold transition-all duration-150 ease-out active:scale-95 font-sans",
-                    active
-                      ? "bg-sky-500/15 border border-sky-500/30 text-sky-500 shadow-sm"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* ── User Profile / Theme Switcher / Mobile Hamburger ── */}
-        <div className="flex items-center gap-2 sm:gap-3">
-
-          {/* Persona Switcher for Testing */}
-          <DemoPersonaSwitcher className="hidden sm:inline-block" />
-
-          {/* Theme Toggle Button (Light ⇄ Dark) */}
-          <button
-            onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-secondary text-foreground hover:bg-accent transition-all duration-150 ease-out active:scale-90 shrink-0"
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDark ? <Sun className="h-4 w-4 text-crown" /> : <Moon className="h-4 w-4 text-sky-500" />}
-          </button>
-
-          {userEmail ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="hidden text-xs font-bold text-foreground sm:block truncate max-w-[140px]">
-                {isLoading ? (
-                  <span className="inline-block h-4 w-20 animate-pulse rounded bg-secondary" />
-                ) : (
-                  displayName
-                )}
-              </span>
-
-              <div
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ring-1 ring-sky-500/40 transition-all duration-150 ease-out active:scale-95 hover:ring-sky-400 shadow-glow-sky shrink-0",
-                  "bg-sky-500 text-white",
-                  isLoading && "opacity-50"
-                )}
-                title={displayName}
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : initials}
-              </div>
-
-              <button
-                onClick={handleSignOut}
-                title="Sign out"
-                className="hidden sm:flex rounded-xl p-2 text-muted-foreground transition-all duration-150 ease-out active:scale-90 hover:bg-secondary hover:text-foreground shrink-0"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="hidden sm:flex items-center gap-2.5">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary px-3.5 py-2 text-xs font-bold text-foreground hover:bg-accent transition-all duration-150 ease-out active:scale-[0.97]"
-              >
-                <User className="h-3.5 w-3.5" />
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-sky-500 px-3.5 py-2 text-xs font-bold text-white hover:bg-sky-600 transition-all duration-150 ease-out active:scale-[0.97] shadow-glow-sky"
-              >
-                GET STARTED
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          )}
-
-          {/* Mobile Menu Hamburger Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-secondary text-foreground hover:bg-accent transition-all duration-150 ease-out active:scale-90 md:hidden shrink-0"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-
-        </div>
-      </div>
-
-      {/* ── Mobile Responsive Dropdown Drawer ── */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-b border-border bg-card/95 backdrop-blur-2xl px-4 py-4 space-y-4 shadow-xl">
-          {/* Options not in bottom navigation bar */}
-          <div className="space-y-1">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block px-2 pb-1">
-              MORE OPTIONS & GUIDES
-            </span>
+    <>
+      {/* ═══════════════════════════════════════════════════════════════
+          LEVEL 1 — Product chrome. 56px. Dark in BOTH themes.
+          Brand mark · primary nav · alerts · account
+         ═══════════════════════════════════════════════════════════════ */}
+      <header
+        className="sticky top-0 z-40 w-full"
+        style={{ background: "var(--nav-surface)" }}
+      >
+        <div className="mx-auto flex h-14 max-w-mobile md:max-w-content items-center justify-between px-6 sm:px-8 md:px-10">
+          {/* ── Brand + Desktop Nav ── */}
+          <div className="flex items-center gap-5">
             <Link
-              href="/how-to-play"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-150 ease-out active:scale-[0.98]",
-                pathname === "/how-to-play"
-                  ? "bg-sky-500/15 text-sky-500 border border-sky-500/30"
-                  : "text-foreground hover:bg-secondary"
-              )}
+              href="/"
+              className="flex items-center gap-2 transition-transform duration-150 ease-out active:scale-95"
             >
-              <span className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-sky-400" />
-                How to Play Guide
+              <Logo size={26} />
+              <span
+                className="text-sm font-black tracking-tight uppercase font-heading"
+                style={{ color: "var(--nav-text)" }}
+              >
+                TOPFOUR<span style={{ color: "var(--nav-accent)" }}>.APP</span>
               </span>
-              <ArrowRight className="h-3.5 w-3.5 opacity-50" />
             </Link>
 
-            <Link
-              href="/rooms/new"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all duration-150 ease-out active:scale-[0.98]",
-                pathname === "/rooms/new"
-                  ? "bg-sky-500/15 text-sky-500 border border-sky-500/30"
-                  : "text-foreground hover:bg-secondary"
-              )}
-            >
-              <span className="flex items-center gap-2">
-                <span className="text-sky-400 font-black">+</span>
-                Create a group
-              </span>
-              <ArrowRight className="h-3.5 w-3.5 opacity-50" />
-            </Link>
+            {/* Desktop primary nav */}
+            <nav className="hidden md:flex items-center gap-0.5">
+              {navTabs.map((tab) => {
+                const active =
+                  tab.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(tab.href);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-150 ease-out active:scale-95 font-heading",
+                      active
+                        ? "text-[var(--nav-accent)]"
+                        : "text-[var(--nav-text-quiet)] hover:text-[var(--nav-text)] hover:bg-[var(--nav-fill)]"
+                    )}
+                    style={
+                      active
+                        ? { background: "var(--nav-fill)" }
+                        : undefined
+                    }
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
-          {/* Account & Auth Controls */}
-          <div className="pt-3 border-t border-border space-y-2">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block px-2">
-              ACCOUNT & AUTH
-            </span>
+          {/* ── Right: theme toggle, alerts, account ── */}
+          <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ease-out active:scale-90 shrink-0"
+              style={{
+                background: "var(--nav-fill)",
+                color: "var(--nav-text-quiet)",
+              }}
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
+
+            {/* Alert bell */}
+            {userEmail && (
+              <button
+                className="relative flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ease-out active:scale-90 shrink-0"
+                style={{
+                  background: "var(--nav-fill)",
+                  color: "var(--nav-text-quiet)",
+                }}
+                title="Notifications"
+              >
+                <Bell className="h-4 w-4" />
+              </button>
+            )}
 
             {userEmail ? (
-              <div className="flex items-center justify-between w-full p-2.5 rounded-xl border border-border bg-secondary/50">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-8 w-8 rounded-full bg-sky-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
-                    {initials}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono truncate">{userEmail}</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleSignOut();
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs font-bold shrink-0 hover:bg-destructive/20 transition-colors"
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/me"
+                  className="flex items-center gap-2 hover:opacity-90 transition-opacity"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
-                  Sign Out
+                  <span
+                    className="hidden text-xs font-bold sm:block truncate max-w-[140px] font-heading"
+                    style={{ color: "var(--nav-text)" }}
+                  >
+                    {isLoading ? (
+                      <span className="inline-block h-4 w-20 animate-pulse rounded" style={{ background: "var(--nav-fill)" }} />
+                    ) : (
+                      displayName
+                    )}
+                  </span>
+
+                  <div
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-150 ease-out active:scale-95 shrink-0",
+                      isLoading && "opacity-50"
+                    )}
+                    style={{
+                      background: "var(--avatar-surface)",
+                      color: "var(--avatar-text)",
+                    }}
+                    title={displayName}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                </Link>
+
+                {/* Sign out — desktop only */}
+                <button
+                  onClick={handleSignOut}
+                  title="Sign out"
+                  className="hidden sm:flex rounded-lg p-1.5 transition-all duration-150 ease-out active:scale-90 shrink-0"
+                  style={{ color: "var(--nav-text-faint)" }}
+                >
+                  <LogOut className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 w-full pt-1">
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/how-to-play"
+                  className="inline-flex sm:hidden rounded-lg px-2 py-1.5 text-xs font-bold font-heading text-[var(--nav-text-quiet)] hover:text-[var(--nav-text)]"
+                >
+                  How to Play
+                </Link>
                 <Link
                   href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary py-2.5 text-xs font-bold text-foreground hover:bg-accent transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold font-heading transition-all duration-150 ease-out active:scale-[0.97]"
+                  style={{
+                    border: "1px solid var(--nav-border)",
+                    color: "var(--nav-text)",
+                  }}
                 >
-                  <User className="h-3.5 w-3.5 text-sky-400" />
+                  <User className="h-3.5 w-3.5" />
                   Sign In
                 </Link>
                 <Link
                   href="/signup"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1.5 rounded-xl bg-sky-500 py-2.5 text-xs font-bold text-white shadow-glow-sky hover:bg-sky-600 transition-colors"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold font-heading transition-all duration-150 ease-out active:scale-[0.97]"
+                  style={{
+                    background: "var(--brand-fill)",
+                    color: "var(--color-on-brand)",
+                  }}
                 >
-                  Get Started
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  GET STARTED
                 </Link>
               </div>
             )}
           </div>
         </div>
-      )}
-    </header>
+      </header>
+    </>
   );
 }
 
