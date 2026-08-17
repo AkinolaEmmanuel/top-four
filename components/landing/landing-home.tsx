@@ -75,12 +75,12 @@ export function LandingHome() {
         </div>
 
         <div className="relative z-10 max-w-2xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-xs font-bold font-heading text-sky-300">
+          {/* <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-xs font-bold font-heading text-sky-300">
             <span>TOPFOUR PREDICTION CLUBS</span>
-          </div>
+          </div> */}
 
           <div className="space-y-3">
-            <h1 className="text-3xl sm:text-5xl font-black font-heading tracking-tight leading-[1.1]">
+            <h1 className="text-5xl font-bold font-heading tracking-tight">
               Predictions are better <br />
               <span className="text-sky-400">with people.</span>
             </h1>
