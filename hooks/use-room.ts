@@ -10,7 +10,6 @@ export type RoomWithRole = { room: Room; myRole: RoomRole | undefined };
 
 async function fetchRoom(roomId: string): Promise<RoomWithRole> {
   if (roomId === "global") {
-    // Special global room case
     return {
       room: {
         id: "global",
@@ -43,47 +42,61 @@ async function fetchRoom(roomId: string): Promise<RoomWithRole> {
     };
   }
 
-  const result = await apiFetch<any>(`/leagues/${roomId}`);
-  
-  // Map backend league details to frontend Room shape
-  const room: Room = {
-    id: result.id,
-    name: result.name,
-    description: result.description,
-    created_by: result.ownerUserId || "",
-    invite_code: result.id.slice(0, 6).toUpperCase(), // Use start of UUID as simple invite code
-    is_active: result.lifecycleState !== "archived",
-    created_at: result.createdAt,
-    updated_at: result.updatedAt,
-    competitions: (result.ruleset?.competitionScopes || []).map((c: any) => c.supportedCompetitionId),
-    scope: { type: "season" },
-    join_policy: result.invitationSettings?.joinApprovalRequired ? "closes_at_start" : "always_open",
-    lock_preset: result.ruleset?.standardLock?.offsetMinutes === 5 ? "5m" : "15m",
-    enabled_markets: (result.ruleset?.markets || [])
-      .filter((m: any) => m.enabled)
-      .map((m: any) => m.marketType === "both_teams_to_score" ? "btts" : m.marketType),
-    scoring_config: {
-      match_result: 2,
-      exact_score: 5,
-      btts: 1,
-      total_goals: 1,
-      double_chance: 1,
-      anytime_scorer: 5,
-      player_card: 4,
-      custom_question: 3,
-    },
-    tiebreaker_order: [],
-    lonely_wolf_enabled: false,
-  };
+  try {
+    const result = await apiFetch<any>(`/leagues/${roomId}`);
+    if (result && result.id) {
+      const room: Room = {
+        id: result.id,
+        name: result.name,
+        description: result.description,
+        created_by: result.ownerUserId || "",
+        invite_code: result.id.slice(0, 6).toUpperCase(),
+        is_active: result.lifecycleState !== "archived",
+        created_at: result.createdAt,
+        updated_at: result.updatedAt,
+        competitions: (result.ruleset?.competitionScopes || []).map((c: any) => c.supportedCompetitionId),
+        scope: { type: "season" },
+        join_policy: result.invitationSettings?.joinApprovalRequired ? "closes_at_start" : "always_open",
+        lock_preset: result.ruleset?.standardLock?.offsetMinutes === 5 ? "5m" : "15m",
+        enabled_markets: (result.ruleset?.markets || [])
+          .filter((m: any) => m.enabled)
+          .map((m: any) => m.marketType === "both_teams_to_score" ? "btts" : m.marketType),
+        scoring_config: {
+          match_result: 2,
+          exact_score: 5,
+          btts: 1,
+          total_goals: 1,
+          double_chance: 1,
+          anytime_scorer: 5,
+          player_card: 4,
+          custom_question: 3,
+        },
+        tiebreaker_order: [],
+        lonely_wolf_enabled: false,
+      };
 
-  // Map backend owner/admin/member to owner/admin/participant RoomRole
-  const rawRole = result.membership?.role;
-  let myRole: RoomRole | undefined = "participant";
-  if (rawRole === "owner") myRole = "owner";
-  else if (rawRole === "admin") myRole = "admin";
-  else if (rawRole === "member") myRole = "participant";
+      const rawRole = result.membership?.role;
+      let myRole: RoomRole | undefined = "participant";
+      if (rawRole === "owner") myRole = "owner";
+      else if (rawRole === "admin") myRole = "admin";
+      else if (rawRole === "member") myRole = "participant";
 
-  return { room, myRole };
+      return { room, myRole };
+    }
+  } catch (e) {
+    // Fallback to internal mock route
+    try {
+      const res = await fetch(`/api/rooms/${roomId}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.room) {
+          return { room: json.room, myRole: json.myRole || "participant" };
+        }
+      }
+    } catch {}
+  }
+
+  throw new Error("League not found");
 }
 
 export function useRoom(roomId: string) {

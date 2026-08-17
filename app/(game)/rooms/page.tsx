@@ -1,142 +1,217 @@
 "use client";
 
 import Link from "next/link";
-import { Loader2, PlusCircle, LogIn } from "lucide-react";
+import { Loader2, Plus, LogIn, Shield, Users } from "lucide-react";
 import { useMyRooms } from "@/hooks/use-my-rooms";
 
 export default function RoomsIndexPage() {
   const { data: rooms, isLoading, isError } = useMyRooms();
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8 px-4 py-6 sm:py-8 pb-24 sm:pb-8">
-      
+    <div className="space-y-6 pb-24 md:pb-0 w-full min-w-0">
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--surface-border)] pb-5">
         <div>
-          <div className="flex items-center gap-2.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-sky-500 animate-pulse" />
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground uppercase font-heading">Your Rooms & Clubs</h1>
-          </div>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground font-mono">
-            ACCESS ALL YOUR PREDICTION CLUBS IN ONE TERMINAL.
+          <h1
+            className="text-2xl sm:text-3xl font-bold tracking-tight font-heading"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Leagues
+          </h1>
+          <p
+            className="mt-1 text-xs sm:text-sm font-sans"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {rooms ? `${rooms.length} of 20 active memberships` : "Manage and view your leagues"}
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <Link
             href="/rooms/join"
-            className="flex items-center justify-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2.5 text-xs font-bold text-foreground transition-all hover:bg-accent active:scale-95 duration-150"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold font-heading transition-all duration-150 active:scale-95"
+            style={{
+              background: "var(--surface-card)",
+              border: "1px solid var(--surface-border-strong)",
+              color: "var(--text-primary)",
+              boxShadow: "var(--elev-1)",
+            }}
           >
-            <LogIn className="h-4 w-4 text-sky-500" />
-            JOIN ROOM
+            <LogIn className="h-3.5 w-3.5" />
+            Join with a code
           </Link>
           <Link
             href="/rooms/new"
-            className="flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2.5 text-xs font-bold text-white transition-all hover:bg-sky-600 shadow-glow-sky active:scale-95 duration-150"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold font-heading transition-all duration-150 active:scale-95"
+            style={{
+              background: "var(--brand-fill)",
+              color: "var(--color-on-brand)",
+              boxShadow: "var(--elev-1)",
+            }}
           >
-            <PlusCircle className="h-4 w-4" />
-            CREATE ROOM
+            <Plus className="h-3.5 w-3.5" />
+            Create league
           </Link>
         </div>
       </div>
 
       {isLoading && (
-        <div className="flex flex-col items-center justify-center py-20 text-sky-500">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="mt-4 text-xs font-mono font-bold tracking-widest text-muted-foreground uppercase">Loading Access Cards...</p>
+        <div className="flex flex-col items-center justify-center py-20 text-[var(--color-brand)]">
+          <Loader2 className="h-7 w-7 animate-spin" />
+          <p className="mt-3 text-xs font-sans text-[var(--text-muted)]">Loading leagues...</p>
         </div>
       )}
 
       {isError && (
-        <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-6 text-center text-destructive">
-          <p className="text-sm font-bold">CRITICAL ERROR: Failed to load your rooms.</p>
+        <div
+          className="rounded-xl p-5 text-center"
+          style={{
+            background: "var(--danger-surface)",
+            border: "1px solid var(--danger-border)",
+            color: "var(--danger-text)",
+          }}
+        >
+          <p className="text-xs font-bold font-heading">Failed to load leagues.</p>
         </div>
       )}
 
       {!isLoading && !isError && rooms?.length === 0 && (
-        <div className="space-y-6">
-          {/* Pending Invitation Banner */}
-          <div className="relative overflow-hidden rounded-2xl border-2 border-sky-500/40 bg-sky-500/10 p-6 sm:p-8 text-left shadow-glow-sky">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1 max-w-xl">
-                <span className="inline-flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/20 px-3 py-0.5 text-[10px] font-mono font-bold text-sky-400">
-                  <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping shrink-0" />
-                  PENDING LEAGUE INVITATION
-                </span>
-                <h3 className="text-lg sm:text-2xl font-black tracking-tight text-foreground uppercase font-heading">
-                  Premier League Pundits Club
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground font-sans">
-                  You were invited to join this public prediction league! Compete against 148 pundits across Matchday 2.
-                </p>
-              </div>
-
-              <Link
-                href="/rooms/join?code=PL-PUNDITS"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-xs sm:text-sm font-black text-white transition-all hover:bg-sky-600 shadow-glow-sky active:scale-95 shrink-0 w-full sm:w-auto"
-              >
-                ACCEPT INVITE & JOIN LEAGUE
-              </Link>
-            </div>
+        <div
+          className="rounded-2xl p-8 sm:p-14 text-center max-w-lg mx-auto space-y-4"
+          style={{
+            background: "var(--surface-card)",
+            border: "1px solid var(--surface-border)",
+            boxShadow: "var(--elev-1)",
+          }}
+        >
+          <div
+            className="h-12 w-12 rounded-full mx-auto flex items-center justify-center text-lg"
+            style={{ background: "var(--surface-subtle)", color: "var(--text-muted)" }}
+          >
+            ◇
           </div>
-
-          <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-border bg-card p-8 sm:p-12 text-center transition-colors hover:border-sky-500/50 group">
-            <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(14,165,233,0.05),transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary border border-border mb-4">
-                <PlusCircle className="h-8 w-8 text-sky-500" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-black tracking-tight text-foreground uppercase font-heading">NO ACTIVE MEMBERSHIPS YET</h3>
-              <p className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
-                You haven&apos;t joined any prediction clubs yet. Accept the invite above, or enter an invite code to gain access.
-              </p>
-              <Link
-                href="/rooms/new"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-6 py-3 text-xs sm:text-sm font-black text-foreground transition-all hover:bg-accent active:scale-95"
-              >
-                CREATE YOUR OWN ROOM
-              </Link>
-            </div>
+          <div>
+            <h3
+              className="text-lg font-bold font-heading"
+              style={{ color: "var(--text-primary)" }}
+            >
+              No leagues yet
+            </h3>
+            <p
+              className="mt-1.5 text-xs leading-relaxed max-w-sm mx-auto"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Create one for your group, or join with a code someone shared. You can be in up to twenty at once.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 pt-2 justify-center">
+            <Link
+              href="/rooms/new"
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold font-heading transition-transform active:scale-95"
+              style={{ background: "var(--brand-fill)", color: "var(--color-on-brand)" }}
+            >
+              Create a league
+            </Link>
+            <Link
+              href="/rooms/join"
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold font-heading transition-transform active:scale-95"
+              style={{
+                background: "var(--surface-subtle)",
+                border: "1px solid var(--surface-border)",
+                color: "var(--text-primary)",
+              }}
+            >
+              Join with a code
+            </Link>
           </div>
         </div>
       )}
 
-      {/* ── Room Cards Grid ── */}
-      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {/* ── League Cards ── */}
+      <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2">
         {rooms?.map(({ room, role }) => (
           <Link
             key={room.id}
             href={`/rooms/${room.id}`}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-5 sm:p-6 transition-all hover:border-sky-500/40 shadow-sm hover:shadow-md active:scale-[0.99] duration-150 min-h-[180px]"
+            className="group relative flex flex-col justify-between rounded-xl p-4 sm:p-5 transition-all duration-150 active:scale-[0.99]"
+            style={{
+              background: "var(--surface-card)",
+              border: "1px solid var(--surface-border)",
+              boxShadow: "var(--elev-1)",
+            }}
           >
-            {/* Foil Sweep */}
-            <div className="pointer-events-none absolute inset-0 z-0 translate-x-[-150%] bg-gradient-to-r from-transparent via-[rgba(14,165,233,0.1)] to-transparent opacity-0 transition-all duration-700 ease-in-out group-hover:translate-x-[150%] group-hover:opacity-100" />
-
-            <div className="relative z-10 space-y-2">
+            <div className="space-y-2">
               <div className="flex items-start justify-between gap-3">
-                <h3 className="font-black text-lg sm:text-xl text-foreground uppercase tracking-tight line-clamp-2 font-heading">{room.name}</h3>
+                <div className="flex items-center gap-3">
+                  {/* Shield Crest */}
+                  <div
+                    className="h-9 w-9 flex items-center justify-center font-bold text-xs font-heading shrink-0"
+                    style={{
+                      clipPath: "var(--crest-clip)",
+                      background: "var(--brand-fill)",
+                      color: "var(--color-on-brand)",
+                    }}
+                  >
+                    {room.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3
+                      className="font-bold text-sm sm:text-base font-heading group-hover:text-[var(--color-brand)] transition-colors"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {room.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span
+                        className="text-[11px] font-sans"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        Code: <span className="font-mono font-semibold" style={{ color: "var(--text-secondary)" }}>{room.invite_code}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {role === "admin" && (
-                  <span className="rounded-full bg-sky-500/10 border border-sky-500/30 px-2.5 py-1 text-[9px] font-black tracking-widest text-sky-500 shrink-0 uppercase font-mono">
-                    ADMIN
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase font-heading shrink-0"
+                    style={{
+                      background: "var(--accent-surface)",
+                      color: "var(--role-admin)",
+                      border: "1px solid var(--accent-border)",
+                    }}
+                  >
+                    Admin
                   </span>
                 )}
               </div>
+
               {room.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 font-sans">{room.description}</p>
+                <p
+                  className="text-xs line-clamp-2 pt-1 font-sans"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {room.description}
+                </p>
               )}
             </div>
 
-            <div className="relative z-10 mt-5 pt-4 border-t border-border flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Invite Code</span>
-                <span className="text-xs sm:text-sm font-mono font-bold tracking-widest text-sky-500">{room.invite_code}</span>
-              </div>
-              <div className="flex flex-col text-right">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase font-mono">Status</span>
-                <span className="text-xs font-black text-foreground uppercase flex items-center gap-1.5 font-mono">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  ACTIVE
-                </span>
-              </div>
+            <div
+              className="mt-3.5 pt-3 flex items-center justify-between text-xs"
+              style={{ borderTop: "1px solid var(--surface-border)" }}
+            >
+              <span
+                className="text-[11px] flex items-center gap-1.5 font-sans"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <Users className="h-3 w-3" />
+                Active League
+              </span>
+              <span
+                className="text-[11px] font-medium font-heading"
+                style={{ color: "var(--color-brand)" }}
+              >
+                Open →
+              </span>
             </div>
           </Link>
         ))}

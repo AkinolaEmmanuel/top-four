@@ -1,0 +1,797 @@
+/* Generated from Figma Variables. First mode = :root default.
+   FLOAT tokens are unitless — multiply by 1px in calc() where a length is needed. */
+
+:root {
+  --2xl-2: 24;
+  --2xl: 16;
+  --3xl-2: 32;
+  --3xl: 24;
+  --4xl-2: 40;
+  --4xl: 32;
+  --5xl-2: 48;
+  --5xl: 48;
+  --alpha-dark-00: rgb(20,20,20); /* @kind color */
+  --alpha-dark-1000: rgb(255,255,255); /* @kind color */
+  --alpha-dark-100: rgba(255,255,255,0.09); /* @kind color */
+  --alpha-dark-200: rgba(255,255,255,0.2); /* @kind color */
+  --alpha-dark-300: rgba(255,255,255,0.28); /* @kind color */
+  --alpha-dark-400: rgba(255,255,255,0.36); /* @kind color */
+  --alpha-dark-500: rgba(255,255,255,0.48); /* @kind color */
+  --alpha-dark-50: rgba(255,255,255,0.06); /* @kind color */
+  --alpha-dark-600: rgba(255,255,255,0.6); /* @kind color */
+  --alpha-dark-700: rgba(255,255,255,0.7); /* @kind color */
+  --alpha-dark-800: rgba(255,255,255,0.75); /* @kind color */
+  --alpha-dark-900: rgba(255,255,255,0.8); /* @kind color */
+  --alpha-light-00: rgb(255,255,255); /* @kind color */
+  --alpha-light-1000: rgb(26,26,26); /* @kind color */
+  --alpha-light-100: rgba(26,26,26,0.09); /* @kind color */
+  --alpha-light-200: rgba(26,26,26,0.2); /* @kind color */
+  --alpha-light-300: rgba(26,26,26,0.28); /* @kind color */
+  --alpha-light-400: rgba(26,26,26,0.36); /* @kind color */
+  --alpha-light-500: rgba(26,26,26,0.48); /* @kind color */
+  --alpha-light-50: rgba(26,26,26,0.06); /* @kind color */
+  --alpha-light-600: rgba(26,26,26,0.6); /* @kind color */
+  --alpha-light-700: rgba(26,26,26,0.7); /* @kind color */
+  --alpha-light-800: rgba(26,26,26,0.75); /* @kind color */
+  --alpha-light-900: rgba(26,26,26,0.8); /* @kind color */
+  --b-w-black: rgb(0,0,0); /* @kind color */
+  --b-w-transparent: rgba(0,0,0,0); /* @kind color */
+  --b-w-white: rgb(255,255,255); /* @kind color */
+  --base-2: 16;
+  --base: 12;
+  --body-body-1-fontfamily: var(--family-secondary);
+  --body-body-1-fontsize: 18;
+  --body-body-1-letterspacing: 0;
+  --body-body-1-lineheight: 28;
+  --body-body-2-fontfamily: var(--family-secondary);
+  --body-body-2-fontsize: 16;
+  --body-body-2-letterspacing: 0;
+  --body-body-2-lineheight: 24;
+  --body-body-3-fontfamily: var(--family-secondary);
+  --body-body-3-fontsize: 14;
+  --body-body-3-letterspacing: 0;
+  --body-body-3-lineheight: 20;
+  --body-body-4-fontfamily: var(--family-secondary);
+  --body-body-4-fontsize: 12;
+  --body-body-4-letterspacing: 0;
+  --body-body-4-lineheight: 16;
+  --caption-caption-1-fontfamily: var(--family-secondary);
+  --caption-caption-1-fontsize: 10;
+  --caption-caption-1-letterspacing: 0;
+  --caption-caption-1-lineheight: 12;
+  --caption-caption-2-fontfamily: var(--family-secondary);
+  --caption-caption-2-fontsize: 9;
+  --caption-caption-2-letterspacing: 0;
+  --caption-caption-2-lineheight: 10;
+  --color-brand-active: var(--sky-700); /* @kind color */
+  --color-brand-hover: var(--sky-600); /* @kind color */
+  --color-brand: var(--sky-500); /* @kind color */
+  --color-crown: var(--yellow-400); /* @kind color */
+  --color-danger: var(--red-500); /* @kind color */
+  --color-info: var(--sky-500); /* @kind color */
+  --color-on-brand: var(--alpha-light-00); /* @kind color */
+  --color-success: var(--emerald-500); /* @kind color */
+  --color-warning: var(--yellow-400); /* @kind color */
+  --emerald-100: rgb(209,250,229); /* @kind color */
+  --emerald-200: rgb(167,243,208); /* @kind color */
+  --emerald-300: rgb(110,231,183); /* @kind color */
+  --emerald-400: rgb(52,211,153); /* @kind color */
+  --emerald-500: rgb(16,185,129); /* @kind color */
+  --emerald-50: rgb(236,253,245); /* @kind color */
+  --emerald-600: rgb(5,150,105); /* @kind color */
+  --emerald-700: rgb(4,120,87); /* @kind color */
+  --emerald-800: rgb(6,95,70); /* @kind color */
+  --emerald-900: rgb(6,78,59); /* @kind color */
+  --emerald-950: rgb(2,44,34); /* @kind color */
+  --family-primary: "DM Sans";
+  --family-secondary: "Sora";
+  --fuchsia-100: rgb(250,232,255); /* @kind color */
+  --fuchsia-200: rgb(245,208,254); /* @kind color */
+  --fuchsia-300: rgb(240,171,252); /* @kind color */
+  --fuchsia-400: rgb(232,121,249); /* @kind color */
+  --fuchsia-500: rgb(217,70,239); /* @kind color */
+  --fuchsia-50: rgb(253,244,255); /* @kind color */
+  --fuchsia-600: rgb(192,38,211); /* @kind color */
+  --fuchsia-700: rgb(162,28,175); /* @kind color */
+  --fuchsia-800: rgb(134,25,143); /* @kind color */
+  --fuchsia-900: rgb(112,26,117); /* @kind color */
+  --fuchsia-950: rgb(74,4,78); /* @kind color */
+  --full: 999;
+  --heading-h1-fontfamily: var(--family-primary);
+  --heading-h1-fontsize: 56;
+  --heading-h1-letterspacing: -0.5;
+  --heading-h1-lineheight: 68;
+  --heading-h2-fontfamily: var(--family-primary);
+  --heading-h2-fontsize: 48;
+  --heading-h2-letterspacing: -0.4;
+  --heading-h2-lineheight: 58;
+  --heading-h3-fontfamily: var(--family-primary);
+  --heading-h3-fontsize: 40;
+  --heading-h3-letterspacing: -0.3;
+  --heading-h3-lineheight: 48;
+  --heading-h4-fontfamily: var(--family-primary);
+  --heading-h4-fontsize: 32;
+  --heading-h4-letterspacing: -0.2;
+  --heading-h4-lineheight: 38;
+  --heading-h5-fontfamily: var(--family-primary);
+  --heading-h5-fontsize: 24;
+  --heading-h5-letterspacing: -0.15;
+  --heading-h5-lineheight: 30;
+  --heading-h6-fontfamily: var(--family-primary);
+  --heading-h6-fontsize: 20;
+  --heading-h6-letterspacing: 0;
+  --heading-h6-lineheight: 24;
+  --label-label-1-fontfamily: var(--family-primary);
+  --label-label-1-fontsize: 16;
+  --label-label-1-letterspacing: -0.18;
+  --label-label-1-lineheight: 22;
+  --label-label-2-fontfamily: var(--family-primary);
+  --label-label-2-fontsize: 14;
+  --label-label-2-letterspacing: -0.16;
+  --label-label-2-lineheight: 20;
+  --label-label-3-fontfamily: var(--family-primary);
+  --label-label-3-fontsize: 12;
+  --label-label-3-letterspacing: -0.12;
+  --label-label-3-lineheight: 16;
+  --lg-2: 16;
+  --lg-3: 24;
+  --lg: 8;
+  --md-2: 20;
+  --md: 4;
+  --none: 0;
+  --prediction-correct: var(--emerald-500); /* @kind color */
+  --prediction-incorrect: var(--red-500); /* @kind color */
+  --prediction-partial: var(--yellow-400); /* @kind color */
+  --purple-100: rgb(243,232,255); /* @kind color */
+  --purple-200: rgb(233,213,255); /* @kind color */
+  --purple-300: rgb(216,180,254); /* @kind color */
+  --purple-400: rgb(192,132,252); /* @kind color */
+  --purple-500: rgb(168,85,247); /* @kind color */
+  --purple-50: rgb(250,245,255); /* @kind color */
+  --purple-600: rgb(147,51,234); /* @kind color */
+  --purple-700: rgb(126,34,206); /* @kind color */
+  --purple-800: rgb(107,33,168); /* @kind color */
+  --purple-900: rgb(88,28,135); /* @kind color */
+  --purple-950: rgb(59,7,100); /* @kind color */
+  --px: 1;
+  --red-100: rgb(254,226,226); /* @kind color */
+  --red-200: rgb(254,202,202); /* @kind color */
+  --red-300: rgb(252,165,165); /* @kind color */
+  --red-400: rgb(248,113,113); /* @kind color */
+  --red-500: rgb(239,68,68); /* @kind color */
+  --red-50: rgb(254,242,242); /* @kind color */
+  --red-600: rgb(220,38,38); /* @kind color */
+  --red-700: rgb(185,28,28); /* @kind color */
+  --red-800: rgb(153,27,27); /* @kind color */
+  --red-900: rgb(127,29,29); /* @kind color */
+  --red-950: rgb(69,10,10); /* @kind color */
+  --role-admin: var(--sky-500); /* @kind color */
+  --role-owner: var(--yellow-400); /* @kind color */
+  --role-participant: var(--slate-500); /* @kind color */
+  --sky-100: rgb(224,242,254); /* @kind color */
+  --sky-200: rgb(186,230,253); /* @kind color */
+  --sky-300: rgb(125,211,252); /* @kind color */
+  --sky-400: rgb(56,189,248); /* @kind color */
+  --sky-500: rgb(14,165,233); /* @kind color */
+  --sky-50: rgb(240,249,255); /* @kind color */
+  --sky-600: rgb(2,132,199); /* @kind color */
+  --sky-700: rgb(3,105,161); /* @kind color */
+  --sky-800: rgb(7,89,133); /* @kind color */
+  --sky-900: rgb(12,74,110); /* @kind color */
+  --sky-950: rgb(8,47,73); /* @kind color */
+  --slate-100: rgb(241,245,249); /* @kind color */
+  --slate-200: rgb(226,232,240); /* @kind color */
+  --slate-300: rgb(203,213,225); /* @kind color */
+  --slate-400: rgb(148,163,184); /* @kind color */
+  --slate-500: rgb(100,116,139); /* @kind color */
+  --slate-50: rgb(248,250,252); /* @kind color */
+  --slate-600: rgb(71,85,105); /* @kind color */
+  --slate-700: rgb(51,65,85); /* @kind color */
+  --slate-800: rgb(30,41,59); /* @kind color */
+  --slate-900: rgb(15,23,42); /* @kind color */
+  --slate-950: rgb(2,6,23); /* @kind color */
+  --sm-2: 8;
+  --sm-3: 12;
+  --sm: 2;
+  --state-live: var(--red-500); /* @kind color */
+  --state-locked: var(--slate-500); /* @kind color */
+  --state-provisional: var(--yellow-400); /* @kind color */
+  --surface-border-strong: var(--slate-300); /* @kind color */
+  --surface-border: var(--slate-200); /* @kind color */
+  --surface-canvas: var(--slate-200); /* @kind color */
+  --surface-card: var(--alpha-light-00); /* @kind color */
+  --surface-subtle: var(--alpha-light-50); /* @kind color */
+  --text-muted: var(--slate-500); /* @kind color */
+  --text-primary: var(--slate-900); /* @kind color */
+  --text-secondary: var(--slate-600); /* @kind color */
+  --title-title-1-fontfamily: var(--family-primary);
+  --title-title-1-fontsize: 72;
+  --title-title-1-letterspacing: -0.8;
+  --title-title-1-lineheight: 88;
+  --title-title-2-fontfamily: var(--family-primary);
+  --title-title-2-fontsize: 64;
+  --title-title-2-letterspacing: -0.8;
+  --title-title-2-lineheight: 76;
+  --title-title-3-fontfamily: var(--family-primary);
+  --title-title-3-fontsize: 56;
+  --title-title-3-letterspacing: -0.6;
+  --title-title-3-lineheight: 68;
+  --weights-black: 900;
+  --weights-bold: 700;
+  --weights-extrabold: 800;
+  --weights-extralight: 200;
+  --weights-light: 300;
+  --weights-medium: 500;
+  --weights-regular: 400;
+  --weights-semibold: 600;
+  --weights-thin: 100;
+  --xl-2: 20;
+  --xl-3: 28;
+  --xl2: 32;
+  --xl3: 40;
+  --xl4: 48;
+  --xl5: 60;
+  --xl6: 72;
+  --xl: 12;
+  --xs-2: 8;
+  --xs2: 4;
+  --xs: 4;
+  --xxs-2: 2;
+  --xxs: 2;
+  --yellow-100: rgb(254,249,195); /* @kind color */
+  --yellow-200: rgb(254,240,138); /* @kind color */
+  --yellow-300: rgb(253,224,71); /* @kind color */
+  --yellow-400: rgb(250,204,21); /* @kind color */
+  --yellow-500: rgb(234,179,8); /* @kind color */
+  --yellow-50: rgb(254,252,232); /* @kind color */
+  --yellow-600: rgb(202,138,4); /* @kind color */
+  --yellow-700: rgb(161,98,7); /* @kind color */
+  --yellow-800: rgb(133,77,14); /* @kind color */
+  --yellow-900: rgb(113,63,18); /* @kind color */
+  --yellow-950: rgb(66,32,6); /* @kind color */
+  --zero-2: 0;
+  --zero: 0;
+}
+
+:root[data-theme="dark"], .dark {
+  --color-brand-active: var(--sky-700); /* @kind color */
+  --color-brand-hover: var(--sky-600); /* @kind color */
+  --color-brand: var(--sky-500); /* @kind color */
+  --color-crown: var(--yellow-400); /* @kind color */
+  --color-danger: var(--red-500); /* @kind color */
+  --color-info: var(--sky-500); /* @kind color */
+  --color-on-brand: var(--alpha-light-00); /* @kind color */
+  --color-success: var(--emerald-500); /* @kind color */
+  --color-warning: var(--yellow-400); /* @kind color */
+  --prediction-correct: var(--emerald-500); /* @kind color */
+  --prediction-incorrect: var(--red-500); /* @kind color */
+  --prediction-partial: var(--yellow-400); /* @kind color */
+  --role-admin: var(--sky-500); /* @kind color */
+  --role-owner: var(--yellow-400); /* @kind color */
+  --role-participant: var(--slate-500); /* @kind color */
+  --state-live: var(--red-500); /* @kind color */
+  --state-locked: var(--slate-500); /* @kind color */
+  --state-provisional: var(--yellow-400); /* @kind color */
+  --surface-border-strong: var(--alpha-dark-300); /* @kind color */
+  --surface-border: var(--alpha-dark-200); /* @kind color */
+  --surface-canvas: var(--slate-950); /* @kind color */
+  --surface-card: var(--slate-800); /* @kind color */
+  --surface-subtle: var(--alpha-dark-100); /* @kind color */
+  --text-muted: var(--alpha-dark-600); /* @kind color */
+  --text-primary: var(--alpha-dark-1000); /* @kind color */
+  --text-secondary: var(--alpha-dark-700); /* @kind color */
+}
+
+
+/* Pitch surface (hand-authored, mirrors the token structure above) */
+:root {
+  --pitch-bg-top: rgb(241,245,249);
+  --pitch-bg-bottom: rgb(226,232,240);
+  --pitch-line: rgba(15,23,42,0.10);
+  --pitch-slot-border: rgba(15,23,42,0.22);
+  --pitch-slot-text: rgba(15,23,42,0.45);
+  --pitch-name: rgb(15,23,42);
+  --pitch-name-empty: rgba(15,23,42,0.5);
+  --pitch-pos: rgba(15,23,42,0.38);
+  --pitch-scrim: rgba(15,23,42,0.45);
+}
+
+:root[data-theme="dark"], .dark {
+  --pitch-bg-top: rgb(15,23,42);
+  --pitch-bg-bottom: rgb(2,6,23);
+  --pitch-line: rgba(255,255,255,0.10);
+  --pitch-slot-border: rgba(255,255,255,0.28);
+  --pitch-slot-text: rgba(255,255,255,0.5);
+  --pitch-name: rgb(255,255,255);
+  --pitch-name-empty: rgba(255,255,255,0.55);
+  --pitch-pos: rgba(255,255,255,0.42);
+  --pitch-scrim: rgba(2,6,23,0.55);
+}
+
+
+/* Accent + link surfaces (hand-authored, theme-aware) */
+:root {
+  --text-link: var(--sky-700);
+  --accent-surface: var(--sky-50);
+  --accent-border: var(--sky-200);
+  --accent-text: var(--sky-800);
+  --accent-text-strong: var(--sky-900);
+  --warn-surface: var(--yellow-100);
+  --warn-text: var(--yellow-900);
+}
+
+:root[data-theme="dark"], .dark {
+  --text-link: var(--sky-400);
+  --accent-surface: rgba(14,165,233,0.12);
+  --accent-border: rgba(14,165,233,0.30);
+  --accent-text: var(--sky-300);
+  --accent-text-strong: var(--sky-200);
+  --warn-surface: rgba(250,204,21,0.16);
+  --warn-text: var(--yellow-200);
+}
+
+
+/* Danger as a TEXT colour (--color-danger stays a fill) */
+:root { --danger-text: var(--red-700); }
+:root[data-theme="dark"], .dark { --danger-text: var(--red-400); }
+
+
+/* Solid brand fill for buttons carrying white text (--color-brand stays the Figma accent) */
+:root { --brand-fill: var(--sky-700); }
+:root[data-theme="dark"], .dark { --brand-fill: var(--sky-600); }
+
+
+/* Elevation — five-step depth system from the Figma style guide.
+   e1 and e3 are verbatim; e2 and e4 follow the file's stated geometry
+   (y4 r12, y16 r40) in the same rgba(10,28,51) family.
+   Dark pairs every shadow with a hairline border, since black shadows
+   vanish on dark — the file's own rule. */
+:root {
+  --elev-1: 0 1px 3px 0 rgba(10,28,51,0.06);
+  --elev-2: 0 4px 12px 0 rgba(10,28,51,0.08);
+  --elev-3: 0 8px 24px 0 rgba(10,28,51,0.12);
+  --elev-4: 0 16px 40px 0 rgba(10,28,51,0.16);
+  --elev-glow: 0 2px 10px 0 rgba(14,165,233,0.35);
+}
+
+:root[data-theme="dark"], .dark {
+  --elev-1: inset 0 0 0 1px rgba(255,255,255,0.09), 0 1px 3px 0 rgba(0,0,0,0.35);
+  --elev-2: inset 0 0 0 1px rgba(255,255,255,0.09), 0 2px 10px 0 rgba(0,0,0,0.45);
+  --elev-3: inset 0 0 0 1px rgba(255,255,255,0.09), 0 8px 24px 0 rgba(0,0,0,0.50);
+  --elev-4: inset 0 0 0 1px rgba(255,255,255,0.09), 0 16px 40px 0 rgba(0,0,0,0.55);
+  --elev-glow: 0 2px 10px 0 rgba(14,165,233,0.45);
+}
+
+
+/* Controls — the guide draws form-control rings at 1.5px, not 1px,
+   and focuses with a surface-coloured gap inside a brand ring. */
+:root {
+  --control-ring: 1.5px;
+  --focus-ring: 0 0 0 2px var(--surface-card), 0 0 0 4px var(--color-brand);
+  --control-scrim: rgba(2,6,23,0.50);
+}
+
+
+/* ===========================================================================
+   TopFour chrome — the product palette.
+
+   Everything above this line is the Figma base (stock sky/slate). This block
+   is the palette the product actually ships in: deeper, less saturated, closer
+   to a broadcast score page than to a default UI kit. It began life as private
+   hex inside one screen; promoting it here is what makes it a system.
+
+   It REDEFINES the semantic tokens rather than adding new names, so every
+   screen inherits the palette without touching a single screen file. Screens
+   still reference semantics only — never a --tf-* ramp step.
+   =========================================================================== */
+
+/* The ramp. Named steps only; no screen consumes these directly. */
+:root {
+  --tf-white:      rgb(255,255,255);
+  --tf-paper-100:  rgb(247,248,249);
+  --tf-paper-200:  rgb(239,242,245);
+  --tf-paper-300:  rgb(223,227,232);
+  --tf-paper-400:  rgb(195,203,212);
+
+  --tf-ink-900:    rgb(17,24,39);
+  --tf-ink-700:    rgb(52,64,84);
+  --tf-ink-600:    rgb(85,96,111);
+  --tf-ink-550:    rgb(99,109,128);
+  --tf-ink-400:    rgb(127,139,158);
+  --tf-ink-300:    rgb(152,162,179);
+
+  --tf-navy-950:   rgb(3,10,18);
+  --tf-navy-900:   rgb(8,19,33);
+  --tf-navy-800:   rgb(13,24,38);
+  --tf-navy-700:   rgb(19,32,49);
+
+  --tf-slate-950:  rgb(9,17,29);
+  --tf-slate-900:  rgb(16,26,39);
+  --tf-slate-850:  rgb(21,33,49);
+  --tf-slate-700:  rgb(40,53,71);
+  --tf-slate-600:  rgb(58,74,96);
+  --tf-slate-400:  rgb(154,166,181);
+  --tf-slate-300:  rgb(179,189,202);
+  --tf-slate-100:  rgb(243,246,250);
+
+  --tf-blue-900:   rgb(16,44,61);
+  --tf-blue-800:   rgb(5,96,143);
+  --tf-blue-700:   rgb(6,105,158);
+  --tf-blue-600:   rgb(8,123,184);
+  --tf-blue-500:   rgb(56,189,248);
+  --tf-blue-400:   rgb(69,188,235);
+  --tf-blue-300:   rgb(125,211,252);
+  --tf-blue-200:   rgb(185,224,245);
+  --tf-blue-100:   rgb(224,242,252);
+
+  --tf-red-700:    rgb(180,35,24);
+  --tf-red-600:    rgb(192,52,47);
+  --tf-red-500:    rgb(217,64,64);
+  --tf-red-400:    rgb(255,116,111);
+  --tf-red-300:    rgb(255,157,153);
+
+  --tf-green-800:  rgb(5,97,75);
+  --tf-green-700:  rgb(8,120,93);
+  --tf-green-500:  rgb(15,138,107);
+  --tf-green-400:  rgb(67,203,161);
+
+  --tf-amber-800:  rgb(138,75,9);
+  --tf-amber-700:  rgb(180,83,9);
+  --tf-amber-600:  rgb(217,119,6);
+  --tf-amber-300:  rgb(251,191,36);
+  --tf-amber-100:  rgb(253,241,227);
+}
+
+/* Surfaces and text — light. */
+:root {
+  --surface-canvas:        var(--tf-paper-100);
+  --surface-card:          var(--tf-white);
+  --surface-subtle:        var(--tf-paper-200);
+  --surface-border:        var(--tf-paper-300);
+  --surface-border-strong: var(--tf-paper-400);
+
+  --text-primary:   var(--tf-ink-900);
+  --text-secondary: var(--tf-ink-600);
+  --text-muted:     var(--tf-ink-550);
+}
+
+:root[data-theme="dark"], .dark {
+  --surface-canvas:        var(--tf-slate-950);
+  --surface-card:          var(--tf-slate-900);
+  --surface-subtle:        var(--tf-slate-850);
+  --surface-border:        var(--tf-slate-700);
+  --surface-border-strong: var(--tf-slate-600);
+
+  --text-primary:   var(--tf-slate-100);
+  --text-secondary: var(--tf-slate-300);
+  --text-muted:     var(--tf-slate-400);
+}
+
+/* Brand. --color-brand tints (borders, dots, rules); --brand-fill carries
+   --color-on-brand text and is the only blue a filled button may use.
+   The two differ per theme because the tint that reads on a dark canvas is far
+   too light to sit under white text. */
+:root {
+  --color-brand:        var(--tf-blue-600);
+  --color-brand-hover:  var(--tf-blue-700);
+  --color-brand-active: var(--tf-blue-800);
+  --color-on-brand:     var(--tf-white);
+  --brand-fill:         var(--tf-blue-700);
+
+  --text-link:          var(--tf-blue-700);
+  --accent-surface:     var(--tf-blue-100);
+  --accent-border:      var(--tf-blue-200);
+  --accent-text:        var(--tf-blue-800);
+  --accent-text-strong: var(--tf-blue-800);
+}
+
+:root[data-theme="dark"], .dark {
+  --color-brand:        var(--tf-blue-400);
+  --color-brand-hover:  var(--tf-blue-300);
+  --color-brand-active: var(--tf-blue-500);
+  --color-on-brand:     var(--tf-white);
+  --brand-fill:         rgb(13,118,176);
+
+  --text-link:          var(--tf-blue-300);
+  --accent-surface:     var(--tf-blue-900);
+  --accent-border:      rgb(29,74,102);
+  --accent-text:        var(--tf-blue-300);
+  --accent-text-strong: var(--tf-blue-200);
+}
+
+/* Status. Every --color-* here is a FILL that carries --color-on-brand (white)
+   text and clears 4.5:1 doing so — measured, not assumed. Every *-text is for
+   type on canvas or card. Never swap the two: --color-danger as red type fails,
+   --danger-text as a fill fails. The dark fills are their own values because
+   the light ones, while legible under white, sink into a dark canvas. */
+:root {
+  --color-danger:  var(--tf-red-600);
+  --danger-text:   var(--tf-red-700);
+  --danger-surface: rgb(253,236,235);
+  --danger-border:  rgb(246,205,202);
+
+  --color-success:  var(--tf-green-700);
+  --success-text:   var(--tf-green-800);
+  --success-surface: rgb(230,246,241);
+  --success-border:  rgb(191,229,217);
+
+  --color-warning: var(--tf-amber-700);
+  --warn-text:     var(--tf-amber-800);
+  --warn-surface:  var(--tf-amber-100);
+  --warn-border:   rgb(243,214,177);
+
+  --color-info: var(--tf-blue-600);
+}
+
+:root[data-theme="dark"], .dark {
+  --color-danger:  rgb(209,59,53);
+  --danger-text:   var(--tf-red-300);
+  --danger-surface: rgba(217,64,64,0.16);
+  --danger-border:  rgba(255,116,111,0.32);
+
+  --color-success:  rgb(12,130,102);
+  --success-text:   var(--tf-green-400);
+  --success-surface: rgba(15,138,107,0.18);
+  --success-border:  rgba(67,203,161,0.32);
+
+  --color-warning: rgb(176,92,12);
+  --warn-text:     var(--tf-amber-300);
+  --warn-surface:  rgba(217,119,6,0.16);
+  --warn-border:   rgba(251,191,36,0.30);
+
+  --color-info: var(--tf-blue-400);
+}
+
+/* Chrome — the dark bar at the top of every screen and the tab bar at the
+   bottom. It is dark in BOTH themes; that constancy is what makes the product
+   recognisable, so these are not surface tokens and must not be swapped for
+   them. --nav-accent is the one bright note in the chrome. */
+:root {
+  --nav-surface:     var(--tf-navy-900);
+  --nav-surface-2:   var(--tf-navy-700);
+  --nav-text:        var(--tf-white);
+  --nav-text-quiet:  rgba(255,255,255,0.72);
+  --nav-text-faint:  rgba(255,255,255,0.52);
+  --nav-border:      rgba(255,255,255,0.15);
+  --nav-fill:        rgba(255,255,255,0.12);
+  --nav-accent:      var(--tf-blue-500);
+  --nav-on-accent:   var(--tf-navy-900);
+  --nav-positive:    rgb(110,231,183);
+  /* Amber that carries on dark chrome. --warn-text is tuned for a light canvas
+     and goes muddy here, so the chrome keeps its own step. */
+  --nav-warning:     rgb(252,211,77);
+
+  /* The account avatar is warm on purpose — the one human note in the chrome. */
+  --avatar-surface: rgb(231,214,191);
+  --avatar-text:    rgb(67,53,41);
+
+  /* Status notices that sit INSIDE the chrome. The ordinary --danger-surface is
+     a pale pink built for a light canvas; dropped into the dark header it takes
+     --nav-text with it and becomes unreadable. These are the chrome-side pair. */
+  --nav-danger-surface: rgba(217,64,64,0.20);
+  --nav-danger-border:  rgba(255,116,111,0.34);
+  --nav-danger-text:    rgb(255,157,153);
+  --nav-warn-surface:   rgba(217,119,6,0.20);
+  --nav-warn-border:    rgba(251,191,36,0.32);
+  --nav-warn-text:      rgb(251,191,36);
+}
+
+:root[data-theme="dark"], .dark {
+  --nav-surface:   var(--tf-navy-950);
+  --nav-surface-2: var(--tf-navy-800);
+}
+
+/* Domain tokens. The Figma file froze these across themes; that fails contrast
+   on a dark canvas, so they are theme-aware here. Meaning never changes — only
+   the step chosen to carry it. */
+:root {
+  --prediction-correct:   var(--tf-green-700);
+  --prediction-incorrect: var(--tf-red-600);
+  --prediction-partial:   var(--tf-amber-700);
+
+  --state-live:        var(--tf-red-600);
+  --state-locked:      var(--tf-ink-550);
+  --state-provisional: var(--tf-amber-700);
+
+  --role-owner:       var(--tf-amber-700);
+  --role-admin:       var(--tf-blue-600);
+  --role-participant: var(--tf-ink-400);
+
+  --color-crown: var(--tf-amber-700);
+
+  /* Pitch positions. Four chromatic fills that tell the lines of a lineup apart
+     at a glance. The pitch is dark grass in BOTH themes, so these are bright
+     steps that lift off it, and they carry dark --pos-on rather than white —
+     white on a bright fill is the pairing that fails. One set, no theme
+     override, because the surface underneath never changes.
+     These four are stated outright rather than pulled from the ramp: the ramp is
+     built for UI surfaces, and its steps go pastel at the brightness grass needs.
+     Kit colour is closer to data than to theme.
+     Position never scores; this is orientation only. */
+  --pos-gk: rgb(245,166,35);
+  --pos-df: rgb(56,189,248);
+  --pos-mf: rgb(52,211,153);
+  --pos-fw: rgb(251,113,133);
+  --pos-on: var(--tf-ink-900);
+}
+
+:root[data-theme="dark"], .dark {
+  --prediction-correct:   var(--tf-green-400);
+  --prediction-incorrect: var(--tf-red-400);
+  --prediction-partial:   var(--tf-amber-300);
+
+  --state-live:        var(--tf-red-400);
+  --state-locked:      var(--tf-slate-400);
+  --state-provisional: var(--tf-amber-300);
+
+  --role-owner:       var(--tf-amber-300);
+  --role-admin:       var(--tf-blue-400);
+  --role-participant: var(--tf-slate-400);
+
+  --color-crown: var(--tf-amber-300);
+}
+
+/* Modal scrim. Neutral ink, for dialogs anywhere in the product. Distinct from
+   --pitch-scrim, which is green because it dims grass — borrowing that one for
+   an ordinary dialog tints the whole screen. */
+:root { --scrim: rgba(16,24,40,0.55); }
+:root[data-theme="dark"], .dark { --scrim: rgba(3,10,18,0.72); }
+
+/* The pitch. Grass is green whether or not the interface is dark, so this is
+   constant across themes — the same reasoning that keeps --nav-* dark in both.
+   It is the one surface in the product that ignores the theme entirely, which
+   is why every mark on it is a white alpha rather than a text token.
+   Dark mode only deepens the turf so the frame around it still reads. */
+:root {
+  --tf-turf-700: rgb(21,94,70);
+  --tf-turf-800: rgb(13,62,46);
+  --tf-turf-900: rgb(10,51,37);
+  --tf-turf-950: rgb(3,25,18);
+
+  --pitch-bg-top:      var(--tf-turf-700);
+  --pitch-bg-bottom:   var(--tf-turf-800);
+  --pitch-line:        rgba(255,255,255,0.35);
+  --pitch-slot-border: rgba(255,255,255,0.45);
+  --pitch-slot-text:   rgba(255,255,255,0.85);
+  --pitch-name:        var(--tf-white);
+  --pitch-name-empty:  rgba(255,255,255,0.65);
+  --pitch-pos:         rgba(255,255,255,0.70);
+  --pitch-scrim:       rgba(13,62,46,0.85);
+  --pitch-turf-stripe: rgba(255,255,255,0.05);
+}
+
+:root[data-theme="dark"], .dark {
+  --pitch-bg-top:      var(--tf-turf-900);
+  --pitch-bg-bottom:   var(--tf-turf-950);
+  --pitch-line:        rgba(255,255,255,0.28);
+  --pitch-slot-border: rgba(255,255,255,0.38);
+  --pitch-scrim:       rgba(3,25,18,0.88);
+  --pitch-turf-stripe: rgba(255,255,255,0.035);
+  --crest-edge: rgba(255,255,255,0.62);
+}
+
+/* Elevation, restated in the new neutral. The Figma shadows were mixed from a
+   blue-black that reads purple over this paper. Dark keeps the hairline-border
+   pairing, since a black shadow is invisible on a dark canvas. */
+:root {
+  --elev-1: 0 1px 2px 0 rgba(16,24,40,0.05);
+  --elev-2: 0 4px 12px 0 rgba(16,24,40,0.07);
+  --elev-3: 0 10px 28px 0 rgba(16,24,40,0.11);
+  --elev-4: 0 24px 64px 0 rgba(16,24,40,0.20);
+  --elev-glow: 0 2px 12px 0 rgba(8,123,184,0.32);
+}
+
+:root[data-theme="dark"], .dark {
+  --elev-1: inset 0 0 0 1px rgba(255,255,255,0.06), 0 1px 2px 0 rgba(0,0,0,0.40);
+  --elev-2: inset 0 0 0 1px rgba(255,255,255,0.06), 0 4px 12px 0 rgba(0,0,0,0.48);
+  --elev-3: inset 0 0 0 1px rgba(255,255,255,0.07), 0 10px 28px 0 rgba(0,0,0,0.55);
+  --elev-4: inset 0 0 0 1px rgba(255,255,255,0.07), 0 24px 64px 0 rgba(0,0,0,0.62);
+  --elev-glow: 0 2px 12px 0 rgba(69,188,235,0.40);
+}
+
+/* Density. Chrome is constant across all 36 screens; body rhythm is not — a
+   pitch picker, a standings table and a settings list cannot share one row
+   height. Three named levels keep that variation systematic rather than
+   improvised per screen.
+     compact  scannable lists: standings, ledger, operator queues
+     default  most screens: fixtures, members, notifications, settings
+     relaxed  decision screens: publish review, destructive confirms, empties */
+:root {
+  --gutter: 18px;
+  --tap-min: 44px;
+
+  --row-compact: 44px;   --row-compact-pad: 10px;
+  --row-default: 56px;   --row-default-pad: 13px;
+  --row-relaxed: 68px;   --row-relaxed-pad: 16px;
+
+  --stack-tight: 6px;
+  --stack:       12px;
+  --stack-loose: 22px;
+  --section-gap: 28px;
+}
+
+/* The crest. Team and league identity is a shield, not a circle — the one
+   shape that says football before a single word is read. Held as a token so
+   every screen cuts the same silhouette. */
+:root {
+  --crest-clip: polygon(50% 0, 91% 13%, 86% 72%, 50% 100%, 14% 72%, 9% 13%);
+  --crest-size: 34px;
+  --crest-size-lg: 40px;
+  --crest-saturation: saturate(0.82);
+  /* Club colour is data and some clubs are near-black or near-navy, so a crest
+     can vanish into a dark canvas. This hairline follows the crest silhouette and
+     guarantees separation without altering the club's colour. */
+  --crest-edge: rgba(15,23,42,0.45);
+}
+
+/* Categorical fills — the market-weight bar in league setup, and anywhere else
+   several unranked things must be told apart at a glance. Seven hues, one per
+   configurable market, held near equal lightness so no slice reads as "more
+   important" than another. Never used to encode a value or a state; states have
+   their own tokens above. */
+:root {
+  --cat-1: rgb(11,110,166);
+  --cat-2: rgb(15,138,107);
+  --cat-3: rgb(127,86,217);
+  --cat-4: rgb(180,83,9);
+  --cat-5: rgb(192,52,47);
+  --cat-6: rgb(168,59,143);
+  --cat-7: rgb(85,96,111);
+}
+
+:root[data-theme="dark"], .dark {
+  --cat-1: rgb(69,167,222);
+  --cat-2: rgb(67,190,152);
+  --cat-3: rgb(167,139,250);
+  --cat-4: rgb(230,148,55);
+  --cat-5: rgb(235,110,105);
+  --cat-6: rgb(214,120,193);
+  --cat-7: rgb(154,166,181);
+}
+
+/* Identity tints — the circle behind a member's initials. These are SURFACES,
+   always paired with --text-primary, so they invert with the theme. The Figma
+   file froze them light, which put near-white initials on a pale disc in dark
+   mode; that is the bug these fix. Assignment is a stable hash of the member
+   id, never a rank, so a colour never implies standing. */
+:root {
+  --ident-1: rgb(211,231,245);
+  --ident-2: rgb(207,233,224);
+  --ident-3: rgb(226,218,247);
+  --ident-4: rgb(246,227,201);
+  --ident-5: rgb(247,217,215);
+  --ident-6: rgb(242,217,236);
+  --ident-7: rgb(223,227,232);
+}
+
+:root[data-theme="dark"], .dark {
+  --ident-1: rgb(18,50,70);
+  --ident-2: rgb(16,53,43);
+  --ident-3: rgb(42,34,66);
+  --ident-4: rgb(61,47,22);
+  --ident-5: rgb(61,32,32);
+  --ident-6: rgb(56,32,50);
+  --ident-7: rgb(40,53,71);
+}
+
+/* Focus, restated against the new brand. */
+:root {
+  --focus-ring: 0 0 0 2px var(--surface-card), 0 0 0 4px var(--color-brand);
+  --control-scrim: rgba(3,10,18,0.55);
+}
+
+/* Dev-panel chrome — the rail beside each phone frame in these files, and the
+   backdrop the frame sits on. Presentation scaffolding, not product surface: it
+   never ships, and it deliberately does NOT follow the phone's theme, so a dark
+   screen still has a light rail to read the controls against. */
+:root {
+  --dev-backdrop: rgb(223,227,232);
+  --dev-text:     rgb(23,32,51);
+  --dev-strong:   rgb(16,24,40);
+  --dev-quiet:    rgb(102,112,133);
+  --dev-faint:    rgb(152,162,179);
+  --dev-rule:     rgb(184,192,202);
+  --dev-field:    rgb(200,210,223);
+  --dev-accent:   rgb(8,121,191);
+  --dev-card:     rgb(255,255,255);
+}

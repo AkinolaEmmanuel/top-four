@@ -3,21 +3,32 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2",
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase font-heading transition-colors",
   {
     variants: {
       variant: {
-        default: "border-sky-500/30 bg-sky-500/10 text-sky-400",
-        sky: "border-sky-500/30 bg-sky-500/10 text-sky-400",
-        win: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-        loss: "border-red-500/30 bg-red-500/10 text-red-400",
-        provisional: "border-yellow-500/30 bg-yellow-500/10 text-yellow-400",
-        crown: "border-yellow-500/40 bg-yellow-500/20 text-yellow-300 font-bold",
-        live: "border-red-500/40 bg-red-500/20 text-red-400 animate-pulse font-bold",
-        owner: "border-yellow-500/40 bg-yellow-500/10 text-yellow-400 font-semibold",
-        admin: "border-sky-500/40 bg-sky-500/10 text-sky-400 font-semibold",
-        participant: "border-slate-700 bg-slate-800/50 text-slate-400",
-        locked: "border-slate-800 bg-slate-900 text-slate-500",
+        default:
+          "border-[var(--accent-border)] bg-[var(--accent-surface)] text-[var(--accent-text)]",
+        sky:
+          "border-[var(--accent-border)] bg-[var(--accent-surface)] text-[var(--accent-text)]",
+        win:
+          "border-[var(--success-border)] bg-[var(--success-surface)] text-[var(--prediction-correct)]",
+        loss:
+          "border-[var(--danger-border)] bg-[var(--danger-surface)] text-[var(--prediction-incorrect)]",
+        provisional:
+          "border-[var(--warn-border)] bg-[var(--warn-surface)] text-[var(--state-provisional)]",
+        crown:
+          "border-[var(--warn-border)] bg-[var(--warn-surface)] text-[var(--color-crown)] font-black",
+        live:
+          "border-[var(--danger-border)] bg-[var(--danger-surface)] text-[var(--state-live)] animate-pulse",
+        owner:
+          "border-[var(--warn-border)] bg-[var(--warn-surface)] text-[var(--role-owner)]",
+        admin:
+          "border-[var(--accent-border)] bg-[var(--accent-surface)] text-[var(--role-admin)]",
+        participant:
+          "border-[var(--surface-border)] bg-[var(--surface-subtle)] text-[var(--role-participant)]",
+        locked:
+          "border-[var(--surface-border)] bg-[var(--surface-subtle)] text-[var(--state-locked)]",
       },
     },
     defaultVariants: {

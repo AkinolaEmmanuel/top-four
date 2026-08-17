@@ -1,74 +1,66 @@
+/* ── TopFour Design System ─────────────────────────────────────────────
+   Source of truth: top-four-design/ds/fig-tokens.css
+   This file is copied verbatim from the design handoff. Do not edit it
+   directly — edit the handoff, then re-copy.
+   ───────────────────────────────────────────────────────────────────── */
+@import "./ds/fig-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Bridge: map design-system semantic tokens → Tailwind CSS vars ───
+   Tailwind expects HSL tuples in --background, --foreground, etc.
+   We override that: Tailwind's colour utilities now resolve through
+   the design tokens, keeping the spec as the single source of truth.
+   Because the design tokens are already rgb(), we use them directly
+   and configure Tailwind colours as plain var() references.
+   ───────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --background: 210 40% 98%; /* Light Slate Canvas #F8FAFC */
-    --foreground: 222 47% 11%; /* Slate 900 #0F172A */
+    /* Surfaces */
+    --background:           var(--surface-canvas);
+    --foreground:           var(--text-primary);
+    --card:                 var(--surface-card);
+    --card-foreground:      var(--text-primary);
+    --popover:              var(--surface-card);
+    --popover-foreground:   var(--text-primary);
 
-    --card: 0 0% 100%; /* Pure White Card #FFFFFF */
-    --card-foreground: 222 47% 11%;
+    /* Brand */
+    --primary:              var(--brand-fill);
+    --primary-foreground:   var(--color-on-brand);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    /* Subtle surfaces */
+    --secondary:            var(--surface-subtle);
+    --secondary-foreground: var(--text-primary);
+    --muted:                var(--surface-subtle);
+    --muted-foreground:     var(--text-muted);
 
-    --primary: 199 89% 48%; /* Figma Sky 500 #0EA5E9 */
-    --primary-foreground: 0 0% 100%;
+    /* Accent */
+    --accent:               var(--accent-surface);
+    --accent-foreground:    var(--accent-text);
 
-    --secondary: 210 40% 96%; /* Slate 100 #F1F5F9 */
-    --secondary-foreground: 222 47% 11%;
+    /* Status */
+    --destructive:          var(--color-danger);
+    --destructive-foreground: var(--color-on-brand);
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%; /* Slate 500 #64748B */
+    /* Borders & inputs */
+    --border:               var(--surface-border);
+    --input:                var(--surface-border);
+    --ring:                 var(--color-brand);
 
-    --accent: 199 89% 95%; /* Sky 100 #E0F2FE */
-    --accent-foreground: 199 89% 48%;
-
-    --destructive: 0 84% 60%; /* Red Danger #EF4444 */
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 214 32% 91%; /* Slate 200 #E2E8F0 */
-    --input: 214 32% 91%;
-    --ring: 199 89% 48%; /* Sky Focus Ring */
-
+    /* Radius */
     --radius: 0.75rem;
 
-    /* Custom Design Engineering Easings */
+    /* Custom easings */
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  .dark {
-    --background: 222 47% 4%; /* Deep Slate Black #06090E */
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 7%; /* Slate Card Surface #0B0E14 */
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 199 89% 48%; /* Figma Sky 500 #0EA5E9 */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 217 33% 14%; /* Slate subtle #1E293B */
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 12%;
-    --muted-foreground: 215 20% 65%; /* Slate 400 #94A3B8 */
-
-    --accent: 199 89% 18%; /* Sky subtle accent */
-    --accent-foreground: 199 89% 48%; /* Sky text highlight */
-
-    --destructive: 0 84% 60%; /* Red Danger #EF4444 */
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 217 33% 16%; /* Slate border */
-    --input: 217 33% 16%;
-    --ring: 199 89% 48%; /* Sky 500 focus ring */
-  }
+  /* Dark mode — the fig-tokens already handle :root[data-theme="dark"]
+     and .dark selectors, so the semantic tokens above automatically
+     resolve to their dark variants. No duplicate block needed here. */
 }
 
 @layer base {
@@ -76,49 +68,44 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--background);
+    color: var(--foreground);
   }
 
-  /* Custom Styled Scrollbars (Light & Dark Compatible) */
+  /* Scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-
   ::-webkit-scrollbar-track {
     background: transparent;
   }
-
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.25);
+    background: var(--text-muted);
+    opacity: 0.25;
     border-radius: 9999px;
     transition: background 0.2s ease;
   }
-
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.5);
+    background: var(--color-brand);
+    opacity: 0.5;
   }
-
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
+    scrollbar-color: var(--text-muted) transparent;
   }
 }
 
 @layer utilities {
   @keyframes marquee {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(-50%);
-    }
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
   }
   .animate-marquee {
     animation: marquee 26s linear infinite;
   }
 
-  /* Accessibility - Reduced Motion */
+  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after {
       animation-duration: 0.01ms !important;

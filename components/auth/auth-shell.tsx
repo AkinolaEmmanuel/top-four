@@ -15,9 +15,9 @@ type AuthShellProps = {
 
 export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps) {
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex min-h-[100dvh] w-full bg-background text-foreground">
       {/* ── Left: Pitch & Football Panel ── */}
-      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-slate-950 lg:flex border-r border-border">
+      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-slate-950 lg:flex border-r border-border min-h-[100dvh]">
         {/* dot grid backdrop */}
         <div
           aria-hidden
@@ -82,7 +82,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
       </div>
 
       {/* ── Right: Form Panel ── */}
-      <div className="flex flex-1 items-center justify-center bg-background px-4 py-8 sm:px-6 sm:py-12 pb-24 sm:pb-12">
+      <div className="flex flex-1 min-h-[100dvh] items-center justify-center bg-background px-4 py-8 sm:px-6 sm:py-12">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
