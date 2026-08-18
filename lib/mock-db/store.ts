@@ -108,13 +108,25 @@ function makeInviteCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
+export const DEMO_USER_ID = "topfour-demo-manager-static-id";
+export const DEMO_EMAIL = "demo@topfour.app";
+
 export function findUserByEmail(email: string): MockUser | undefined {
-  const id = usersByEmail.get(email.toLowerCase());
+  const normalized = email.toLowerCase();
+  if (normalized === DEMO_EMAIL) {
+    return getOrCreateDemoUser();
+  }
+  const id = usersByEmail.get(normalized);
   return id ? users.get(id) : undefined;
 }
 
 export function findUserById(id: string): MockUser | undefined {
-  return users.get(id);
+  const user = users.get(id);
+  if (user) return user;
+  if (id === DEMO_USER_ID) {
+    return getOrCreateDemoUser();
+  }
+  return undefined;
 }
 
 export function verifyPassword(user: MockUser, password: string) {
@@ -148,8 +160,6 @@ export function createUser(input: {
   return user;
 }
 
-const DEMO_EMAIL = "demo@topfour.app";
-
 /**
  * Returns the shared demo account, seeding it as an active player across
  * every game mode (several rooms plus Global) on first use, since the demo
@@ -157,14 +167,21 @@ const DEMO_EMAIL = "demo@topfour.app";
  * credentials involved.
  */
 export function getOrCreateDemoUser(): MockUser {
-  const existing = findUserByEmail(DEMO_EMAIL);
+  const existing = users.get(DEMO_USER_ID);
   if (existing) return existing;
 
-  const user = createUser({
-    email: DEMO_EMAIL,
+  const email = DEMO_EMAIL.toLowerCase();
+  const user: MockUser = {
+    id: DEMO_USER_ID,
+    email,
     displayName: "Demo Manager",
-    password: randomUUID(),
-  });
+    emailVerified: false,
+    passwordHash: hashPassword("demo-password-secret"),
+  };
+
+  users.set(DEMO_USER_ID, user);
+  usersByEmail.set(email, DEMO_USER_ID);
+
   seedDemoData(user.id);
   return user;
 }

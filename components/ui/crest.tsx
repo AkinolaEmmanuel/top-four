@@ -29,6 +29,10 @@ export const CLUB_COLORS: Record<string, string> = {
   INT: "#0068a8",
   BAY: "#dc052d",
   DOR: "#fde100",
+  BVB: "#fde100",
+  LEV: "#e32219",
+  RBL: "#dd0741",
+  GER: "#d10214",
   PSG: "#004170",
   JUV: "#000000",
 };

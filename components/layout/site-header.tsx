@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils";
 
 /* ── Product nav (Level 1) ─────────────────────────────────────────── */
 const LOGGED_IN_NAV = [
-  { href: "/",        label: "Home" },
+  { href: "/", label: "Home" },
   { href: "/predict", label: "Predict" },
-  { href: "/table",   label: "Standings" },
-  { href: "/rooms",   label: "Leagues" },
+  { href: "/table", label: "Standings" },
+  { href: "/rooms", label: "Leagues" },
   { href: "/receipts", label: "Results" },
   { href: "/operator", label: "Operator" },
 ];
@@ -73,16 +73,16 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
         className="sticky top-0 z-40 w-full"
         style={{ background: "var(--nav-surface)" }}
       >
-        <div className="mx-auto flex h-14 max-w-mobile md:max-w-content items-center justify-between px-6 sm:px-8 md:px-10">
+        <div className="mx-auto flex h-14 max-w-mobile md:max-w-content items-center justify-between px-4 sm:px-6 md:px-8 lg:px-10">
           {/* ── Brand + Desktop Nav ── */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-5 min-w-0">
             <Link
               href="/"
-              className="flex items-center gap-2 transition-transform duration-150 ease-out active:scale-95"
+              className="flex items-center gap-2 transition-transform duration-150 ease-out active:scale-95 shrink-0"
             >
-              <Logo size={26} />
+              <Logo size={24} />
               <span
-                className="text-sm font-black tracking-tight uppercase font-heading"
+                className="text-xs sm:text-sm font-black tracking-tight uppercase font-heading whitespace-nowrap"
                 style={{ color: "var(--nav-text)" }}
               >
                 TOPFOUR<span style={{ color: "var(--nav-accent)" }}>.APP</span>
@@ -90,7 +90,7 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
             </Link>
 
             {/* Desktop primary nav */}
-            <nav className="hidden md:flex items-center gap-0.5">
+            <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
               {navTabs.map((tab) => {
                 const active =
                   tab.href === "/"
@@ -101,7 +101,7 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
                     key={tab.href}
                     href={tab.href}
                     className={cn(
-                      "rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-150 ease-out active:scale-95 font-heading",
+                      "rounded-lg px-2.5 py-1.5 lg:px-3 text-[11px] lg:text-xs font-bold transition-all duration-150 ease-out active:scale-95 font-heading whitespace-nowrap",
                       active
                         ? "text-[var(--nav-accent)]"
                         : "text-[var(--nav-text-quiet)] hover:text-[var(--nav-text)] hover:bg-[var(--nav-fill)]"
@@ -120,28 +120,11 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
           </div>
 
           {/* ── Right: theme toggle, alerts, account ── */}
-          <div className="flex items-center gap-2">
-            {/* Theme toggle */}
-            <button
-              onClick={toggleTheme}
-              className="flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ease-out active:scale-90 shrink-0"
-              style={{
-                background: "var(--nav-fill)",
-                color: "var(--nav-text-quiet)",
-              }}
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              {isDark ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </button>
-
+          <div className="flex items-center gap-2 shrink-0">
             {/* Alert bell */}
             {userEmail && (
               <button
-                className="relative flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ease-out active:scale-90 shrink-0"
+                className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--nav-border)] transition-all duration-150 ease-out active:scale-90 shrink-0"
                 style={{
                   background: "var(--nav-fill)",
                   color: "var(--nav-text-quiet)",
@@ -159,11 +142,11 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
                   className="flex items-center gap-2 hover:opacity-90 transition-opacity"
                 >
                   <span
-                    className="hidden text-xs font-bold sm:block truncate max-w-[140px] font-heading"
+                    className="hidden text-xs font-bold sm:block truncate max-w-[100px] md:max-w-[140px] font-heading"
                     style={{ color: "var(--nav-text)" }}
                   >
                     {isLoading ? (
-                      <span className="inline-block h-4 w-20 animate-pulse rounded" style={{ background: "var(--nav-fill)" }} />
+                      <span className="inline-block h-4 w-16 sm:w-20 animate-pulse rounded" style={{ background: "var(--nav-fill)" }} />
                     ) : (
                       displayName
                     )}
@@ -201,34 +184,35 @@ export function SiteHeader({ userEmail }: { userEmail: string | null }) {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  href="/how-to-play"
-                  className="inline-flex sm:hidden rounded-lg px-2 py-1.5 text-xs font-bold font-heading text-[var(--nav-text-quiet)] hover:text-[var(--nav-text)]"
-                >
-                  How to Play
-                </Link>
-                <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold font-heading transition-all duration-150 ease-out active:scale-[0.97]"
-                  style={{
-                    border: "1px solid var(--nav-border)",
-                    color: "var(--nav-text)",
-                  }}
-                >
-                  <User className="h-3.5 w-3.5" />
-                  Sign In
-                </Link>
-                <Link
-                  href="/signup"
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold font-heading transition-all duration-150 ease-out active:scale-[0.97]"
+                  className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold font-heading transition-all duration-150 ease-out active:scale-[0.97]"
                   style={{
                     background: "var(--brand-fill)",
                     color: "var(--color-on-brand)",
                   }}
                 >
-                  GET STARTED
+                  <User className="h-3.5 w-3.5" />
+                  <span>Sign In</span>
                 </Link>
               </div>
             )}
+
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-out active:scale-90 shrink-0"
+              style={{
+                background: "var(--nav-fill)",
+                color: "var(--nav-text-quiet)",
+              }}
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
       </header>

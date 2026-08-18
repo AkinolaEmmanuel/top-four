@@ -46,6 +46,14 @@ const COMPETITIONS = [
     teams: ["BAY", "BVB", "LEV"],
     desc: "High-scoring German encounters with rapid point payoff.",
   },
+  {
+    name: "Ligue I",
+    country: "France",
+    code: "FRA",
+    color: "var(--tf-navy-800)",
+    teams: ["PSG", "LYO", "ASM", "MAR"],
+    desc: "Weekly French top-flight predictions.",
+  }
 ];
 
 const MARKET_RULES = [
@@ -58,7 +66,7 @@ const MARKET_RULES = [
 
 export function LandingHome() {
   return (
-    <div className="mx-auto w-full max-w-mobile md:max-w-content px-6 sm:px-8 md:px-10 py-5 sm:py-8 space-y-8 sm:space-y-12 pb-20 min-w-0 font-sans">
+    <div className="mx-auto w-full max-w-mobile md:max-w-content px-6 sm:px-8 md:px-10 py-8 space-y-8 sm:space-y-12 pb-20 min-w-0 font-sans">
       {/* ── HERO SECTION (Home.dc.html pitch aesthetic) ── */}
       <section
         className="relative overflow-hidden rounded-3xl p-6 sm:p-10 text-white"
@@ -80,7 +88,7 @@ export function LandingHome() {
           </div> */}
 
           <div className="space-y-3">
-            <h1 className="text-5xl font-bold font-heading tracking-tight">
+            <h1 className="text-5xl sm:text-5xl font-bold font-heading tracking-tight">
               Predictions are better <br />
               <span className="text-sky-400">with people.</span>
             </h1>
@@ -110,7 +118,7 @@ export function LandingHome() {
               Join with Code
             </Link>
 
-            <DemoButton variant="sky" className="px-5 py-3 rounded-xl font-bold text-xs sm:text-sm font-heading" />
+            {/* <DemoButton variant="sky" className="px-5 py-3 rounded-xl font-bold text-xs sm:text-sm font-heading" /> */}
           </div>
 
           <div className="pt-4 flex flex-wrap items-center gap-6 text-xs text-slate-300 border-t border-white/10 font-sans">
@@ -190,7 +198,7 @@ export function LandingHome() {
                   <span className="text-[10px] font-bold text-[var(--text-muted)] ml-1">+ more</span>
                 </div>
                 <Link
-                  href="/signup"
+                  href="/login?redirect=/predict"
                   className="font-bold text-xs font-heading flex items-center gap-1 hover:underline"
                   style={{ color: "var(--color-brand)" }}
                 >
@@ -200,6 +208,260 @@ export function LandingHome() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── FEATURE BANNERS: Standings, Lineups & Custom Props ── */}
+      <section className="space-y-4">
+        <div className="px-1">
+          <span
+            className="text-[10px] font-bold tracking-wider uppercase font-heading block"
+            style={{ color: "var(--text-muted)" }}
+          >
+            MODES OF PLAY
+          </span>
+          <h2
+            className="text-xl sm:text-2xl font-bold font-heading mt-0.5"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Predict More Than Just Scorelines
+          </h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          {/* Banner 1: Standings */}
+          <div
+            className="relative overflow-hidden rounded-2xl p-6 text-white space-y-4 flex flex-col justify-between"
+            style={{
+              background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "var(--elev-2)",
+            }}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 font-heading">
+                  SEASON PROPS
+                </span>
+                <Trophy className="h-5 w-5 text-indigo-300" />
+              </div>
+              <h3 className="text-lg font-black font-heading leading-tight text-white">
+                League Standings & Top 4
+              </h3>
+              <p className="text-xs text-indigo-100 font-sans leading-relaxed">
+                Rank teams 1st through 20th and lock in your Top 4 prediction before kickoff to earn massive end-of-season bonuses.
+              </p>
+            </div>
+            <Link
+              href="/login?redirect=/table"
+              className="inline-flex items-center gap-1.5 text-xs font-bold font-heading text-indigo-200 hover:text-white pt-2 group"
+            >
+              <span>Predict Standings</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+
+          {/* Banner 2: Lineup Picker */}
+          <div
+            className="relative overflow-hidden rounded-2xl p-6 text-white space-y-4 flex flex-col justify-between"
+            style={{
+              background: "linear-gradient(135deg, #064e3b 0%, #047857 100%)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "var(--elev-2)",
+            }}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 font-heading">
+                  11 PLAYERS
+                </span>
+                <Activity className="h-5 w-5 text-emerald-300" />
+              </div>
+              <h3 className="text-lg font-black font-heading leading-tight text-white">
+                Starting XI Lineup Picker
+              </h3>
+              <p className="text-xs text-emerald-100 font-sans leading-relaxed">
+                Tactical 4-3-3, 4-4-2, or 3-5-2 grass pitch formation. Pick 11 starting players and score +22 PTS maximum per match.
+              </p>
+            </div>
+            <Link
+              href="/login?redirect=/rooms"
+              className="inline-flex items-center gap-1.5 text-xs font-bold font-heading text-emerald-200 hover:text-white pt-2 group"
+            >
+              <span>Pick XI Lineup</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+
+          {/* Banner 3: Custom Prop Questions */}
+          <div
+            className="relative overflow-hidden rounded-2xl p-6 text-white space-y-4 flex flex-col justify-between"
+            style={{
+              background: "linear-gradient(135deg, #701a75 0%, #a21caf 100%)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "var(--elev-2)",
+            }}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-fuchsia-500/30 text-fuchsia-200 border border-fuchsia-400/30 font-heading">
+                  SPECIAL PROPS
+                </span>
+                <HelpCircle className="h-5 w-5 text-fuchsia-300" />
+              </div>
+              <h3 className="text-lg font-black font-heading leading-tight text-white">
+                Custom League Questions
+              </h3>
+              <p className="text-xs text-fuchsia-100 font-sans leading-relaxed">
+                Answer custom head-to-head battles, manager sack races, and 007 agent questions created by your league admin.
+              </p>
+            </div>
+            <Link
+              href="/login?redirect=/predict"
+              className="inline-flex items-center gap-1.5 text-xs font-bold font-heading text-fuchsia-200 hover:text-white pt-2 group"
+            >
+              <span>Explore Custom Props</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SAMPLE CUSTOM QUESTIONS PREVIEW ── */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 px-1">
+          <div>
+            <span
+              className="text-[10px] font-bold tracking-wider uppercase font-heading block text-amber-500"
+            >
+              SAMPLE LEAGUE PROPS
+            </span>
+            <h2
+              className="text-xl sm:text-2xl font-bold font-heading mt-0.5"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Popular Custom Questions
+            </h2>
+          </div>
+          <p className="text-xs text-[var(--text-muted)] font-sans">
+            Created by league admins to settle side bets
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Question 1: 007 Agent */}
+          <div
+            className="rounded-2xl p-5 space-y-3.5 border"
+            style={{
+              background: "var(--surface-card)",
+              borderColor: "var(--surface-border)",
+              boxShadow: "var(--elev-1)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded text-[9.5px] font-bold font-heading uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                SPECIAL PROP
+              </span>
+              <span className="text-xs font-bold font-heading text-emerald-500">+4 PTS</span>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-bold text-sm font-heading" style={{ color: "var(--text-primary)" }}>
+                First to "007 Agent" Status 🕵️‍♂️
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] font-sans">
+                Which player will be the first to reach 0 goals and 0 assists in 7 appearances this season?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {["Antony", "Mudryk", "Darwin Núñez", "Jack Grealish"].map((opt, i) => (
+                <div
+                  key={i}
+                  className="px-3 py-2 rounded-xl text-xs font-bold font-heading text-center bg-[var(--surface-subtle)] border border-[var(--surface-border)] hover:border-[var(--color-brand)] transition-colors cursor-pointer"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {opt}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Question 2: Striker Battle */}
+          <div
+            className="rounded-2xl p-5 space-y-3.5 border"
+            style={{
+              background: "var(--surface-card)",
+              borderColor: "var(--surface-border)",
+              boxShadow: "var(--elev-1)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded text-[9.5px] font-bold font-heading uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                STRIKER RACE
+              </span>
+              <span className="text-xs font-bold font-heading text-emerald-500">+5 PTS</span>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-bold text-sm font-heading" style={{ color: "var(--text-primary)" }}>
+                Highest Goal Scorer Battle ⚽
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] font-sans">
+                Who scores the highest number of goals between Gyökeres, João Pedro, Šeško & Igor Thiago?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {["Viktor Gyökeres", "João Pedro", "Benjamin Šeško", "Igor Thiago"].map((opt, i) => (
+                <div
+                  key={i}
+                  className="px-3 py-2 rounded-xl text-xs font-bold font-heading text-center bg-[var(--surface-subtle)] border border-[var(--surface-border)] hover:border-[var(--color-brand)] transition-colors cursor-pointer"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {opt}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Question 3: Manager Sacked */}
+          <div
+            className="rounded-2xl p-5 space-y-3.5 border sm:col-span-2 lg:col-span-1"
+            style={{
+              background: "var(--surface-card)",
+              borderColor: "var(--surface-border)",
+              boxShadow: "var(--elev-1)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded text-[9.5px] font-bold font-heading uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                MANAGER SACK
+              </span>
+              <span className="text-xs font-bold font-heading text-emerald-500">+4 PTS</span>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-bold text-sm font-heading" style={{ color: "var(--text-primary)" }}>
+                First Manager Sacked 👔
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] font-sans">
+                Which Premier League manager will be the first to leave or be relieved of duties this season?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {["Erik ten Hag", "Sean Dyche", "Russell Martin", "Steve Cooper"].map((opt, i) => (
+                <div
+                  key={i}
+                  className="px-3 py-2 rounded-xl text-xs font-bold font-heading text-center bg-[var(--surface-subtle)] border border-[var(--surface-border)] hover:border-[var(--color-brand)] transition-colors cursor-pointer"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {opt}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -251,7 +513,7 @@ export function LandingHome() {
         </div>
       </section>
 
-      {/* ── SAMPLE MATCH PREVIEW (Home.dc.html Match Card Spec) ── */}
+      {/* ── SAMPLE MATCH PREVIEW (Home.dc.html Match Card Spec) ── 
       <section
         className="rounded-3xl p-6 sm:p-8 border space-y-4"
         style={{
@@ -307,20 +569,20 @@ export function LandingHome() {
 
         <div className="pt-2 text-center">
           <Link
-            href="/signup"
+            href="/login?redirect=/predict"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs font-heading transition-transform active:scale-95"
             style={{
               background: "var(--brand-fill)",
               color: "var(--color-on-brand)",
             }}
           >
-            Sign Up to Predict Matches
+            Sign In to Predict Matches
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
-
-      {/* ── CALL TO ACTION FOOTER ── */}
+        */}
+      {/* ── CALL TO ACTION FOOTER ── 
       <section
         className="rounded-3xl p-8 sm:p-10 text-center space-y-4"
         style={{
@@ -361,6 +623,7 @@ export function LandingHome() {
           <DemoButton variant="sky" className="px-5 py-3 rounded-xl font-bold text-xs font-heading" />
         </div>
       </section>
+      */}
     </div>
   );
 }
