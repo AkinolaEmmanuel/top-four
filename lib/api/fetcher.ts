@@ -4,22 +4,14 @@ const DEFAULT_API_URL = "http://localhost:3000/api";
 
 function getBaseUrl(): string {
   if (typeof window === "undefined") {
-    return process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+    if (process.env.BACKEND_INTERNAL_URL) return process.env.BACKEND_INTERNAL_URL;
+    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/api`;
+    return "http://localhost:3001/api";
   }
 
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!envUrl || envUrl.startsWith("/")) {
     return envUrl || "/api";
-  }
-
-  // If NEXT_PUBLIC_API_URL is hardcoded to a different local port than the active window port, use relative /api
-  try {
-    const parsed = new URL(envUrl);
-    if (parsed.hostname === "localhost" && parsed.port && window.location.port && parsed.port !== window.location.port) {
-      return "/api";
-    }
-  } catch (e) {
-    // Ignore URL parse errors
   }
 
   return envUrl;

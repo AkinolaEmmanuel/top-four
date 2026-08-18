@@ -34,5 +34,6 @@ export const COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: "lax" as const,
   path: "/",
+  secure: process.env.NODE_ENV === "production",
   maxAge: 60 * 60 * 24 * 30, // 30 days
 };
