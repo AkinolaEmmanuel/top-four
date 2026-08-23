@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Sora:wght@100..800&display=swap');
+@import './fig-tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-dm-sans: 'DM Sans', sans-serif;
+  --font-sora: 'Sora', sans-serif;
+}
+
+body {
+  font-family: var(--font-sora);
+  background-color: var(--surface-canvas);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-dm-sans);
+}
+
+.num-tabular, .tf-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.tf-scroll { scrollbar-width: none; }
+.tf-scroll::-webkit-scrollbar { display: none; }
+
+.tf-crest {
+  display: grid;
+  place-items: center;
+  clip-path: var(--crest-clip);
+  font: 700 10px/1 'DM Sans', sans-serif;
+  color: var(--tf-white);
+  flex: none;
+  filter: var(--crest-saturation) drop-shadow(0 0 .8px var(--crest-edge)) drop-shadow(0 0 .8px var(--crest-edge));
+}
+
+.tf-tap { cursor: pointer; }
+.tf-kicker { font: 700 9.5px/1 'DM Sans', sans-serif; letter-spacing: .13em; text-transform: uppercase; }
+
+.tf-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font: 700 9px/1 'DM Sans', sans-serif;
+  letter-spacing: .05em;
+}
+
+.tf-role {
+  font: 700 8.5px 'DM Sans', sans-serif;
+  letter-spacing: .07em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  flex: none;
+}
+
+@keyframes tfpulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
