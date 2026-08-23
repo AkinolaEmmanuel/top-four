@@ -14,7 +14,6 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/j/') || // invite landing page
-    pathname === '/' || // Home might be public or protected, but for now we let it pass to render empty state
     pathname.match(/\.(png|jpg|jpeg|svg|ico)$/) // static assets
   ) {
     return NextResponse.next();
