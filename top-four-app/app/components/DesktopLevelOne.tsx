@@ -9,14 +9,13 @@ export function DesktopLevelOne() {
   const pathname = usePathname() || '';
   const { user } = useAuth();
   const { data: unreadCount = 0 } = useUnreadNotifications();
-  
-  if (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up')) {
+  if (pathname === '/' || pathname.startsWith('/sign-up')) {
     return null;
   }
 
   // Active state logic
   const isPredict = pathname.startsWith('/predict');
-  const isHome = pathname === '/';
+  const isHome = pathname === '/home';
   const isLeagues = pathname.startsWith('/leagues') || pathname.startsWith('/fixtures');
 
   return (
@@ -27,7 +26,7 @@ export function DesktopLevelOne() {
       
       <div className="flex items-center gap-[3px] flex-1">
         <Link 
-          href="/" 
+          href="/home" 
           className={`flex items-center px-[13px] py-[7px] rounded-[9px] font-heading font-semibold text-[12.5px] cursor-pointer ${isHome ? 'bg-[var(--nav-fill)]' : 'opacity-[0.66]'}`}
         >
           Home
