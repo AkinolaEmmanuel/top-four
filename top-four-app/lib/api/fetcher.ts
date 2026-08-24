@@ -47,8 +47,8 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
 
   const response = await fetch(url, config);
 
-  if (response.status === 401 && typeof window !== 'undefined' && !window.location.pathname.startsWith('/sign-in')) {
-    window.location.href = '/sign-in';
+  if (response.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/') {
+    window.location.href = '/';
     throw new ApiError(401, 'Authentication Required');
   }
 

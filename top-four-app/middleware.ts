@@ -8,7 +8,6 @@ export function middleware(request: NextRequest) {
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
-    pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
     pathname.startsWith('/verify') ||
     pathname.startsWith('/forgot-password') ||
@@ -23,8 +22,14 @@ export function middleware(request: NextRequest) {
   // The local cookie is 'tf.sid', production is '__Host-tf.sid'
   const hasSession = request.cookies.has('tf.sid') || request.cookies.has('__Host-tf.sid');
 
-  if (!hasSession) {
-    const url = new URL('/sign-in', request.url);
+  // If trying to access the root page (which is now sign-in) while logged in, go to home
+  if (hasSession && pathname === '/') {
+    return NextResponse.redirect(new URL('/home', request.url));
+  }
+
+  // If trying to access a protected route without a session, go to root (sign-in)
+  if (!hasSession && pathname !== '/') {
+    const url = new URL('/', request.url);
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }

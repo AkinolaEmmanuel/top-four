@@ -7,7 +7,7 @@ export function MobileNav() {
   const pathname = usePathname() || '';
 
   const tabs = [
-    { label: "HOME", ic: "home", path: "/" },
+    { label: "HOME", ic: "home", path: "/home" },
     { label: "PREDICT", ic: "ball", path: "/predict" },
     { label: "LEAGUES", ic: "leagues", path: "/leagues" },
     { label: "ME", ic: "me", path: "/me" }
@@ -45,8 +45,8 @@ export function MobileNav() {
       {tabs.map((t, i) => {
         const RenderIcon = IconMap[t.ic];
         // Calculate active state
-        const isActive = t.path === '/' 
-          ? pathname === '/'
+        const isActive = t.path === '/home' 
+          ? pathname === '/home'
           : pathname.startsWith(t.path) || (t.path === '/leagues' && pathname.startsWith('/fixtures'));
         const color = isActive ? 'var(--text-primary)' : 'var(--nav-text-quiet)';
         
