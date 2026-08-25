@@ -173,6 +173,8 @@ export default function LeagueSetupPage() {
 
     return {
       id: c.id, abbr: c.abbr, name: c.name, on: !!sel, done: !!done, fx,
+      supportedCompetitionId: c.supportedCompetitionId,
+      seasonId: c.seasonId,
       short: !done ? "unfinished" : sel === "season" ? "full season"
         : sel === "round" ? rs[from].full
           : rs[from].full + "–" + rs[to].full,
