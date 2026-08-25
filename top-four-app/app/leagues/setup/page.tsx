@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCreateLeague } from '@/hooks/api/useLeagues';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/api/fetcher';
 
 const BRAND = "var(--color-brand)";
 
@@ -71,7 +72,52 @@ export default function LeagueSetupPage() {
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [dataState, setDataState] = useState<'ready' | 'loading' | 'empty'>('ready');
+  const [dataState, setDataState] = useState<'ready' | 'loading' | 'empty'>('loading');
+  const [liveComps, setLiveComps] = useState<any[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadComps() {
+      try {
+        const catalogueComps = await apiFetch<any[]>('/football/catalogue/competitions');
+        
+        const enriched = [];
+        for (const c of COMPS) {
+          const catComp = catalogueComps.find(x => 
+              x.slug === c.id || 
+              x.displayName === c.name || 
+              x.shortName === c.abbr ||
+              c.name.includes(x.displayName) ||
+              x.displayName.includes(c.name.replace("English ", ""))
+          );
+          if (catComp) {
+            const seasons = await apiFetch<any[]>(`/football/catalogue/competitions/${catComp.id}/seasons`);
+            const activeSeason = seasons.find(s => s.selectableForNewLeague) || seasons[0];
+            if (activeSeason) {
+               enriched.push({
+                 ...c,
+                 supportedCompetitionId: catComp.id,
+                 seasonId: activeSeason.id
+               });
+            }
+          }
+        }
+        
+        if (mounted) {
+           if (enriched.length === 0) setDataState('empty');
+           else {
+             setLiveComps(enriched);
+             setDataState('ready');
+           }
+        }
+      } catch (e) {
+        console.error(e);
+        if (mounted) setDataState('empty');
+      }
+    }
+    loadComps();
+    return () => { mounted = false; };
+  }, []);
   const [sheet, setSheet] = useState<string | null>(null);
   const [compsState, setCompsState] = useState<Record<string, string>>({ epl: "season", ucl: "range" });
   const [bounds, setBounds] = useState<Record<string, { a?: number, z?: number }>>({ ucl: { a: 0, z: 3 } });
@@ -108,7 +154,7 @@ export default function LeagueSetupPage() {
   const biggest = totals.slice().sort((a, b) => b.total - a.total)[0];
   const share = biggest && maxPoints ? biggest.total / maxPoints : 0;
 
-  const comps = COMPS.map(c => {
+  const comps = liveComps.map(c => {
     const sel = compsState[c.id];
     const rs = roundsOf(c);
     const b = bounds[c.id] || {};
@@ -742,16 +788,18 @@ export default function LeagueSetupPage() {
                     'custom': 'custom'
                   };
                   
+                  const compScopes = selectedComps.map(c => ({
+                    supportedCompetitionId: c.supportedCompetitionId,
+                    seasonId: c.seasonId,
+                    kind: "full_season"
+                  }));
+
                   const payload = {
                     name: name || "New League",
                     description: description || undefined,
                     invitationSettings: { joinApprovalRequired: approval, enabled: true },
                     configuration: {
-                      competitionScopes: selectedComps.map(c => ({
-                        kind: "full_season",
-                        code: c.id,
-                        name: c.name
-                      })),
+                      competitionScopes: compScopes,
                       markets: MARKETS.map(m => ({
                         marketType: MARKET_MAP[m.id],
                         enabled: on(m),
