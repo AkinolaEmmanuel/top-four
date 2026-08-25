@@ -212,8 +212,8 @@ export default function LeagueSetupPage() {
   const lockValue = lockRow.label === "Custom" ? "90 min before kick-off" : lockRow.label === "Kick-off" ? "At kick-off" : lockRow.label + " before kick-off";
 
   const editable = [
-    { label: "League name", value: "Sunday Six" },
-    { label: "Description", value: "Six of us, one table..." }
+    { label: "League name", value: name || "New league" },
+    { label: "Description", value: description || "None" }
   ];
 
   const frozen = [
@@ -247,7 +247,7 @@ export default function LeagueSetupPage() {
               ‹
             </div>
             <div className="min-w-0 flex-1">
-              <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{step === 'done' ? 'Sunday Six' : 'New league'}</div>
+              <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{step === 'done' ? name : 'New league'}</div>
               <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{step === 'done' ? 'Published · 16 Aug' : `Step ${step} of 5 · ${{ '1': 'Name', '2': 'Competitions', '3': 'Points', '4': 'Rules', '5': 'Review' }[step] || ''}`}</div>
             </div>
             <div 
@@ -646,7 +646,7 @@ export default function LeagueSetupPage() {
             <div className="animate-[tfin_0.2s_ease]">
               <section className="bg-[var(--tf-green-800)] text-[var(--tf-white)] p-[26px_var(--gutter)_24px]">
                 <div className="tf-kicker opacity-75">PUBLISHED · 16 AUGUST</div>
-                <div className="font-heading font-bold text-[27px] leading-[1.1] tracking-[-0.9px] mt-[11px]">Sunday Six is live</div>
+                <div className="font-heading font-bold text-[27px] leading-[1.1] tracking-[-0.9px] mt-[11px]">{name} is live</div>
                 <div className="text-[12.5px] leading-[1.6] opacity-85 mt-[9px]">The rules are frozen. Send this to the people you want in — anyone with the link can ask to join.</div>
 
                 <div className="flex gap-[6px] mt-[20px]">
@@ -704,7 +704,7 @@ export default function LeagueSetupPage() {
           <div onClick={() => setSheet(null)} className="absolute inset-0 z-50 bg-[var(--scrim)] flex items-end">
             <div className="w-full bg-[var(--surface-card)] rounded-[20px_20px_27px_27px] p-[18px_var(--gutter)_22px] animate-[tfup_0.22s_cubic-bezier(0.2,0.8,0.2,1)] shadow-[var(--elev-4)]" onClick={e => e.stopPropagation()}>
               <div className="w-[38px] h-[4px] rounded-full bg-[var(--surface-border-strong)] mx-auto mb-[15px]"></div>
-              <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.5px]">Publish Sunday Six?</div>
+              <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.5px]">Publish {name || 'league'}?</div>
               <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">This cannot be undone. To run different rules you would clone the league and publish that instead.</div>
               <div className="mt-[14px]">
                 {[
