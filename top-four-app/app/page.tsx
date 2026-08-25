@@ -26,8 +26,8 @@ function LoginForm() {
 
     try {
       await signIn({ email, password });
-      router.push(redirectTarget);
-      router.refresh();
+      // Force a full page reload to ensure middleware gets the freshest cookies
+      window.location.href = redirectTarget;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
