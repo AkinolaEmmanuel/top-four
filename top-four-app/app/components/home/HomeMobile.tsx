@@ -45,8 +45,8 @@ export function HomeMobile({ state, theme, ...props }: any) {
               <div className="font-heading font-bold text-[24px] leading-[1.12] tracking-[-0.7px] mt-[20px]">Join or create a<br />league to begin</div>
               <div className="text-[13.5px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[280px]">You need to join or create a league to start predicting. You can be in up to twenty at once.</div>
               <div className="flex flex-col w-full gap-[10px] mt-[24px]">
-                <div className="h-[48px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] cursor-pointer">Create a league</div>
-                <div className="h-[48px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[13.5px] cursor-pointer">Join with a code</div>
+                <Link href="/leagues/setup" className="h-[48px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] cursor-pointer">Create a league</Link>
+                <Link href="/leagues/join" className="h-[48px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[13.5px] cursor-pointer">Join with a code</Link>
               </div>
             </div>
           )}

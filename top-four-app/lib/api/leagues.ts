@@ -45,6 +45,11 @@ export interface CreateLeaguePayload {
     joinApprovalRequired: boolean;
     enabled: boolean;
   };
+  competitions: {
+    supportedCompetitionId: string;
+    seasonId: string;
+    kind: string;
+  }[];
   configuration: {
     markets: { marketType: string; enabled: boolean; points: number }[];
     tiebreakers: string[];
@@ -52,11 +57,6 @@ export interface CreateLeaguePayload {
       kind: string;
       offsetMinutes?: number;
     };
-    competitions: {
-      supportedCompetitionId: string;
-      seasonId: string;
-      kind: string;
-    }[];
   };
 }
 
