@@ -45,12 +45,12 @@ export interface CreateLeaguePayload {
     joinApprovalRequired: boolean;
     enabled: boolean;
   };
-  competitions: {
-    supportedCompetitionId: string;
-    seasonId: string;
-    kind: string;
-  }[];
   configuration: {
+    competitionScopes: {
+      kind: string;
+      code: string;
+      name: string;
+    }[];
     markets: { marketType: string; enabled: boolean; points: number }[];
     tiebreakers: string[];
     standardLock: {
