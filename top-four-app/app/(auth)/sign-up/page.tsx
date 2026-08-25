@@ -23,8 +23,7 @@ export default function SignupPage() {
 
     try {
       await signUp({ email, displayName, password });
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {

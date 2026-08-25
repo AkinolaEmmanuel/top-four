@@ -34,7 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (credentials: Parameters<typeof apiSignIn>[0]) => {
-    const profile = await apiSignIn(credentials);
+    // 1. Authenticate (backend sets HttpOnly cookie)
+    await apiSignIn(credentials);
+    
+    // 2. Explicitly call GET /auth/me with credentials included (apiFetch already includes them)
+    // We only proceed if this succeeds (returns 200 and a profile)
+    const profile = await fetchCurrentProfile();
+    if (!profile) {
+      throw new Error('Session verification failed after login');
+    }
+    
     setUser(profile);
   };
 

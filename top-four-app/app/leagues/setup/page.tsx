@@ -746,6 +746,11 @@ export default function LeagueSetupPage() {
                     name: name || "New League",
                     description: description,
                     invitationSettings: { joinApprovalRequired: approval, enabled: true },
+                    competitions: selectedComps.map(c => ({
+                      supportedCompetitionId: crypto.randomUUID(),
+                      seasonId: crypto.randomUUID(),
+                      kind: "full_season"
+                    })),
                     configuration: {
                       markets: MARKETS.map(m => ({
                         marketType: MARKET_MAP[m.id],
@@ -753,12 +758,7 @@ export default function LeagueSetupPage() {
                         points: pts(m)
                       })),
                       tiebreakers: tieOrder.map(id => MARKET_MAP[id]).filter(Boolean),
-                      standardLock: { kind: LOCK_MAP[lock] || 'minutes_5' },
-                      competitions: selectedComps.map(c => ({
-                        supportedCompetitionId: crypto.randomUUID(),
-                        seasonId: crypto.randomUUID(),
-                        kind: "full_season"
-                      }))
+                      standardLock: { kind: LOCK_MAP[lock] || 'minutes_5' }
                     }
                   };
                   createLeague.mutate({ idempotencyKey, payload }, {

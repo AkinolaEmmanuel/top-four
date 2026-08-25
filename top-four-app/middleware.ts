@@ -22,11 +22,6 @@ export function middleware(request: NextRequest) {
   // The local cookie is 'tf.sid', production is '__Host-tf.sid'
   const hasSession = request.cookies.has('tf.sid') || request.cookies.has('__Host-tf.sid');
 
-  // DEBUGGING: Log received cookies to Vercel so we can see what's actually getting passed
-  if (pathname === '/home') {
-    console.log('[Middleware Debug] /home requested. Cookies received:', request.cookies.getAll().map(c => c.name));
-  }
-
   // If trying to access the root page (which is now sign-in) while logged in, go to home
   if (hasSession && pathname === '/') {
     return NextResponse.redirect(new URL('/home', request.url));
