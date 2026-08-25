@@ -744,14 +744,14 @@ export default function LeagueSetupPage() {
                   
                   const payload = {
                     name: name || "New League",
-                    description: description,
+                    description: description || undefined,
                     invitationSettings: { joinApprovalRequired: approval, enabled: true },
-                    competitions: selectedComps.map(c => ({
-                      supportedCompetitionId: crypto.randomUUID(),
-                      seasonId: crypto.randomUUID(),
-                      kind: "full_season"
-                    })),
                     configuration: {
+                      competitionScopes: selectedComps.map(c => ({
+                        kind: "full_season",
+                        code: c.id,
+                        name: c.name
+                      })),
                       markets: MARKETS.map(m => ({
                         marketType: MARKET_MAP[m.id],
                         enabled: on(m),
