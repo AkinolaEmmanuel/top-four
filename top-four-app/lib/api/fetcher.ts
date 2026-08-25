@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 export class ApiError extends Error {
   public status: number;
@@ -24,7 +24,7 @@ export function getCsrfToken(): string | null {
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retryCount = 0): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const headers = new Headers(options.headers);
   if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -62,7 +62,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
           return apiFetch<T>(endpoint, options, 1);
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   if (response.status === 204) {
@@ -81,7 +81,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
 
   if (!response.ok) {
     let errorMessage = data?.detail || data?.message || data?.error || 'An error occurred';
-    
+
     // Append field-specific validation errors if present
     if (data?.errors && Array.isArray(data.errors)) {
       const fieldErrors = data.errors.map((e: any) => e.messages?.join(', ')).filter(Boolean);

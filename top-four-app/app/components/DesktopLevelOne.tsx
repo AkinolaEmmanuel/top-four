@@ -8,8 +8,10 @@ import { useUnreadNotifications } from '@/hooks/api/useNotifications';
 export function DesktopLevelOne() {
   const pathname = usePathname() || '';
   const { user } = useAuth();
-  const { data: unreadCount = 0 } = useUnreadNotifications();
-  if (pathname === '/' || pathname.startsWith('/sign-up')) {
+  const isAuthScreen = pathname === '/' || pathname.startsWith('/sign-up');
+  const { data: unreadCount = 0 } = useUnreadNotifications(!isAuthScreen && !!user);
+
+  if (isAuthScreen) {
     return null;
   }
 

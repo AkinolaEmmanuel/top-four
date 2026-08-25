@@ -19,9 +19,10 @@ export function useUpdateNotificationPreferences() {
   });
 }
 
-export function useUnreadNotifications() {
+export function useUnreadNotifications(enabled: boolean = true) {
   return useQuery<number, Error>({
     queryKey: ['unread-notifications'],
     queryFn: fetchUnreadNotificationsCount,
+    enabled,
   });
 }
