@@ -47,9 +47,9 @@ export interface CreateLeaguePayload {
   };
   configuration: {
     competitionScopes: {
+      supportedCompetitionId: string;
+      seasonId: string;
       kind: string;
-      code: string;
-      name: string;
     }[];
     markets: { marketType: string; enabled: boolean; points: number }[];
     tiebreakers: string[];
