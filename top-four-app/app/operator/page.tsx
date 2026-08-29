@@ -2,43 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useOperatorStats, useResolveJob } from '@/hooks/api/useOperator';
+import { useAuth } from '@/context/auth-context';
 
 const BRAND = "var(--color-brand)";
 
-const QUEUES = [
-  { id: "settlement", label: "Settlement review", count: 14, oldest: "3d 4h", warn: true },
-  { id: "late", label: "Late corrections", count: 3, oldest: "6h" },
-  { id: "provider", label: "Provider issues", count: 27, oldest: "5d 1h", danger: true },
-  { id: "jobs", label: "Exhausted jobs", count: 6, oldest: "14h" },
-  { id: "notifications", label: "Failed notifications", count: 0, oldest: "clear" }
+const QUEUE_DEFS = [
+  { id: "settlement", label: "Settlement review" },
+  { id: "late", label: "Late corrections" },
+  { id: "provider", label: "Provider issues" },
+  { id: "jobs", label: "Exhausted jobs" },
+  { id: "notifications", label: "Failed notifications" }
 ];
-
-// Static data fallback if API fails
-const STATIC_ROWS: any = {
-  settlement: [
-    { age: "3d 4h", old: true, fixture: "Real Madrid v Milan", market: "Arsenal lineup", reason: "Teamsheet incomplete", affected: 128 },
-    { age: "2d 11h", fixture: "Bayern v PSG", market: "Anytime goalscorer", reason: "Own goal ambiguity", affected: 92 },
-    { age: "1d 8h", fixture: "Man Utd v Newcastle", market: "Player to be carded", reason: "Card after final whistle", affected: 44 },
-    { age: "22h", fixture: "Brighton v Leeds", market: "Exact score", reason: "Score corrected by source", affected: 210 },
-    { age: "14h", fixture: "Liverpool v Spurs", market: "Chelsea lineup", reason: "Teamsheet incomplete", affected: 128 },
-    { age: "6h", fixture: "Man City v Everton", market: "Match result", reason: "Abandoned then replayed", affected: 128 }
-  ],
-  late: [
-    { age: "6h", fixture: "Arsenal v Chelsea", market: "Exact score", reason: "Goal awarded on appeal", affected: 128 },
-    { age: "3h", fixture: "Bayern v PSG", market: "Match result", reason: "Result amended by source", affected: 92 },
-    { age: "40m", fixture: "Brighton v Leeds", market: "Both teams to score", reason: "Own goal reassigned", affected: 61 }
-  ],
-  provider: [
-    { age: "5d 1h", old: true, fixture: "Real Madrid v Milan", market: "Lineups", reason: "Feed returned no teamsheet", affected: 128 },
-    { age: "4d 6h", old: true, fixture: "Juventus v Porto", market: "Fixture data", reason: "Kick-off never confirmed", affected: 128 },
-    { age: "2d 2h", fixture: "Man City v Everton", market: "Anytime goalscorer", reason: "Scorer list incomplete", affected: 128 }
-  ],
-  jobs: [
-    { age: "14h", fixture: "Liverpool v Spurs", market: "Settlement job", reason: "Retries exhausted", affected: 128 },
-    { age: "9h", fixture: "Brighton v Leeds", market: "Standings rebuild", reason: "Retries exhausted", affected: 210 }
-  ],
-  notifications: []
-};
 
 const REASON_CODES = ["teamsheet_confirmed", "source_correction_applied", "insufficient_evidence"];
 
@@ -59,9 +33,25 @@ export default function OperatorConsolePage() {
 
   const { data: statsData, isLoading } = useOperatorStats();
   const resolveJob = useResolveJob();
+  const { user } = useAuth();
+
+  // Derive queue metadata from live API data
+  const queues = QUEUE_DEFS.map(def => {
+    const items = statsData ? (statsData as any)[def.id] || [] : [];
+    const count = items.length;
+    const oldest = count > 0 ? items[0]?.age || "—" : "clear";
+    const hasOldItems = items.some((item: any) => item.old);
+    return {
+      ...def,
+      count,
+      oldest,
+      warn: hasOldItems && count > 0,
+      danger: def.id === "provider" && hasOldItems
+    };
+  });
 
   const qid = queue;
-  const activeRows = statsData ? (statsData as any)[qid] || [] : STATIC_ROWS[qid] || [];
+  const activeRows = statsData ? (statsData as any)[qid] || [] : [];
   const rowsData = tool ? [] : activeRows;
   const sel = selected;
   const isReady = !isLoading;
@@ -93,8 +83,7 @@ export default function OperatorConsolePage() {
         return;
       }
       
-      const currentRows = (rowsData as any)[queue] || [];
-      if (k === "j") setCursor(c => Math.min(currentRows.length - 1, c + 1));
+      if (k === "j") setCursor(c => Math.min(rowsData.length - 1, c + 1));
       else if (k === "k") setCursor(c => Math.max(0, c - 1));
       else if (k === "enter") setSelected(cursor);
       else if (k === "a" && selected != null) setAction("settle");
@@ -104,7 +93,9 @@ export default function OperatorConsolePage() {
     
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [conflict, confirm, cursor, queue, selected, commit]);
+  }, [conflict, confirm, cursor, rowsData, selected, commit]);
+
+  const currentQueue = queues.find(q => q.id === queue);
 
   return (
     <div className={`min-h-[100dvh] box-border p-[32px] flex flex-col gap-[16px] items-center font-['Sora',sans-serif] bg-[var(--dev-backdrop)] ${theme === 'dark' ? 'dark' : ''}`}>
@@ -131,14 +122,14 @@ export default function OperatorConsolePage() {
           <div className="font-heading font-bold text-[15px] text-white">TopFour</div>
           <div className="text-[10px] tracking-[0.12em] uppercase p-[3px_9px] rounded-full bg-[rgba(255,255,255,0.14)] text-white">Operator</div>
           <div className="flex-1"></div>
-          <div className="text-[11.5px] text-[rgba(255,255,255,0.65)]">emmanuel@topfour.app</div>
+          <div className="text-[11.5px] text-[rgba(255,255,255,0.65)]">{user?.email || ''}</div>
         </div>
 
         <div className="flex-1 flex items-stretch min-h-0">
           
           <div className="w-[214px] flex-none border-r border-[var(--surface-border)] bg-[var(--surface-canvas)] flex flex-col p-[12px_0]">
             <div className="p-[6px_16px_8px] text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Queues</div>
-            {QUEUES.map(q => {
+            {queues.map(q => {
               const on = !tool && q.id === queue;
               return (
                 <div key={q.id} onClick={() => { setQueue(q.id); setTool(null); setCursor(0); setSelected(0); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
@@ -165,7 +156,7 @@ export default function OperatorConsolePage() {
           <div className="flex-1 flex flex-col min-w-0">
             
             <div className="flex-none flex gap-[12px] p-[16px_20px] border-b border-[var(--surface-border)]">
-              {QUEUES.map(q => {
+              {queues.map(q => {
                 const hot = q.danger;
                 return (
                   <div key={q.id} className={`flex-1 basis-0 rounded-[12px] p-[12px_14px] flex flex-col gap-[4px] min-w-0 ${hot ? 'border border-[var(--color-danger)] bg-[rgba(239,68,68,0.1)]' : 'border border-[var(--surface-border)]'}`}>
@@ -181,7 +172,7 @@ export default function OperatorConsolePage() {
               
               <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--surface-border)]">
                 <div className="flex-none flex items-center gap-[12px] p-[13px_20px] border-b border-[var(--surface-border)]">
-                  <div className="flex-1 font-heading font-semibold text-[14px]">{tool ? "League consistency" : (QUEUES.find(q => q.id === queue)?.label + " · " + QUEUES.find(q => q.id === queue)?.count)}</div>
+                  <div className="flex-1 font-heading font-semibold text-[14px]">{tool ? "League consistency" : ((currentQueue?.label || '') + " · " + (currentQueue?.count || 0))}</div>
                   <div className="text-[11px] text-[var(--text-secondary)]">oldest first</div>
                 </div>
 
@@ -191,19 +182,16 @@ export default function OperatorConsolePage() {
                       <div className="font-heading font-semibold text-[15px]">Premier Predictors</div>
                       <div className="flex flex-col gap-[6px]">
                         {[
-                          { label: "Standing total mismatches", value: "2", bad: true },
-                          { label: "Ledger orphans", value: "0" },
-                          { label: "Missing settlements", value: "0" },
-                          { label: "Duplicate awards", value: "0" }
+                          { label: "Standing total mismatches", value: "—", bad: false },
+                          { label: "Ledger orphans", value: "—" },
+                          { label: "Missing settlements", value: "—" },
+                          { label: "Duplicate awards", value: "—" }
                         ].map((c, i) => (
                           <div key={i} className="flex justify-between items-baseline gap-[12px]">
                             <span className="text-[12px] text-[var(--text-secondary)]">{c.label}</span>
                             <span className={`font-heading text-[12px] ${c.bad ? 'font-bold text-[var(--danger-text)]' : 'font-semibold'}`}>{c.value}</span>
                           </div>
                         ))}
-                      </div>
-                      <div className="p-[11px_13px] rounded-[10px] bg-[rgba(239,68,68,0.1)] border border-[var(--color-danger)]">
-                        <span className="text-[11.5px] text-[var(--danger-text)] leading-[1.5]">2 mismatches need investigation before you rebuild. Nothing runs automatically.</span>
                       </div>
                       <div className="min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Rebuild standings</div>
                     </div>
@@ -218,11 +206,15 @@ export default function OperatorConsolePage() {
                       <span className="w-[76px] flex-none text-right text-[10px] tracking-[0.08em] uppercase text-[var(--text-secondary)]">Affected</span>
                     </div>
                     <div className="tf-scroll flex-1 overflow-y-auto">
-                      {rowsData.map((r: any, i: number) => {
+                      {isLoading ? (
+                        <div className="p-[60px_30px] flex flex-col gap-[6px] items-center text-center">
+                          <div className="font-heading font-semibold text-[14px] text-[var(--text-muted)]">Loading…</div>
+                        </div>
+                      ) : rowsData.map((r: any, i: number) => {
                         const on = i === selected;
                         const cur = i === cursor;
                         return (
-                          <div key={i} onClick={() => { setSelected(i); setCursor(i); }} className={`flex gap-[12px] items-center p-[12px_20px] cursor-pointer border-b border-[var(--surface-border)] border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : cur ? 'border-[var(--surface-border-strong)] bg-[var(--surface-subtle)]' : 'border-transparent'}`}>
+                          <div key={r.id || i} onClick={() => { setSelected(i); setCursor(i); }} className={`flex gap-[12px] items-center p-[12px_20px] cursor-pointer border-b border-[var(--surface-border)] border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : cur ? 'border-[var(--surface-border-strong)] bg-[var(--surface-subtle)]' : 'border-transparent'}`}>
                             <span className={`w-[101px] flex-none font-heading font-tabular-nums text-[12px] ${r.old ? 'font-bold text-[var(--warn-text)]' : 'font-semibold text-[var(--text-primary)]'}`}>{r.age}</span>
                             <span className={`flex-1 min-w-0 text-[12px] whitespace-nowrap overflow-hidden text-ellipsis ${on ? 'font-heading font-semibold' : ''}`}>{r.fixture}</span>
                             <span className="w-[150px] flex-none text-[11.5px] text-[var(--text-secondary)] whitespace-nowrap overflow-hidden text-ellipsis">{r.market}</span>
@@ -231,7 +223,7 @@ export default function OperatorConsolePage() {
                           </div>
                         );
                       })}
-                      {rowsData.length === 0 && (
+                      {!isLoading && rowsData.length === 0 && (
                         <div className="p-[60px_30px] flex flex-col gap-[6px] items-center text-center">
                           <div className="font-heading font-semibold text-[14px]">This queue is clear</div>
                           <div className="text-[12px] text-[var(--text-secondary)]">Nothing is waiting on an operator here.</div>
@@ -239,7 +231,7 @@ export default function OperatorConsolePage() {
                       )}
                     </div>
                     <div className="flex-none flex items-center justify-between p-[12px_20px] border-t border-[var(--surface-border)]">
-                      <span className="text-[11px] text-[var(--text-secondary)]">{rowsData.length} of {QUEUES.find(q => q.id === queue)?.count} shown</span>
+                      <span className="text-[11px] text-[var(--text-secondary)]">{rowsData.length} shown</span>
                       <div className="p-[8px_13px] rounded-[10px] border border-[var(--surface-border-strong)] cursor-pointer font-heading font-semibold text-[11.5px]">Load more</div>
                     </div>
                   </>
@@ -261,13 +253,12 @@ export default function OperatorConsolePage() {
                         <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
                         {[
                           { label: "Review reason", value: row.reason },
-                          { label: "Fact version", value: "7", mono: true },
                           { label: "Members affected", value: String(row.affected) },
                           { label: "Waiting", value: row.age, warn: true }
                         ].map((e, i) => (
                           <div key={i} className="flex justify-between items-baseline gap-[12px]">
                             <span className="text-[11.5px] text-[var(--text-secondary)] flex-none">{e.label}</span>
-                            <span className={`text-[11.5px] text-right ${e.mono ? 'font-mono text-[11px]' : 'font-heading font-semibold'} ${e.warn ? 'text-[var(--warn-text)]' : ''}`}>{e.value}</span>
+                            <span className={`text-[11.5px] text-right font-heading font-semibold ${e.warn ? 'text-[var(--warn-text)]' : ''}`}>{e.value}</span>
                           </div>
                         ))}
                       </div>
@@ -330,15 +321,10 @@ export default function OperatorConsolePage() {
               {settle ? "Settle " + row.market + " on current facts?" : "Void " + row.market + "?"}
             </div>
             <div className="flex flex-col gap-[6px] p-[12px_14px] rounded-[11px] bg-[var(--surface-canvas)] border border-[var(--surface-border)]">
-              {(settle ? [
-                { label: "Members gaining points", value: "61" },
-                { label: "Members losing points", value: "0" },
-                { label: "Unchanged but notified", value: String(row.affected - 61) }
-              ] : [
-                { label: "Members gaining points", value: "0" },
-                { label: "Members losing points", value: "61" },
-                { label: "Unchanged but notified", value: String(row.affected - 61) }
-              ]).map((e, i) => (
+              {[
+                { label: "Members affected", value: String(row.affected) },
+                { label: "Action", value: settle ? "Settle on current facts" : "Void this market" }
+              ].map((e, i) => (
                 <div key={i} className="flex justify-between items-baseline gap-[12px]">
                   <span className="text-[11.5px] text-[var(--text-secondary)]">{e.label}</span>
                   <span className="font-heading font-semibold text-[11.5px] font-tabular-nums">{e.value}</span>
@@ -361,7 +347,7 @@ export default function OperatorConsolePage() {
           <div className="w-[420px] bg-[var(--surface-card)] rounded-[16px] p-[18px_20px] flex flex-col gap-[12px] animate-[tfin_0.16s_ease] shadow-[var(--elev-4)]">
             <div className="font-mono text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Version conflict</div>
             <div className="font-heading font-semibold text-[15.5px] leading-[1.35]">The facts changed while you were reading</div>
-            <div className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">This settlement is now at fact version <strong>8</strong>, not 7. Re-read it before deciding — the evidence may no longer support the same call.</div>
+            <div className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">This settlement was updated since you opened it. Re-read it before deciding — the evidence may no longer support the same call.</div>
             <div onClick={() => setConflict(false)} className="min-h-[44px] rounded-[11px] bg-[var(--brand-fill)] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] text-[var(--color-on-brand)]">Reload this decision</div>
           </div>
         </div>

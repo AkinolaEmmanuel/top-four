@@ -38,6 +38,32 @@ export async function fetchLeagueDetails(id: string): Promise<League> {
   return apiFetch<League>(`/leagues/${id}`);
 }
 
+export interface LeagueFixture {
+  id: string;
+  leagueId: string;
+  homeTeam: string;
+  homeTeamCode: string;
+  awayTeam: string;
+  awayTeamCode: string;
+  kickoffAt: string;
+  status: 'upcoming' | 'live' | 'finished' | 'voided';
+  score?: { home: number; away: number };
+  markets: Array<{ type: string; status: string; }>;
+  predictionState?: 'open' | 'ready' | 'syncing' | 'won' | 'part' | 'lost' | 'void';
+  predictionNote?: string;
+  pointsAwarded?: number;
+}
+
+export interface LeagueFixturesPage {
+  items: LeagueFixture[];
+  nextCursor: string | null;
+}
+
+export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Promise<LeagueFixturesPage> {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  return apiFetch<LeagueFixturesPage>(`/leagues/${leagueId}/fixtures${query}`);
+}
+
 export interface CreateLeaguePayload {
   name: string;
   description?: string;

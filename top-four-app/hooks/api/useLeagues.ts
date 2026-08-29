@@ -12,7 +12,10 @@ import {
   updateMemberRole,
   removeMember,
   processJoinRequest,
-  createInvitation
+  createInvitation,
+  fetchLeagueFixtures,
+  LeagueFixture,
+  LeagueFixturesPage
 } from '@/lib/api/leagues';
 
 export function useMyLeagues() {
@@ -27,6 +30,14 @@ export function useLeague(id: string) {
     queryKey: ['leagues', id],
     queryFn: () => fetchLeagueDetails(id),
     enabled: !!id, // Only run the query if we have an ID
+  });
+}
+
+export function useLeagueFixtures(leagueId: string) {
+  return useQuery<LeagueFixturesPage, Error>({
+    queryKey: ['leagues', leagueId, 'fixtures'],
+    queryFn: () => fetchLeagueFixtures(leagueId),
+    enabled: !!leagueId,
   });
 }
 

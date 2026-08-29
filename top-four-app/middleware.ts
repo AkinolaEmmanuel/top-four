@@ -9,9 +9,11 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/sign-up') ||
+    pathname.startsWith('/verify-email') ||
     pathname.startsWith('/verify') ||
     pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/join') ||
     pathname.startsWith('/j/') || // invite landing page
     pathname.match(/\.(png|jpg|jpeg|svg|ico)$/) // static assets
   ) {

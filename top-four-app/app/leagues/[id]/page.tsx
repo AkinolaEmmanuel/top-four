@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { LeagueMobile } from '../../components/leagues/LeagueMobile';
 import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
 import { useLeague } from '@/hooks/api/useLeagues';
 import { useStandings } from '@/hooks/api/usePoints';
+import { usePredictionTasks } from '@/hooks/api/usePredictions';
+import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d" };
 
 export default function LeagueOverviewPage({ params }: { params: { id: string } }) {
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
   const { data: standingsData, isLoading: standingsLoading } = useStandings(params.id);
+  const { data: tasksData } = usePredictionTasks();
+  const { user } = useAuth();
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [state, setState] = useState<'live' | 'urgent' | 'caughtup' | 'loading' | 'empty'>('live');
@@ -22,31 +26,54 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
 
   const heroTone = urgent ? "var(--color-danger)" : caught ? "var(--nav-positive)" : "var(--nav-accent)";
 
+  // Derive task data for this league from prediction tasks
+  const leagueTasks = useMemo(() => {
+    if (!tasksData) return [];
+    return tasksData.items.filter(t => t.league.id === params.id);
+  }, [tasksData, params.id]);
+
+  const totalMarkets = leagueTasks.reduce((acc, t) => {
+    if (t.kind === 'fixture') return acc + (t.missingPredictions?.length || 0);
+    return acc + 1;
+  }, 0);
+  const answeredMarkets = 0; // Will come from predictions data when available
+  const heroProgress = totalMarkets > 0 ? `${answeredMarkets} of ${totalMarkets}` : caught ? "8 of 8" : "—";
+
+  // Next fixture from tasks for hero section
+  const nextFixtureTask: any = leagueTasks.find(t => t.kind === 'fixture');
+  const nextDeadline = nextFixtureTask ? new Date(nextFixtureTask.nextDeadlineAt || nextFixtureTask.kickoffAt) : null;
+  const timeUntil = nextDeadline ? (() => {
+    const diff = nextDeadline.getTime() - Date.now();
+    if (diff <= 0) return '0m';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+  })() : '—';
+  const nextFixtureName = nextFixtureTask
+    ? `${nextFixtureTask.homeTeam.displayName} v ${nextFixtureTask.awayTeam.displayName}`
+    : league?.competitions?.[0]?.displayName || 'No fixtures';
+
   const HERO: Record<string, string[]> = {
-    live: ["NEXT LOCK", "2h 15m", "until Arsenal v Chelsea closes", "4 of 8", "Finish predictions", "Chelsea's lineup already locked — that one closed two hours before kick-off."],
-    urgent: ["LOCKING NOW", "14m", "until Arsenal v Chelsea closes", "4 of 8", "Finish predictions", "Four markets still open. Anything unanswered at the whistle scores nothing."],
-    caughtup: ["ALL ANSWERED", "2h 15m", "until Arsenal v Chelsea closes", "8 of 8", "Review your answers", "Every market is in. You can still change any of them until the lock."]
+    live: ["NEXT LOCK", timeUntil, `until ${nextFixtureName} closes`, heroProgress, "Finish predictions", totalMarkets > 0 ? `${totalMarkets} markets still unanswered.` : "All markets answered."],
+    urgent: ["LOCKING NOW", timeUntil, `until ${nextFixtureName} closes`, heroProgress, "Finish predictions", "Markets still open. Anything unanswered at the whistle scores nothing."],
+    caughtup: ["ALL ANSWERED", timeUntil, `until ${nextFixtureName} closes`, heroProgress, "Review your answers", "Every market is in. You can still change any of them until the lock."]
   };
   const heroData = HERO[isReady ? st : "live"];
-  const pct = caught ? 100 : 50;
+  const pct = caught ? 100 : (totalMarkets > 0 ? Math.round((answeredMarkets / totalMarkets) * 100) : 0);
 
-  const ROWS = [
-    { pos: "22", name: "Simi", initials: "SI", points: 864, tint: "var(--ident-2)" },
-    { pos: "23", name: "Tobi", initials: "TO", points: 852, tint: "var(--ident-3)" },
-    { pos: "24", name: "Kolade", initials: "KA", points: 846, you: true },
-    { pos: "25", name: "Ade", initials: "AD", points: 841, tint: "var(--ident-5)" },
-    { pos: "26", name: "Nneka", initials: "NN", points: 833, tint: "var(--ident-6)" }
-  ];
-  const MINE = 846;
-  // If live data exists, use it. Otherwise fallback to mock rows.
-  const liveRows = standingsData?.items?.map(item => ({
+  // Derive leaderboard from API standings data — no static fallback
+  const liveRows = standingsData?.items?.map((item, i) => ({
     pos: item.rank.toString(),
     name: item.member.displayName,
     initials: item.member.displayName.substring(0, 2).toUpperCase(),
     points: item.points,
-    tint: "var(--ident-2)", // Default tint
-    you: item.member.displayName === "You" // Assuming we can match this somehow, or use useAuth
-  })) || ROWS;
+    tint: `var(--ident-${(i % 7) + 1})`,
+    you: user?.displayName === item.member.displayName
+  })) || [];
+
+  // Find the user's own points from standings
+  const myRow = liveRows.find(r => r.you);
+  const MINE = myRow?.points || 0;
 
   const desktopRivals = liveRows.map((r, i, a) => {
     const d = r.points - MINE;
@@ -75,16 +102,22 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const RESULT_DEF: Record<string, any> = {
     correct: {
       kicker: "YOU CALLED IT", badge: "EXACT SCORE", pts: "+18",
-      summary: "You said Liverpool 2–1 and that is exactly how it finished. Your best return of the season so far.",
-      breakdown: [["Result", "+2", true], ["Exact score", "+5", true], ["Both to score", "+1", true], ["Salah to score", "+5", true], ["Lineup 9/11", "+5", true]]
+      summary: "You nailed the exact score. Your best return of the season so far.",
+      breakdown: []
     },
     mixed: {
-      kicker: "YOUR LAST RESULT", badge: "3 OF 6", pts: "+8",
-      summary: "You had Liverpool to win but called it 3–0. The scoreline and both-teams-to-score went against you.",
-      breakdown: [["Result", "+2", true], ["Exact score", "0", false], ["Both to score", "0", false], ["Salah to score", "+5", true], ["Lineup 1/11", "+1", true]]
+      kicker: "YOUR LAST RESULT", badge: "PARTIAL", pts: "+8",
+      summary: "You got the result right but the scoreline went against you.",
+      breakdown: []
+    },
+    none: {
+      kicker: "NO RESULTS YET", badge: "—", pts: "—",
+      summary: "No settled fixtures yet in this league.",
+      breakdown: []
     }
   };
-  const RESULT = RESULT_DEF[caught ? "mixed" : "correct"];
+  // TODO: Source from a fixture-results API when available
+  const RESULT = liveRows.length > 0 ? RESULT_DEF[caught ? "mixed" : "none"] : RESULT_DEF.none;
   const nailed = RESULT.badge === "EXACT SCORE";
 
   const mBreakdown = RESULT.breakdown.map(([label, pts, won]: any) => ({
@@ -131,7 +164,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
 
   const contextTabs = [tabItem("Overview", true), tabItem("Fixtures", false, unanswered), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)];
 
-  const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB.ARS} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB.CHE} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
+  const heroBg = 'var(--nav-surface)';
   
   const mResultBg = nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)";
   const dResultStyle = { borderRadius: "16px", padding: "24px 26px", color: "var(--tf-white)", background: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" };
@@ -149,23 +182,41 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     heroKicker: heroData[0], heroKickerColor: heroTone,
     heroClock: heroData[1], heroClockSub: heroData[2],
     heroClockColor: urgent ? "var(--color-danger)" : "var(--nav-text)",
-    homeCode: "ARS", homeName: "Arsenal", homeColor: CLUB.ARS,
-    awayCode: "CHE", awayName: "Chelsea", awayColor: CLUB.CHE,
-    kickoff: "SAT 15:00",
+    homeCode: nextFixtureTask ? nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase() : "—",
+    homeName: nextFixtureTask ? nextFixtureTask.homeTeam.displayName : "—",
+    homeColor: nextFixtureTask ? (CLUB[nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
+    awayCode: nextFixtureTask ? nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase() : "—",
+    awayName: nextFixtureTask ? nextFixtureTask.awayTeam.displayName : "—",
+    awayColor: nextFixtureTask ? (CLUB[nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
+    kickoff: nextDeadline ? nextDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
     heroBarStyle: { width: `${pct}%`, height: '100%', borderRadius: '999px', background: caught ? 'var(--nav-positive)' : 'var(--nav-accent)' },
     heroProgress: heroData[3],
     heroCtaStyle: { flex: 'none', height: '48px', minWidth: '186px', padding: '0 26px', borderRadius: '12px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 14px 'DM Sans',sans-serif", letterSpacing: '-.1px', background: caught ? 'transparent' : 'var(--nav-accent)', color: caught ? 'var(--nav-text)' : 'var(--nav-on-accent)', border: caught ? '1px solid var(--nav-border)' : 'none', boxShadow: caught ? 'none' : 'var(--elev-2)' },
     heroCta: heroData[4],
     heroFoot: heroData[5],
-    rivalKicker: caught ? "YOU ARE 24TH OF 128" : "YOU ARE CHASING TOBI",
-    rivals: desktopRivals, gapNumber: "6", gapColor: "var(--text-primary)",
-    gapLabel: caught ? "points behind 23rd" : "points behind Tobi",
-    gapNote: caught ? "and 5 clear of 25th" : "One exact score would do it.",
+    rivalKicker: myRow ? `YOU ARE ${myRow.pos}${myRow.pos === '1' ? 'ST' : myRow.pos === '2' ? 'ND' : myRow.pos === '3' ? 'RD' : 'TH'} OF ${liveRows.length}`.toUpperCase() : "LOADING…",
+    rivals: desktopRivals,
+    gapNumber: (() => {
+      if (!myRow || liveRows.length < 2) return "—";
+      const above = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1);
+      return above ? String(above.points - myRow.points) : "—";
+    })(),
+    gapColor: "var(--text-primary)",
+    gapLabel: (() => {
+      if (!myRow || liveRows.length < 2) return "";
+      const above = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1);
+      return above ? `points behind ${above.name}` : "";
+    })(),
+    gapNote: (() => {
+      if (!myRow || liveRows.length < 2) return "";
+      const below = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) + 1);
+      return below ? `and ${myRow.points - below.points} clear of ${parseInt(myRow.pos) + 1}${parseInt(myRow.pos) + 1 === 2 ? 'nd' : parseInt(myRow.pos) + 1 === 3 ? 'rd' : 'th'}` : "";
+    })(),
     resultStyle: dResultStyle, resultKicker: RESULT.kicker, resultKickerColor: "rgba(255,255,255,.62)",
     resultBadgeStyle: { font: "700 9.5px 'DM Sans',sans-serif", letterSpacing: ".09em", padding: "4px 9px", borderRadius: "6px", background: "var(--tf-white)", color: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" },
     resultBadge: RESULT.badge,
-    rHomeCode: "LIV", rHomeColor: CLUB.LIV, rAwayCode: "TOT", rAwayColor: CLUB.TOT,
-    rScore: "2 — 1", rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
+    rHomeCode: "—", rHomeColor: '#666', rAwayCode: "—", rAwayColor: '#666',
+    rScore: "—", rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
     rPoints: RESULT.pts, rPointsSub: "this fixture", rSummary: RESULT.summary, rBreakdown: dBreakdown,
     qTitle: "2 questions open", qSub: "Earliest closes Friday · 18 points between them",
     skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w }))

@@ -3,55 +3,71 @@
 import { useState } from 'react';
 import { PlayerPickerMobile } from '../../../../components/predict/PlayerPickerMobile';
 import { PlayerPickerDesktop } from '../../../../components/predict/PlayerPickerDesktop';
+import { useFixtureSquads } from '@/hooks/api/useFixtures';
 
-const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2" };
-
-const ARSENAL = [
-  { id: "raya", shirt: "1", name: "David Raya", pos: "GK", initials: "DR" },
-  { id: "white", shirt: "4", name: "Ben White", pos: "DEF", initials: "BW" },
-  { id: "gabriel", shirt: "6", name: "Gabriel", pos: "DEF", initials: "GA" },
-  { id: "rice", shirt: "41", name: "Declan Rice", pos: "MID", initials: "DR" },
-  { id: "odegaard", shirt: "8", name: "Martin Ødegaard", pos: "MID", initials: "MØ" },
-  { id: "saka", shirt: "7", name: "Bukayo Saka", pos: "FWD", initials: "BS" },
-  { id: "havertz", shirt: "9", name: "Kai Havertz", pos: "FWD", initials: "KH" },
-  { id: "nwaneri", shirt: null, name: "Ethan Nwaneri", pos: null, initials: "EN" }
-];
-const CHELSEA = [
-  { id: "sanchez", shirt: "1", name: "Robert Sánchez", pos: "GK", initials: "RS" },
-  { id: "colwill", shirt: "6", name: "Levi Colwill", pos: "DEF", initials: "LC" },
-  { id: "enzo", shirt: "8", name: "Enzo Fernández", pos: "MID", initials: "EF" },
-  { id: "mudryk", shirt: "10", name: "Mykhailo Mudryk", pos: "FWD", initials: "MM" },
-  { id: "jackson", shirt: "15", name: "Nicolas Jackson", pos: "FWD", initials: "NJ" }
-];
-const ALL = ARSENAL.concat(CHELSEA);
 const TINTS = ["var(--ident-1)", "var(--ident-2)", "var(--ident-3)", "var(--ident-4)", "var(--ident-5)", "var(--ident-6)", "var(--ident-7)"];
 
-export default function PlayerPickerPage() {
+export default function PlayerPickerPage({ params }: { params: { id: string } }) {
+  const { data: squadsData, isLoading: squadsLoading, isError: squadsError } = useFixtureSquads(params.id);
+
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [mode, setMode] = useState<'scorer' | 'card'>('scorer');
-  const [dataState, setDataState] = useState<'live' | 'searching' | 'loading' | 'noresults' | 'stale'>('live');
   const [picked, setPicked] = useState<string | null>(null);
   const [side, setSide] = useState<string>('both');
   const [pos, setPos] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const ds = dataState;
-  const isLoading = ds === "loading";
-  const isTerminal = ds === "noresults" || ds === "stale";
+  const isLoading = squadsLoading;
+  const isTerminal = squadsError;
   const isReady = !isLoading && !isTerminal;
-  const searching = ds === "searching";
 
-  const DEFAULT_PICK: Record<string, string | null> = { scorer: "saka", card: null };
+  // Build player lists from API data
+  const homeSquad = squadsData?.homeSquad;
+  const awaySquad = squadsData?.awaySquad;
+  const homeCode = homeSquad?.team.code || 'HOM';
+  const awayCode = awaySquad?.team.code || 'AWA';
+  const homeName = homeSquad?.team.displayName || 'Home Team';
+  const awayName = awaySquad?.team.displayName || 'Away Team';
+  const homeColor = homeSquad?.team.code ? `var(--club-${homeSquad.team.code.toLowerCase()}, #666)` : '#666';
+  const awayColor = awaySquad?.team.code ? `var(--club-${awaySquad.team.code.toLowerCase()}, #666)` : '#666';
+
+  const CLUB: Record<string, string> = {};
+  if (homeSquad) CLUB[homeCode] = homeColor;
+  if (awaySquad) CLUB[awayCode] = awayColor;
+
+  const homePlayers = (homeSquad?.players || []).map(p => ({
+    id: p.id,
+    shirt: p.shirtNumber,
+    name: p.displayName,
+    pos: p.position,
+    initials: p.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+  }));
+
+  const awayPlayers = (awaySquad?.players || []).map(p => ({
+    id: p.id,
+    shirt: p.shirtNumber,
+    name: p.displayName,
+    pos: p.position,
+    initials: p.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+  }));
+
+  const ALL = homePlayers.concat(awayPlayers);
+
+  const searching = searchQuery.length > 0;
+  const ds = isLoading ? 'loading' : isTerminal ? 'stale' : searching ? 'searching' : 'live';
+
+  const DEFAULT_PICK: Record<string, string | null> = { scorer: null, card: null };
   const currentPicked = picked !== null ? picked : DEFAULT_PICK[mode];
   const pickedPlayer = ALL.find(p => p.id === currentPicked) || null;
 
-  const currentPos = searching ? "MID" : pos;
+  const currentPos = searching ? "All" : pos;
 
   const chipStyle = (on: boolean) => `h-[32px] px-[12px] rounded-full grid place-items-center whitespace-nowrap flex-none cursor-pointer font-heading font-bold text-[10.5px] ${on ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-secondary)]'}`;
   
   const chipClsDesktop = (on: boolean) => `h-[32px] flex items-center px-[13px] border border-[var(--surface-border-strong)] rounded-full font-heading font-semibold text-[11px] leading-[1] whitespace-nowrap text-[var(--text-secondary)] cursor-pointer ${on ? 'bg-[var(--color-brand)] !border-[var(--color-brand)] text-[var(--color-on-brand)]' : ''}`;
 
   const mobileChips = [
-    ["both", "Both teams", "side"], ["ARS", "Arsenal", "side"], ["CHE", "Chelsea", "side"],
+    ["both", "Both teams", "side"], [homeCode, homeName, "side"], [awayCode, awayName, "side"],
     ["All", "All", "pos"], ["GK", "GK", "pos"], ["DEF", "DEF", "pos"], ["MID", "MID", "pos"], ["FWD", "FWD", "pos"], ["Unlisted", "Unlisted", "pos"]
   ].map(([id, label, group]) => ({
     label,
@@ -60,7 +76,7 @@ export default function PlayerPickerPage() {
   }));
 
   const sideChips = [
-    ["both", "Both teams"], ["ARS", "Arsenal"], ["CHE", "Chelsea"]
+    ["both", "Both teams"], [homeCode, homeName], [awayCode, awayName]
   ].map(([id, label]) => ({
     label, cls: chipClsDesktop(side === id), pick: () => setSide(id)
   }));
@@ -72,6 +88,7 @@ export default function PlayerPickerPage() {
   }));
 
   const matches = (p: any) => {
+    if (searching && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (currentPos === "Unlisted") return p.pos === null;
     if (currentPos !== "All" && p.pos !== currentPos) return false;
     return true;
@@ -111,19 +128,22 @@ export default function PlayerPickerPage() {
     };
   });
 
-  const mArsenal = { code: "ARS", name: "Arsenal", color: CLUB.ARS, players: buildGroupsMobile(ARSENAL), count: searching ? "2 shown" : "28 in squad" };
-  const mChelsea = { code: "CHE", name: "Chelsea", color: CLUB.CHE, players: buildGroupsMobile(CHELSEA), count: searching ? "1 shown" : "26 in squad" };
-  const mobileGroups = side === "ARS" ? [mArsenal] : side === "CHE" ? [mChelsea] : [mArsenal, mChelsea];
+  const filteredHomePlayers = homePlayers.filter(matches);
+  const filteredAwayPlayers = awayPlayers.filter(matches);
 
-  const dArsenal = { code: "ARS", name: "Arsenal", color: CLUB.ARS, players: buildGroupsDesktop(ARSENAL), count: searching ? "2 shown" : "28 in squad" };
-  const dChelsea = { code: "CHE", name: "Chelsea", color: CLUB.CHE, players: buildGroupsDesktop(CHELSEA), count: searching ? "1 shown" : "26 in squad" };
-  const rawDGroups = side === "ARS" ? [dArsenal] : side === "CHE" ? [dChelsea] : [dArsenal, dChelsea];
+  const mHome = { code: homeCode, name: homeName, color: homeColor, players: buildGroupsMobile(homePlayers), count: searching ? `${filteredHomePlayers.length} shown` : `${homePlayers.length} in squad` };
+  const mAway = { code: awayCode, name: awayName, color: awayColor, players: buildGroupsMobile(awayPlayers), count: searching ? `${filteredAwayPlayers.length} shown` : `${awayPlayers.length} in squad` };
+  const mobileGroups = side === homeCode ? [mHome] : side === awayCode ? [mAway] : [mHome, mAway];
+
+  const dHome = { code: homeCode, name: homeName, color: homeColor, players: buildGroupsDesktop(homePlayers), count: searching ? `${filteredHomePlayers.length} shown` : `${homePlayers.length} in squad` };
+  const dAway = { code: awayCode, name: awayName, color: awayColor, players: buildGroupsDesktop(awayPlayers), count: searching ? `${filteredAwayPlayers.length} shown` : `${awayPlayers.length} in squad` };
+  const rawDGroups = side === homeCode ? [dHome] : side === awayCode ? [dAway] : [dHome, dAway];
   const desktopGroups = rawDGroups.map((g, i) => ({ ...g, colStyle: { minWidth: 0, borderRight: (i === 0 && rawDGroups.length > 1) ? '1px solid var(--surface-border)' : 'none' } }));
 
   const TERM = {
-    noresults: ["empty", "var(--text-muted)", "No player matches that", "Nobody in either squad matches “rodri”. Search filters the squads TopFour holds for this match — it cannot add a player to them.", "CLEAR THE SEARCH"],
+    noresults: ["empty", "var(--text-muted)", "No player matches that", "Nobody in either squad matches your search. Search filters the squads TopFour holds for this match — it cannot add a player to them.", "CLEAR THE SEARCH"],
     stale: ["warning", "var(--warn-text)", "This squad list has moved on", "The squad TopFour holds for this match was refreshed while you were looking, so these names are no longer the ones a pick would be checked against. Reloading brings the current list; anything already saved is untouched.", "RELOAD THE SQUAD"]
-  }[isTerminal ? ds : "noresults"];
+  }[isTerminal ? 'stale' : "noresults"];
 
   const MARKET = {
     scorer: ["Anytime goalscorer", "4 pts", "Extra time counts. A penalty shootout does not, and an own goal is not a goalscorer. A player who never gets on the pitch is simply wrong."],
@@ -158,7 +178,7 @@ export default function PlayerPickerPage() {
     label, style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', font: "600 12.5px 'DM Sans', sans-serif", cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
   });
 
-  const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map(function(it){
+  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map(function(it){
     var label=it[0], id=it[1], badge=it[2];
     return { label: label, badge: badge,
       badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--nav-accent)', color: 'var(--nav-on-accent)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans', sans-serif" } : { display: 'none' },
@@ -170,7 +190,7 @@ export default function PlayerPickerPage() {
 
   const props = {
     theme, MARKET, CLUB, searching, ds, termIcon, TERM, isTerminal, isReady,
-    isLoading, pickedPlayer, setDataState, searchIcon,
+    isLoading, pickedPlayer, setDataState: () => {}, searchIcon,
     
     // Mobile specific
     chips: mobileChips,
@@ -179,7 +199,7 @@ export default function PlayerPickerPage() {
     // Desktop specific
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", true), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)],
     rootNav, sideChips, posChips, skeletonCols,
-    ghostRows: [{ label: "Match result", value: "Arsenal win" }, { label: "Exact score", value: "2 – 1" }, { label: "Both teams to score", value: "Yes" }, { label: "Anytime goalscorer", value: "Choose" }],
+    ghostRows: [{ label: "Match result", value: "—" }, { label: "Exact score", value: "—" }, { label: "Both teams to score", value: "—" }, { label: "Anytime goalscorer", value: "Choose" }],
     sheetTitle: mode === "scorer" ? "Who scores?" : "Who gets booked?",
     sheetSub: MARKET[0] + " · one player from either squad.",
     modalWidth: "880px",

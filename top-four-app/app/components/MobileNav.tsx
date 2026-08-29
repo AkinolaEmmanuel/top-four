@@ -2,15 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { usePredictionTasks } from '@/hooks/api/usePredictions';
 
 export function MobileNav() {
   const pathname = usePathname() || '';
+  const { data: tasksData } = usePredictionTasks();
+
+  const openTaskCount = tasksData?.items.length || 0;
 
   const tabs = [
-    { label: "HOME", ic: "home", path: "/home" },
-    { label: "PREDICT", ic: "ball", path: "/predict" },
-    { label: "LEAGUES", ic: "leagues", path: "/leagues" },
-    { label: "ME", ic: "me", path: "/me" }
+    { label: "HOME", ic: "home", path: "/home", badge: "" },
+    { label: "PREDICT", ic: "ball", path: "/predict", badge: openTaskCount > 0 ? String(openTaskCount) : "" },
+    { label: "LEAGUES", ic: "leagues", path: "/leagues", badge: "" },
+    { label: "ME", ic: "me", path: "/me", badge: "" }
   ];
 
   const IconMap: Record<string, React.FC> = {
@@ -49,17 +53,14 @@ export function MobileNav() {
           ? pathname === '/home'
           : pathname.startsWith(t.path) || (t.path === '/leagues' && pathname.startsWith('/fixtures'));
         const color = isActive ? 'var(--text-primary)' : 'var(--nav-text-quiet)';
-        
-        // Mocking badge for Predict for now
-        const badge = '';
 
         return (
           <Link href={t.path} key={i} className="relative flex flex-col items-center justify-center font-heading font-semibold text-[9px] leading-[1]" style={{ color }}>
             <div className="w-[19px] h-[19px] grid place-items-center"><RenderIcon /></div>
             <span className="mt-[6px] tracking-[0.01em]">{t.label}</span>
-            {badge && (
+            {t.badge && (
               <span className="absolute top-[2px] left-[calc(50%+6px)] min-w-[15px] h-[15px] px-[3px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[8px]">
-                {badge}
+                {t.badge}
               </span>
             )}
           </Link>
