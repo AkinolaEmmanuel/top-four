@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function ProblemStatesPage() {
   const [problem, setProblem] = useState<'field' | 'state' | 'conflict' | 'notfound' | 'forbidden' | 'ratelimit' | 'offline' | 'unexpected'>('field');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   const isField = problem === "field";
   const isState = problem === "state";
@@ -51,175 +51,174 @@ export default function ProblemStatesPage() {
     }
   };
   const WHOLE = WHOLE_MAP[problem];
-
   const isWhole = !!WHOLE;
 
   const headTitle = { field: "Points and rules", state: "Arsenal v Chelsea", conflict: "Points and rules", notfound: "League", forbidden: "League", ratelimit: "Sign in", offline: "TopFour", unexpected: "TopFour" }[problem];
   const headSub = { field: "Office League · step 3 of 5", state: "Premier Predictors · Round 3", conflict: "Office League · version conflict", notfound: "", forbidden: "Office League · admin", ratelimit: "", offline: "No connection", unexpected: "" }[problem];
 
-  const IconMap: any = {
-    Ghost: () => (
-      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9 9.5h.01M15 9.5h.01M9 15.4c1.8-1.4 4.2-1.4 6 0"/></svg>
-    ),
-    Lock: () => (
-      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5"/></svg>
-    ),
-    Clock: () => (
-      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg>
-    ),
-    Cloud: () => (
-      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 18h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.3A3.4 3.4 0 0 0 7 18Z"/><path d="M3 3l18 18"/></svg>
-    ),
-    Warn: () => (
-      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
-    )
-  };
-
-  const RenderIcon = isWhole ? IconMap[WHOLE.icon] : null;
-
   return (
-    <div className={`min-h-[100dvh] flex flex-col bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
-      
-      {/* App Container */}
-      <div className="flex flex-col w-full max-w-[800px] mx-auto h-[100dvh] overflow-hidden relative">
+    <div className={`flex-1 flex flex-col bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''} overflow-y-auto`}>
+      <div className="flex flex-col w-full max-w-[1080px] mx-auto p-[20px_16px] md:p-[36px] overflow-hidden relative">
+        {/* State Selector Bar */}
+        <div className="flex flex-wrap items-center gap-[8px] pb-[20px] border-b border-[var(--surface-border)] mb-[24px]">
+          <span className="text-[12px] font-heading font-semibold text-[var(--text-muted)] mr-[8px]">PROBLEM STATE:</span>
+          {[
+            { id: 'field', label: 'Field Validation' },
+            { id: 'state', label: 'Mid-Air Lock' },
+            { id: 'conflict', label: 'Version Conflict' },
+            { id: 'notfound', label: '404 Not Found' },
+            { id: 'forbidden', label: '403 Forbidden' },
+            { id: 'ratelimit', label: '429 Rate Limit' },
+            { id: 'offline', label: 'Offline' },
+            { id: 'unexpected', label: '500 Server Error' },
+          ].map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setProblem(s.id as any)}
+              className={`h-[34px] px-[14px] rounded-[9px] text-[12px] font-heading font-semibold transition-all cursor-pointer ${
+                problem === s.id
+                  ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                  : 'bg-[var(--surface-card)] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
 
-        <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] p-[8px_var(--gutter)_16px]">
-          <div className="flex items-center gap-[11px]">
-            <Link href="/" className="w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)]">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 5 8 12l6.5 7"/></svg>
+        {/* Header Preview */}
+        <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] p-[18px_24px] rounded-[16px] border border-[var(--surface-border)] shadow-[var(--elev-2)] mb-[20px]">
+          <div className="flex items-center gap-[12px]">
+            <Link href="/home" className="w-[36px] h-[36px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[14px] hover:text-white">
+              ‹
             </Link>
-            <div className="min-w-0 flex-1">
-              <div className="font-heading font-bold text-[16px] leading-[1.1] tracking-[-0.2px]">{headTitle}</div>
-              <div className="font-medium text-[10px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
+            <div>
+              <h1 className="font-heading font-bold text-[20px] leading-[1.1]">{headTitle}</h1>
+              {headSub && <div className="text-[12px] text-[var(--nav-text-faint)] mt-[3px]">{headSub}</div>}
             </div>
           </div>
         </header>
 
-        <main className="tf-scroll flex-1 overflow-auto flex flex-col bg-[var(--surface-canvas)]">
+        {/* Content Box */}
+        <main className="bg-[var(--surface-card)] rounded-[18px] border border-[var(--surface-border)] p-[28px] shadow-[var(--elev-2)]">
           {isField && (
-            <div className="p-[20px_var(--gutter)] flex flex-col gap-[17px] animate-[tfin_0.16s_ease]">
+            <div className="max-w-[560px] flex flex-col gap-[20px]">
               <div>
-                <div className="font-heading font-bold text-[10px] leading-[1] tracking-[0.09em] uppercase text-[var(--text-muted)]">League name</div>
-                <div className="border-[var(--control-ring)] border-solid border-[var(--surface-border-strong)] rounded-[11px] p-[11px_13px] bg-[var(--surface-card)] mt-[7px] text-[13.5px]">Office League</div>
+                <label className="block font-heading font-bold text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)] mb-[6px]">
+                  League name
+                </label>
+                <input
+                  type="text"
+                  defaultValue="Office League"
+                  className="w-full h-[46px] px-[14px] rounded-[10px] bg-[var(--surface-canvas)] border border-[var(--surface-border-strong)] text-[13.5px] outline-none"
+                />
               </div>
+
               <div>
-                <div className="font-heading font-bold text-[10px] leading-[1] tracking-[0.09em] uppercase text-[var(--text-muted)]">Total goals line</div>
-                <div className="border-[var(--control-ring)] border-solid border-[var(--color-danger)] rounded-[11px] p-[11px_13px] bg-[var(--surface-card)] mt-[7px] text-[13.5px]">3.0</div>
-                <div className="flex gap-[7px] mt-[8px] items-start">
-                  <span className="text-[var(--danger-text)] flex-none mt-[1px]">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9.5v4M12 16.6h.01"/></svg>
-                  </span>
-                  <span className="text-[11.5px] leading-[1.5] text-[var(--danger-text)]">The line must end in .5 — pick 2.5 or 3.5. A whole number would let a match land exactly on the line with no correct answer.</span>
-                </div>
+                <label className="block font-heading font-bold text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)] mb-[6px]">
+                  Total goals line
+                </label>
+                <input
+                  type="text"
+                  defaultValue="3.0"
+                  className="w-full h-[46px] px-[14px] rounded-[10px] bg-[var(--surface-canvas)] border border-[var(--color-danger)] text-[13.5px] outline-none"
+                />
+                <p className="text-[12px] leading-[1.5] text-[var(--danger-text)] mt-[6px]">
+                  The line must end in .5 — pick 2.5 or 3.5. A whole number would let a match land exactly on the line with no correct answer.
+                </p>
               </div>
+
               <div>
-                <div className="font-heading font-bold text-[10px] leading-[1] tracking-[0.09em] uppercase text-[var(--text-muted)]">Points for exact score</div>
-                <div className="border-[var(--control-ring)] border-solid border-[var(--color-danger)] rounded-[11px] p-[11px_13px] bg-[var(--surface-card)] mt-[7px] text-[13.5px]">0</div>
-                <div className="flex gap-[7px] mt-[8px] items-start">
-                  <span className="text-[var(--danger-text)] flex-none mt-[1px]">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9.5v4M12 16.6h.01"/></svg>
-                  </span>
-                  <span className="text-[11.5px] leading-[1.5] text-[var(--danger-text)]">Use 1 to 50. To score nothing for exact scores, switch the market off instead.</span>
-                </div>
+                <label className="block font-heading font-bold text-[11px] uppercase tracking-[0.08em] text-[var(--text-muted)] mb-[6px]">
+                  Points for exact score
+                </label>
+                <input
+                  type="text"
+                  defaultValue="0"
+                  className="w-full h-[46px] px-[14px] rounded-[10px] bg-[var(--surface-canvas)] border border-[var(--color-danger)] text-[13.5px] outline-none"
+                />
+                <p className="text-[12px] leading-[1.5] text-[var(--danger-text)] mt-[6px]">
+                  Use 1 to 50. To score nothing for exact scores, switch the market off instead.
+                </p>
               </div>
-              <div className="tf-tap min-h-[48px] rounded-[13px] flex items-center justify-center font-heading font-bold text-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] mt-[4px]">SAVE CHANGES</div>
-              <div className="text-[11px] leading-[1.55] text-[var(--text-muted)] text-center">Everything you typed is still here. Two fields need attention; the rest saved fine.</div>
+
+              <button className="h-[46px] px-[24px] rounded-[11px] bg-[var(--color-brand)] text-white font-heading font-bold text-[13px] shadow-[var(--elev-glow)] hover:bg-[var(--color-brand)]/90 transition-all cursor-pointer">
+                Save Changes
+              </button>
             </div>
           )}
 
           {isState && (
-            <div className="animate-[tfin_0.16s_ease]">
-              <div className="p-[16px_var(--gutter)_0]">
-                <div className="p-[14px_15px] rounded-[12px] bg-[var(--surface-subtle)] border-l-[3px] border-[var(--state-locked)]">
-                  <div className="font-heading font-bold text-[10px] tracking-[0.11em] text-[var(--text-secondary)]">THIS CLOSED WHILE YOU WERE HERE</div>
-                  <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[7px]">Match result locked at 14:45, fifteen minutes before kick-off. Your earlier answers are saved and still count — only the change you just made could not be applied.</div>
+            <div className="max-w-[700px] flex flex-col gap-[20px]">
+              <div className="p-[18px_20px] rounded-[14px] bg-[var(--surface-subtle)] border-l-[4px] border-[var(--state-locked)]">
+                <div className="font-heading font-bold text-[11px] tracking-[0.1em] uppercase text-[var(--text-secondary)]">
+                  THIS CLOSED WHILE YOU WERE HERE
+                </div>
+                <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[8px]">
+                  Match result locked at 14:45, fifteen minutes before kick-off. Your earlier answers are saved and still count — only the change you just made could not be applied.
                 </div>
               </div>
-              <div className="p-[16px_var(--gutter)] flex flex-col gap-[1px]">
+
+              <div className="divide-y divide-[var(--surface-border)]">
                 {marketRows.map((m, i) => (
-                  <div key={i} className="flex items-center gap-[11px] p-[13px_0] border-b border-[var(--surface-border)]">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-heading font-semibold text-[13px]" style={{ color: m.titleColor }}>{m.title}</div>
-                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[4px]">{m.note}</div>
+                  <div key={i} className="py-[14px] flex items-center justify-between">
+                    <div>
+                      <div className="font-heading font-semibold text-[14px]" style={{ color: m.titleColor }}>{m.title}</div>
+                      <div className="text-[11.5px] text-[var(--text-muted)] mt-[2px]">{m.note}</div>
                     </div>
-                    <span className={`font-heading font-bold text-[9px] leading-[1] tracking-[0.07em] p-[5px_7px] rounded-[5px] flex-none ${m.chipStyle}`}>{m.chip}</span>
+                    <span className={`px-[10px] py-[3px] rounded-[6px] font-heading font-bold text-[10px] tracking-[0.06em] uppercase ${m.chipStyle}`}>
+                      {m.chip}
+                    </span>
                   </div>
                 ))}
-              </div>
-              <div className="p-[0_var(--gutter)_22px] text-[11px] leading-[1.6] text-[var(--text-muted)] text-center">
-                No dialog appeared. The screen simply re-read itself and now shows what is true — which is the normal course of a deadline passing, not an error anyone made.
               </div>
             </div>
           )}
 
           {isConflict && (
-            <div className="p-[18px_var(--gutter)] flex flex-col gap-[15px] animate-[tfin_0.16s_ease]">
-              <div>
-                <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.35px]">Someone else changed this</div>
-                <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">Tunde edited the league's points while you had this open. Your version was written against the older settings, so TopFour did not apply it. Nothing is lost — choose which to keep.</div>
+            <div className="max-w-[600px] flex flex-col gap-[16px]">
+              <div className="p-[20px] rounded-[14px] bg-[rgba(239,68,68,0.08)] border border-[var(--color-danger)]">
+                <div className="font-heading font-bold text-[16px] text-[var(--danger-text)]">
+                  The league rules were updated elsewhere
+                </div>
+                <p className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[8px]">
+                  Another administrator changed the configuration while you were editing. Reloading brings the current version so you can review their changes.
+                </p>
               </div>
-              <div className="border border-[var(--surface-border)] rounded-[13px] overflow-hidden">
-                <div className="p-[12px_14px] bg-[var(--surface-subtle)] font-heading font-bold text-[10px] tracking-[0.1em] text-[var(--text-secondary)]">NOW STORED · VERSION 8</div>
-                {[
-                  { k: "Exact score", v: "6 pts" },
-                  { k: "Anytime goalscorer", v: "5 pts" },
-                  { k: "Total goals line", v: "2.5" }
-                ].map((r, i) => (
-                  <div key={i} className="flex justify-between p-[11px_14px] border-t border-[var(--surface-border)] bg-[var(--surface-card)]">
-                    <span className="text-[12.5px] text-[var(--text-secondary)]">{r.k}</span>
-                    <span className="font-heading font-semibold text-[12.5px]">{r.v}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="border border-[var(--accent-border)] rounded-[13px] overflow-hidden">
-                <div className="p-[12px_14px] bg-[var(--accent-surface)] font-heading font-bold text-[10px] tracking-[0.1em] text-[var(--accent-text)]">WHAT YOU SUBMITTED · FROM VERSION 7</div>
-                {[
-                  { k: "Exact score", v: "5 pts", color: "var(--text-primary)" },
-                  { k: "Anytime goalscorer", v: "8 pts", color: "var(--accent-text)" },
-                  { k: "Total goals line", v: "3.5", color: "var(--accent-text)" }
-                ].map((r, i) => (
-                  <div key={i} className="flex justify-between p-[11px_14px] border-t border-[var(--accent-border)] bg-[var(--surface-card)]">
-                    <span className="text-[12.5px] text-[var(--text-secondary)]">{r.k}</span>
-                    <span className="font-heading font-semibold text-[12.5px]" style={{ color: r.color }}>{r.v}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="tf-tap min-h-[48px] rounded-[13px] flex items-center justify-center font-heading font-bold text-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)]">REAPPLY MY CHANGES</div>
-              <div className="tf-tap min-h-[48px] rounded-[13px] flex items-center justify-center font-heading font-bold text-[13px] bg-[var(--surface-card)] border border-[var(--surface-border-strong)] text-[var(--text-primary)]">KEEP WHAT IS STORED</div>
-              <div className="text-[11px] leading-[1.55] text-[var(--text-muted)] text-center">Reapplying re-reads first, then submits against version 8. TopFour never resubmits silently.</div>
+
+              <button className="h-[46px] px-[22px] rounded-[11px] bg-[var(--color-brand)] text-white font-heading font-bold text-[13px] shadow-[var(--elev-glow)] cursor-pointer hover:bg-[var(--color-brand)]/90 transition-all self-start">
+                Reload Current Rules
+              </button>
             </div>
           )}
 
           {isWhole && (
-            <div className="flex-1 p-[56px_28px] flex flex-col items-center text-center justify-center animate-[tfin_0.16s_ease]">
-              <div style={{ color: WHOLE.color }}>{RenderIcon && <RenderIcon />}</div>
-              <div className="font-heading font-bold text-[22px] leading-[1.18] tracking-[-0.45px] mt-[22px]">{WHOLE.title}</div>
-              <div className="text-[13.5px] leading-[1.65] text-[var(--text-secondary)] mt-[12px] max-w-[290px]">{WHOLE.body}</div>
-
-              {WHOLE.countdown && (
-                <>
-                  <div className="tf-tap mt-[26px] w-full max-w-[290px] min-h-[48px] rounded-[13px] flex items-center justify-center font-heading font-bold text-[13px] bg-[var(--surface-subtle)] text-[var(--text-muted)] cursor-not-allowed">{WHOLE.countdown}</div>
-                  <div className="mt-[10px] text-[11px] leading-[1.55] text-[var(--text-muted)] max-w-[280px]">The wait is exactly what the server asked for. TopFour never retries in the background and never counts down faster than the clock.</div>
-                </>
-              )}
+            <div className="max-w-[560px] mx-auto text-center py-[24px] flex flex-col items-center">
+              <div className="w-[60px] h-[60px] rounded-full bg-[var(--surface-subtle)] grid place-items-center text-[24px]" style={{ color: WHOLE.color }}>
+                {WHOLE.icon === 'Ghost' ? '👻' : WHOLE.icon === 'Lock' ? '🔒' : WHOLE.icon === 'Clock' ? '⏱' : WHOLE.icon === 'Cloud' ? '☁' : '⚠'}
+              </div>
+              <h2 className="font-heading font-bold text-[22px] tracking-[-0.5px] mt-[20px]">
+                {WHOLE.title}
+              </h2>
+              <p className="text-[13.5px] leading-[1.6] text-[var(--text-secondary)] mt-[10px]">
+                {WHOLE.body}
+              </p>
 
               {WHOLE.action && (
-                <div className="tf-tap mt-[26px] w-full max-w-[290px] min-h-[48px] rounded-[13px] flex items-center justify-center font-heading font-bold text-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)]">{WHOLE.action}</div>
-              )}
-
-              {WHOLE.secondary && (
-                <div className="tf-tap mt-[12px] min-h-[44px] flex items-center font-heading font-semibold text-[12.5px] text-[var(--text-link)]">{WHOLE.secondary}</div>
+                <button className="mt-[24px] h-[46px] px-[24px] rounded-[11px] bg-[var(--color-brand)] text-white font-heading font-bold text-[13px] shadow-[var(--elev-glow)] cursor-pointer hover:bg-[var(--color-brand)]/90 transition-all">
+                  {WHOLE.action}
+                </button>
               )}
 
               {WHOLE.rid && (
-                <div className="mt-[24px] flex flex-col items-center gap-[7px]">
-                  <span className="text-[10.5px] text-[var(--text-muted)]">Quote this if you contact us</span>
-                  <span className="font-mono text-[10px] bg-[var(--surface-subtle)] border border-[var(--surface-border)] p-[2px_5px] rounded-[4px] text-[var(--text-secondary)]">{WHOLE.rid}</span>
+                <div className="mt-[20px] font-mono text-[11px] text-[var(--text-muted)] bg-[var(--surface-subtle)] px-[12px] py-[6px] rounded-[6px]">
+                  Reference ID: {WHOLE.rid}
                 </div>
               )}
             </div>
           )}
         </main>
-      </div></div>
+      </div>
+    </div>
   );
 }
