@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { LeagueQuestionsMobile } from '../../../components/leagues/LeagueQuestionsMobile';
 import { LeagueQuestionsDesktop } from '../../../components/leagues/LeagueQuestionsDesktop';
 import { useCustomQuestions, useCreateCustomQuestion, useSubmitCustomAnswer, useResolveCustomQuestion, useOwnCustomAnswers } from '@/hooks/api/useCustomQuestions';
 import { useParams } from 'next/navigation';
+import { STANDINGS_QUESTION_PRESETS, QuestionPreset } from '@/lib/constants/question-presets';
 
 
 const GROUPS = [
@@ -296,6 +298,17 @@ export default function QuestionsPage() {
     label: sp, remove: () => setSpellings(s => s.filter((_, j) => j !== i))
   }));
 
+  const applyPreset = (preset: QuestionPreset) => {
+    setQText(preset.questionText);
+    setQCriteria(preset.resolutionCriteria);
+    setQPoints(preset.points);
+    setQType(preset.answerKind === 'single_choice' ? 'choice' : preset.answerKind === 'yes_no' ? 'yesno' : 'text');
+    if (preset.options) {
+      setQOptions(preset.options);
+    }
+    flash(`Loaded preset: ${preset.questionText}`);
+  };
+
   const handlePublish = () => {
     if (!canPublish) return;
     
@@ -430,7 +443,8 @@ export default function QuestionsPage() {
     groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
     qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
     qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
-    spellingsList, setSpellings, match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve
+    spellingsList, setSpellings, match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve,
+    presets: STANDINGS_QUESTION_PRESETS, applyPreset
   };
   
   const propsDesktop = {
@@ -451,6 +465,7 @@ export default function QuestionsPage() {
     publishLabel: createQuestion.isPending ? "Publishing..." : canPublish ? "Ask the league" : "Add the criteria to continue",
     publishNoteStyle: { fontSize: '10.5px', lineHeight: 1.55, color: 'var(--text-muted)', marginTop: '10px', textAlign: 'center' },
     publishNote: canPublish ? "Goes live straight away. Everyone in the league is told a new question is open." : "Every question needs a stated way to settle it before it can go live.",
+    presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     publishAction: handlePublish,
     previewText: qText || "Your question will read here", previewPoints: String(qPoints),
     outcomes: outcomesDesktop, spellingsList, setSpellings, match, addSpelling: () => setSpellings(s => s.concat("Erling Haaland")),

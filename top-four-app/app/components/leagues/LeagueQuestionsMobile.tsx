@@ -7,7 +7,8 @@ export function LeagueQuestionsMobile({
   groups, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
   qText, setQText, types, TYPE, qType, optionsList, setQOptions,
   qPoints, pointOptions, qCriteria, setQCriteria, canPublish, flash, publishAction,
-  spellingsList, setSpellings, match, resolveNotesList, SHEET, toast, settleAction
+  spellingsList, setSpellings, match, resolveNotesList, SHEET, toast, settleAction,
+  presets, applyPreset
 }: any) {
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
@@ -37,6 +38,20 @@ export function LeagueQuestionsMobile({
       </header>
 
       <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+        {onList && (
+          <div className="p-[14px_var(--gutter)_0]">
+            <Link
+              href="/predict/standings"
+              className="flex items-center justify-between p-[12px_14px] rounded-[12px] bg-[var(--surface-card)] border border-[var(--color-brand)]/40 shadow-sm"
+            >
+              <div className="flex items-center gap-[8px]">
+                <span className="text-[16px]">📊</span>
+                <span className="font-heading font-bold text-[12.5px]">Predict Final Standings & Tables</span>
+              </div>
+              <span className="text-[12px] text-[var(--color-brand)] font-bold">Open →</span>
+            </Link>
+          </div>
+        )}
 
         {onList && (
           <div className="animate-[tfin_0.16s_ease]">
