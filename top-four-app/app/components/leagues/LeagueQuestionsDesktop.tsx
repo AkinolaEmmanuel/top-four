@@ -12,7 +12,8 @@ export function LeagueQuestionsDesktop({
   canPublish, publishStyle, publishLabel, publishNoteStyle, publishNote, publishAction,
   previewText, previewPoints,
   outcomes, spellingsList, setSpellings, match, addSpelling,
-  settleStyle, settleLabel, settleAction, resolveNotesList, toast, toastStyle
+  settleStyle, settleLabel, settleAction, resolveNotesList, toast, toastStyle,
+  presets, applyPreset
 }: any) {
 
   return (
@@ -57,6 +58,25 @@ export function LeagueQuestionsDesktop({
 
             <div className="max-w-[1080px] mx-auto p-[24px_24px_30px] flex gap-[20px] items-start">
               <div className="flex-1 min-w-0">
+                {/* Standings Predictor Interactive Banner */}
+                <div className="mb-[20px] p-[16px_20px] rounded-[14px] bg-[var(--surface-card)] border border-[var(--color-brand)]/40 flex items-center justify-between shadow-sm">
+                  <div>
+                    <div className="font-heading font-bold text-[14px] flex items-center gap-[8px]">
+                      <span>📊</span>
+                      <span>Predict Final Standings & Tournament Paths</span>
+                    </div>
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-[3px]">
+                      Predict the Premier League winner, Top 4, relegation, complete 1–20 table, or Champions League knockout road.
+                    </p>
+                  </div>
+                  <Link
+                    href="/predict/standings"
+                    className="h-[36px] px-[16px] rounded-[10px] bg-[var(--color-brand)] text-white font-heading font-semibold text-[12.5px] flex items-center gap-[6px] hover:bg-[var(--color-brand)]/90 transition-all flex-none"
+                  >
+                    Open Standings Predictor →
+                  </Link>
+                </div>
+
                 <div className="flex items-baseline justify-between gap-[10px]">
                   <div className="tf-kicker text-[var(--text-secondary)]">{allIn ? "OPEN — ALL ANSWERED" : "OPEN NOW"}</div>
                   <div className="tf-kicker text-[var(--text-muted)]">{committed} POINTS</div>
@@ -162,6 +182,40 @@ export function LeagueQuestionsDesktop({
             <div className="flex-1 min-w-0">
               <div className="font-heading font-bold text-[24px] leading-[1.15] tracking-[-0.6px]">New question</div>
               <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[7px] max-w-[64ch]">Everything here is fixed the moment somebody answers, because they answer partly on the point value. Only the criteria and the outcome date stay editable.</div>
+
+              {/* Standings & Tournament Quick Presets */}
+              <div className="mt-[20px] p-[14px_16px] rounded-[12px] bg-[var(--surface-card)] border border-[var(--surface-border)]">
+                <div className="flex items-center justify-between mb-[8px]">
+                  <span className="tf-kicker text-[var(--text-muted)]">⚡ 1-Click Standings & Tournament Presets</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">Auto-populates wording & criteria</span>
+                </div>
+                <div className="flex flex-wrap gap-[6px]">
+                  {presets && presets.length > 0 ? (
+                    presets.map((p: any, idx: number) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          if (applyPreset) {
+                            applyPreset(p);
+                          } else {
+                            setQText(p.questionText);
+                            setQCriteria(p.resolutionCriteria);
+                            setQPoints(p.points);
+                            setQType(p.answerKind === 'single_choice' ? 'choice' : p.answerKind === 'yes_no' ? 'yesno' : 'text');
+                            if (p.options) setQOptions(p.options);
+                          }
+                        }}
+                        className="h-[30px] px-[10px] rounded-[7px] bg-[var(--surface-canvas)] hover:bg-[var(--surface-subtle)] border border-[var(--surface-border-strong)] text-[11.5px] font-heading font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
+                      >
+                        {p.questionText.length > 38 ? p.questionText.slice(0, 38) + '...' : p.questionText} ({p.points} pts)
+                      </button>
+                    ))
+                  ) : (
+                    <span className="text-[11.5px] text-[var(--text-muted)]">No presets available</span>
+                  )}
+                </div>
+              </div>
 
               <div className="mt-[22px]">
                 <div className="tf-kicker">Type</div>

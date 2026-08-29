@@ -82,24 +82,39 @@ export default function LeagueSetupPage() {
         const catalogueComps = await apiFetch<any[]>('/football/catalogue/competitions');
         
         const enriched = [];
-        for (const c of COMPS) {
-          const catComp = catalogueComps.find(x => 
-              x.slug === c.id || 
-              x.displayName === c.name || 
-              x.shortName === c.abbr ||
-              c.name.includes(x.displayName) ||
-              x.displayName.includes(c.name.replace("English ", ""))
-          );
-          if (catComp) {
+        for (const catComp of catalogueComps || []) {
+          try {
             const seasons = await apiFetch<any[]>(`/football/catalogue/competitions/${catComp.id}/seasons`);
-            const activeSeason = seasons.find(s => s.selectableForNewLeague);
+            const activeSeason = seasons?.find(s => s.selectableForNewLeague) || seasons?.[0];
             if (activeSeason) {
-               enriched.push({
-                 ...c,
-                 supportedCompetitionId: catComp.id,
-                 seasonId: activeSeason.id
-               });
+              let stages = [{ name: "Regular season", form: "num", rounds: 38, per: 10 }];
+              try {
+                const apiStages = await apiFetch<any[]>(`/football/catalogue/seasons/${activeSeason.id}/stages`);
+                if (Array.isArray(apiStages) && apiStages.length > 0) {
+                  stages = apiStages.map(st => ({
+                    name: st.name || 'Stage',
+                    form: st.kind === 'cup' ? 'legs' : 'num',
+                    rounds: st.rounds?.length || 38,
+                    per: 10
+                  }));
+                }
+              } catch (err) {
+                // fallback stage
+              }
+
+              enriched.push({
+                id: catComp.slug || catComp.id,
+                abbr: catComp.code || catComp.displayName.slice(0, 3).toUpperCase(),
+                name: catComp.displayName,
+                season: activeSeason.label || "2026/27",
+                stages,
+                supportedCompetitionId: catComp.id,
+                seasonId: activeSeason.id,
+                logoUrl: catComp.logoUrl
+              });
             }
+          } catch (err) {
+            console.error(`Failed to load seasons for competition ${catComp.displayName}`, err);
           }
         }
         
