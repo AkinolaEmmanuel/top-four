@@ -92,7 +92,7 @@ export default function LeagueSetupPage() {
           );
           if (catComp) {
             const seasons = await apiFetch<any[]>(`/football/catalogue/competitions/${catComp.id}/seasons`);
-            const activeSeason = seasons.find(s => s.selectableForNewLeague) || seasons[0];
+            const activeSeason = seasons.find(s => s.selectableForNewLeague);
             if (activeSeason) {
                enriched.push({
                  ...c,
@@ -790,11 +790,17 @@ export default function LeagueSetupPage() {
                     'custom': 'custom'
                   };
                   
-                  const compScopes = selectedComps.map(c => ({
-                    supportedCompetitionId: c.supportedCompetitionId,
-                    seasonId: c.seasonId,
-                    kind: "full_season"
-                  }));
+                  const compScopes = selectedComps.map(c => {
+                    const sel = compsState[c.id];
+                    let kind = "full_season";
+                    if (sel === "round") kind = "round";
+                    if (sel === "range") kind = "range";
+                    return {
+                      supportedCompetitionId: c.supportedCompetitionId,
+                      seasonId: c.seasonId,
+                      kind
+                    };
+                  });
 
                   const payload = {
                     name: name || "New League",

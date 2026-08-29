@@ -6,13 +6,6 @@ import { LeagueQuestionsDesktop } from '../../../components/leagues/LeagueQuesti
 import { useCustomQuestions, useCreateCustomQuestion, useSubmitCustomAnswer, useResolveCustomQuestion, useOwnCustomAnswers } from '@/hooks/api/useCustomQuestions';
 import { useParams } from 'next/navigation';
 
-const QUESTIONS = [
-  { id: "top4", group: "open", pts: "10", title: "Will Liverpool finish in the top four?", chip: "OPEN · ANSWER BY SAT 18:00", choices: [["yes", "Yes"], ["no", "No"]], criteria: "Settled on the final Premier League standings." },
-  { id: "scorer", group: "open", pts: "15", title: "Who finishes as the league's top scorer?", chip: "OPEN · ANSWER BY SAT 18:00", options: [["haaland", "E. Haaland", "Man City"], ["saka", "B. Saka", "Arsenal"], ["salah", "M. Salah", "Liverpool"], ["other", "Someone else", ""]], criteria: "Settled on the official Premier League top scorer." },
-  { id: "boot", group: "closed", pts: "15", title: "Who wins the golden boot?", chip: "CLOSED · WAITING ON THE OUTCOME", answer: "You answered Haaland.", bars: [["Haaland", 74, true], ["Saka", 33, false], ["Other", 21, false]], criteria: "An admin settles it on the day, on the official top scorer." },
-  { id: "manager", group: "done", pts: "+10", title: "Will there be a managerial change before Christmas?", chip: "SETTLED", won: true, answer: "You said Yes, and that is what happened.", criteria: "Settled by Kolade on 26 December." },
-  { id: "derby", group: "done", pts: "", title: "Will the derby be played behind closed doors?", chip: "VOID", voided: true, answer: "Nobody scores on this one. Anything already awarded was reversed.", criteria: "“The fixture was cancelled, so the question cannot be answered fairly.”" }
-];
 
 const GROUPS = [
   ["open", "OPEN NOW", "25 POINTS"],
@@ -71,7 +64,7 @@ export default function QuestionsPage() {
     };
   });
   
-  const displayQuestions = dynamicQuestions.length > 0 ? dynamicQuestions : QUESTIONS;
+  const displayQuestions = dynamicQuestions;
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [view, setView] = useState<'list' | 'empty' | 'create' | 'resolve'>('list');
@@ -336,8 +329,7 @@ export default function QuestionsPage() {
   const handleResolve = () => {
     if (!outcome || resolveQuestion.isPending) return;
     
-    // In a real flow, we would need the selected question ID
-    // Since the design hardcodes the resolve flow, we will use a dummy ID or the first closed question
+    // We will use the first closed question for resolve flow for now
     const targetQ = displayQuestions.find(q => q.group === "closed");
     if (!targetQ) return;
     
@@ -384,7 +376,12 @@ export default function QuestionsPage() {
     ? ["Settle on Haaland?", "Every answer matching an accepted spelling is awarded now. Members are notified either way.", [["Members gaining points", String(match)], ["Members gaining nothing", String(128 - match)], ["Points each", "15"]], "Settle now", false]
     : null;
     
-  const OUT = [["haaland", "E. Haaland", 74], ["saka", "B. Saka", 33], ["other", "Someone else", 21]];
+  const targetQForResolve = displayQuestions.find(q => q.group === "closed");
+  const OUT: [string, string, number][] = targetQForResolve?.options 
+    ? targetQForResolve.options.map((o: any) => [o[0] as string, o[1] as string, 0]) 
+    : targetQForResolve?.choices 
+      ? targetQForResolve.choices.map((c: any) => [c[0] as string, c[1] as string, 0]) 
+      : [];
   const outcomesDesktop = OUT.map(([id, label, count]) => {
     const sel = outcome === id;
     return {

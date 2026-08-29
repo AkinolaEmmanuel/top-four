@@ -1,42 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { LeagueFixturesMobile } from '../../../components/leagues/LeagueFixturesMobile';
 import { LeagueFixturesDesktop } from '../../../components/leagues/LeagueFixturesDesktop';
+import { useLeagueFixtures, useLeague } from '@/hooks/api/useLeagues';
+import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d", MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a" };
 
-const UPCOMING = [
-  { group: "Today", note: "2 locking", rows: [
-    { home: "Arsenal", hc: "ARS", away: "Chelsea", ac: "CHE", mid: "15:00", state: "open", note: "4 of 8 answered · locks in 2h 15m", action: "Predict", right: "2h 15m", urgent: true },
-    { home: "Liverpool", hc: "LIV", away: "Spurs", ac: "TOT", mid: "17:30", state: "ready", note: "All 8 answered", action: "Review", right: "4h 40m" }
-  ]},
-  { group: "Tomorrow", note: "nothing locks before 14:00", rows: [
-    { home: "Man City", hc: "MCI", away: "Everton", ac: "EVE", mid: "14:00", state: "open", note: "Nothing answered yet", action: "Predict", right: "Sun 13:55" },
-    { home: "Man Utd", hc: "MUN", away: "Newcastle", ac: "NEW", mid: "16:30", state: "syncing", note: "Kick-off not confirmed — we will reopen it", action: "View", right: "—" }
-  ]}
-];
 
-const RESULTS = [
-  { group: "Last weekend", note: "settled", rows: [
-    { home: "Liverpool", hc: "LIV", away: "Spurs", ac: "TOT", mid: "2 — 1", state: "won", note: "You called the exact score", action: "See result", points: "+18", right: "+18" },
-    { home: "Man Utd", hc: "MUN", away: "Newcastle", ac: "NEW", mid: "1 — 1", state: "part", note: "Result only · scoreline missed", action: "See result", points: "+3", right: "+3" }
-  ]},
-  { group: "Earlier", note: "", rows: [
-    { home: "Arsenal", hc: "ARS", away: "Everton", ac: "EVE", mid: "0 — 2", state: "lost", note: "Nothing landed on this one", action: "See result", points: "0", right: "0" },
-    { home: "Man City", hc: "MCI", away: "Chelsea", ac: "CHE", mid: "3 — 1", state: "void", note: "Voided — the market was withdrawn", action: "See result", points: "—", right: "—" }
-  ]}
-];
 
 export default function LeagueFixturesPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const { data: fixturesPage, isLoading: fixturesLoading } = useLeagueFixtures(params.id);
+  const { data: league } = useLeague(params.id);
+  const { user } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [state, setState] = useState<'upcoming' | 'results' | 'empty' | 'loading'>('upcoming');
   const [filter, setFilter] = useState("All");
 
   const st = state;
-  const isLoading = st === "loading", isEmpty = st === "empty";
+  const isLoading = st === "loading" || fixturesLoading, isEmpty = st === "empty";
   const results = st === "results";
   const showList = !isLoading && !isEmpty;
 
@@ -49,6 +34,32 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     lost: ["NO POINTS", "bg-[var(--surface-subtle)] text-[var(--text-muted)]", "background:var(--surface-subtle);color:var(--text-muted)"],
     void: ["VOID", "border border-dashed border-[var(--surface-border-strong)] text-[var(--text-muted)]", "border:1px dashed var(--surface-border-strong);color:var(--text-muted)"]
   };
+
+  const apiFixtures = fixturesPage?.items || [];
+  const upcomingFixtures = apiFixtures.filter(f => f.status === 'upcoming' || f.status === 'live');
+  const pastFixtures = apiFixtures.filter(f => f.status === 'finished' || f.status === 'voided');
+
+  const UPCOMING = upcomingFixtures.length > 0 ? [{
+    group: "Upcoming Fixtures",
+    note: "",
+    rows: upcomingFixtures.map(f => ({
+      home: f.homeTeam, hc: f.homeTeamCode, away: f.awayTeam, ac: f.awayTeamCode,
+      mid: f.kickoffAt ? new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "TBD",
+      state: f.predictionState || "open",
+      note: f.predictionNote || "", action: "Predict", right: "—", urgent: false
+    }))
+  }] : [];
+
+  const RESULTS = pastFixtures.length > 0 ? [{
+    group: "Past Fixtures",
+    note: "",
+    rows: pastFixtures.map(f => ({
+      home: f.homeTeam, hc: f.homeTeamCode, away: f.awayTeam, ac: f.awayTeamCode,
+      mid: f.score ? `${f.score.home} — ${f.score.away}` : "—",
+      state: f.predictionState || "lost",
+      note: f.predictionNote || "", action: "See result", points: f.pointsAwarded ? `+${f.pointsAwarded}` : "0", right: f.pointsAwarded ? `+${f.pointsAwarded}` : "0"
+    }))
+  }] : [];
 
   const GRID = results
     ? "grid grid-cols-[104px_minmax(0,1fr)_78px_minmax(0,330px)_68px_84px] gap-[16px] items-center"
@@ -119,8 +130,8 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
   const segStyleDesktop = (on: boolean) => ({ display: 'flex', alignItems: 'center', gap: '8px', height: '38px', padding: '0 20px', borderRadius: '10px', cursor: 'pointer', font: "700 13px 'DM Sans',sans-serif", background: on ? 'var(--surface-card)' : 'transparent', color: on ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: on ? 'var(--elev-1)' : 'none' });
   
   const segmentsMobile = [
-    { id: "upcoming", label: "Upcoming", count: "4" },
-    { id: "results", label: "Results", count: "12" }
+    { id: "upcoming", label: "Upcoming", count: String(upcomingFixtures.length) },
+    { id: "results", label: "Results", count: String(pastFixtures.length) }
   ].map(s => ({
     label: s.label, count: s.count,
     pick: () => { setState(s.id as any); setFilter("All"); },
@@ -129,8 +140,8 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
   }));
 
   const segmentsDesktop = [
-    { id: "upcoming", label: "Upcoming", count: "4" },
-    { id: "results", label: "Results", count: "12" }
+    { id: "upcoming", label: "Upcoming", count: String(upcomingFixtures.length) },
+    { id: "results", label: "Results", count: String(pastFixtures.length) }
   ].map(s => ({
     label: s.label, count: s.count,
     pick: () => { setState(s.id as any); setFilter("All"); },
@@ -138,7 +149,16 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     countStyle: { fontVariantNumeric: 'tabular-nums', opacity: 0.55, fontWeight: 600 }
   }));
 
-  const counts: Record<string, string> = { All: "4", Unanswered: "2", Open: "3", Locked: "1" };
+  const dynamicCounts = useMemo(() => {
+    const all = results ? pastFixtures : upcomingFixtures;
+    return {
+      All: String(all.length),
+      Unanswered: String(all.filter(f => f.predictionState === 'open' || !f.predictionState).length),
+      Open: String(all.filter(f => f.predictionState === 'open' || f.predictionState === 'ready' || !f.predictionState).length),
+      Locked: String(all.filter(f => f.status === 'live').length)
+    };
+  }, [upcomingFixtures, pastFixtures, results]);
+  const counts: Record<string, string> = dynamicCounts;
   const filtersMobile = ["All", "Unanswered", "Open", "Locked"].map(f => {
     const on = filter === f;
     return {
@@ -157,7 +177,9 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     };
   });
 
-  const headSub = results ? "12 settled · Premier League +2" : "Premier Predictors · Round 3";
+  const leagueName = league?.name || '';
+  const competitionName = league?.competitions?.[0]?.displayName || '';
+  const headSub = results ? `${pastFixtures.length} settled${competitionName ? ' · ' + competitionName : ''}` : `${leagueName}${competitionName ? ' · ' + competitionName : ''}`;
   const emptyTitle = "No fixtures on this day";
   const emptyBody = "Nothing in this league's competitions is scheduled here. Try another day — the league itself is fine.";
   const loadMore = results ? "LOAD EARLIER RESULTS" : "LOAD LATER FIXTURES";
@@ -220,7 +242,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
   };
 
   const propsDesktop = {
-    theme, rootNav, avatarInitials: "KA", avatarName: "Kolade", showContext: true,
+    theme, rootNav, avatarInitials: (user?.displayName || '??').substring(0, 2).toUpperCase(), avatarName: user?.displayName || '', showContext: true,
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", true, showList && !results ? "2" : ""), tabItem("Table", false, ""), tabItem("Questions", false, ""), tabItem("More", false, "")],
     headSub, segments: segmentsDesktop, showFilters: showList && !results, filters: filtersDesktop,
     isLoading, skeletons: [{ w: "260px" }, { w: "210px" }, { w: "280px" }, { w: "190px" }, { w: "250px" }, { w: "220px" }],

@@ -1,32 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FixtureMobile } from '../../../components/predict/FixtureMobile';
 import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
-import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction } from '@/hooks/api/useFixturePrediction';
+import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
+import { useMyLeagues } from '@/hooks/api/useLeagues';
 
-const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d", MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a", PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f" };
-
+const CLUB: Record<string, string> = {
+  ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d",
+  MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a",
+  PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f"
+};
 
 export default function FixturePredictPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
-  const leagueId = searchParams?.get('leagueId');
+  const leagueId = searchParams?.get('leagueId') || '';
   const fixtureId = params.id;
 
-  const { availability, predictions, isLoading: dataLoading, isError } = useFixtureData(leagueId || '', fixtureId);
+  const { availability, predictions, selectablePlayers, results, isLoading: dataLoading, isError } = useFixtureData(leagueId, fixtureId);
   const { data: tasksData } = usePredictionTasks();
-  const submitPrediction = useSubmitPrediction(leagueId || '', fixtureId);
-  const submitLineup = useSubmitLineupPrediction(leagueId || '', fixtureId);
+  const { data: leaguesData } = useMyLeagues();
+  const submitPrediction = useSubmitPrediction(leagueId, fixtureId);
+  const submitLineup = useSubmitLineupPrediction(leagueId, fixtureId);
+  const copyPredictionsMutation = useCopyPredictions(leagueId, fixtureId);
 
-  // Extract team names from global tasks feed if available
+  // Extract team names and codes from global tasks feed if available
   let hName = "Home Team", aName = "Away Team";
   let hCode = "HOM", aCode = "AWA";
   if (tasksData) {
     for (const t of tasksData.items as any[]) {
-      if (t.kind === 'fixture' && t.fixtureId === fixtureId) {
+      if (t.kind === 'fixture' && (t.fixtureId === fixtureId || t.leagueFixtureId === fixtureId)) {
         hName = t.homeTeam.displayName;
         aName = t.awayTeam.displayName;
         hCode = hName.substring(0, 3).toUpperCase();
@@ -36,16 +42,58 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     }
   }
 
-  const DEFS = [
-    { key: "result", name: "Match result", pts: "2 pts", kind: "tiles", options: [["home", hName, "win"], ["draw", "Draw", ""], ["away", aName, "win"]] },
-    { key: "score", name: "Exact score", pts: "5 pts", kind: "score" },
-    { key: "btts", name: "Both teams to score", pts: "1 pt", kind: "tiles", options: [["yes", "Yes", ""], ["no", "No", ""]] },
-    { key: "goals", name: "Total goals", pts: "1 pt", kind: "tiles", options: [["over", "Over 2.5", ""], ["under", "Under 2.5", ""]] },
-    { key: "scorer", name: "Anytime goalscorer", pts: "5 pts", kind: "players", players: [["saka", "B. Saka", hCode + " 7", "BS"], ["odegaard", "M. Ødegaard", hCode + " 8", "MØ"], ["palmer", "C. Palmer", aCode + " 20", "CP"]] },
-    { key: "card", name: "Player to be carded", pts: "4 pts", kind: "players", players: [["rice", "D. Rice", hCode + " 41", "DR"], ["caicedo", "M. Caicedo", aCode + " 25", "MC"], ["saliba", "W. Saliba", hCode + " 2", "WS"]] },
-    { key: "home_lineup", name: `${hName} Starting XI`, pts: "15 pts", kind: "lineup", side: "home", players: [{ id: "saka", displayName: "Bukayo Saka", position: "FW" }, { id: "odegaard", displayName: "Martin Odegaard", position: "MF" }, { id: "rice", displayName: "Declan Rice", position: "MF" }, { id: "saliba", displayName: "William Saliba", position: "DF" }, { id: "p5", displayName: "Player 5" }, { id: "p6", displayName: "Player 6" }, { id: "p7", displayName: "Player 7" }, { id: "p8", displayName: "Player 8" }, { id: "p9", displayName: "Player 9" }, { id: "p10", displayName: "Player 10" }, { id: "p11", displayName: "Player 11" }, { id: "p12", displayName: "Player 12" }] },
-    { key: "away_lineup", name: `${aName} Starting XI`, pts: "15 pts", kind: "lineup", side: "away", players: [{ id: "palmer", displayName: "Cole Palmer", position: "MF" }, { id: "caicedo", displayName: "Moises Caicedo", position: "MF" }, { id: "p3", displayName: "Player 3" }, { id: "p4", displayName: "Player 4" }, { id: "p5", displayName: "Player 5" }, { id: "p6", displayName: "Player 6" }, { id: "p7", displayName: "Player 7" }, { id: "p8", displayName: "Player 8" }, { id: "p9", displayName: "Player 9" }, { id: "p10", displayName: "Player 10" }, { id: "p11", displayName: "Player 11" }, { id: "p12", displayName: "Player 12" }] }
-  ];
+  // Derive player options dynamically from selectablePlayers API
+  const homePlayersList = useMemo(() => {
+    if (!selectablePlayers?.players) return [];
+    return selectablePlayers.players.filter(p => p.teamSide === 'home');
+  }, [selectablePlayers]);
+
+  const awayPlayersList = useMemo(() => {
+    if (!selectablePlayers?.players) return [];
+    return selectablePlayers.players.filter(p => p.teamSide === 'away');
+  }, [selectablePlayers]);
+
+  const scorerPlayers = useMemo(() => {
+    if (!selectablePlayers?.players || selectablePlayers.players.length === 0) {
+      return [];
+    }
+    return selectablePlayers.players.map(p => {
+      const code = p.teamSide === 'home' ? hCode : aCode;
+      const initials = p.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      return [p.id, p.displayName, `${code} ${p.shirtNumber || ''}`, initials];
+    });
+  }, [selectablePlayers, hCode, aCode]);
+
+  const cardPlayers = scorerPlayers;
+
+  const homeLineupRoster = useMemo(() => {
+    return homePlayersList.map(p => ({
+      id: p.id,
+      displayName: p.displayName,
+      position: p.position || undefined,
+      shirtNumber: p.shirtNumber || undefined
+    }));
+  }, [homePlayersList]);
+
+  const awayLineupRoster = useMemo(() => {
+    return awayPlayersList.map(p => ({
+      id: p.id,
+      displayName: p.displayName,
+      position: p.position || undefined,
+      shirtNumber: p.shirtNumber || undefined
+    }));
+  }, [awayPlayersList]);
+
+  const DEFS = useMemo(() => [
+    { key: "match_result", name: "Match result", pts: "2 pts", kind: "tiles", options: [["home", hName, "win"], ["draw", "Draw", ""], ["away", aName, "win"]] },
+    { key: "exact_score", name: "Exact score", pts: "5 pts", kind: "score" },
+    { key: "both_teams_to_score", name: "Both teams to score", pts: "1 pt", kind: "tiles", options: [["yes", "Yes", ""], ["no", "No", ""]] },
+    { key: "total_goals", name: "Total goals", pts: "1 pt", kind: "tiles", options: [["over", "Over 2.5", ""], ["under", "Under 2.5", ""]] },
+    { key: "anytime_goalscorer", name: "Anytime goalscorer", pts: "5 pts", kind: "players", players: scorerPlayers },
+    { key: "player_card", name: "Player to be carded", pts: "4 pts", kind: "players", players: cardPlayers },
+    { key: "home_lineup", name: `${hName} Starting XI`, pts: "11 pts", kind: "lineup", side: "home", players: homeLineupRoster },
+    { key: "away_lineup", name: `${aName} Starting XI`, pts: "11 pts", kind: "lineup", side: "away", players: awayLineupRoster }
+  ], [hName, aName, scorerPlayers, cardPlayers, homeLineupRoster, awayLineupRoster]);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [state, setState] = useState<'open' | 'urgent' | 'locked' | 'settled' | 'conflict' | 'loading'>('open');
@@ -53,14 +101,20 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const [saved, setSaved] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'done' | null>(null);
-  const [copyTargets, setCopyTargets] = useState<Record<string, boolean>>({ office: true, alumni: true });
+  const [copyTargets, setCopyTargets] = useState<Record<string, boolean>>({});
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [editingLineup, setEditingLineup] = useState<'home' | 'away' | null>(null);
   const [seconds, setSeconds] = useState(8115);
 
-  const ACTUAL: Record<string, any> = { score: [0, 0] }; // Fallback
+  const ACTUAL: Record<string, any> = { score: results?.score ? [results.score.home, results.score.away] : [0, 0] };
   const OUTCOME: Record<string, string> = {};
   const EARNED: Record<string, string> = {};
+  if (results?.markets) {
+    for (const [k, v] of Object.entries(results.markets)) {
+      OUTCOME[k] = v.status;
+      EARNED[k] = v.pointsAwarded > 0 ? `+${v.pointsAwarded}` : '0';
+    }
+  }
   const EDITS: Record<string, string[][]> = {};
 
   const isLoading = dataLoading || state === 'loading';
@@ -107,9 +161,13 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
   const handleBump = (i: number, d: number, editable: boolean) => {
     if (!editable) return;
-    const sc = (answers.score || [0, 0]).slice();
+    const sc = (answers.exact_score || answers.score || [0, 0]).slice();
     sc[i] = Math.max(0, Math.min(9, sc[i] + d));
-    setAnswers(prev => ({ ...prev, score: sc }));
+    setAnswers(prev => ({ ...prev, exact_score: sc, score: sc }));
+    if (leagueId && predictions) {
+      const expectedVersion = predictions.markets['exact_score']?.version || 0;
+      submitPrediction.mutate({ marketType: 'exact_score', expectedVersion, answer: { homeGoals: sc[0], awayGoals: sc[1] } });
+    }
     showReceipt("score");
   };
 
@@ -129,10 +187,10 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const editable = isReady && !locked && !settled;
   const clock = fmt(urgent ? Math.min(seconds, 842) : seconds);
 
-  const a = conflict ? { ...answers, result: "draw" } : answers;
+  const a = conflict ? { ...answers, match_result: "draw" } : answers;
 
   const heroTone = urgent ? "var(--color-danger)" : settled ? "var(--state-provisional)" : locked ? "var(--nav-text-faint)" : "var(--nav-accent)";
-  const MARKET_KEYS = ["result", "score", "btts", "goals", "scorer", "card"];
+  const MARKET_KEYS = ["match_result", "exact_score", "both_teams_to_score", "total_goals", "anytime_goalscorer", "player_card"];
   const answeredMarkets = MARKET_KEYS.filter(k => a[k] !== null && a[k] !== undefined).length;
   const answeredTotal = answeredMarkets + 1;
   const pct = Math.round((answeredTotal / 8) * 100);
@@ -166,7 +224,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     let right, rightStyle;
     if (settled) {
       const tone = out === "hit" ? "var(--prediction-correct)" : "var(--text-muted)";
-      right = EARNED[d.key];
+      right = EARNED[d.key] || "0";
       rightStyle = `font-heading font-bold text-[17px] tracking-[-0.4px] flex-none tf-num text-[${tone}]`;
     } else if (locked) {
       right = unanswered ? "NO ANSWER" : "LOCKED";
@@ -226,24 +284,28 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
         };
       }) : [],
       showScore: editable && d.kind === "score",
-      steppers: d.kind === "score" ? [["Arsenal", "ARS", CLUB.ARS, 0], ["Chelsea", "CHE", CLUB.CHE, 1]].map(([team, code, color, idx]) => ({
-        team, code, color, value: a.score ? a.score[idx as number] : "–",
-        btnStyle: editable ? `w-[34px] h-[46px] md:w-[42px] md:h-[44px] flex-none rounded-[10px] border border-[var(--surface-border-strong)] grid place-items-center text-[18px] md:text-[19px] text-[var(--text-secondary)] cursor-pointer` : "hidden",
-        valueStyle: `flex-1 min-w-0 h-[46px] rounded-[10px] grid place-items-center font-heading font-bold text-[20px] tf-num ${a.score ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-dashed border-[var(--surface-border-strong)] text-[var(--text-muted)]'}`,
-        boxStyle: { flex: 1, height: '48px', borderRadius: '11px', display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center', border: a.score ? 'none' : '1px dashed var(--surface-border-strong)', background: a.score ? 'var(--surface-subtle)' : 'transparent' },
-        inc: () => handleBump(idx as number, 1, editable), dec: () => handleBump(idx as number, -1, editable)
-      })) : [],
+      steppers: d.kind === "score" ? [[hName, hCode, CLUB[hCode] || '#666', 0], [aName, aCode, CLUB[aCode] || '#666', 1]].map(([team, code, color, idx]) => {
+        const scoreVal = a.exact_score ? (Array.isArray(a.exact_score) ? a.exact_score[idx as number] : idx === 0 ? a.exact_score.homeGoals : a.exact_score.awayGoals) : (a.score ? a.score[idx as number] : "–");
+        return {
+          team, code, color, value: scoreVal !== undefined && scoreVal !== null ? scoreVal : "–",
+          btnStyle: editable ? `w-[34px] h-[46px] md:w-[42px] md:h-[44px] flex-none rounded-[10px] border border-[var(--surface-border-strong)] grid place-items-center text-[18px] md:text-[19px] text-[var(--text-secondary)] cursor-pointer` : "hidden",
+          valueStyle: `flex-1 min-w-0 h-[46px] rounded-[10px] grid place-items-center font-heading font-bold text-[20px] tf-num ${a.exact_score || a.score ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-dashed border-[var(--surface-border-strong)] text-[var(--text-muted)]'}`,
+          boxStyle: { flex: 1, height: '48px', borderRadius: '11px', display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center', border: (a.exact_score || a.score) ? 'none' : '1px dashed var(--surface-border-strong)', background: (a.exact_score || a.score) ? 'var(--surface-subtle)' : 'transparent' },
+          inc: () => handleBump(idx as number, 1, editable), dec: () => handleBump(idx as number, -1, editable)
+        };
+      }) : [],
       scoreNote: '',
       scoreNoteStyle: '',
       showPlayers: editable && d.kind === "players"
     };
 
     if (d.kind === "score") {
-      const v = a.score;
-      m.scoreNote = settled ? `You said ${v ? v[0] + '–' + v[1] : 'nothing'} · it finished ${ACTUAL.score[0]}–${ACTUAL.score[1]}`
-        : locked ? (v ? `Locked at ${v[0]}–${v[1]}` : "Nothing was ever saved here.")
-          : v ? `Arsenal ${v[0]} · Chelsea ${v[1]}` : "Untouched — an exact score is not assumed to be 0–0.";
-      const scoreHit = settled && v && v[0] === ACTUAL.score[0] && v[1] === ACTUAL.score[1];
+      const v = a.exact_score || a.score;
+      const vStr = Array.isArray(v) ? `${v[0]}–${v[1]}` : (v ? `${v.homeGoals}–${v.awayGoals}` : null);
+      m.scoreNote = settled ? `You said ${vStr || 'nothing'} · it finished ${ACTUAL.score[0]}–${ACTUAL.score[1]}`
+        : locked ? (vStr ? `Locked at ${vStr}` : "Nothing was ever saved here.")
+          : vStr ? `${hName} ${Array.isArray(v) ? v[0] : v?.homeGoals} · ${aName} ${Array.isArray(v) ? v[1] : v?.awayGoals}` : "Untouched — an exact score is not assumed to be 0–0.";
+      const scoreHit = settled && v && ((Array.isArray(v) && v[0] === ACTUAL.score[0] && v[1] === ACTUAL.score[1]) || (!Array.isArray(v) && v.homeGoals === ACTUAL.score[0] && v.awayGoals === ACTUAL.score[1]));
       m.scoreNoteStyle = `text-[10.5px] md:text-[12.5px] leading-[1.5] mt-[9px] md:mt-[5px] ${scoreHit ? 'text-[var(--success-text)]' : (settled || (locked && !v)) ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`;
     }
 
@@ -278,11 +340,11 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       (m as any).searchLabel = editable ? "Search all players →" : "";
     }
 
-    // Additional desktop formatting for answer
-    if (d.key === "score") {
-      (m as any).answer = a.score ? a.score[0] + " — " + a.score[1] : (locked ? "Nothing was ever saved here" : "Untouched — an exact score is not assumed to be 0–0");
+    if (d.key === "exact_score" || d.key === "score") {
+      const sc = a.exact_score || a.score;
+      (m as any).answer = sc ? (Array.isArray(sc) ? `${sc[0]} — ${sc[1]}` : `${sc.homeGoals} — ${sc.awayGoals}`) : (locked ? "Nothing was ever saved here" : "Untouched — an exact score is not assumed to be 0–0");
     } else {
-      (m as any).answer = a[d.key] ? DEFS.find(df => df.key === d.key)?.options?.find((o: any) => o[0] === a[d.key])?.[1] || "Selected" : (locked ? "Not answered — no points from this one" : "Not answered");
+      (m as any).answer = a[d.key] ? (typeof a[d.key] === 'string' ? a[d.key] : JSON.stringify(a[d.key])) : (locked ? "Not answered — no points from this one" : "Not answered");
     }
     (m as any).answerStyle = a[d.key] ? "font-size: 12.5px; color: var(--text-secondary); margin-top: 5px;" : "font-size: 12.5px; color: var(--text-muted); font-style: italic; margin-top: 5px;";
 
@@ -292,18 +354,18 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     (m as any).chipStyle = chipBase + chipSpec;
     (m as any).chip = chipText;
     (m as any).outcomeWrapStyle = `display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 3px; justify-self: end; width: ${settled ? '150px' : '86px'}`;
-    (m as any).lockLine = settled ? "Settled" : locked ? "Locked at kick-off" : `Locks Sat 14:55 BST · ${clock}`;
+    (m as any).lockLine = settled ? "Settled" : locked ? "Locked at kick-off" : `Locks at kickoff · ${clock}`;
     (m as any).historyNote = "Only the top line counted. Earlier answers are kept so a score can be checked, never re-scored.";
 
     return m;
   });
 
   const lineups = [
-    { code: "ARS", color: CLUB.ARS, name: "Arsenal lineup", set: !!answers.home_lineup, side: 'home' as const },
-    { code: "CHE", color: CLUB.CHE, name: "Chelsea lineup", set: !!answers.away_lineup, side: 'away' as const }
+    { code: hCode, color: CLUB[hCode] || '#666', name: `${hName} lineup`, set: !!answers.home_lineup, side: 'home' as const },
+    { code: aCode, color: CLUB[aCode] || '#666', name: `${aName} lineup`, set: !!answers.away_lineup, side: 'away' as const }
   ].map((l, i, arr) => {
     let sub, right, rightTone;
-    if (settled) { sub = l.set ? "9 of 11 named correctly" : "Not set — no points from this one"; right = l.set ? "+9" : "0"; rightTone = l.set ? "var(--prediction-correct)" : "var(--text-muted)"; }
+    if (settled) { sub = l.set ? "Lineup settled" : "Not set — no points from this one"; right = l.set ? "+11" : "0"; rightTone = l.set ? "var(--prediction-correct)" : "var(--text-muted)"; }
     else if (locked) { sub = l.set ? "11 named · locked" : "Not set — this one closed"; right = l.set ? "VIEW" : "MISSED"; rightTone = l.set ? "var(--text-muted)" : "var(--danger-text)"; }
     else { sub = l.set ? "11 named · you can still change it" : "Nothing named yet"; right = l.set ? "EDIT →" : "PICK →"; rightTone = l.set ? "var(--text-link)" : "var(--accent-text-strong)"; }
     return {
@@ -312,7 +374,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       right,
       rightStyle: `${settled ? 'font-heading font-bold text-[17px] tracking-[-0.4px] tf-num' : 'font-heading font-bold text-[9.5px] tracking-[0.05em]'} flex-none text-[${rightTone}]`,
       rowStyle: `flex items-center gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${i === arr.length - 1 ? 'border-b' : ''} ${(!l.set && !settled && !locked) ? 'bg-[var(--surface-subtle)]' : ''}`,
-      answer: settled ? (l.set ? "9 of 11 correct" : "Not set — no points") : (l.set ? "11 of 11 selected" : "Not set"),
+      answer: settled ? (l.set ? "11 selected" : "Not set — no points") : (l.set ? "11 of 11 selected" : "Not set"),
       answerStyle: l.set ? "font-size: 12.5px; color: var(--text-secondary); margin-top: 5px;" : "font-size: 12.5px; color: var(--text-muted); font-style: italic; margin-top: 5px;",
       chip: settled ? "Provisional" : locked ? "Locked" : "Open",
       chipStyle: `font: 600 10px 'DM Sans', sans-serif; letter-spacing: .03em; padding: 3px 9px; border-radius: 999px; white-space: nowrap; ${settled ? 'background: var(--state-provisional); color: var(--nav-on-accent);' : locked ? 'background: var(--state-locked); color: var(--color-on-brand);' : 'background: var(--surface-subtle); color: var(--text-secondary);'}`,
@@ -321,21 +383,28 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   });
 
   const HERO: Record<string, string[]> = {
-    open: ["OPEN", "until everything locks", "Lineups close two hours earlier, at 13:00. Everything else stays open until the whistle."],
+    open: ["OPEN", "until everything locks", "Lineups close two hours earlier. Everything else stays open until the whistle."],
     urgent: ["LOCKING NOW", "until everything locks", "Anything still unanswered when the whistle goes scores nothing. Lineups have already closed."],
-    locked: ["LOCKED", "kick-off", "Nothing can change now. Two markets went in unanswered and will score nothing."],
-    settled: ["PROVISIONAL", "so far · 4 more in review", "Provisional until review closes. A voided market scores nothing for everyone, not just for you."],
+    locked: ["LOCKED", "kick-off", "Nothing can change now. Any unanswered markets will score nothing."],
+    settled: ["PROVISIONAL", "so far", "Provisional until review closes. A voided market scores nothing for everyone."],
     conflict: ["OPEN", "until everything locks", "This fixture is open on another device too. The stored answer always wins until you replace it."],
     loading: ["", "", ""]
   };
   const heroData = HERO[isReady ? st : "open"] || HERO.open;
 
-  const TARGETS = [
-    { id: "office", league: "Office League", note: "Same match · all six markets · locks with this one", flag: "" },
-    { id: "alumni", league: "Alumni League", note: "Same match · over / under frozen at 3.5", flag: "Goals answer cannot carry over", warn: true },
-    { id: "sunday", league: "Sunday Six", note: "This league has finished", flag: "Skipped — closed", muted: true }
-  ];
-  const targets = TARGETS.map(t => {
+  // Derive other leagues containing this fixture from user's active leagues
+  const otherLeagues = useMemo(() => {
+    if (!leaguesData?.items) return [];
+    return leaguesData.items.filter(l => l.id !== leagueId).map(l => ({
+      id: l.id,
+      league: l.name,
+      note: `Same match · all markets`,
+      flag: "",
+      muted: l.lifecycleState === 'archived' || l.lifecycleState === 'cancelled'
+    }));
+  }, [leaguesData, leagueId]);
+
+  const targets = otherLeagues.map(t => {
     const on = !t.muted && !!copyTargets[t.id];
     return {
       league: t.league, note: t.note,
@@ -343,28 +412,42 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       boxStyle: `w-[21px] h-[21px] rounded-[6px] md:rounded-[7px] flex-none mt-[1px] grid place-items-center text-[11px] text-[var(--color-on-brand)] ${on ? 'bg-[var(--color-brand)]' : 'border border-[var(--surface-border-strong)]'}`,
       check: on ? "✓" : "",
       hasFlag: !!t.flag, flag: t.flag,
-      flagStyle: `inline-block font-heading font-semibold text-[10px] md:text-[10.5px] p-[3px_9px] rounded-[999px] mt-[7px] ${t.warn ? 'bg-[var(--warn-surface)] text-[var(--warn-text)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`,
+      flagStyle: `inline-block font-heading font-semibold text-[10px] md:text-[10.5px] p-[3px_9px] rounded-[999px] mt-[7px] bg-[var(--surface-subtle)] text-[var(--text-muted)]`,
       toggle: () => { if (!t.muted) setCopyTargets(s => ({ ...s, [t.id]: !s[t.id] })); }
     };
   });
 
-  const CARRY: Record<string, string | null> = { result: "Arsenal to win", score: null, btts: null, goals: "Over 2.5", scorer: "B. Saka", card: null };
-  const carryLabels = MARKET_KEYS.map(k => a[k] ? (k === "score" ? a.score[0] + "–" + a.score[1] : CARRY[k]) : null).filter(Boolean);
+  const carryLabels = MARKET_KEYS.map(k => {
+    const val = a[k];
+    if (!val) return null;
+    if (k === "exact_score" || k === "score") {
+      return Array.isArray(val) ? `${val[0]}–${val[1]}` : `${val.homeGoals}–${val.awayGoals}`;
+    }
+    if (typeof val === 'string') return val;
+    return k;
+  }).filter(Boolean);
+
   const carrying = carryLabels.map(l => ({
     label: l, style: `font-heading font-semibold text-[10.5px] p-[6px_10px] rounded-[7px] md:rounded-[999px] bg-[var(--surface-subtle)] md:bg-[var(--surface-border-strong)] text-[var(--text-secondary)] md:text-[var(--text-primary)]`
   }));
 
-  const OUTCOMES = [
-    ["Office League", `All ${carryLabels.length} answers copied. One replaced what you had already put there.`, "✓", "ok"],
-    ["Alumni League", "Copied, except the goals answer — that league runs a 3.5 line, so answer it there yourself.", "!", "warn"],
-    ["Sunday Six", "Skipped. That league has finished.", "–", "muted"]
-  ];
-  const outcomes = OUTCOMES.map(([league, note, icon, kind], i, arr) => ({
-    league, note, icon,
-    rowStyle: `flex gap-[11px] items-start p-[13px_0] border-t border-[var(--surface-border)] ${i === arr.length - 1 ? 'border-b' : ''}`,
-    iconStyle: `w-[20px] h-[20px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10.5px] mt-[1px] ${kind === "ok" ? 'bg-[var(--color-success)] text-[var(--tf-white)]' : kind === "warn" ? 'bg-[var(--warn-surface)] text-[var(--warn-text)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-muted)]'}`
+  const chosen = otherLeagues.filter(t => copyTargets[t.id]).length;
+
+  const handleExecuteCopy = () => {
+    copyPredictionsMutation.mutate(undefined, {
+      onSuccess: () => {
+        setCopy('done');
+      }
+    });
+  };
+
+  const outcomes = otherLeagues.filter(t => copyTargets[t.id]).map(t => ({
+    league: t.league,
+    note: `All ${carryLabels.length} answers copied.`,
+    icon: "✓",
+    rowStyle: `flex gap-[11px] items-start p-[13px_0] border-t border-[var(--surface-border)]`,
+    iconStyle: `w-[20px] h-[20px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10.5px] mt-[1px] bg-[var(--color-success)] text-[var(--tf-white)]`
   }));
-  const chosen = ["office", "alumni"].filter(id => copyTargets[id]).length;
 
   const tabItem = (label: string, on: boolean) => ({
     label, style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', font: "600 12.5px 'DM Sans', sans-serif", cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
@@ -377,29 +460,30 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
     // Desktop extra
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", true), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)],
-    heroStyle: { position: 'relative' as any, overflow: 'hidden', color: 'var(--nav-text)', padding: '22px 0 26px', background: `linear-gradient(103deg, color-mix(in srgb, ${CLUB.ARS} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB.CHE} 42%, transparent) 0%, transparent 52%), var(--nav-surface)` },
-    homeColor: CLUB.ARS, awayColor: CLUB.CHE,
+    heroStyle: { position: 'relative' as any, overflow: 'hidden', color: 'var(--nav-text)', padding: '22px 0 26px', background: `linear-gradient(103deg, color-mix(in srgb, ${CLUB[hCode] || '#666'} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB[aCode] || '#666'} 42%, transparent) 0%, transparent 52%), var(--nav-surface)` },
+    homeColor: CLUB[hCode] || '#666', awayColor: CLUB[aCode] || '#666',
     heroKicker: settled ? "PROVISIONAL" : locked ? "LOCKED" : "OPEN",
     heroDotStyle: { width: '8px', height: '8px', borderRadius: '999px', flex: 'none', background: settled ? 'var(--nav-positive)' : locked ? 'var(--nav-text-faint)' : 'var(--nav-warning)' },
-    scoreline: settled ? "2 — 0" : "15:00",
+    scoreline: settled ? `${ACTUAL.score[0]} — ${ACTUAL.score[1]}` : "15:00",
     scoreSize: settled ? '64px' : '52px',
-    kickoffLine: settled ? "FULL TIME · SAT" : "SAT · BST",
+    kickoffLine: settled ? "FULL TIME" : "KICKOFF",
     bannerLabel: settled ? "Provisional" : locked ? "Kick-off" : "Last market locks in",
-    bannerRight: settled ? "+3" : locked ? "15:00" : clock,
-    bannerText: settled ? "Final once review closes" : locked ? "Nothing can change now" : "Lineups closed at 13:00",
-    marketsDone: answeredTotal + " of 6", lineupsDone: "1 of 2",
-    pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? "+3" : "18", pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
+    bannerRight: settled ? (results?.markets ? `+${Object.values(results.markets).reduce((sum, m) => sum + (m.pointsAwarded || 0), 0)}` : "+0") : locked ? "15:00" : clock,
+    bannerText: settled ? "Final once review closes" : locked ? "Nothing can change now" : "Lineups closed 2h before kickoff",
+    marketsDone: `${answeredTotal} of 6`, lineupsDone: "1 of 2",
+    pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? (results?.markets ? `+${Object.values(results.markets).reduce((sum, m) => sum + (m.pointsAwarded || 0), 0)}` : "+0") : "18", pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
     marketsHint: editable ? "Each market saves the moment you pick — there is no fixture-level save." : "Editing closed.",
-    footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone, so nobody gains on you." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
-    canCopy: editable, copySub: "3 other leagues include this match · " + carryLabels.length + " answers ready to carry", showConflict: conflict,
+    footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
+    canCopy: editable && otherLeagues.length > 0,
+    copySub: `${otherLeagues.length} other leagues · ${carryLabels.length} answers ready to carry`,
+    showConflict: conflict,
     copyPrimary: chosen ? `Copy into ${chosen} ${chosen === 1 ? 'league' : 'leagues'}` : "Pick a league",
-    copyPrimaryStyle: `mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`
+    copyPrimaryStyle: `mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`,
+    onCopyExecute: handleExecuteCopy
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-
-
       <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
         <FixtureMobile {...props} />
       </div>
@@ -411,7 +495,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
         <div className="absolute inset-0 z-50 bg-[var(--surface-canvas)] md:bg-[rgba(0,0,0,0.5)] md:flex md:items-center md:justify-center p-[20px]">
           <div className="bg-[var(--surface-canvas)] w-full max-w-[500px] rounded-[16px] overflow-hidden flex flex-col md:max-h-[80vh]">
             <div className="flex justify-between items-center p-[16px] border-b border-[var(--surface-border)]">
-              <div className="font-heading font-bold text-[18px]">{editingLineup === 'home' ? 'Arsenal' : 'Chelsea'} Starting XI</div>
+              <div className="font-heading font-bold text-[18px]">{editingLineup === 'home' ? hName : aName} Starting XI</div>
               <button onClick={() => setEditingLineup(null)} className="text-[24px] text-[var(--text-muted)]">×</button>
             </div>
             <div className="p-[16px] overflow-y-auto">

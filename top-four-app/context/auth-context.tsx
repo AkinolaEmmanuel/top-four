@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await apiSignOut();
     setUser(null);
-    router.push('/sign-in');
+    router.push('/');
     router.refresh();
   };
 
