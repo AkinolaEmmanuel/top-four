@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function EndStatesPage() {
   const [screen, setScreen] = useState<'completed' | 'cancelled' | 'archived' | 'unsubscribe'>('completed');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   const isUnsub = screen === "unsubscribe";
   const isLeague = !isUnsub;
@@ -59,199 +59,156 @@ export default function EndStatesPage() {
       hero: ["3rd", "of 40 members", "612 points · completed 14 May", "var(--nav-text)"],
       banner: null, podium: true, archive: false, voided: null,
       open: [
-        { title: "Final table", note: "Unchanged since 1 June" },
-        { title: "All fixtures and answers", note: "The complete history" },
-        { title: "Your points history", note: "The complete ledger" },
-        { title: "League rules", note: "The ruleset this league was played under" }
+        { title: "Final table", note: "Shared positions and every tiebreaker applied" },
+        { title: "All 38 fixtures", note: "Read-only archive" },
+        { title: "Your points history", note: "Every entry, fully retained" },
+        { title: "League rules", note: "The ruleset as played" }
       ],
       closed: [
-        { title: "Predicting", note: "The league completed before it was archived" },
-        { title: "Joining", note: "Membership closed when the league completed" },
-        { title: "Unarchiving", note: "There is no way back from here in the app" }
+        { title: "Predicting", note: "Closed when the league completed" },
+        { title: "Joining", note: "Closed when the league completed" }
       ],
-      foot: "Archiving only moves a completed league out of everyone's active list. Nothing was voided, no points changed, and every screen above reads exactly as it did on 1 June."
+      foot: "Archived leagues stay readable forever. Archiving simply keeps your active league list uncluttered."
+    },
+    unsubscribe: {
+      title: "Weekly prediction reminders",
+      body: "You will no longer receive the Monday reminder email for any league. In-app alerts, deadline banners and account security emails are unaffected.",
+      button: "Resubscribe to weekly reminders",
+      foot: "Account security emails (passwords, email changes, new logins) can never be turned off."
     }
   };
 
-  const PODIUMS: any = {
-    completed: [
-      { rank: "1", name: "Ope Adeyemi", initials: "OA", note: "36 exact scores", points: "684", self: false },
-      { rank: "2", name: "Marcus Bell", initials: "MB", note: "Led from Round 9", points: "651", self: false },
-      { rank: "3", name: "Kolade", initials: "KA", note: "Best run: 7 in a row", points: "612", self: true },
-      { rank: "4", name: "Priya Raman", initials: "PR", note: "31 exact scores", points: "588", self: false }
-    ],
-    archived: [
-      { rank: "1", name: "Ope Adeyemi", initials: "OA", note: "Won it on the last night", points: "684", self: false },
-      { rank: "2", name: "Marcus Bell", initials: "MB", note: "Led from Round 9", points: "651", self: false },
-      { rank: "3", name: "Kolade", initials: "KA", note: "72 points off the top", points: "612", self: true }
-    ]
-  };
-
-  const cfg = CFG[isUnsub ? "completed" : screen];
-  const podium = PODIUMS[isUnsub ? "completed" : screen] || [];
+  const current = CFG[screen];
 
   return (
-    <div className={`min-h-[100dvh] flex flex-col bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
-      
-      {/* App Container */}
-      <div className="flex flex-col w-full max-w-[800px] mx-auto h-[100dvh] overflow-hidden relative">
+    <div className={`flex-1 flex flex-col bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''} overflow-y-auto`}>
+      <div className="flex flex-col w-full max-w-[1080px] mx-auto p-[20px_16px] md:p-[36px] overflow-hidden relative">
+        {/* Navigation Selector Bar */}
+        <div className="flex flex-wrap items-center gap-[8px] pb-[20px] border-b border-[var(--surface-border)] mb-[24px]">
+          <span className="text-[12px] font-heading font-semibold text-[var(--text-muted)] mr-[8px]">END STATE DEMOS:</span>
+          {[
+            { id: 'completed', label: 'Completed League' },
+            { id: 'cancelled', label: 'Cancelled League' },
+            { id: 'archived', label: 'Archived League' },
+            { id: 'unsubscribe', label: 'Unsubscribe Confirmation' },
+          ].map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setScreen(s.id as any)}
+              className={`h-[34px] px-[14px] rounded-[9px] text-[12px] font-heading font-semibold transition-all cursor-pointer ${
+                screen === s.id
+                  ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                  : 'bg-[var(--surface-card)] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
 
-        {isUnsub && (
-          <div className="flex-1 flex flex-col min-h-0 animate-[tfin_0.16s_ease]">
-            <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] p-[6px_var(--gutter)_24px]">
-              <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.5px]">TOPFOUR<span className="text-[var(--nav-accent)]">/</span></div>
-              <div className="flex items-center gap-[7px] mt-[26px]">
-                <span className="w-[7px] h-[7px] rounded-full bg-[var(--nav-positive)] flex-none"></span>
-                <span className="tf-kicker text-[var(--nav-positive)]">UNSUBSCRIBED</span>
-              </div>
-              <div className="font-heading font-bold text-[29px] leading-[1.08] tracking-[-1px] mt-[12px]">Deadline reminders<br/>are off</div>
-              <div className="text-[11.5px] text-[var(--nav-text-faint)] mt-[10px]">Premier Predictors · applies to this league only</div>
-            </header>
-
-            <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
-              <div className="tf-kicker text-[var(--text-muted)] p-[20px_var(--gutter)_10px]">WHAT THIS CHANGES</div>
-              <div className="flex items-start gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)]">
-                <div className="flex-1 min-w-0">
-                  <div className="font-heading font-bold text-[13.5px] tracking-[-0.2px]">Deadline reminders</div>
-                  <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[4px]">The nudge before a fixture or a question locks</div>
+        {/* Content View */}
+        {isLeague ? (
+          <div className="flex flex-col gap-[24px]">
+            {/* Header Card */}
+            <div className="rounded-[20px] bg-[var(--nav-surface)] text-[var(--nav-text)] p-[28px_32px] border border-[var(--surface-border)] shadow-[var(--elev-3)]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-[10px]">
+                  <span className="text-[11px] font-heading font-bold tracking-[0.08em] uppercase text-[var(--nav-text-faint)]">
+                    {current.date}
+                  </span>
+                  <span className={`text-[10px] font-heading font-bold ${current.badgeStyle}`}>{current.badge}</span>
                 </div>
-                <span className="tf-kicker p-[4px_7px] rounded-[5px] bg-[var(--success-surface)] text-[var(--success-text)] flex-none">STOPPED</span>
-              </div>
-              <div className="flex items-start gap-[12px] p-[14px_var(--gutter)] border-y border-[var(--surface-border)] bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]">
-                <div className="flex-1 min-w-0">
-                  <div className="font-heading font-bold text-[13.5px] tracking-[-0.2px]">A league ending · a result corrected</div>
-                  <div className="text-[10.5px] leading-[1.5] text-[var(--text-secondary)] mt-[4px]">Not reminders. Turn these off in the app, under Me → Notifications</div>
-                </div>
-                <span className="tf-kicker p-[4px_7px] rounded-[5px] bg-[var(--color-brand)] text-[var(--color-on-brand)] flex-none">STILL SENT</span>
-              </div>
-              <div className="p-[18px_var(--gutter)] text-[11.5px] leading-[1.65] text-[var(--text-muted)]">
-                You are still a member of Premier Predictors. Your answers, your points and your place in the table are untouched — this only stops one kind of email.
-              </div>
-            </main>
-
-            <footer className="flex-none p-[14px_var(--gutter)_22px] bg-[var(--surface-card)] border-t border-[var(--surface-border)]">
-              <Link href="/" className="tf-tap h-[48px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] flex items-center justify-center font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)]">Open TopFour</Link>
-              <div className="tf-tap h-[42px] flex items-center justify-center font-heading font-semibold text-[12.5px] text-[var(--text-link)] mt-[4px]">Undo — keep sending reminders</div>
-            </footer>
-          </div>
-        )}
-
-        {isLeague && (
-          <div className="flex-1 flex flex-col min-h-0 animate-[tfin_0.16s_ease]">
-            <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] p-[8px_var(--gutter)_18px]">
-              <div className="flex items-center gap-[11px]">
-                <Link href="/" className="w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px] tf-tap">
-                  ‹
+                <Link href="/leagues" className="text-[12.5px] text-[var(--nav-text-quiet)] hover:text-white">
+                  ‹ Back to Leagues
                 </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="font-heading font-bold text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{cfg.name}</div>
-                  <div className="flex items-center gap-[7px] mt-[4px]">
-                    <span className="font-heading font-bold text-[9.5px] tracking-[0.13em] uppercase" style={cfg.badgeStyle ? {} : {}}>{cfg.badge}</span>
-                    <span className="font-tabular-nums text-[10px] text-[var(--nav-text-faint)]">{cfg.date}</span>
-                  </div>
+              </div>
+
+              <h1 className="font-heading font-bold text-[32px] tracking-[-0.8px] mt-[12px] text-white">
+                {current.name}
+              </h1>
+
+              <div className="flex items-baseline gap-[12px] mt-[16px] pt-[16px] border-t border-[rgba(255,255,255,0.1)]">
+                <span className="font-heading font-bold text-[36px] tracking-[-1px] text-white font-tabular-nums">
+                  {current.hero[0]}
+                </span>
+                <span className="text-[14px] text-[var(--nav-text-quiet)]">{current.hero[1]}</span>
+                <span className="text-[12px] text-[var(--nav-text-faint)] ml-[auto]">{current.hero[2]}</span>
+              </div>
+            </div>
+
+            {/* Banner Notice */}
+            {current.banner && (
+              <div
+                className="rounded-[16px] p-[20px_24px] text-white flex flex-col gap-[4px] shadow-sm"
+                style={{ background: current.banner[3] }}
+              >
+                <div className="font-heading font-bold text-[11px] tracking-[0.1em] uppercase opacity-85">
+                  {current.banner[0]}
+                </div>
+                <div className="font-heading font-bold text-[17px]">{current.banner[1]}</div>
+                <p className="text-[12.5px] leading-[1.6] opacity-90 mt-[4px]">{current.banner[2]}</p>
+              </div>
+            )}
+
+            {/* Grid Sections: Open Resources vs Closed Markets */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
+              {/* Still Viewable */}
+              <div className="rounded-[18px] bg-[var(--surface-card)] border border-[var(--surface-border)] p-[24px] shadow-[var(--elev-2)]">
+                <h2 className="font-heading font-bold text-[12px] tracking-[0.08em] uppercase text-[var(--text-muted)] pb-[12px] border-b border-[var(--surface-border)]">
+                  RESOURCES (READ ONLY)
+                </h2>
+                <div className="divide-y divide-[var(--surface-border)] mt-[4px]">
+                  {current.open.map((item: any, i: number) => (
+                    <div key={i} className="py-[12px] flex items-center justify-between cursor-pointer hover:bg-[var(--surface-subtle)] px-[8px] rounded-[8px] transition-colors">
+                      <div>
+                        <div className="font-heading font-semibold text-[13.5px]">{item.title}</div>
+                        <div className="text-[11.5px] text-[var(--text-muted)] mt-[2px]">{item.note}</div>
+                      </div>
+                      <span className="text-[14px] text-[var(--text-muted)]">›</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="flex items-end gap-[11px] mt-[18px]">
-                <div className="font-tabular-nums font-heading font-bold text-[44px] leading-[0.86] tracking-[-2px]" style={{ color: cfg.hero[3] }}>{cfg.hero[0]}</div>
-                <div className="pb-[5px] min-w-0">
-                  <div className="text-[11.5px] leading-[1.35]">{cfg.hero[1]}</div>
-                  <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[3px]">{cfg.hero[2]}</div>
+              {/* Inactive Features */}
+              <div className="rounded-[18px] bg-[var(--surface-card)] border border-[var(--surface-border)] p-[24px] shadow-[var(--elev-2)]">
+                <h2 className="font-heading font-bold text-[12px] tracking-[0.08em] uppercase text-[var(--text-muted)] pb-[12px] border-b border-[var(--surface-border)]">
+                  LOCKED / COMPLETED
+                </h2>
+                <div className="divide-y divide-[var(--surface-border)] mt-[4px]">
+                  {current.closed.map((item: any, i: number) => (
+                    <div key={i} className="py-[12px] px-[8px]">
+                      <div className="font-heading font-semibold text-[13.5px] text-[var(--text-secondary)]">{item.title}</div>
+                      <div className="text-[11.5px] text-[var(--text-muted)] mt-[2px]">{item.note}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </header>
+            </div>
 
-            <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
-              {cfg.banner && (
-                <div className="p-[20px_var(--gutter)] text-[var(--tf-white)]" style={{ background: cfg.banner[3] }}>
-                  <div className="tf-kicker opacity-75">{cfg.banner[0]}</div>
-                  <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.5px] mt-[9px]">{cfg.banner[1]}</div>
-                  <div className="text-[12.5px] leading-[1.6] mt-[9px] opacity-90">{cfg.banner[2]}</div>
-                </div>
-              )}
-
-              {cfg.podium && (
-                <section className="mt-[20px]">
-                  <div className="flex items-baseline justify-between p-[0_var(--gutter)_10px]">
-                    <span className="tf-kicker text-[var(--text-muted)]">HOW IT FINISHED</span>
-                    <span className="tf-tap font-heading font-bold text-[10px] tracking-[0.06em] text-[var(--text-link)]">FULL TABLE</span>
-                  </div>
-                  {podium.map((p: any, i: number) => (
-                    <div key={i} className={`flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${i === podium.length - 1 ? 'border-b border-[var(--surface-border)]' : ''} ${p.self ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}>
-                      <span className="font-tabular-nums w-[16px] flex-none font-heading font-bold text-[13px]" style={{ color: i === 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>{p.rank}</span>
-                      <span className="w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10.5px] text-[var(--text-primary)]" style={{ background: `var(--ident-${(i % 7) + 1})` }}>{p.initials}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-heading font-bold text-[13.5px] tracking-[-0.2px] whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
-                        <div className="text-[10px] text-[var(--text-muted)] mt-[3px]">{p.note}</div>
-                      </div>
-                      <span className="font-tabular-nums font-heading font-bold text-[15px] flex-none">{p.points}</span>
-                    </div>
-                  ))}
-                </section>
-              )}
-
-              {cfg.voided && (
-                <section className="mt-[22px]">
-                  <div className="flex items-baseline justify-between p-[0_var(--gutter)_10px]">
-                    <span className="tf-kicker text-[var(--danger-text)]">VOIDED — SCORES NOTHING</span>
-                    <span className="font-tabular-nums text-[10px] text-[var(--text-muted)]">{cfg.voided.length} GROUPS</span>
-                  </div>
-                  {cfg.voided.map((r: any, i: number) => (
-                    <div key={i} className="flex items-start gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] bg-[var(--danger-surface)] shadow-[inset_3px_0_0_0_var(--color-danger)]">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-heading font-bold text-[13px] tracking-[-0.2px]">{r.title}</div>
-                        <div className="text-[10.5px] leading-[1.5] text-[var(--text-secondary)] mt-[4px]">{r.note}</div>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="p-[11px_var(--gutter)] border-y border-[var(--surface-border)] text-[10.5px] leading-[1.6] text-[var(--text-muted)]">
-                    Predictions on a voided market are kept and stay visible. They score nothing, which is not the same as never having answered.
-                  </div>
-                </section>
-              )}
-
-              <section className="mt-[22px]">
-                <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">STILL READABLE</div>
-                {cfg.open.map((r: any, i: number) => (
-                  <div key={i} className={`tf-tap flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${i === cfg.open.length - 1 ? 'border-b border-[var(--surface-border)]' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-heading font-bold text-[13.5px] tracking-[-0.2px]">{r.title}</div>
-                      <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[4px]">{r.note}</div>
-                    </div>
-                    <span className="text-[var(--text-muted)] font-heading font-semibold text-[16px] flex-none">›</span>
-                  </div>
-                ))}
-              </section>
-
-              <section className="mt-[22px]">
-                <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">NO LONGER POSSIBLE</div>
-                {cfg.closed.map((r: any, i: number) => (
-                  <div key={i} className={`flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] opacity-[0.62] ${i === cfg.closed.length - 1 ? 'border-b border-[var(--surface-border)]' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-heading font-bold text-[13px] tracking-[-0.2px] text-[var(--text-secondary)]">{r.title}</div>
-                      <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[4px]">{r.note}</div>
-                    </div>
-                    <span className="text-[var(--text-muted)] text-[12px] flex-none">✕</span>
-                  </div>
-                ))}
-              </section>
-
-              {cfg.archive && (
-                <section className="mt-[22px]">
-                  <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">OWNER ONLY</div>
-                  <div className="tf-tap flex items-start gap-[12px] p-[14px_var(--gutter)] border-y border-[var(--surface-border)] bg-[var(--warn-surface)] shadow-[inset_3px_0_0_0_var(--color-warning)]">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-heading font-bold text-[13.5px] tracking-[-0.2px] text-[var(--warn-text)]">Archive this league</div>
-                      <div className="text-[10.5px] leading-[1.5] text-[var(--text-secondary)] mt-[4px]">Hides it from every member's list, not just yours. Nothing is deleted and no points change — but the app cannot bring it back.</div>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              <div className="p-[19px_var(--gutter)_30px] text-[10.5px] leading-[1.65] text-[var(--text-muted)]">{cfg.foot}</div>
-            </main>
+            <p className="text-[12px] leading-[1.6] text-[var(--text-muted)] p-[8px_4px]">{current.foot}</p>
+          </div>
+        ) : (
+          /* Unsubscribe View */
+          <div className="max-w-[600px] mx-auto w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-[20px] p-[36px] shadow-[var(--elev-3)] text-center">
+            <div className="w-[56px] h-[56px] rounded-full bg-[var(--surface-subtle)] grid place-items-center text-[22px] mx-auto text-[var(--color-success)]">
+              ✓
+            </div>
+            <h1 className="font-heading font-bold text-[24px] tracking-[-0.5px] mt-[20px]">
+              Unsubscribed from {current.title}
+            </h1>
+            <p className="text-[13.5px] leading-[1.6] text-[var(--text-secondary)] mt-[12px]">
+              {current.body}
+            </p>
+            <button className="mt-[28px] h-[46px] px-[24px] rounded-[12px] border border-[var(--surface-border-strong)] hover:bg-[var(--surface-subtle)] font-heading font-semibold text-[13px] transition-colors cursor-pointer">
+              {current.button}
+            </button>
+            <p className="text-[11.5px] leading-[1.6] text-[var(--text-muted)] mt-[20px]">
+              {current.foot}
+            </p>
           </div>
         )}
-      </div></div>
+      </div>
+    </div>
   );
 }
