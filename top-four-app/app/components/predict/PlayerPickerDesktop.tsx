@@ -7,7 +7,7 @@ export function PlayerPickerDesktop({
   chips, isLoading, groups, pickedPlayer, setDataState, searchIcon,
   contextTabs, rootNav, ghostRows, sheetTitle, sheetSub, modalWidth, columnTemplate,
   sideChips, posChips, skeletonCols, storedStyle, storedDotStyle, storedLabel,
-  cancelStyle, primaryStyle, primaryLabel, footNote
+  cancelStyle, primaryStyle, primaryLabel, footNote, leagueName, competitionLabel
 }: any) {
   
   return (
@@ -17,9 +17,9 @@ export function PlayerPickerDesktop({
 
       <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[20px] px-[24px] h-[54px]">
         <div className="flex items-center gap-[10px] pb-[11px]">
-          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">PP</span>
-          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">Premier Predictors</span>
-          <span className="text-[11px] text-[var(--text-muted)]">Arsenal v Chelsea · Sat 15:00</span>
+          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">{leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG'}</span>
+          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">{leagueName || 'League'}</span>
+          {competitionLabel && <span className="text-[11px] text-[var(--text-muted)]">{competitionLabel}</span>}
         </div>
         <div className="flex items-center gap-[2px] ml-auto">
           {contextTabs.map((t: any, i: number) => (

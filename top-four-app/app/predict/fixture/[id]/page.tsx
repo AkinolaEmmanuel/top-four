@@ -453,10 +453,15 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     label, style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', font: "600 12.5px 'DM Sans', sans-serif", cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
   });
 
+  const currentLeague = leaguesData?.items?.find(l => l.id === leagueId);
+  const leagueName = currentLeague?.name || (leaguesData?.items?.[0]?.name) || "League";
+  const competitionLabel = currentLeague?.competitions?.[0]?.displayName || "Premier League";
+
   const props = {
     theme, isLoading, isReady, settled, locked, urgent, clock, HERO: heroData, heroTone,
     answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
     carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
+    leagueName, competitionLabel,
 
     // Desktop extra
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", true), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)],

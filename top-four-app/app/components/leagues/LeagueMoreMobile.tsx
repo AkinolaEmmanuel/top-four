@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export function LeagueMoreMobile({
   theme, params, owner, admin, runs, done,
-  groups, roleLabel, lifecycleLabel, footNote, IconMap, tabs
+  groups, roleLabel, lifecycleLabel, footNote, IconMap, tabs, leagueName
 }: any) {
 
   return (
@@ -13,7 +13,7 @@ export function LeagueMoreMobile({
         <div className="flex items-center gap-[11px]">
           <Link href={`/leagues/${params.id}`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
           <div className="min-w-0 flex-1">
-            <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">Premier Predictors</div>
+            <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
             <div className="flex items-center gap-[7px] mt-[4px]">
               <span className={`inline-flex items-center h-[20px] px-[8px] rounded-[5px] font-heading font-bold text-[9px] leading-[1] tracking-[0.05em] ${done ? 'bg-[var(--nav-fill)] text-[var(--nav-text-quiet)]' : 'bg-[var(--nav-accent)] text-[var(--nav-on-accent)]'}`}>
                 {lifecycleLabel}

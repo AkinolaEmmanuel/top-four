@@ -211,7 +211,9 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     cancelStyle: { display: 'none' },
     primaryLabel: "DONE",
     primaryStyle: { flex: 'none', minWidth: '190px', height: '46px', padding: '0 22px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 12.5px 'DM Sans', sans-serif", letterSpacing: '.02em', background: pickedPlayer ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: pickedPlayer ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: pickedPlayer ? 'pointer' : 'not-allowed' },
-    footNote: MARKET[2]
+    footNote: MARKET[2],
+    leagueName: "League",
+    competitionLabel: `${homeName} v ${awayName}`
   };
 
   return (

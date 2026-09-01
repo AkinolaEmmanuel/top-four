@@ -3,30 +3,63 @@
 import { useState } from 'react';
 import { LeagueMoreMobile } from '../../../components/leagues/LeagueMoreMobile';
 import { LeagueMoreDesktop } from '../../../components/leagues/LeagueMoreDesktop';
+import { useLeague, useJoinRequests } from '@/hooks/api/useLeagues';
+import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
+import { useAuth } from '@/context/auth-context';
 
 export default function LeagueMorePage({ params }: { params: { id: string } }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [role, setRole] = useState<'owner' | 'admin' | 'participant'>('owner');
-  const [life, setLife] = useState<'running' | 'completed'>('running');
+  const { user } = useAuth();
+  const { data: league } = useLeague(params.id);
+  const { data: requestsData } = useJoinRequests(params.id);
+  const { data: questionsPage } = useCustomQuestions(params.id);
 
-  const owner = role === "owner", admin = role === "admin", runs = owner || admin;
-  const done = life === "completed";
+  const [theme] = useState<'light' | 'dark'>('dark');
+
+  const role = league?.membership?.role || 'participant';
+  const owner = role === "owner";
+  const admin = role === "admin";
+  const runs = owner || admin;
+  const done = league?.lifecycleState === 'completed';
+
+  const memberCount = league?.memberCount || 1;
+  const leagueName = league?.name || 'League';
+
+  const openQuestionsCount = questionsPage?.data?.filter(q => q.phase === 'open').length || 0;
+  const pendingRequestsCount = Array.isArray(requestsData)
+    ? requestsData.filter((r: any) => r.state === 'pending').length
+    : Array.isArray(requestsData?.items)
+    ? requestsData.items.filter((r: any) => r.state === 'pending').length
+    : 0;
 
   const THIS_LEAGUE = [
-    { glyph: "?", title: "Questions", note: done ? "6 season-long questions, all resolved" : "Season-long questions, scored separately from fixtures", badge: done ? "" : "2 OPEN", tone: done ? "" : "live", href: `/leagues/${params.id}/questions` },
+    {
+      glyph: "?",
+      title: "Questions",
+      note: done ? "Season questions, all resolved" : "Season-long questions, scored separately from fixtures",
+      badge: done ? "" : openQuestionsCount > 0 ? `${openQuestionsCount} OPEN` : "",
+      tone: done ? "" : "live",
+      href: `/leagues/${params.id}/questions`
+    },
     { glyph: "§", title: "Rules", note: "Markets, points, tiebreakers and deadlines — frozen at publication", href: `/leagues/${params.id}/rules` },
-    { glyph: "◍", title: "Members", note: done ? "128 members · final roster" : "128 members · 2 admins", href: `/leagues/${params.id}/admin` }
+    { glyph: "◍", title: "Members", note: done ? `${memberCount} members · final roster` : `${memberCount} members · admin settings`, href: `/leagues/${params.id}/admin` }
   ];
 
   const RUNNING_IT = [
-    { glyph: "↗", title: "Invitation links", note: "Share, or revoke a link you have shared", badge: "2 LIVE" },
-    { glyph: "✓", title: "Join requests", note: "People waiting for you or an admin to approve", badge: "2 WAITING", tone: "live" },
-    { glyph: "⚙", title: "League settings", note: "Name, description and whether new members need approval" }
+    { glyph: "↗", title: "Invitation links", note: "Share, or revoke a link you have shared", badge: "LIVE", href: `/leagues/${params.id}/admin` },
+    {
+      glyph: "✓",
+      title: "Join requests",
+      note: "People waiting for you or an admin to approve",
+      badge: pendingRequestsCount > 0 ? `${pendingRequestsCount} WAITING` : "",
+      tone: pendingRequestsCount > 0 ? "live" : "",
+      href: `/leagues/${params.id}/admin`
+    },
+    { glyph: "⚙", title: "League settings", note: "Name, description and whether new members need approval", href: `/leagues/${params.id}/rules` }
   ];
 
   const ENDING_OWNER = [
-    { glyph: "◆", title: done ? "Archive this league" : "Complete this league", note: done ? "Tidy it out of active lists. Nothing is deleted and the table stays readable." : "Available once every fixture and question has settled", tone: "quiet" },
-    { glyph: "✕", title: "Cancel this league", note: "Voids every prediction and every point, for all 128 members", tone: "danger" }
+    { glyph: "◆", title: done ? "Archive this league" : "Complete this league", note: done ? "Tidy it out of active lists. Nothing is deleted and the table stays readable." : "Available once every fixture and question has settled", tone: "quiet", href: `/leagues/${params.id}/admin` },
+    { glyph: "✕", title: "Cancel this league", note: `Voids every prediction and every point, for all ${memberCount} members`, tone: "danger", href: `/leagues/${params.id}/admin` }
   ];
   
   const ENDING_MEMBER = [
@@ -98,12 +131,12 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
 
   const tabs = [
     { label: "OVERVIEW", ic: "overview", on: false, b: "" },
-    { label: "FIXTURES", ic: "ball", on: false, b: done ? "" : "6" },
+    { label: "FIXTURES", ic: "ball", on: false, b: done ? "" : "" },
     { label: "TABLE", ic: "table", on: false, b: "" },
     { label: "MORE", ic: "more", on: true, b: "" }
   ];
 
-  const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map((it) => {
+  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map((it) => {
     const label = it[0], id = it[1], badge = it[2];
     return {
       label, id, badge,
@@ -120,27 +153,27 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
 
   const propsMobile = {
     theme, params, owner, admin, runs, done,
-    groups: groupsMobile, roleLabel, lifecycleLabel, footNote, IconMap, tabs
+    groups: groupsMobile, roleLabel, lifecycleLabel, footNote, IconMap, tabs,
+    leagueName
   };
 
   const propsDesktop = {
-    theme, rootNav, avatarInitials: "KA", avatarName: "Kolade", showContext: true,
-    contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, done ? "" : "6"), tabItem("Table", false, ""), tabItem("Questions", false, done ? "" : "2"), tabItem("More", true, "")],
+    theme, rootNav, avatarInitials: (user?.displayName || "KA").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "Kolade", showContext: true,
+    contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, ""), tabItem("Table", false, ""), tabItem("Questions", false, openQuestionsCount > 0 ? String(openQuestionsCount) : ""), tabItem("More", true, "")],
     headSub: runs ? "Everything the tabs do not carry, plus what you can change" : "Everything the tabs do not carry",
     roleLabel,
     roleChipStyle: { font: "700 9.5px 'DM Sans',sans-serif", letterSpacing: '.09em', padding: '5px 10px', borderRadius: '6px', flex: 'none', background: 'var(--surface-subtle)', color: 'var(--text-secondary)' },
     lifecycleLabel,
     lifecycleStyle: { font: "600 9.5px 'DM Sans',sans-serif", letterSpacing: '.07em', padding: '3px 9px', borderRadius: '999px', background: done ? 'var(--surface-subtle)' : 'var(--accent-surface)', color: done ? 'var(--text-muted)' : 'var(--accent-text-strong)' },
     mainGroups: groupsDesktop, endLabel: owner ? "ENDING IT" : "LEAVING", endRows: (owner ? ENDING_OWNER : ENDING_MEMBER).map(mkDesktop),
-    footNote
+    footNote,
+    leagueName,
+    memberCount,
+    params
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      
-
-
-
       <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
         <LeagueMoreMobile {...propsMobile} />
       </div>

@@ -7,7 +7,8 @@ export function LeagueAdminMobile({
   headSub, HERO, loading, onMembers, onInvites, onRequests, onLifecycle,
   members, memberFilters, invites, requests, lifecycle, actions,
   fresh, setFresh, empty, invitesOpen, setInvitesOpen,
-  sheetSpec, roles, toast
+  sheetSpec, roles, toast,
+  leagueName
 }: any) {
   const segStyle = (on: boolean) =>
     `box-border flex-1 min-w-[88px] flex items-center justify-center gap-[6px] h-[38px] rounded-t-[9px] cursor-pointer font-heading font-bold text-[11px] ${on ? 'bg-[var(--surface-canvas)] text-[var(--text-primary)] border border-b-0 border-[var(--surface-border-strong)] pb-[1px]' : 'text-[var(--nav-text-faint)]'}`;
@@ -32,7 +33,7 @@ export function LeagueAdminMobile({
         <div className="flex items-center gap-[11px]">
           <Link href={`/leagues/${params.id}/more`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
           <div className="min-w-0 flex-1">
-            <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">Premier Predictors</div>
+            <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
             <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
           </div>
           <span className="tf-chip bg-[rgba(252,211,77,0.18)] text-[var(--nav-warning)] flex-none">OWNER</span>

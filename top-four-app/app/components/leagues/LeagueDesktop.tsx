@@ -10,7 +10,7 @@ export function LeagueDesktop({
   rivalKicker, rivals, gapNumber, gapColor, gapLabel, gapNote,
   resultStyle, resultKicker, resultKickerColor, resultBadgeStyle, resultBadge,
   rHomeCode, rHomeColor, rAwayCode, rAwayColor, rScore, rPointsStyle, rPoints, rPointsSub, rSummary, rBreakdown,
-  qTitle, qSub, skeletonRows, params
+  qTitle, qSub, skeletonRows, params, leagueName, memberCount
 }: any) {
 
   return (
@@ -19,9 +19,9 @@ export function LeagueDesktop({
 
       <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[20px] px-[24px] h-[54px]">
         <div className="flex items-center gap-[10px] pb-[11px] min-w-0">
-          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">PP</span>
-          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px] whitespace-nowrap">Premier Predictors</span>
-          <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">128 members</span>
+          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">{leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG'}</span>
+          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px] whitespace-nowrap">{leagueName || 'League'}</span>
+          {memberCount && <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">{memberCount} members</span>}
         </div>
         <div className="flex items-center gap-[2px] ml-auto">
           {contextTabs.map((t: any, i: number) => {

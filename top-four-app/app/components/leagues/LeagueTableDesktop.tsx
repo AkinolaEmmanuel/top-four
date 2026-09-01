@@ -8,7 +8,7 @@ export function LeagueTableDesktop({
   refreshing, refresh, nudge, isReady,
   listRef, cols, legend, skeletons, rows, tiebreakers, showTies,
   hasStanding, selfPos, selfMove, selfCells, prevPage, nextPage,
-  prevStyle, nextStyle, prevLabel, nextLabel, jumpToMe
+  prevStyle, nextStyle, prevLabel, nextLabel, jumpToMe, leagueName, memberCount
 }: any) {
 
   return (
@@ -17,9 +17,9 @@ export function LeagueTableDesktop({
 
       <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[22px] px-[24px] h-[54px]">
         <div className="flex items-center gap-[10px] pb-[11px]">
-          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">PP</span>
-          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">Premier Predictors</span>
-          <span className="text-[11px] text-[var(--text-muted)]">128 members</span>
+          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">{leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG'}</span>
+          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">{leagueName || 'League'}</span>
+          {memberCount && <span className="text-[11px] text-[var(--text-muted)]">{memberCount} members</span>}
           <span className="text-[9px] text-[var(--text-muted)] cursor-pointer">▾</span>
         </div>
         <div className="flex items-center gap-[2px] ml-auto">

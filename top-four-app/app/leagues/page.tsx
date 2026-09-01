@@ -30,7 +30,7 @@ export default function LeaguesPage() {
   const visible = SECTIONS.filter(([label]) => filter === "All" || filter === label || (filter === "Pending" && label === "Waiting on approval"));
 
   const rowMap = (r: any, i: number, a: any[]) => ({
-    crest: r.crest, crestBg: r.bg, name: r.name, meta: r.meta,
+    id: r.id, crest: r.crest, crestBg: r.bg, name: r.name, meta: r.meta,
     role: r.role || "", value: r.value, sub: r.sub || "", action: r.action, muted: r.muted,
     isLast: i === a.length - 1
   });
@@ -41,6 +41,7 @@ export default function LeaguesPage() {
     
     leaguesData.items.forEach(league => {
       const item = {
+        id: league.id,
         crest: league.name.substring(0, 2).toUpperCase(),
         bg: CLUB[league.name.substring(0, 2).toUpperCase()] || "#0879bf",
         name: league.name,
