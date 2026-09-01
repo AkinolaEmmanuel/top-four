@@ -5,7 +5,7 @@ import Link from 'next/link';
 export function LeagueMobile({
   theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
   heroTone, heroData, pct, rivals, RESULT, nailed, rBreakdown, unanswered,
-  IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel
+  IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel, heroCtaHref
 }: any) {
 
   return (
@@ -78,7 +78,7 @@ export function LeagueMobile({
                   <span className="tf-num font-heading font-bold text-[11px] flex-none">{heroData[3]}</span>
                 </div>
 
-                <Link href={`/predict/fixture/ARS`} className={`mt-[16px] h-[48px] rounded-[13px] grid place-items-center cursor-pointer font-heading font-bold text-[14px] tracking-[-0.1px] ${caught ? 'border border-[var(--nav-border)] text-[var(--nav-text)]' : 'bg-[var(--nav-accent)] text-[var(--nav-on-accent)]'}`}>
+                <Link href={heroCtaHref || `/predict`} className={`mt-[16px] h-[48px] rounded-[13px] grid place-items-center cursor-pointer font-heading font-bold text-[14px] tracking-[-0.1px] ${caught ? 'border border-[var(--nav-border)] text-[var(--nav-text)]' : 'bg-[var(--nav-accent)] text-[var(--nav-on-accent)]'}`}>
                   {heroData[4]}
                 </Link>
                 <div className="text-[10.5px] leading-[1.5] text-[var(--nav-text-faint)] mt-[10px]">{heroData[5]}</div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PlayerPickerMobile } from '../../../../components/predict/PlayerPickerMobile';
 import { PlayerPickerDesktop } from '../../../../components/predict/PlayerPickerDesktop';
 import { useFixtureSquads } from '@/hooks/api/useFixtures';
@@ -8,6 +9,10 @@ import { useFixtureSquads } from '@/hooks/api/useFixtures';
 const TINTS = ["var(--ident-1)", "var(--ident-2)", "var(--ident-3)", "var(--ident-4)", "var(--ident-5)", "var(--ident-6)", "var(--ident-7)"];
 
 export default function PlayerPickerPage({ params }: { params: { id: string } }) {
+  const searchParams = useSearchParams();
+  const leagueId = searchParams?.get('leagueId') || '';
+  const backHref = `/predict/fixture/${params.id}${leagueId ? `?leagueId=${leagueId}` : ''}`;
+
   const { data: squadsData, isLoading: squadsLoading, isError: squadsError } = useFixtureSquads(params.id);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -213,7 +218,8 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     primaryStyle: { flex: 'none', minWidth: '190px', height: '46px', padding: '0 22px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 12.5px 'DM Sans', sans-serif", letterSpacing: '.02em', background: pickedPlayer ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: pickedPlayer ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: pickedPlayer ? 'pointer' : 'not-allowed' },
     footNote: MARKET[2],
     leagueName: "League",
-    competitionLabel: `${homeName} v ${awayName}`
+    competitionLabel: `${homeName} v ${awayName}`,
+    backHref
   };
 
   return (

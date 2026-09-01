@@ -169,13 +169,18 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const mResultBg = nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)";
   const dResultStyle = { borderRadius: "16px", padding: "24px 26px", color: "var(--tf-white)", background: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" };
 
+  const heroCtaHref = nextFixtureTask
+    ? `/predict/fixture/${nextFixtureTask.fixtureId || nextFixtureTask.leagueFixtureId}?leagueId=${params.id}`
+    : `/predict`;
+
   const propsMobile = {
     theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
     heroTone, heroData, pct, rivals: mobileRivals, RESULT, nailed, rBreakdown: mBreakdown, unanswered,
     IconMap, tabs, heroBg, resultBg: mResultBg, setState,
     leagueName: league?.name,
     memberCount: league?.memberCount,
-    lifecycleLabel: league?.lifecycleState?.replace('_', ' ')
+    lifecycleLabel: league?.lifecycleState?.replace('_', ' '),
+    heroCtaHref
   };
 
   const propsDesktop = {
@@ -196,6 +201,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     heroProgress: heroData[3],
     heroCtaStyle: { flex: 'none', height: '48px', minWidth: '186px', padding: '0 26px', borderRadius: '12px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 14px 'DM Sans',sans-serif", letterSpacing: '-.1px', background: caught ? 'transparent' : 'var(--nav-accent)', color: caught ? 'var(--nav-text)' : 'var(--nav-on-accent)', border: caught ? '1px solid var(--nav-border)' : 'none', boxShadow: caught ? 'none' : 'var(--elev-2)' },
     heroCta: heroData[4],
+    heroCtaHref,
     heroFoot: heroData[5],
     rivalKicker: myRow ? `YOU ARE ${myRow.pos}${myRow.pos === '1' ? 'ST' : myRow.pos === '2' ? 'ND' : myRow.pos === '3' ? 'RD' : 'TH'} OF ${liveRows.length}`.toUpperCase() : "LOADING…",
     rivals: desktopRivals,

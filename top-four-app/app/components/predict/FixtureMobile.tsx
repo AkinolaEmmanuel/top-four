@@ -6,7 +6,7 @@ export function FixtureMobile({
   theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone, 
   answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups, 
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
-  leagueName, competitionLabel
+  leagueName, competitionLabel, fixtureId, leagueId
 }: any) {
   
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB.ARS} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB.CHE} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
@@ -151,7 +151,7 @@ export function FixtureMobile({
                         ))}
                       </div>
                       {!locked && !settled ? (
-                        <Link href={`/predict/fixture/ARS/player`} className={(m as any).searchStyle}>{(m as any).search}</Link>
+                        <Link href={`/predict/fixture/${fixtureId || '1'}/player${leagueId ? `?leagueId=${leagueId}` : ''}`} className={(m as any).searchStyle}>{(m as any).search}</Link>
                       ) : (
                         <div className={(m as any).searchStyle}>{(m as any).search}</div>
                       )}
