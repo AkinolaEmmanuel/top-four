@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useCreateLeague } from '@/hooks/api/useLeagues';
+import { useCreateLeague, useCreateInvitation } from '@/hooks/api/useLeagues';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
 
@@ -65,10 +65,14 @@ const LINES = ["0.5", "1.5", "2.5", "3.5", "4.5", "5.5", "6.5", "7.5", "8.5", "9
 export default function LeagueSetupPage() {
   const router = useRouter();
   const createLeague = useCreateLeague();
+  const publishingRef = useRef(false); // double-tap guard
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [step, setStep] = useState('1');
   const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
+  const [createdLeagueName, setCreatedLeagueName] = useState<string>('');
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [copyToast, setCopyToast] = useState(false);
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -708,34 +712,89 @@ export default function LeagueSetupPage() {
           {step === 'done' && (
             <div className="animate-[tfin_0.2s_ease]">
               <section className="bg-[var(--tf-green-800)] text-[var(--tf-white)] p-[26px_var(--gutter)_24px]">
-                <div className="tf-kicker opacity-75">PUBLISHED · 16 AUGUST</div>
-                <div className="font-heading font-bold text-[27px] leading-[1.1] tracking-[-0.9px] mt-[11px]">{name} is live</div>
+                <div className="tf-kicker opacity-75">PUBLISHED · JUST NOW</div>
+                <div className="font-heading font-bold text-[27px] leading-[1.1] tracking-[-0.9px] mt-[11px]">{createdLeagueName || name} is live</div>
                 <div className="text-[12.5px] leading-[1.6] opacity-85 mt-[9px]">The rules are frozen. Send this to the people you want in — anyone with the link can ask to join.</div>
 
-                <div className="flex gap-[6px] mt-[20px]">
-                  {"SUN6QK".split("").map((ch, i) => (
-                    <div key={i} className="tf-num flex-1 h-[46px] rounded-[10px] bg-[rgba(255,255,255,.14)] grid place-items-center font-heading font-bold text-[20px]">{ch}</div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-[10px] mt-[10px]">
-                  <span className="flex-1 text-[11.5px] opacity-80 whitespace-nowrap overflow-hidden text-ellipsis">topfour.app/j/SUN-6QK</span>
-                  <span className="tf-tap font-heading font-bold text-[11px] flex-none">COPY</span>
-                </div>
-                <div className="tf-tap mt-[16px] h-[48px] rounded-[13px] bg-[var(--tf-white)] text-[var(--tf-green-800)] grid place-items-center font-heading font-bold text-[13.5px]">Share the invitation</div>
+                {inviteCode ? (
+                  <>
+                    <div className="flex gap-[6px] mt-[20px]">
+                      {inviteCode.split("").map((ch, i) => (
+                        <div key={i} className="tf-num flex-1 h-[46px] rounded-[10px] bg-[rgba(255,255,255,.14)] grid place-items-center font-heading font-bold text-[20px]">{ch}</div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-[10px] mt-[10px]">
+                      <span className="flex-1 text-[11.5px] opacity-80 whitespace-nowrap overflow-hidden text-ellipsis">topfour.app/j/{inviteCode}</span>
+                      <span
+                        className="tf-tap font-heading font-bold text-[11px] flex-none"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(`https://topfour.app/j/${inviteCode}`);
+                            setCopyToast(true);
+                            setTimeout(() => setCopyToast(false), 2000);
+                          } catch {}
+                        }}
+                      >
+                        {copyToast ? 'COPIED ✓' : 'COPY'}
+                      </span>
+                    </div>
+                    <div
+                      className="tf-tap mt-[16px] h-[48px] rounded-[13px] bg-[var(--tf-white)] text-[var(--tf-green-800)] grid place-items-center font-heading font-bold text-[13.5px]"
+                      onClick={async () => {
+                        const url = `https://topfour.app/j/${inviteCode}`;
+                        const shareData = { title: `Join ${createdLeagueName || name} on TopFour`, url };
+                        try {
+                          if (navigator.share && navigator.canShare?.(shareData)) {
+                            await navigator.share(shareData);
+                          } else {
+                            await navigator.clipboard.writeText(url);
+                            setCopyToast(true);
+                            setTimeout(() => setCopyToast(false), 2000);
+                          }
+                        } catch {}
+                      }}
+                    >
+                    Share the invitation
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-[20px] h-[46px] rounded-[10px] bg-[rgba(255,255,255,.1)] animate-pulse" />
+                )}
               </section>
 
               <section className="mt-[24px]">
                 <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">WHAT NOW</div>
                 {[
-                  ["1", "Invite the other five and approve their requests"],
-                  ["2", "Ask a custom question if you want one before Saturday"],
-                  ["3", "Answer Arsenal v Chelsea — it locks at 14:55"]
-                ].map(([num, label], i, a) => (
-                  <div key={i} className={`flex items-center gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b' : ''}`}>
-                    <span className="tf-num w-[22px] flex-none font-heading font-bold text-[11.5px] text-[var(--text-muted)]">{num}</span>
-                    <span className="flex-1 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">{label}</span>
-                    <span className="text-[13px] text-[var(--text-muted)] flex-none">›</span>
-                  </div>
+                  { num: "1", label: "Invite people to join your league", href: null, action: async () => {
+                    if (!inviteCode) return;
+                    const url = `https://topfour.app/j/${inviteCode}`;
+                    const shareData = { title: `Join ${createdLeagueName || name} on TopFour`, url };
+                    try {
+                      if (navigator.share && navigator.canShare?.(shareData)) {
+                        await navigator.share(shareData);
+                      } else {
+                        await navigator.clipboard.writeText(url);
+                        setCopyToast(true);
+                        setTimeout(() => setCopyToast(false), 2000);
+                      }
+                    } catch {}
+                  }},
+                  { num: "2", label: "Manage members and settings", href: createdLeagueId ? `/leagues/${createdLeagueId}/admin` : null },
+                  { num: "3", label: "Start making predictions", href: "/predict" },
+                ].map(({ num, label, href, action }, i, a) => (
+                  href ? (
+                    <Link key={i} href={href} className={`flex items-center gap-[12px] p-[12px_var(--gutter)] border-t border-[var(--surface-border)] ${i === a.length - 1 ? 'border-b' : ''}`}>
+                      <span className="tf-num w-[22px] flex-none font-heading font-bold text-[11.5px] text-[var(--text-muted)]">{num}</span>
+                      <span className="flex-1 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">{label}</span>
+                      <span className="text-[13px] text-[var(--text-muted)] flex-none">›</span>
+                    </Link>
+                  ) : (
+                    <div key={i} onClick={action} className={`flex items-center gap-[12px] p-[12px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b' : ''}`}>
+                      <span className="tf-num w-[22px] flex-none font-heading font-bold text-[11.5px] text-[var(--text-muted)]">{num}</span>
+                      <span className="flex-1 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">{label}</span>
+                      <span className="text-[13px] text-[var(--text-muted)] flex-none">›</span>
+                    </div>
+                  )
                 ))}
               </section>
               <div className="h-[26px]"></div>
@@ -784,7 +843,8 @@ export default function LeagueSetupPage() {
               <div className="flex gap-[8px] mt-[16px]">
                 <div onClick={() => setSheet(null)} className="tf-tap flex-1 h-[48px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px]">Keep editing</div>
                 <div onClick={() => {
-                  if (createLeague.isPending) return;
+                  if (createLeague.isPending || publishingRef.current) return;
+                  publishingRef.current = true;
                   const idempotencyKey = crypto.randomUUID();
                   const MARKET_MAP: Record<string, string> = {
                     result: 'match_result',
@@ -832,11 +892,29 @@ export default function LeagueSetupPage() {
                       standardLock: { kind: LOCK_MAP[lock] || 'minutes_5' }
                     }
                   };
+                  // Close the modal immediately so it doesn't feel stuck
+                  setSheet(null);
                   createLeague.mutate({ idempotencyKey, payload }, {
-                    onSuccess: (data) => {
+                    onSuccess: async (data) => {
                       setCreatedLeagueId(data.id);
+                      setCreatedLeagueName(data.name);
                       setStep('done');
-                    }
+                      publishingRef.current = false;
+                      // Auto-create a default invitation link
+                      try {
+                        const inv = await apiFetch<any>(`/leagues/${data.id}/invitations`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ useLimit: 100 }),
+                        });
+                        // API may return joinCode, code, or shortCode
+                        const code = inv?.joinCode || inv?.code || inv?.shortCode || null;
+                        if (code) setInviteCode(code);
+                      } catch {
+                        // invitation creation failed silently; user can still manage from admin
+                      }
+                    },
+                    onError: () => { publishingRef.current = false; }
                   });
                 }} className={`tf-tap flex-1 h-[48px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12.5px] shadow-[var(--elev-glow)] ${createLeague.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   {createLeague.isPending ? 'Publishing...' : 'Publish'}

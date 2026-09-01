@@ -73,7 +73,7 @@ export function LeaguesMobile({
                   <span className="font-heading font-bold text-[9.5px] text-[var(--text-muted)] font-tabular-nums">{g.count}</span>
                 </div>
                 {g.rows.map((r: any, j: number) => (
-                  <Link href={`/leagues/1`} key={j} className={`tf-tap flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${r.isLast ? 'border-b' : ''}`} style={{ opacity: r.muted ? 0.62 : 1 }}>
+                  <Link href={`/leagues/${r.id}`} key={j} className={`tf-tap flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${r.isLast ? 'border-b' : ''}`} style={{ opacity: r.muted ? 0.62 : 1 }}>
                     <span className="tf-crest w-[30px] h-[33px]" style={{ background: r.crestBg }}>{r.crest}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-[7px]">

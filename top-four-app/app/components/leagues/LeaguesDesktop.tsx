@@ -90,7 +90,7 @@ export function LeaguesDesktop({
               </div>
 
               {g.rows.map((r: any, j: number) => (
-                <Link href={`/leagues/1`} key={j} className="grid gap-[14px] items-center p-[13px_16px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors" style={{ gridTemplateColumns: '34px minmax(0,1fr) 140px 90px 80px', opacity: r.muted ? 0.62 : 1 }}>
+                <Link href={`/leagues/${r.id}`} key={j} className="grid gap-[14px] items-center p-[13px_16px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors" style={{ gridTemplateColumns: '34px minmax(0,1fr) 140px 90px 80px', opacity: r.muted ? 0.62 : 1 }}>
                   <span className="tf-crest w-[30px] h-[33px] text-[9px]" style={{ background: r.crestBg }}>{r.crest}</span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-[8px]">

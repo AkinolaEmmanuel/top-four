@@ -5,7 +5,8 @@ import Link from 'next/link';
 export function FixtureMobile({ 
   theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone, 
   answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups, 
-  carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB
+  carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
+  leagueName, competitionLabel
 }: any) {
   
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB.ARS} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB.CHE} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
@@ -16,8 +17,8 @@ export function FixtureMobile({
         <div className="flex items-center gap-[11px]">
           <Link href="/predict" className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
           <div className="min-w-0 flex-1">
-            <div className="font-heading font-[650] text-[15px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">Premier Predictors</div>
-            <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">Premier League · Round 3</div>
+            <div className="font-heading font-[650] text-[15px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
+            <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{competitionLabel || ''}</div>
           </div>
           <div className="tf-tap w-[40px] h-[40px] grid place-items-center text-[var(--nav-text-quiet)] flex-none text-[17px]">⋯</div>
         </div>

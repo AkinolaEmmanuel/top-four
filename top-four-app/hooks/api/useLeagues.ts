@@ -13,6 +13,7 @@ import {
   removeMember,
   processJoinRequest,
   createInvitation,
+  fetchLeagueInvitations,
   fetchLeagueFixtures,
   LeagueFixture,
   LeagueFixturesPage
@@ -112,5 +113,13 @@ export function useCreateInvitation(leagueId: string) {
   return useMutation({
     mutationFn: (useLimit: number = 100) => createInvitation(leagueId, useLimit),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'invitations'] }),
+  });
+}
+
+export function useLeagueInvitations(leagueId: string) {
+  return useQuery({
+    queryKey: ['leagues', leagueId, 'invitations'],
+    queryFn: () => fetchLeagueInvitations(leagueId),
+    enabled: !!leagueId,
   });
 }

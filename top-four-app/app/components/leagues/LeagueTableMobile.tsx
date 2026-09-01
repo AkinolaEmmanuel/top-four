@@ -7,7 +7,7 @@ export function LeagueTableMobile({
   headSub, myPos, myPosLabel, myGap, refreshing, hasStanding,
   rows, TINTS, breakdown, selfBreakdown, listRef,
   page, PAGES, range, prevStyle, nextStyle, prevPage, nextPage,
-  selfOpen, setSelfOpen, setRefreshing
+  selfOpen, setSelfOpen, setRefreshing, leagueName
 }: any) {
 
   return (
@@ -16,7 +16,7 @@ export function LeagueTableMobile({
         <div className="flex items-center gap-[11px]">
           <Link href={`/leagues/${params.id}`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
           <div className="min-w-0 flex-1">
-            <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">Premier Predictors</div>
+            <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
             <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
           </div>
           <div className="tf-tap w-[40px] h-[40px] grid place-items-center text-[var(--nav-text-quiet)] flex-none text-[17px]">⋯</div>

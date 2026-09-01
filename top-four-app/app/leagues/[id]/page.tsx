@@ -172,7 +172,10 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const propsMobile = {
     theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
     heroTone, heroData, pct, rivals: mobileRivals, RESULT, nailed, rBreakdown: mBreakdown, unanswered,
-    IconMap, tabs, heroBg, resultBg: mResultBg, setState
+    IconMap, tabs, heroBg, resultBg: mResultBg, setState,
+    leagueName: league?.name,
+    memberCount: league?.memberCount,
+    lifecycleLabel: league?.lifecycleState?.replace('_', ' ')
   };
 
   const propsDesktop = {
@@ -219,7 +222,9 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     rScore: "—", rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
     rPoints: RESULT.pts, rPointsSub: "this fixture", rSummary: RESULT.summary, rBreakdown: dBreakdown,
     qTitle: "2 questions open", qSub: "Earliest closes Friday · 18 points between them",
-    skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w }))
+    skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w })),
+    leagueName: league?.name,
+    memberCount: league?.memberCount
   };
 
   return (

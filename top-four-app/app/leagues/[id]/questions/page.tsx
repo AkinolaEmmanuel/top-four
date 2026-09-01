@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { LeagueQuestionsMobile } from '../../../components/leagues/LeagueQuestionsMobile';
 import { LeagueQuestionsDesktop } from '../../../components/leagues/LeagueQuestionsDesktop';
 import { useCustomQuestions, useCreateCustomQuestion, useSubmitCustomAnswer, useResolveCustomQuestion, useOwnCustomAnswers } from '@/hooks/api/useCustomQuestions';
+import { useLeague } from '@/hooks/api/useLeagues';
+import { useAuth } from '@/context/auth-context';
 import { useParams } from 'next/navigation';
 import { STANDINGS_QUESTION_PRESETS, QuestionPreset } from '@/lib/constants/question-presets';
 
@@ -29,6 +31,8 @@ const RESOLVE_NOTES = [
 
 export default function QuestionsPage() {
   const params = useParams() as { id: string };
+  const { user } = useAuth();
+  const { data: league } = useLeague(params.id);
   const { data: questionsPage, isLoading } = useCustomQuestions(params.id);
   const createQuestion = useCreateCustomQuestion(params.id);
   const submitAnswer = useSubmitCustomAnswer(params.id);
@@ -444,11 +448,12 @@ export default function QuestionsPage() {
     qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
     qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
     spellingsList, setSpellings, match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve,
-    presets: STANDINGS_QUESTION_PRESETS, applyPreset
+    presets: STANDINGS_QUESTION_PRESETS, applyPreset,
+    leagueName: league?.name
   };
   
   const propsDesktop = {
-    theme, rootNav, avatarInitials: "KA", avatarName: "Kolade", showContext: true,
+    theme, rootNav, avatarInitials: (user?.displayName || "KA").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "Kolade", showContext: true,
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, "6"), tabItem("Table", false, ""), tabItem("Questions", true, questionBadge), tabItem("More", false, "")],
     onList, onEmpty, onCreate, onResolve,
     heroStyle: { padding: '24px 0 26px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' },
@@ -477,7 +482,10 @@ export default function QuestionsPage() {
       opacity: toast ? 1 : 0, transition: 'all .2s cubic-bezier(.1,.9,.2,1)', pointerEvents: 'none' as const, zIndex: 100,
       background: 'var(--nav-surface)', color: 'var(--nav-text)', padding: '0 18px', height: '42px', borderRadius: '21px',
       display: 'flex', alignItems: 'center', font: "700 12.5px 'DM Sans',sans-serif", boxShadow: '0 12px 24px rgba(0,0,0,.2)'
-    }
+    },
+    leagueName: league?.name,
+    memberCount: league?.memberCount,
+    params
   };
 
   return (

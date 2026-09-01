@@ -9,7 +9,8 @@ export function LeagueAdminDesktop({
   loading, onMembers, onInvites, onRequests, onLifecycle,
   members, memberFilters, invites, requests, lifecycle, actions,
   fresh, setFresh, empty, invitesOpen, setInvitesOpen,
-  sheetSpec, roles, toast
+  sheetSpec, roles, toast,
+  leagueName, leagueAbbr, params
 }: any) {
 
   const segStyle = (on: boolean) =>
@@ -36,13 +37,16 @@ export function LeagueAdminDesktop({
       {/* League context bar */}
       <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[20px] px-[24px] h-[54px]">
         <div className="flex items-center gap-[10px] pb-[11px]">
-          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">PP</span>
-          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">Premier Predictors</span>
+          <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">
+            {leagueAbbr || (leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG')}
+          </span>
+          <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">{leagueName || 'League'}</span>
           <span className="text-[11px] text-[var(--text-muted)]">You own this league</span>
         </div>
         <div className="flex items-center gap-[2px] ml-auto">
           {contextTabs.map((t: any, i: number) => {
-            const route = t.label === 'Overview' ? `/leagues/1` : `/leagues/1/${t.label.toLowerCase()}`;
+            const leagueId = params?.id || '';
+            const route = t.label === 'Overview' ? `/leagues/${leagueId}` : `/leagues/${leagueId}/${t.label.toLowerCase()}`;
             return <Link href={route} key={i} style={t.style}>{t.label}<span style={t.badgeStyle}>{t.badge}</span></Link>;
           })}
         </div>

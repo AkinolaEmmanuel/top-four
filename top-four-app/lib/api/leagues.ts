@@ -17,7 +17,10 @@ export interface League {
     displayName: string;
     slug: string;
   }[];
-  ownStanding: any;
+  ownStanding?: any;
+  memberCount?: number;
+  configuration?: any;
+  invitationSettings?: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -141,6 +144,10 @@ export async function createInvitation(leagueId: string, useLimit: number = 100)
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ useLimit }),
   });
+}
+
+export async function fetchLeagueInvitations(leagueId: string): Promise<any> {
+  return apiFetch<any>(`/leagues/${leagueId}/invitations`);
 }
 
 export async function publishLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {

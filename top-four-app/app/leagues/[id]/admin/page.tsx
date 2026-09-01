@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { LeagueAdminMobile } from '../../../components/leagues/LeagueAdminMobile';
 import { LeagueAdminDesktop } from '../../../components/leagues/LeagueAdminDesktop';
-import { useLeagueMembers, useJoinRequests, useUpdateMemberRole, useRemoveMember, useProcessJoinRequest } from '@/hooks/api/useLeagues';
+import { useLeague, useLeagueMembers, useJoinRequests, useUpdateMemberRole, useRemoveMember, useProcessJoinRequest, useLeagueInvitations, useCreateInvitation } from '@/hooks/api/useLeagues';
 import { useParams } from 'next/navigation';
 
 const BRAND = "var(--color-brand)";
@@ -42,8 +42,11 @@ const LIFECYCLE = [
 
 export default function LeagueAdminPage() {
   const params = useParams() as { id: string };
+  const { data: league } = useLeague(params.id);
   const { data: membersData, isLoading: loadingMembers } = useLeagueMembers(params.id);
   const { data: requestsData, isLoading: loadingRequests } = useJoinRequests(params.id);
+  const { data: invitationsData } = useLeagueInvitations(params.id);
+  const createInvitationMutation = useCreateInvitation(params.id);
   
   const updateRoleMutation = useUpdateMemberRole(params.id);
   const removeMemberMutation = useRemoveMember(params.id);
@@ -73,14 +76,18 @@ export default function LeagueAdminPage() {
 
   const roleColor = (r: string) => r === "Owner" ? "var(--role-owner)" : r === "Admin" ? "var(--role-admin)" : r === "Former" ? "var(--surface-border-strong)" : "var(--role-participant)";
 
+  // Derived data
+  const leagueName = league?.name || '';
+  const leagueAbbr = leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG';
+
   const dynamicMembers = (membersData?.data || []).map((m: any) => ({
     id: m.id,
     name: m.user?.displayName || "Unknown",
     role: m.role === 'OWNER' ? 'Owner' : m.role === 'ADMIN' ? 'Admin' : 'Participant',
     initials: (m.user?.displayName || "U").substring(0, 2).toUpperCase(),
-    points: 0, // In MVP, assume 0 or fetch from standings
+    points: 0,
     rank: "—",
-    you: false, // Could check if m.userId === currentUser.id
+    you: false,
     left: m.state === 'LEFT',
     joined: `Joined recently`
   }));
@@ -112,7 +119,17 @@ export default function LeagueAdminPage() {
     pick: () => setFilter(f)
   }));
 
-  const invites = INVITES.map((iv: any, i, arr) => {
+  // Real invitations from API, fallback to static
+  const dynamicInvites = (invitationsData?.data || invitationsData?.items || []).map((iv: any) => ({
+    label: iv.label || iv.note || `Link ${iv.id?.slice(-4) || ''}`,
+    meta: [
+      iv.createdAt ? `Created ${new Date(iv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : null,
+      iv.usedCount != null ? `${iv.usedCount} used` : null,
+      iv.useLimit != null ? `limit ${iv.useLimit}` : 'no limit'
+    ].filter(Boolean).join(' · '),
+    state: iv.active === false || iv.state === 'revoked' ? 'revoked' : iv.state === 'expired' ? 'expired' : 'active'
+  }));
+  const invites = (dynamicInvites.length > 0 ? dynamicInvites : INVITES).map((iv: any, i: number, arr: any[]) => {
     const active = iv.state === "active";
     return {
       label: iv.label, meta: iv.meta, active,
@@ -124,6 +141,7 @@ export default function LeagueAdminPage() {
     };
   });
 
+  // Real requests
   const dynamicRequests = (requestsData?.data || []).map((r: any) => ({
     id: r.id,
     name: r.user?.displayName || "Unknown",
@@ -159,12 +177,27 @@ export default function LeagueAdminPage() {
     }
   }));
 
-  const lifecycle = LIFECYCLE.map((l: any, i) => ({
+  // Derive lifecycle from real league data
+  const lifecycleState = league?.lifecycleState || 'draft';
+  const createdDate = league?.createdAt ? new Date(league.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'recently';
+  const LIFECYCLE_STEPS = [
+    { key: 'draft', label: 'Draft', note: `Created ${createdDate}` },
+    { key: 'published', label: 'Published', note: 'Rules frozen' },
+    { key: 'in_progress', label: 'In progress', note: 'First deadline passed' },
+    { key: 'completed', label: 'Completed', note: 'When every fixture and question settles' },
+    { key: 'archived', label: 'Archived', note: 'Optional, after completion' }
+  ];
+  const lifecycleOrder = ['draft', 'published', 'in_progress', 'completed', 'archived'];
+  const currentLifecycleIdx = lifecycleOrder.indexOf(lifecycleState);
+  const lifecycle = LIFECYCLE_STEPS.map((l, i) => ({
     label: l.label, note: l.note,
-    dotStyle: `w-[11px] h-[11px] rounded-full flex-none mt-[4px] ${l.current ? `bg-[${BRAND}] shadow-[0_0_0_4px_var(--accent-surface)]` : l.done ? "bg-[var(--color-success)]" : "border-[1.5px] border-[var(--surface-border-strong)]"}`,
-    lineStyle: `flex-1 w-[1.5px] bg-[var(--surface-border)] ${i === LIFECYCLE.length - 1 ? 'hidden' : ''}`,
-    textWrapStyle: `flex-1 ${i === LIFECYCLE.length - 1 ? 'pb-0' : 'pb-[18px]'}`,
-    labelStyle: `font-heading font-[650] text-[13.5px] tracking-[-0.2px] ${l.future ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`
+    done: i < currentLifecycleIdx,
+    current: i === currentLifecycleIdx,
+    future: i > currentLifecycleIdx,
+    dotStyle: `w-[11px] h-[11px] rounded-full flex-none mt-[4px] ${i === currentLifecycleIdx ? `bg-[${BRAND}] shadow-[0_0_0_4px_var(--accent-surface)]` : i < currentLifecycleIdx ? "bg-[var(--color-success)]" : "border-[1.5px] border-[var(--surface-border-strong)]"}`,
+    lineStyle: `flex-1 w-[1.5px] bg-[var(--surface-border)] ${i === LIFECYCLE_STEPS.length - 1 ? 'hidden' : ''}`,
+    textWrapStyle: `flex-1 ${i === LIFECYCLE_STEPS.length - 1 ? 'pb-0' : 'pb-[18px]'}`,
+    labelStyle: `font-heading font-[650] text-[13.5px] tracking-[-0.2px] ${i > currentLifecycleIdx ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`
   }));
 
   const actions = [
@@ -201,9 +234,9 @@ export default function LeagueAdminPage() {
     },
     self: { title: "You own this league", body: "An owner has to hand the league over before leaving it. Everything else here needs somebody else selected first.", primary: "Transfer ownership", secondary: "Leave league" },
     former: { title: targetWho + " has left", body: "Their history is kept and their predictions stay hidden. Rejoining restores the same points — leaving cannot reset a score.", primary: "Invite them back" },
-    clone: { title: "Clone Premier Predictors?", body: "You get a fresh draft with the same competitions, markets and points. Members, invitations and predictions do not come with it.", primary: "Create the draft" },
-    archive: { title: "Not finished yet", body: "Archiving waits until every fixture and custom question is final or void. 146 fixtures and 2 questions are still open.", primary: "Got it" },
-    cancel: { title: "Cancel Premier Predictors?", body: "This cannot be undone and the league cannot resume.", list: ["Fixtures and questions due before now still settle normally.", "Everything due later is voided — no points either way.", "New predictions, answers and questions are refused from the moment you confirm."], primary: "Cancel the league", danger: true }
+    clone: { title: `Clone ${leagueName}?`, body: "You get a fresh draft with the same competitions, markets and points. Members, invitations and predictions do not come with it.", primary: "Create the draft" },
+    archive: { title: "Not finished yet", body: "Archiving waits until every fixture and custom question is final or void. Some fixtures and questions are still open.", primary: "Got it" },
+    cancel: { title: `Cancel ${leagueName}?`, body: "This cannot be undone and the league cannot resume.", list: ["Fixtures and questions due before now still settle normally.", "Everything due later is voided — no points either way.", "New predictions, answers and questions are refused from the moment you confirm."], primary: "Cancel the league", danger: true }
   }[sheet || ""];
 
   const roles = [
@@ -220,14 +253,24 @@ export default function LeagueAdminPage() {
     };
   });
 
+  // Real counts from API
+  const memberCount = membersData?.data?.length || membersData?.total || displayMembers.filter((m: any) => !m.left).length;
+  const pendingCount = displayRequests.filter((r: any) => r.state === 'pending').length;
+  const inviteCount = (dynamicInvites.length > 0 ? dynamicInvites : INVITES).filter((iv: any) => iv.state === 'active').length;
+
   const HERO: any = {
-    members: ["128", "of 10,000 members", "1 owner · 2 admins · 125 playing", "var(--nav-text)"],
-    invites: ["2", "invitations active", "20 of 25 places used across them", "var(--nav-text)"],
-    requests: ["2", "waiting on you", "Oldest asked yesterday", "var(--nav-warning)"],
-    lifecycle: ["7", "days in progress", "Published 3 Aug · rules frozen since", "var(--nav-text)"]
+    members: [String(memberCount), "members", "in this league", "var(--nav-text)"],
+    invites: [String(inviteCount), "invitations active", "", "var(--nav-text)"],
+    requests: [String(pendingCount), "waiting on you", pendingCount > 0 ? "Oldest asked recently" : "All clear", pendingCount > 0 ? "var(--nav-warning)" : "var(--nav-text)"],
+    lifecycle: [lifecycleState === 'in_progress' ? '▶' : lifecycleState === 'completed' ? '✓' : '○', lifecycleState.replace('_', ' '), `Created ${createdDate}`, "var(--nav-text)"]
   }[tab];
 
-  const headSub: any = { members: "128 members · 2 admins", invites: "Link and code invitations", requests: "2 waiting on you", lifecycle: "In progress since 9 Aug" }[tab];
+  const headSub: any = {
+    members: `${memberCount} members`,
+    invites: "Link and code invitations",
+    requests: `${pendingCount} waiting on you`,
+    lifecycle: `${lifecycleState.replace('_', ' ')} · Created ${createdDate}`
+  }[tab];
   const onMembers = tab === "members" && !loading;
   const onInvites = tab === "invites" && !loading;
   const onRequests = tab === "requests" && !loading;
@@ -250,12 +293,16 @@ export default function LeagueAdminPage() {
 
   const heroStyle = { padding: '20px 0 22px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' };
 
+  // Tab definitions with real counts
+  // (computed here so we can use live counts)
+  
   const sharedProps = {
     theme, tab, setTab, setSheet, setWho, setRole,
     headSub, HERO, loading, onMembers, onInvites, onRequests, onLifecycle,
     members, memberFilters, invites, requests, lifecycle, actions,
     fresh, setFresh, empty, invitesOpen, setInvitesOpen,
-    sheetSpec, roles, toast
+    sheetSpec, roles, toast,
+    leagueName, leagueAbbr
   };
 
   return (

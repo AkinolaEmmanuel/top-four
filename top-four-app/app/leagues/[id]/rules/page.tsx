@@ -3,27 +3,47 @@
 import { useState } from 'react';
 import { LeagueRulesMobile } from '../../../components/leagues/LeagueRulesMobile';
 import { LeagueRulesDesktop } from '../../../components/leagues/LeagueRulesDesktop';
+import { useLeague } from '@/hooks/api/useLeagues';
+import { useAuth } from '@/context/auth-context';
 
 export default function LeagueRulesPage({ params }: { params: { id: string } }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [screen, setScreen] = useState<'rules' | 'settings' | 'participant'>('rules');
-  const [dataState, setDataState] = useState<'live' | 'loading' | 'notfound' | 'error'>('live');
+  const { user } = useAuth();
+  const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
 
-  const ds = dataState;
-  const isLoading = ds === "loading", isTerminal = ds === "notfound" || ds === "error", isReady = !isLoading && !isTerminal;
-  const isRules = screen === "rules", isOwner = screen === "settings", participant = screen === "participant";
+  const [theme] = useState<'light' | 'dark'>('dark');
+  const [screen] = useState<'rules' | 'settings' | 'participant'>('rules');
+
+  const isLoading = leagueLoading;
+  const isTerminal = leagueError || (!isLoading && !league);
+  const isReady = !isLoading && !isTerminal;
+
+  const role = league?.membership?.role || 'participant';
+  const isOwner = role === 'owner';
+  const participant = role === 'participant';
+  const isRules = screen === "rules";
+
+  const leagueName = league?.name || 'League';
+  const createdDate = league?.createdAt
+    ? new Date(league.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+    : '12 August';
 
   const LINE = "flex items-center gap-[12px] p-[16px_var(--gutter)] border-b border-[var(--surface-border)] last:border-b-0";
   const frozen = (title: string, value: string, note?: string) => ({ cls: LINE, locked: true, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "", chevron: false });
   const editable = (title: string, value: string, note?: string) => ({ cls: `${LINE} cursor-pointer`, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "text-[var(--text-link)]", chevron: true });
   const readonly = (title: string, value: string, note?: string) => ({ cls: LINE, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "", chevron: false });
 
+  // Competitions from real league
+  const compsFromLeague = league?.competitions?.length
+    ? league.competitions.map(c => frozen(c.displayName, "Full season", "2025/26"))
+    : [
+        frozen("Premier League", "Full season", "2025/26 · all 38 rounds"),
+        frozen("Champions League", "Rounds 1–8", "2025/26 · league phase only")
+      ];
+
+  const lockMinutes = league?.configuration?.standardLock?.offsetMinutes ?? 15;
+
   const RULES = [
-    { label: "Competitions", hasIntro: true, intro: "Chosen once, at publication. A league cannot gain or lose a competition afterwards.", lines: [
-      frozen("Premier League", "Full season", "2025/26 · all 38 rounds"),
-      frozen("Champions League", "Rounds 1–8", "2025/26 · league phase only"),
-      frozen("La Liga", "Round 12 only", "2025/26")
-    ]},
+    { label: "Competitions", hasIntro: true, intro: "Chosen once, at publication. A league cannot gain or lose a competition afterwards.", lines: compsFromLeague },
     { label: "Markets and points", hasIntro: true, intro: "Every enabled market and what a correct answer is worth.", lines: [
       frozen("Match result", "2 pts"),
       frozen("Exact score", "5 pts"),
@@ -34,7 +54,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
       frozen("Starting lineups", "1 pt per starter", "Both elevens, 22 points at most")
     ]},
     { label: "Timing and joining", hasIntro: false, intro: "", lines: [
-      frozen("Standard lock", "15 minutes before", "Applies to every market except the lineups"),
+      frozen("Standard lock", `${lockMinutes} minutes before`, "Applies to every market except the lineups"),
       frozen("Lineup lock", "2 hours before", "Fixed by TopFour — the standard lock never applies to it"),
       frozen("Late joining", "Permitted", "A late member starts on zero and cannot answer locked matches")
     ]},
@@ -45,25 +65,27 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     ]}
   ];
 
+  const memberCount = league?.memberCount || 1;
+
   const OWNER = [
     { label: "League", hasIntro: true, intro: "These stay editable for the life of the league.", lines: [
-      editable("Name", "Premier Predictors"),
-      editable("Description", "Office league, third season"),
-      editable("Crest colour", "Blue")
+      editable("Name", leagueName),
+      editable("Description", league?.description || "No description"),
+      editable("Crest colour", "Brand")
     ]},
     { label: "Joining", hasIntro: false, intro: "", lines: [
-      editable("Invitation links", "On", "Anyone with a link can request to join"),
-      editable("Approve new members", "Required", "You or an admin approves every request"),
-      readonly("Members", "128 of 10,000")
+      editable("Invitation links", league?.invitationSettings?.enabled === false ? "Off" : "On", "Anyone with a link can request to join"),
+      editable("Approve new members", league?.invitationSettings?.joinApprovalRequired ? "Required" : "Automatic", "You or an admin approves every request"),
+      readonly("Members", `${memberCount} members`)
     ]},
     { label: "Notifications", hasIntro: true, intro: "Applies to your own email only. Other members choose their own.", lines: [
       editable("Deadline reminders", "On", "We never promise a send time"),
       editable("Results and corrections", "On")
     ]},
-    { label: "Frozen at publication", hasIntro: true, intro: "Locked on 12 August. Cloning the league is the only way to play these rules differently.", lines: [
-      frozen("Competitions", "3 selected"),
+    { label: "Frozen at publication", hasIntro: true, intro: `Locked on ${createdDate}. Cloning the league is the only way to play these rules differently.`, lines: [
+      frozen("Competitions", `${league?.competitions?.length || 1} selected`),
       frozen("Markets and points", "7 enabled · 40 max"),
-      frozen("Standard lock", "15 minutes before"),
+      frozen("Standard lock", `${lockMinutes} minutes before`),
       frozen("Late joining", "Permitted"),
       frozen("Tiebreakers", "3 in order")
     ]}
@@ -75,11 +97,11 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
       editable("Results and corrections", "On")
     ]},
     { label: "This league", hasIntro: true, intro: "Read-only for you. The owner can change the first three; nothing can change the rest.", lines: [
-      readonly("Name", "Premier Predictors"),
-      readonly("Approve new members", "Required"),
-      readonly("Members", "128"),
+      readonly("Name", leagueName),
+      readonly("Approve new members", league?.invitationSettings?.joinApprovalRequired ? "Required" : "Automatic"),
+      readonly("Members", String(memberCount)),
       frozen("Markets and points", "7 enabled · 40 max"),
-      frozen("Standard lock", "15 minutes before")
+      frozen("Standard lock", `${lockMinutes} minutes before`)
     ]}
   ];
 
@@ -88,7 +110,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const TERM = {
     notfound: ["ghost", "var(--text-muted)", "Not found, or no longer available", "This league either does not exist or is not one you can see. TopFour does not say which — that distinction would itself leak who is in which league.", "BACK TO MY LEAGUES"],
     error: ["warning", "var(--warn-text)", "The rules didn't load", "Check your connection and try again. Nothing about the league has changed.", "RETRY"]
-  }[isTerminal ? ds : "error"];
+  }[isTerminal ? "error" : "error"];
 
   const IconMap: Record<string, any> = {
     lock: (size: number) => (
@@ -117,7 +139,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   };
 
   const headTitle = isRules ? "League rules" : "League settings";
-  const headSub = isRules ? "Premier Predictors · frozen 12 August" : `Premier Predictors · ${isOwner ? "owner" : "participant"}`;
+  const headSub = isRules ? `${leagueName} · frozen ${createdDate}` : `${leagueName} · ${isOwner ? "owner" : "participant"}`;
   
   const frozenText = isRules
     ? "Everything here was fixed when the league was published. It cannot be changed for this league — cloning creates a new one with different rules."
@@ -136,7 +158,6 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const footNote = isRules ? "Shown to every member, in the same words. Nobody plays to different rules." : "Changes save one at a time and take effect immediately.";
 
   // --- Desktop Specific Logic ---
-
   const MARKETS = [
     { name: "Match result", note: "Home, draw or away", pts: 2, color: "var(--cat-1)" },
     { name: "Exact score", note: "Both teams' goals", pts: 5, color: "var(--cat-6)" },
@@ -147,11 +168,16 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     { name: "Correct lineup starter", note: "Per player, across both elevens", pts: 1, perPlayer: true, color: "var(--cat-7)" }
   ];
 
-  const COMPS = [
-    { abbr: "EPL", name: "English Premier League", scope: "Whole season · 38 rounds" },
-    { abbr: "UCL", name: "UEFA Champions League", scope: "Matchdays 1–8" },
-    { abbr: "FA", name: "FA Cup", scope: "From the third round" }
-  ];
+  const COMPS = league?.competitions?.length
+    ? league.competitions.map(c => ({
+        abbr: c.displayName.substring(0, 3).toUpperCase(),
+        name: c.displayName,
+        scope: "Whole season"
+      }))
+    : [
+        { abbr: "EPL", name: "English Premier League", scope: "Whole season · 38 rounds" },
+        { abbr: "UCL", name: "UEFA Champions League", scope: "Matchdays 1–8" }
+      ];
 
   const enabled = MARKETS.filter(m => !m.off);
   const maxPointsDesktop = enabled.reduce((a, m) => a + m.pts * (m.perPlayer ? 22 : 1), 0);
@@ -171,7 +197,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   ];
 
   const deadlinesDesktop = [
-    { label: "Standard lock", value: "5 min", note: "before each kick-off" },
+    { label: "Standard lock", value: `${lockMinutes} min`, note: "before each kick-off" },
     { label: "Lineups", value: "2 hours", note: "always, whatever the standard lock is" },
     { label: "Custom questions", value: "Per question", note: "set when the question is written" }
   ];
@@ -189,10 +215,10 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     { label: "League name and description", note: "Members see the change immediately" },
     { label: "Invitation links", note: "Create, share or revoke" },
     { label: "Admins", note: "Promote or demote members" },
-    { label: "Approval for new members", note: "Currently on" }
+    { label: "Approval for new members", note: league?.invitationSettings?.joinApprovalRequired ? "Currently on" : "Currently off" }
   ];
 
-  const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map((it) => {
+  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map((it) => {
     const label = it[0], id = it[1], badge = it[2];
     return {
       label, id, badge,
@@ -205,23 +231,24 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     label, style: { padding: '0 13px', height: '43px', display: 'flex', alignItems: 'center', fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
   });
 
-  const TERM_ICON = IconMap[TERM[0] as string] ? IconMap[TERM[0] as string](34) : null;
   const TERM_ICON_DESKTOP = IconMap[TERM[0] as string] ? IconMap[TERM[0] as string](40) : null;
 
   const propsMobile = {
     theme, params, isLoading, isTerminal, isReady, isRules, isOwner,
-    ds, IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
-    showDanger, sections, dangerLines: dangerLinesMobile, footNote, retry: () => setDataState('live'), dataState
+    ds: isTerminal ? 'error' : isLoading ? 'loading' : 'live',
+    IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
+    showDanger, sections, dangerLines: dangerLinesMobile, footNote, retry: () => {}, dataState: 'live',
+    leagueName
   };
 
   const propsDesktop = {
-    theme, rootNav, avatarInitials: participant ? "TU" : "KA", avatarName: participant ? "Tunde" : "Kolade",
-    showContext: ds !== "notfound", roleLine: participant ? "You play in this league" : "You own this league",
+    theme, rootNav, avatarInitials: (user?.displayName || "KA").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "Kolade",
+    showContext: !isTerminal, roleLine: participant ? "You play in this league" : isOwner ? "You own this league" : "You are an admin",
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", false), tabItem("Table", false), tabItem("Questions", false), tabItem("More", true)],
     isLoading, skeletons: [{ w: "58%" }, { w: "70%" }, { w: "46%" }, { w: "64%" }],
     isTerminal, termIcon: TERM_ICON_DESKTOP, termIconColor: TERM[1], termTitle: TERM[2], termBody: TERM[3], termAction: TERM[4],
     termActionStyle: { marginTop: "24px", padding: "0 22px", height: "48px", borderRadius: "13px", border: "1px solid var(--surface-border-strong)", background: "var(--surface-card)", display: "grid", placeItems: "center", font: "700 12.5px 'DM Sans',sans-serif", cursor: "pointer" },
-    retry: () => setDataState('live'),
+    retry: () => {},
     isReady, showMaxPoints: true,
     heroStyle: { flex: "none", background: "var(--nav-surface)", color: "var(--nav-text)", padding: "24px 0 26px", borderBottom: "1px solid rgba(255,255,255,.1)" },
     maxPoints: String(maxPointsDesktop), maxNote: "Five markets at " + enabled.filter(m => !m.perPlayer).reduce((a, m) => a + m.pts, 0) + " points, plus twenty-two lineup places at 1 each — both elevens. Player card is not run here.",
@@ -231,15 +258,12 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     comps: COMPS.map(c => ({ abbr: c.abbr, name: c.name, scope: c.scope, abbrStyle: { width: "38px", height: "28px", borderRadius: "8px", flex: "none", display: "grid", placeItems: "center", font: "700 9.5px 'DM Sans',sans-serif", background: "var(--surface-subtle)", color: "var(--text-secondary)" } })),
     deadlines: deadlinesDesktop, showDanger: isOwner, dangerLines: dangerLinesDesktop,
     showEditable: isOwner, editable: editableDesktop, showLeave: participant,
-    footNote: participant ? "If a rule here looks wrong, it is still the rule — raise it with an admin rather than expecting a correction. Only a platform re-settlement can move points after the fact, never a league admin." : "Changing anything frozen would mean members had answered under different rules. That is why the only route is completing this league and starting another."
+    footNote: participant ? "If a rule here looks wrong, it is still the rule — raise it with an admin rather than expecting a correction. Only a platform re-settlement can move points after the fact, never a league admin." : "Changing anything frozen would mean members had answered under different rules. That is why the only route is completing this league and starting another.",
+    leagueName, params
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      
-
-
-
       <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
         <LeagueRulesMobile {...propsMobile} />
       </div>

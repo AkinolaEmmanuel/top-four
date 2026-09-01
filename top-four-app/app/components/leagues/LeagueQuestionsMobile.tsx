@@ -8,7 +8,7 @@ export function LeagueQuestionsMobile({
   qText, setQText, types, TYPE, qType, optionsList, setQOptions,
   qPoints, pointOptions, qCriteria, setQCriteria, canPublish, flash, publishAction,
   spellingsList, setSpellings, match, resolveNotesList, SHEET, toast, settleAction,
-  presets, applyPreset
+  presets, applyPreset, leagueName
 }: any) {
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
@@ -17,7 +17,7 @@ export function LeagueQuestionsMobile({
           <Link href={`/leagues/${params.id}/more`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
           <div className="min-w-0 flex-1">
             <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px]">{onCreate ? "Ask a question" : onResolve ? "Settle a question" : "Questions"}</div>
-            <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{admin ? "Premier Predictors · you are an admin" : "Premier Predictors · written and settled by admins"}</div>
+            <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{leagueName ? (admin ? `${leagueName} · you are an admin` : `${leagueName} · written and settled by admins`) : ''}</div>
           </div>
           {(onList || onEmpty) && (
             <div onClick={() => setView("create")} className="h-[32px] px-[12px] rounded-[8px] bg-[var(--nav-accent)] text-[var(--nav-on-accent)] grid place-items-center cursor-pointer font-heading font-bold text-[10px] tracking-[0.06em] flex-none">ASK</div>

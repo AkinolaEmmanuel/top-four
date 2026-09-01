@@ -5,7 +5,7 @@ import Link from 'next/link';
 export function LeagueMobile({
   theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
   heroTone, heroData, pct, rivals, RESULT, nailed, rBreakdown, unanswered,
-  IconMap, tabs, heroBg, resultBg
+  IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel
 }: any) {
 
   return (
@@ -14,10 +14,10 @@ export function LeagueMobile({
         <div className="flex items-center gap-[11px]">
           <Link href="/leagues" className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
           <div className="min-w-0 flex-1">
-            <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">Premier Predictors</div>
+            <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
             <div className="flex items-center gap-[7px] mt-[4px]">
-              <span className="inline-flex items-center h-[18px] px-[8px] rounded-[6px] font-heading font-bold text-[9.5px] leading-[1] tracking-[0.05em] bg-[var(--nav-accent)] text-[var(--nav-on-accent)]">IN PROGRESS</span>
-              <span className="font-heading font-semibold text-[9.5px] tracking-[0.07em] text-[var(--nav-text-faint)]">128 MEMBERS</span>
+              {lifecycleLabel && <span className="inline-flex items-center h-[18px] px-[8px] rounded-[6px] font-heading font-bold text-[9.5px] leading-[1] tracking-[0.05em] bg-[var(--nav-accent)] text-[var(--nav-on-accent)]">{lifecycleLabel.toUpperCase()}</span>}
+              {memberCount && <span className="font-heading font-semibold text-[9.5px] tracking-[0.07em] text-[var(--nav-text-faint)]">{memberCount} MEMBERS</span>}
             </div>
           </div>
           <div className="tf-tap w-[40px] h-[40px] grid place-items-center text-[var(--nav-text-quiet)] flex-none text-[17px]">⋯</div>

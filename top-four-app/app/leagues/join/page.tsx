@@ -11,12 +11,13 @@ export default function JoinLeaguePage() {
   const joinLeague = useJoinLeague();
   
   const [step, setStep] = useState<'signup' | 'signin' | 'code'>('code');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme] = useState<'light' | 'dark'>('dark');
   const [outcome, setOutcome] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [seconds, setSeconds] = useState(1680);
   const [inviteCode, setInviteCode] = useState('');
+  const [joinedLeague, setJoinedLeague] = useState<any>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -24,6 +25,8 @@ export default function JoinLeaguePage() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const joinedLeagueName = joinedLeague?.name || joinedLeague?.league?.name || "Your league";
 
   const OUTCOMES: any = {
     verify: {
@@ -64,18 +67,14 @@ export default function JoinLeaguePage() {
     },
     welcome: {
       tone: "var(--color-success)", icon: "✓",
-      title: "Premier Predictors is yours to play",
-      body: "Six fixtures are open right now and the first one locks in 2h 15m. Two questions are open as well.",
+      title: `${joinedLeagueName} is yours to play`,
+      body: "You have joined the league. Fixtures and questions are ready for predictions.",
       primary: "Start predicting",
-      note: "You joined mid-season, so the rounds already played are not yours to score."
+      note: "You are in. The next round of fixtures will be scored for you."
     }
   };
 
-  const MY_LEAGUES = [
-    ["Office League", "Round 12 of 38 · 4th of 22", "LEAVE", "var(--ident-2)", "OL"],
-    ["Alumni League", "Round 3 of 38 · 18th of 64", "LEAVE", "var(--ident-4)", "AL"],
-    ["Sunday Six", "Finished · does not count", "—", "var(--ident-6)", "SS"]
-  ];
+  const MY_LEAGUES: any[] = [];
 
   const onOutcome = outcome !== null;
   const o = outcome ? OUTCOMES[outcome] : {};
@@ -94,8 +93,8 @@ export default function JoinLeaguePage() {
     : ["YOU HAVE BEEN INVITED TO", "var(--nav-accent)"];
 
   const facts = joined
-    ? [["129", "MEMBERS"], ["6", "OPEN NOW"], ["3", "COMPETITIONS"]]
-    : [["128", "MEMBERS"], ["3", "COMPETITIONS"], ["38", "ROUNDS"]];
+    ? [[String(joinedLeague?.memberCount || "1"), "MEMBERS"], ["3", "COMPETITIONS"], ["38", "ROUNDS"]]
+    : [["1", "MEMBERS"], ["3", "COMPETITIONS"], ["38", "ROUNDS"]];
 
   const TAGS = joined
     ? [["JOINED TODAY", "ok"]]
@@ -112,7 +111,7 @@ export default function JoinLeaguePage() {
   }));
 
   const chromeRight = onOutcome ? "" : step === "signin" ? "Sign in" : step === "code" ? "Join by code" : "Invitation";
-  const leagueName = concealed ? "This invitation" : (byCode ? "Which league?" : "Premier Predictors");
+  const leagueName = concealed ? "This invitation" : (byCode ? "Which league?" : joinedLeagueName);
 
   const trySignin = () => {
     if (attempts < 2) setAttempts(a => a + 1);
@@ -121,11 +120,16 @@ export default function JoinLeaguePage() {
   const handleJoinCode = () => {
     if (inviteCode.length !== 6 || joinLeague.isPending) return;
     joinLeague.mutate(inviteCode, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
+        setJoinedLeague(data);
         setOutcome("welcome");
       },
-      onError: () => {
-        setOutcome("dead");
+      onError: (err: any) => {
+        if (err?.message?.includes('closed') || err?.status === 409) {
+          setOutcome("closed");
+        } else {
+          setOutcome("dead");
+        }
       }
     });
   };
