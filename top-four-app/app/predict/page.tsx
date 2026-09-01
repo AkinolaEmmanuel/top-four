@@ -44,7 +44,8 @@ export default function PredictPage() {
         when: isToday ? "today" : "week", // simplified logic
         group: isToday ? "Locking today" : "This week",
         time: `${deadline.getHours()}:${deadline.getMinutes().toString().padStart(2, '0')}`,
-        id: isQuestion ? (t as any).question.id : (t as any).fixtureId,
+        id: isQuestion ? (t as any).question.id : (t as any).fixtureId || (t as any).leagueFixtureId,
+        leagueId: t.league.id,
         kind: isQuestion ? "question" : "match",
         home: homeCode,
         away: awayCode,
@@ -53,7 +54,10 @@ export default function PredictPage() {
         urgent: isToday,
         missing: `${missingCount} missing`,
         done: 0, // Need prediction progress from API
-        total: missingCount
+        total: missingCount,
+        href: isQuestion
+          ? `/leagues/${t.league.id}/questions`
+          : `/predict/fixture/${(t as any).fixtureId || (t as any).leagueFixtureId}?leagueId=${t.league.id}`
       };
     });
   }, [tasksData]);
@@ -66,7 +70,7 @@ export default function PredictPage() {
       const q = t.kind === "question";
       return {
         title: t.title, meta: t.league, time: t.time, missing: t.missing, urgent: t.urgent,
-        homeCode: q ? "" : t.home, awayCode: q ? "" : t.away,
+        homeCode: q ? "" : t.home, awayCode: q ? "" : t.away, href: t.href,
         markWrapStyle: `flex flex-col gap-[3px] flex-none w-[26px]`,
         homeStyle: q ? 'hidden' : `w-[26px] h-[28px]`,
         homeBg: q ? '' : CLUB[t.home as string],
@@ -92,7 +96,7 @@ export default function PredictPage() {
       const q = i.kind === "question";
       const pct = Math.round(i.done / i.total * 100);
       return {
-        fixture: i.title, league: i.league, homeCode: q ? "" : i.home, awayCode: q ? "" : i.away,
+        fixture: i.title, league: i.league, homeCode: q ? "" : i.home, awayCode: q ? "" : i.away, href: i.href,
         markWrapStyle: { width: '52px', height: '44px', flex: 'none', position: 'relative' as any },
         homeStyle: q ? { display: 'none' } : { position: 'absolute' as any, left: 0, top: 0, width: '30px', height: '32px', background: CLUB[i.home as string] },
         awayStyle: q ? { display: 'none' } : { position: 'absolute' as any, right: 0, bottom: 0, width: '30px', height: '32px', background: CLUB[i.away as string] },
@@ -164,6 +168,7 @@ export default function PredictPage() {
     heroNum: String(openCount),
     heroSub: "markets still unanswered",
     heroCtaStyle: { flex: 'none', height: '42px', padding: '0 20px', borderRadius: '11px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 12.5px 'DM Sans', sans-serif", background: 'var(--nav-accent)', color: 'var(--nav-on-accent)' },
+    heroCtaHref: tasksToUse[0]?.href || '/leagues',
     urgentText: "",
     urgentSub: "",
 

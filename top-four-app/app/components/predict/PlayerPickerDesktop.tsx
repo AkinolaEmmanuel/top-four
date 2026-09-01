@@ -7,7 +7,8 @@ export function PlayerPickerDesktop({
   chips, isLoading, groups, pickedPlayer, setDataState, searchIcon,
   contextTabs, rootNav, ghostRows, sheetTitle, sheetSub, modalWidth, columnTemplate,
   sideChips, posChips, skeletonCols, storedStyle, storedDotStyle, storedLabel,
-  cancelStyle, primaryStyle, primaryLabel, footNote, leagueName, competitionLabel
+  cancelStyle, primaryStyle, primaryLabel, footNote, leagueName, competitionLabel,
+  backHref
 }: any) {
   
   return (
@@ -49,7 +50,7 @@ export function PlayerPickerDesktop({
                   <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.35px]">{sheetTitle}</div>
                   <div className="text-[12.5px] text-[var(--text-secondary)] mt-[5px]">{sheetSub}</div>
                 </div>
-                <Link href="/predict/fixture/ARS" className="w-[34px] h-[34px] rounded-full border border-[var(--surface-border-strong)] grid place-items-center text-[14px] text-[var(--text-secondary)] cursor-pointer flex-none hover:bg-[var(--surface-subtle)] transition-colors">×</Link>
+                <Link href={backHref || "/predict"} className="w-[34px] h-[34px] rounded-full border border-[var(--surface-border-strong)] grid place-items-center text-[14px] text-[var(--text-secondary)] cursor-pointer flex-none hover:bg-[var(--surface-subtle)] transition-colors">×</Link>
               </div>
 
               <div className="flex items-center gap-[10px] h-[44px] mt-[15px] px-[14px] border border-[var(--surface-border-strong)] rounded-[11px]">
@@ -135,8 +136,8 @@ export function PlayerPickerDesktop({
                   <span style={storedDotStyle}></span>
                   <span>{storedLabel}</span>
                 </div>
-                <Link href="/predict/fixture/ARS" style={cancelStyle}>Cancel</Link>
-                <Link href="/predict/fixture/ARS" style={primaryStyle}>{primaryLabel}</Link>
+                <Link href={backHref || "/predict"} style={cancelStyle}>Cancel</Link>
+                <Link href={backHref || "/predict"} style={primaryStyle}>{primaryLabel}</Link>
               </div>
               <div className="text-[11px] leading-[1.55] text-[var(--text-muted)] mt-[12px]">{footNote}</div>
             </div>

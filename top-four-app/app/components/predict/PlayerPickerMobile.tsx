@@ -4,14 +4,14 @@ import Link from 'next/link';
 
 export function PlayerPickerMobile({
   theme, MARKET, CLUB, searching, ds, termIcon, TERM, isTerminal, isReady,
-  chips, isLoading, groups, pickedPlayer, setDataState, searchIcon
+  chips, isLoading, groups, pickedPlayer, setDataState, searchIcon, backHref
 }: any) {
   
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
       <header className="bg-[var(--nav-surface)] text-[var(--nav-text)] p-[8px_var(--gutter)_14px] flex-none">
         <div className="flex items-center gap-[11px]">
-          <Link href="/predict/fixture/ARS" className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
+          <Link href={backHref || "/predict"} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
           <div className="min-w-0 flex-1">
             <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px]">{MARKET[0]}</div>
             <div className="flex items-center gap-[7px] mt-[5px]">

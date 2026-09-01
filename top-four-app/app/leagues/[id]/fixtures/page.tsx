@@ -43,6 +43,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     group: "Upcoming Fixtures",
     note: "",
     rows: upcomingFixtures.map(f => ({
+      id: f.id,
       home: f.homeTeam, hc: f.homeTeamCode, away: f.awayTeam, ac: f.awayTeamCode,
       mid: f.kickoffAt ? new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "TBD",
       state: f.predictionState || "open",
@@ -54,6 +55,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     group: "Past Fixtures",
     note: "",
     rows: pastFixtures.map(f => ({
+      id: f.id,
       home: f.homeTeam, hc: f.homeTeamCode, away: f.awayTeam, ac: f.awayTeamCode,
       mid: f.score ? `${f.score.home} — ${f.score.away}` : "—",
       state: f.predictionState || "lost",
@@ -90,7 +92,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
         action: r.action,
         actionStyle: "font-heading font-bold text-[10px] text-[var(--text-link)] flex-none",
         rowStyle: `p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${i === a.length - 1 ? 'border-b' : ''} ${r.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`,
-        onClick: () => router.push(results ? `/fixtures/${r.hc}/results` : `/predict/fixture/${r.hc}`)
+        onClick: () => router.push(results ? `/fixtures/${r.id}/results` : `/predict/fixture/${r.id}?leagueId=${params.id}`)
       };
     })
   })).filter(g => g.rows.length > 0);
@@ -120,7 +122,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
         action: r.action,
         actionStyle: { textAlign: 'right', font: "700 10px 'DM Sans',sans-serif", letterSpacing: '.05em', color: 'var(--text-link)', cursor: 'pointer' },
         rowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', background: r.urgent ? 'var(--accent-surface)' : 'transparent', boxShadow: r.urgent ? 'inset 3px 0 0 0 var(--color-brand)' : 'none', cursor: 'pointer' },
-        onClick: () => router.push(results ? `/fixtures/${r.hc}/results` : `/predict/fixture/${r.hc}`)
+        onClick: () => router.push(results ? `/fixtures/${r.id}/results` : `/predict/fixture/${r.id}?leagueId=${params.id}`)
       };
     }).map(r => ({ ...r, rowStyle: { ...r.rowStyle, ...Object.fromEntries(GRID.split(' ').filter(c => c.startsWith('grid') || c.startsWith('gap') || c.startsWith('items')).map(c => [c, true])) } }))
   })).filter(g => g.rows.length > 0);

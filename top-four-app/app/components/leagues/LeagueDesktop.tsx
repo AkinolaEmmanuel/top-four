@@ -10,7 +10,7 @@ export function LeagueDesktop({
   rivalKicker, rivals, gapNumber, gapColor, gapLabel, gapNote,
   resultStyle, resultKicker, resultKickerColor, resultBadgeStyle, resultBadge,
   rHomeCode, rHomeColor, rAwayCode, rAwayColor, rScore, rPointsStyle, rPoints, rPointsSub, rSummary, rBreakdown,
-  qTitle, qSub, skeletonRows, params, leagueName, memberCount
+  qTitle, qSub, skeletonRows, params, leagueName, memberCount, heroCtaHref
 }: any) {
 
   return (
@@ -112,7 +112,7 @@ export function LeagueDesktop({
                         <div style={heroBarStyle}></div>
                       </div>
                       <span className="font-heading font-bold text-[12.5px] font-tabular-nums flex-none">{heroProgress}</span>
-                      <Link href={`/predict/fixture/ARS`} style={heroCtaStyle}>{heroCta}</Link>
+                      <Link href={heroCtaHref || `/predict`} style={heroCtaStyle}>{heroCta}</Link>
                     </div>
                   </div>
                 </div>

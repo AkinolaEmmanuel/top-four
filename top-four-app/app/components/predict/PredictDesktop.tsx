@@ -83,7 +83,7 @@ export function PredictDesktop({ state, theme, ...props }: any) {
                   <div className="font-heading font-bold text-[15px] tracking-[-0.2px]">{props.urgentText}</div>
                   <div className="text-[11.5px] text-[var(--nav-text-faint)] mt-[4px]">{props.urgentSub}</div>
                 </div>
-                <Link href="/predict/fixture/urgent" style={props.heroCtaStyle}>Start with this one</Link>
+                <Link href={props.heroCtaHref || "/predict"} style={props.heroCtaStyle}>Start with this one</Link>
               </div>
             </div>
 
@@ -102,7 +102,7 @@ export function PredictDesktop({ state, theme, ...props }: any) {
                   <span className="text-[11.5px] text-[var(--text-muted)]">{g.note}</span>
                 </div>
                 {g.items.map((it: any, j: number) => (
-                  <Link href={`/predict/fixture/${it.homeCode || 'unknown'}`} key={j} style={it.rowStyle} className="hover:bg-[var(--surface-subtle)] transition-colors block flex items-center gap-[16px]">
+                  <Link href={it.href || `/predict/fixture/${it.homeCode || 'unknown'}`} key={j} style={it.rowStyle} className="hover:bg-[var(--surface-subtle)] transition-colors block flex items-center gap-[16px]">
                     <div style={it.markWrapStyle}>
                       <span className="tf-crest" style={it.homeStyle}>{it.homeCode}</span>
                       <span className="tf-crest" style={it.awayStyle}>{it.awayCode}</span>

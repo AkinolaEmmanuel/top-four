@@ -72,7 +72,7 @@ export function PredictMobile({ state, theme, ...props }: any) {
                 </div>
 
                 {g.rows.map((r: any, j: number) => (
-                  <Link href={`/predict/fixture/${r.homeCode || 'unknown'}`} key={j} className={`tf-tap ${r.rowStyle}`}>
+                  <Link href={r.href || `/predict/fixture/${r.homeCode || 'unknown'}`} key={j} className={`tf-tap ${r.rowStyle}`}>
                     <div className={r.markWrapStyle}>
                       <span className={`tf-crest ${r.homeStyle}`} style={{ background: r.homeBg }}>{r.homeCode}</span>
                       <span className={`tf-crest ${r.awayStyle}`} style={{ background: r.awayBg }}>{r.awayCode}</span>
