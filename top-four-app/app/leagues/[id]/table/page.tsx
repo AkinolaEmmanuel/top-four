@@ -76,6 +76,9 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   const myPos = isEmpty ? "—" : myPosNumber ? `${myPosNumber}${myPosNumber === 1 ? 'st' : myPosNumber === 2 ? 'nd' : myPosNumber === 3 ? 'rd' : 'th'}` : "—";
   const myPosLabel = isFinal ? "WHERE YOU FINISHED" : "YOUR POSITION";
   const myPoints = `${fmt(myPointsNumber)} pts`;
+  const myName = myRow?.name || user?.displayName || '';
+  const myInitials = myRow?.initials || (user?.displayName || '??').substring(0, 2).toUpperCase();
+  const myPointsFmt = fmt(myPointsNumber);
 
   // Determine neighbour deltas
   const myIdx = allRows.findIndex(r => r.self);
@@ -153,6 +156,9 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     };
   });
 
+  const winner = allRows.find(r => r.pos === 1);
+  const winnerLine = winner ? `${fmt(winner.points)} points · ${totalMembers} members · predictions are now history` : '';
+
   const hasStanding = !isEmpty;
   const selfOnPage = !isEmpty && !isLoading && myPosNumber !== null && myPosNumber >= range[0] && myPosNumber <= range[1];
 
@@ -205,8 +211,9 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     theme, params, st: isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live', isLoading, isEmpty, isFinal, showRows,
     headSub: isFinal ? `${totalMembers} members · final` : `${totalMembers} members · updated live`,
     myPos, myPosLabel: myPosLabel.toLowerCase(),
-    myGap,
-    refreshing, hasStanding,
+    myGap, myName, myInitials, myPoints: myPointsFmt,
+    refreshing, hasStanding, totalMembers,
+    winnerName: winner?.name || '', winnerLine,
     rows: rowsMobile, TINTS, breakdown: breakdownMobile,
     selfBreakdown: breakdownMobile(myPointsNumber, true), listRef,
     page: p, PAGES: Array.from({ length: totalPages }, (_, i) => [i * pageSize + 1, Math.min((i + 1) * pageSize, totalMembers)]), range, prevStyle: prevStyleMobile, nextStyle: nextStyleMobile, prevPage, nextPage,
@@ -229,12 +236,14 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     tiebreakers: ["Total points", "Exact scores correct", "Match results correct", "Lineup players correct"].map((label, i) => ({ n: String(i + 1), label, style: { flex: 1, display: "flex", flexDirection: "column", gap: "6px", padding: "0 16px", borderLeft: i ? "1px solid var(--surface-border)" : "none", paddingLeft: i ? "16px" : 0 } })),
     showTies: !isEmpty && !isLoading,
     hasStanding, selfPos: isEmpty ? "—" : myPosNumber ? String(myPosNumber) : "—", selfMove: isEmpty ? "no points yet" : isFinal ? "final position" : "live position",
+    myName, myInitials, selfPoints: myPointsFmt,
     selfCells: splitCells(myPointsNumber, true), prevPage, nextPage,
     prevStyle: prevStyleDesktop, nextStyle: nextStyleDesktop,
     prevLabel: p > 0 ? `‹ ${(p - 1) * pageSize + 1}–${p * pageSize}` : "‹ Start",
     nextLabel: p < totalPages - 1 ? `${(p + 1) * pageSize + 1}–${Math.min((p + 2) * pageSize, totalMembers)} ›` : "End ›", jumpToMe,
     leagueName: league?.name,
-    memberCount: league?.memberCount
+    memberCount: league?.memberCount, totalMembers,
+    winnerName: winner?.name || '', winnerLine
   };
 
   return (

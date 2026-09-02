@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  fetchMyLeagues, 
-  fetchLeagueDetails, 
-  createLeague, 
-  joinLeague, 
-  League, 
-  LeaguesPage, 
+import {
+  fetchMyLeagues,
+  fetchLeagueDetails,
+  createLeague,
+  joinLeague,
+  League,
+  LeaguesPage,
   CreateLeaguePayload,
   fetchLeagueMembers,
   fetchJoinRequests,
@@ -14,9 +14,19 @@ import {
   processJoinRequest,
   createInvitation,
   fetchLeagueInvitations,
+  revokeInvitation,
   fetchLeagueFixtures,
   LeagueFixture,
-  LeagueFixturesPage
+  LeagueFixturesPage,
+  publishLeague,
+  deleteLeague,
+  cloneLeague,
+  archiveLeague,
+  cancelLeague,
+  transferOwnership,
+  leaveLeague,
+  fetchLeagueDashboard,
+  LeagueDashboard
 } from '@/lib/api/leagues';
 
 export function useMyLeagues() {
@@ -121,5 +131,88 @@ export function useLeagueInvitations(leagueId: string) {
     queryKey: ['leagues', leagueId, 'invitations'],
     queryFn: () => fetchLeagueInvitations(leagueId),
     enabled: !!leagueId,
+  });
+}
+
+export function useRevokeInvitation(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (invitationId: string) => revokeInvitation(leagueId, invitationId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'invitations'] }),
+  });
+}
+
+export function useLeagueDashboard(leagueId: string) {
+  return useQuery<LeagueDashboard, Error>({
+    queryKey: ['leagues', leagueId, 'dashboard'],
+    queryFn: () => fetchLeagueDashboard(leagueId),
+    enabled: !!leagueId,
+  });
+}
+
+export function usePublishLeague() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leagueId, idempotencyKey, expectedVersion }: { leagueId: string, idempotencyKey: string, expectedVersion: number }) =>
+      publishLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', variables.leagueId] });
+      queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] });
+    },
+  });
+}
+
+export function useDeleteLeague() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leagueId, idempotencyKey, expectedVersion }: { leagueId: string, idempotencyKey: string, expectedVersion: number }) =>
+      deleteLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
+  });
+}
+
+export function useCloneLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idempotencyKey, payload }: { idempotencyKey: string, payload: { name: string; description?: string } }) =>
+      cloneLeague(leagueId, idempotencyKey, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
+  });
+}
+
+export function useArchiveLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idempotencyKey, expectedVersion }: { idempotencyKey: string, expectedVersion: number }) =>
+      archiveLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] }),
+  });
+}
+
+export function useCancelLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idempotencyKey, expectedVersion }: { idempotencyKey: string, expectedVersion: number }) =>
+      cancelLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] }),
+  });
+}
+
+export function useTransferOwnership(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (targetMembershipId: string) => transferOwnership(leagueId, targetMembershipId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] });
+      queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'members'] });
+    },
+  });
+}
+
+export function useLeaveLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => leaveLeague(leagueId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
   });
 }

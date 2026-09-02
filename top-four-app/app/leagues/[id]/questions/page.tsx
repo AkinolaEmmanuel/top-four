@@ -453,7 +453,7 @@ export default function QuestionsPage() {
   };
   
   const propsDesktop = {
-    theme, rootNav, avatarInitials: (user?.displayName || "KA").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "Kolade", showContext: true,
+    theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "", showContext: true,
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, "6"), tabItem("Table", false, ""), tabItem("Questions", true, questionBadge), tabItem("More", false, "")],
     onList, onEmpty, onCreate, onResolve,
     heroStyle: { padding: '24px 0 26px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' },

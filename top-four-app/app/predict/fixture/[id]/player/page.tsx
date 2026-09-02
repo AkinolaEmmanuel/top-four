@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PlayerPickerMobile } from '../../../../components/predict/PlayerPickerMobile';
 import { PlayerPickerDesktop } from '../../../../components/predict/PlayerPickerDesktop';
-import { useFixtureSquads } from '@/hooks/api/useFixtures';
+import { useFixtureData } from '@/hooks/api/useFixturePrediction';
 
 const TINTS = ["var(--ident-1)", "var(--ident-2)", "var(--ident-3)", "var(--ident-4)", "var(--ident-5)", "var(--ident-6)", "var(--ident-7)"];
 
@@ -13,7 +13,7 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const leagueId = searchParams?.get('leagueId') || '';
   const backHref = `/predict/fixture/${params.id}${leagueId ? `?leagueId=${leagueId}` : ''}`;
 
-  const { data: squadsData, isLoading: squadsLoading, isError: squadsError } = useFixtureSquads(params.id);
+  const { availability, selectablePlayers, isLoading: dataLoading, isError: dataError } = useFixtureData(leagueId, params.id);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [mode, setMode] = useState<'scorer' | 'card'>('scorer');
@@ -22,34 +22,32 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const [pos, setPos] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isLoading = squadsLoading;
-  const isTerminal = squadsError;
+  const isLoading = dataLoading;
+  const isTerminal = dataError;
   const isReady = !isLoading && !isTerminal;
 
   // Build player lists from API data
-  const homeSquad = squadsData?.homeSquad;
-  const awaySquad = squadsData?.awaySquad;
-  const homeCode = homeSquad?.team.code || 'HOM';
-  const awayCode = awaySquad?.team.code || 'AWA';
-  const homeName = homeSquad?.team.displayName || 'Home Team';
-  const awayName = awaySquad?.team.displayName || 'Away Team';
-  const homeColor = homeSquad?.team.code ? `var(--club-${homeSquad.team.code.toLowerCase()}, #666)` : '#666';
-  const awayColor = awaySquad?.team.code ? `var(--club-${awaySquad.team.code.toLowerCase()}, #666)` : '#666';
+  const homeCode = availability?.homeTeam.code || 'HOM';
+  const awayCode = availability?.awayTeam.code || 'AWA';
+  const homeName = availability?.homeTeam.displayName || 'Home Team';
+  const awayName = availability?.awayTeam.displayName || 'Away Team';
+  const homeColor = availability?.homeTeam.code ? `var(--club-${availability.homeTeam.code.toLowerCase()}, #666)` : '#666';
+  const awayColor = availability?.awayTeam.code ? `var(--club-${availability.awayTeam.code.toLowerCase()}, #666)` : '#666';
 
   const CLUB: Record<string, string> = {};
-  if (homeSquad) CLUB[homeCode] = homeColor;
-  if (awaySquad) CLUB[awayCode] = awayColor;
+  if (availability?.homeTeam) CLUB[homeCode] = homeColor;
+  if (availability?.awayTeam) CLUB[awayCode] = awayColor;
 
-  const homePlayers = (homeSquad?.players || []).map(p => ({
-    id: p.id,
+  const homePlayers = (selectablePlayers?.players || []).filter(p => p.side === 'home').map(p => ({
+    id: p.playerId,
     shirt: p.shirtNumber,
     name: p.displayName,
     pos: p.position,
     initials: p.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
   }));
 
-  const awayPlayers = (awaySquad?.players || []).map(p => ({
-    id: p.id,
+  const awayPlayers = (selectablePlayers?.players || []).filter(p => p.side === 'away').map(p => ({
+    id: p.playerId,
     shirt: p.shirtNumber,
     name: p.displayName,
     pos: p.position,

@@ -3,54 +3,34 @@
 import { useState, useEffect } from 'react';
 import { LeagueAdminMobile } from '../../../components/leagues/LeagueAdminMobile';
 import { LeagueAdminDesktop } from '../../../components/leagues/LeagueAdminDesktop';
-import { useLeague, useLeagueMembers, useJoinRequests, useUpdateMemberRole, useRemoveMember, useProcessJoinRequest, useLeagueInvitations, useCreateInvitation } from '@/hooks/api/useLeagues';
-import { useParams } from 'next/navigation';
+import {
+  useLeague, useLeagueMembers, useJoinRequests, useUpdateMemberRole, useRemoveMember,
+  useProcessJoinRequest, useLeagueInvitations, useCreateInvitation, useRevokeInvitation,
+  useCloneLeague, useArchiveLeague, useCancelLeague, useLeaveLeague
+} from '@/hooks/api/useLeagues';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 
 const BRAND = "var(--color-brand)";
 
-const MEMBERS = [
-  { name: "Kolade", role: "Owner", initials: "KA", points: 846, rank: "24th", you: true, joined: "Owner since 2 Aug" },
-  { name: "Marcus Bell", role: "Admin", initials: "MB", points: 1042, rank: "1st", joined: "Joined 3 Aug" },
-  { name: "Priya Raman", role: "Admin", initials: "PR", points: 998, rank: "2nd", joined: "Joined 3 Aug" },
-  { name: "Tomás Oliveira", role: "Participant", initials: "TO", points: 961, rank: "3rd", joined: "Joined 4 Aug" },
-  { name: "Hannah Whitfield", role: "Participant", initials: "HW", points: 40, rank: "126th", joined: "Joined 6 days ago" },
-  { name: "Dan Kowalski", role: "Participant", initials: "DK", points: 0, rank: "128th", joined: "Joined yesterday" },
-  { name: "Ruth Adeyemi", role: "Former", initials: "RA", points: 512, rank: "—", left: true, joined: "Left 9 Aug · history kept" }
-];
-
-const INVITES = [
-  { label: "Work group", meta: "Created 3 Aug · 14 of 25 used", state: "active" },
-  { label: "Five-a-side lads", meta: "Created 4 Aug · 6 used · no limit", state: "active" },
-  { label: "Twitter thread", meta: "Revoked 6 Aug · 2 had already joined", state: "revoked" },
-  { label: "Family", meta: "Expired 8 Aug · never used", state: "expired" }
-];
-
-const REQUESTS = [
-  { name: "Sofia Marchetti", initials: "SM", meta: "Requested 20 minutes ago · via link", state: "pending" },
-  { name: "Ade Balogun", initials: "AB", meta: "Requested yesterday · via short code", state: "pending" },
-  { name: "Elliot Shaw", initials: "ES", meta: "Requested 2 days ago · already a member", state: "already" },
-  { name: "Nina Petrova", initials: "NP", meta: "Approved this morning by Marcus", state: "approved" }
-];
-
-const LIFECYCLE = [
-  { label: "Draft", note: "Created 2 Aug", done: true },
-  { label: "Published", note: "3 Aug · rules frozen", done: true },
-  { label: "In progress", note: "First deadline passed 9 Aug", current: true },
-  { label: "Completed", note: "When every fixture and question settles", future: true },
-  { label: "Archived", note: "Optional, after completion", future: true }
-];
-
 export default function LeagueAdminPage() {
   const params = useParams() as { id: string };
+  const router = useRouter();
+  const { user } = useAuth();
   const { data: league } = useLeague(params.id);
   const { data: membersData, isLoading: loadingMembers } = useLeagueMembers(params.id);
   const { data: requestsData, isLoading: loadingRequests } = useJoinRequests(params.id);
   const { data: invitationsData } = useLeagueInvitations(params.id);
-  const createInvitationMutation = useCreateInvitation(params.id);
-  
+
   const updateRoleMutation = useUpdateMemberRole(params.id);
   const removeMemberMutation = useRemoveMember(params.id);
   const processRequestMutation = useProcessJoinRequest(params.id);
+  const createInviteMutation = useCreateInvitation(params.id);
+  const revokeInviteMutation = useRevokeInvitation(params.id);
+  const cloneMutation = useCloneLeague(params.id);
+  const archiveMutation = useArchiveLeague(params.id);
+  const cancelMutation = useCancelLeague(params.id);
+  const leaveMutation = useLeaveLeague(params.id);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [tab, setTab] = useState<'members' | 'invites' | 'requests' | 'lifecycle'>('members');
@@ -61,6 +41,7 @@ export default function LeagueAdminPage() {
   const [role, setRole] = useState("Admin");
   const [filter, setFilter] = useState("All");
   const [fresh, setFresh] = useState(false);
+  const [latestInviteCode, setLatestInviteCode] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [invitesOpen, setInvitesOpen] = useState(true);
 
@@ -87,11 +68,11 @@ export default function LeagueAdminPage() {
     initials: (m.user?.displayName || "U").substring(0, 2).toUpperCase(),
     points: 0,
     rank: "—",
-    you: false,
+    you: !!user && m.user?.id === user.id,
     left: m.state === 'LEFT',
     joined: `Joined recently`
   }));
-  const displayMembers = dynamicMembers.length > 0 ? dynamicMembers : MEMBERS;
+  const displayMembers = dynamicMembers;
 
   const members = displayMembers.filter((m: any) => {
     if (loading) return false;
@@ -119,17 +100,19 @@ export default function LeagueAdminPage() {
     pick: () => setFilter(f)
   }));
 
-  // Real invitations from API, fallback to static
-  const dynamicInvites = (invitationsData?.data || invitationsData?.items || []).map((iv: any) => ({
-    label: iv.label || iv.note || `Link ${iv.id?.slice(-4) || ''}`,
+  // Real invitations from API. The backend does not carry a custom label per
+  // link, so the created date stands in for one.
+  const dynamicInvites = (invitationsData?.data || []).map((iv: any) => ({
+    id: iv.id,
+    label: iv.createdAt ? `Invite · ${new Date(iv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Invite',
     meta: [
       iv.createdAt ? `Created ${new Date(iv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : null,
-      iv.usedCount != null ? `${iv.usedCount} used` : null,
+      iv.usesConsumed != null ? `${iv.usesConsumed} used` : null,
       iv.useLimit != null ? `limit ${iv.useLimit}` : 'no limit'
     ].filter(Boolean).join(' · '),
-    state: iv.active === false || iv.state === 'revoked' ? 'revoked' : iv.state === 'expired' ? 'expired' : 'active'
+    state: iv.state === 'revoked' ? 'revoked' : iv.state === 'expired' || iv.state === 'exhausted' ? 'expired' : 'active'
   }));
-  const invites = (dynamicInvites.length > 0 ? dynamicInvites : INVITES).map((iv: any, i: number, arr: any[]) => {
+  const invites = dynamicInvites.map((iv: any, i: number, arr: any[]) => {
     const active = iv.state === "active";
     return {
       label: iv.label, meta: iv.meta, active,
@@ -137,19 +120,28 @@ export default function LeagueAdminPage() {
       chip: active ? "ACTIVE" : iv.state === "revoked" ? "REVOKED" : "EXPIRED",
       chipStyle: active ? "bg-[var(--color-success)] text-[var(--tf-white)]" : "border border-[var(--surface-border-strong)] text-[var(--text-muted)]",
       action: active ? "REVOKE" : "",
-      actionStyle: `font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--danger-text)] cursor-pointer mt-[7px] ${active ? '' : 'hidden'}`
+      actionStyle: `font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--danger-text)] cursor-pointer mt-[7px] ${active ? '' : 'hidden'}`,
+      revoke: () => {
+        if (!iv.id) return;
+        revokeInviteMutation.mutate(iv.id, {
+          onSuccess: () => flash("Invitation revoked"),
+          onError: () => flash("Couldn't revoke that invitation")
+        });
+      }
     };
   });
 
-  // Real requests
+  // Real requests. The join-requests API identifies the requester only by
+  // userId — it carries no display name, so the row shows a neutral label
+  // rather than a fabricated one.
   const dynamicRequests = (requestsData?.data || []).map((r: any) => ({
     id: r.id,
-    name: r.user?.displayName || "Unknown",
-    initials: (r.user?.displayName || "U").substring(0, 2).toUpperCase(),
-    meta: "Requested recently",
-    state: r.state === 'PENDING' ? 'pending' : r.state === 'APPROVED' ? 'approved' : 'rejected'
+    name: 'A member',
+    initials: '??',
+    meta: r.createdAt ? `Requested ${new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Requested recently',
+    state: r.state === 'pending' ? 'pending' : r.state === 'approved' ? 'approved' : 'rejected'
   }));
-  const displayRequests = dynamicRequests.length > 0 ? dynamicRequests : REQUESTS;
+  const displayRequests = dynamicRequests;
 
   const requests = displayRequests.filter(() => !loading).map((r: any, i: number, arr: any[]) => ({
     name: r.name, initials: r.initials, meta: r.meta, pending: r.state === "pending",
@@ -232,11 +224,45 @@ export default function LeagueAdminPage() {
         }
       }
     },
-    self: { title: "You own this league", body: "An owner has to hand the league over before leaving it. Everything else here needs somebody else selected first.", primary: "Transfer ownership", secondary: "Leave league" },
+    self: role === "Owner"
+      ? { title: "You own this league", body: "An owner has to hand the league over before leaving it. Open another member's row to transfer ownership to them first.", primary: "Got it" }
+      : { title: "Leave this league?", body: "Your predictions and points stay, without your name attached. Rejoining later starts you back on zero.", primary: "Leave league", danger: true,
+          primaryAction: () => {
+            leaveMutation.mutate(undefined, {
+              onSuccess: () => { setSheet(null); router.push('/leagues'); },
+              onError: () => flash("Couldn't leave the league")
+            });
+          }
+        },
     former: { title: targetWho + " has left", body: "Their history is kept and their predictions stay hidden. Rejoining restores the same points — leaving cannot reset a score.", primary: "Invite them back" },
-    clone: { title: `Clone ${leagueName}?`, body: "You get a fresh draft with the same competitions, markets and points. Members, invitations and predictions do not come with it.", primary: "Create the draft" },
-    archive: { title: "Not finished yet", body: "Archiving waits until every fixture and custom question is final or void. Some fixtures and questions are still open.", primary: "Got it" },
-    cancel: { title: `Cancel ${leagueName}?`, body: "This cannot be undone and the league cannot resume.", list: ["Fixtures and questions due before now still settle normally.", "Everything due later is voided — no points either way.", "New predictions, answers and questions are refused from the moment you confirm."], primary: "Cancel the league", danger: true }
+    clone: { title: `Clone ${leagueName}?`, body: "You get a fresh draft with the same competitions, markets and points. Members, invitations and predictions do not come with it.", primary: "Create the draft",
+      primaryAction: () => {
+        cloneMutation.mutate({ idempotencyKey: crypto.randomUUID(), payload: { name: `${leagueName} (copy)` } }, {
+          onSuccess: (data: any) => { setSheet(null); router.push(`/leagues/${data.id}`); },
+          onError: () => flash("Couldn't clone this league")
+        });
+      }
+    },
+    archive: league?.lifecycleState === 'completed'
+      ? { title: `Archive ${leagueName}?`, body: "History stays readable. This only hides it from your active leagues.", primary: "Archive",
+          primaryAction: () => {
+            if (league?.version == null) return;
+            archiveMutation.mutate({ idempotencyKey: crypto.randomUUID(), expectedVersion: league.version }, {
+              onSuccess: () => { setSheet(null); flash("League archived"); },
+              onError: () => flash("Couldn't archive this league")
+            });
+          }
+        }
+      : { title: "Not finished yet", body: "Archiving waits until every fixture and custom question is final or void. Some fixtures and questions are still open.", primary: "Got it" },
+    cancel: { title: `Cancel ${leagueName}?`, body: "This cannot be undone and the league cannot resume.", list: ["Fixtures and questions due before now still settle normally.", "Everything due later is voided — no points either way.", "New predictions, answers and questions are refused from the moment you confirm."], primary: "Cancel the league", danger: true,
+      primaryAction: () => {
+        if (league?.version == null) return;
+        cancelMutation.mutate({ idempotencyKey: crypto.randomUUID(), expectedVersion: league.version }, {
+          onSuccess: () => { setSheet(null); flash("League cancelled"); },
+          onError: () => flash("Couldn't cancel this league")
+        });
+      }
+    }
   }[sheet || ""];
 
   const roles = [
@@ -253,10 +279,9 @@ export default function LeagueAdminPage() {
     };
   });
 
-  // Real counts from API
   const memberCount = membersData?.data?.length || membersData?.total || displayMembers.filter((m: any) => !m.left).length;
   const pendingCount = displayRequests.filter((r: any) => r.state === 'pending').length;
-  const inviteCount = (dynamicInvites.length > 0 ? dynamicInvites : INVITES).filter((iv: any) => iv.state === 'active').length;
+  const inviteCount = dynamicInvites.filter((iv: any) => iv.state === 'active').length;
 
   const HERO: any = {
     members: [String(memberCount), "members", "in this league", "var(--nav-text)"],
@@ -293,22 +318,44 @@ export default function LeagueAdminPage() {
 
   const heroStyle = { padding: '20px 0 22px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' };
 
-  // Tab definitions with real counts
-  // (computed here so we can use live counts)
-  
+  const handleCreateInvite = () => {
+    createInviteMutation.mutate(100, {
+      onSuccess: (response: any) => {
+        const code = response?.data?.joinCode || null;
+        setLatestInviteCode(code);
+        setFresh(true);
+        flash("Invitation created");
+      },
+      onError: () => {
+        flash("Failed to create invitation");
+      }
+    });
+  };
+
+  const handleCopyInvite = () => {
+    if (!latestInviteCode) return;
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(`https://topfour.app/j/${latestInviteCode}`);
+    }
+    flash("Copied invitation link to clipboard");
+  };
+
   const sharedProps = {
     theme, tab, setTab, setSheet, setWho, setRole,
     headSub, HERO, loading, onMembers, onInvites, onRequests, onLifecycle,
     members, memberFilters, invites, requests, lifecycle, actions,
     fresh, setFresh, empty, invitesOpen, setInvitesOpen,
     sheetSpec, roles, toast,
-    leagueName, leagueAbbr
+    leagueName, leagueAbbr,
+    memberCount, inviteCount, pendingCount,
+    heroRole: (league?.membership?.role || 'owner').toUpperCase(),
+    inviteCode: latestInviteCode,
+    createInviteAction: handleCreateInvite,
+    copyInviteAction: handleCopyInvite
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      
-
 
 
       <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
@@ -318,15 +365,14 @@ export default function LeagueAdminPage() {
         <LeagueAdminDesktop
           params={params}
           rootNav={rootNav}
-          avatarInitials="KA"
-          avatarName="Kolade"
+          avatarInitials={(user?.displayName || '??').substring(0, 2).toUpperCase()}
+          avatarName={user?.displayName || ''}
           contextTabs={[tabItem("Overview",false,""),tabItem("Fixtures",false,"6"),tabItem("Table",false,""),tabItem("Questions",false,"2"),tabItem("More",true,"")]}
           heroStyle={heroStyle}
           heroBig={HERO[0]}
           heroTone={HERO[3]}
           heroLabel={HERO[1]}
           heroSub={HERO[2]}
-          heroRole="OWNER"
           {...sharedProps}
         />
       </div>

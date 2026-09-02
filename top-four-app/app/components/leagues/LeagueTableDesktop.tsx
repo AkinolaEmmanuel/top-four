@@ -8,7 +8,8 @@ export function LeagueTableDesktop({
   refreshing, refresh, nudge, isReady,
   listRef, cols, legend, skeletons, rows, tiebreakers, showTies,
   hasStanding, selfPos, selfMove, selfCells, prevPage, nextPage,
-  prevStyle, nextStyle, prevLabel, nextLabel, jumpToMe, leagueName, memberCount
+  prevStyle, nextStyle, prevLabel, nextLabel, jumpToMe, leagueName, memberCount,
+  myName, myInitials, selfPoints, winnerName, winnerLine, totalMembers
 }: any) {
 
   return (
@@ -75,8 +76,8 @@ export function LeagueTableDesktop({
           <div className="max-w-[1080px] mx-auto p-[15px_24px] flex items-center gap-[13px]">
             <span className="w-[30px] h-[30px] rounded-full bg-[var(--color-crown)] flex-none"></span>
             <div className="flex-1 flex flex-col gap-[3px]">
-              <span className="font-heading font-bold text-[15px]">Yemi wins</span>
-              <span className="text-[11.5px] text-[var(--nav-text-faint)]">1,340 points · 128 members · predictions are now history</span>
+              <span className="font-heading font-bold text-[15px]">{winnerName ? `${winnerName} wins` : 'League complete'}</span>
+              <span className="text-[11.5px] text-[var(--nav-text-faint)]">{winnerLine}</span>
             </div>
           </div>
         </div>
@@ -121,7 +122,7 @@ export function LeagueTableDesktop({
             {isEmpty && (
               <div className="p-[70px_30px] flex flex-col gap-[9px] items-center text-center">
                 <div className="font-heading font-semibold text-[17px]">Nobody has scored yet</div>
-                <div className="text-[13px] text-[var(--text-secondary)] leading-[1.55] max-w-[420px]">Everyone is on zero until the first fixture settles. All 128 members are listed in join order.</div>
+                <div className="text-[13px] text-[var(--text-secondary)] leading-[1.55] max-w-[420px]">Everyone is on zero until the first fixture settles. All {totalMembers} members are listed in join order.</div>
               </div>
             )}
 
@@ -167,10 +168,10 @@ export function LeagueTableDesktop({
             <div className="sticky bottom-0 bg-[var(--nav-surface-2)] text-[var(--nav-text)] border-t border-[rgba(255,255,255,0.16)]">
               <div className="flex items-center gap-[14px] px-[4px] h-[62px]">
                 <div className="w-[44px] flex-none"><span className="font-heading font-bold text-[15px] font-tabular-nums">{selfPos}</span></div>
-                <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand)] flex justify-center items-center text-[12px] font-heading font-bold text-[var(--color-on-brand)] flex-none">KA</div>
+                <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand)] flex justify-center items-center text-[12px] font-heading font-bold text-[var(--color-on-brand)] flex-none">{myInitials || '??'}</div>
                 <div className="flex-1 flex flex-col gap-[3px] min-w-0">
                   <div className="flex items-center gap-[7px]">
-                    <span className="font-heading font-bold text-[14px]">Kolade</span>
+                    <span className="font-heading font-bold text-[14px]">{myName || 'You'}</span>
                     <span className="font-heading font-bold text-[8.5px] tracking-[0.07em] p-[2px_5px] rounded-[4px] bg-[var(--color-brand)] text-[var(--color-on-brand)]">YOU</span>
                     <span className="w-[8px] h-[8px] rounded-full bg-[var(--role-owner)] flex-none"></span>
                   </div>
@@ -179,7 +180,7 @@ export function LeagueTableDesktop({
                 {selfCells.map((c: any, i: number) => (
                   <span key={i} style={c.style}>{c.value}</span>
                 ))}
-                <span className="w-[80px] flex-none text-right font-heading font-bold text-[18px] font-tabular-nums">846</span>
+                <span className="w-[80px] flex-none text-right font-heading font-bold text-[18px] font-tabular-nums">{selfPoints}</span>
                 <span className="w-[20px] flex-none"></span>
               </div>
             </div>

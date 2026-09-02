@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export default function EndStatesPage() {
+  if (process.env.NODE_ENV !== 'development') notFound();
   const [screen, setScreen] = useState<'completed' | 'cancelled' | 'archived' | 'unsubscribe'>('completed');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 

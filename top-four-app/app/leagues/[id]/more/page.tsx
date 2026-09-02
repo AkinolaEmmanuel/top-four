@@ -158,7 +158,7 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
   };
 
   const propsDesktop = {
-    theme, rootNav, avatarInitials: (user?.displayName || "KA").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "Kolade", showContext: true,
+    theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "", showContext: true,
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, ""), tabItem("Table", false, ""), tabItem("Questions", false, openQuestionsCount > 0 ? String(openQuestionsCount) : ""), tabItem("More", true, "")],
     headSub: runs ? "Everything the tabs do not carry, plus what you can change" : "Everything the tabs do not carry",
     roleLabel,

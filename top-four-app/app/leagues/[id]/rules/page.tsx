@@ -242,7 +242,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   };
 
   const propsDesktop = {
-    theme, rootNav, avatarInitials: (user?.displayName || "KA").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "Kolade",
+    theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "",
     showContext: !isTerminal, roleLine: participant ? "You play in this league" : isOwner ? "You own this league" : "You are an admin",
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", false), tabItem("Table", false), tabItem("Questions", false), tabItem("More", true)],
     isLoading, skeletons: [{ w: "58%" }, { w: "70%" }, { w: "46%" }, { w: "64%" }],

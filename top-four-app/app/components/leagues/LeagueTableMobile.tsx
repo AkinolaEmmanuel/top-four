@@ -7,7 +7,8 @@ export function LeagueTableMobile({
   headSub, myPos, myPosLabel, myGap, refreshing, hasStanding,
   rows, TINTS, breakdown, selfBreakdown, listRef,
   page, PAGES, range, prevStyle, nextStyle, prevPage, nextPage,
-  selfOpen, setSelfOpen, setRefreshing, leagueName
+  selfOpen, setSelfOpen, setRefreshing, leagueName, myName, myInitials, myPoints,
+  winnerName, winnerLine, totalMembers
 }: any) {
 
   return (
@@ -66,7 +67,7 @@ export function LeagueTableMobile({
         {isEmpty && (
           <div className="p-[70px_30px] flex flex-col items-center text-center">
             <div className="font-heading font-bold text-[21px] leading-[1.2] tracking-[-0.5px]">Nobody has scored yet</div>
-            <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[280px]">Everyone is on zero until the first fixture settles. All 128 members are listed in the order they joined.</div>
+            <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[280px]">Everyone is on zero until the first fixture settles. All {totalMembers} members are listed in the order they joined.</div>
           </div>
         )}
 
@@ -76,8 +77,8 @@ export function LeagueTableMobile({
               <div className="flex items-center gap-[12px] p-[14px_var(--gutter)] bg-[var(--tf-navy-800)]">
                 <span className="w-[30px] h-[30px] rounded-full bg-[var(--color-crown)] flex-none"></span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-heading font-bold text-[14px] text-[var(--tf-white)]">Yemi wins</div>
-                  <div className="text-[10.5px] text-[rgba(255,255,255,0.65)] mt-[3px]">1,340 points · 128 members · predictions are now history</div>
+                  <div className="font-heading font-bold text-[14px] text-[var(--tf-white)]">{winnerName ? `${winnerName} wins` : 'League complete'}</div>
+                  <div className="text-[10.5px] text-[rgba(255,255,255,0.65)] mt-[3px]">{winnerLine}</div>
                 </div>
               </div>
             )}
@@ -132,16 +133,16 @@ export function LeagueTableMobile({
         <div onClick={() => setSelfOpen(!selfOpen)} className="flex-none bg-[var(--tf-navy-800)] text-[var(--tf-white)] cursor-pointer">
           <div className="flex items-center gap-[11px] p-[13px_var(--gutter)]">
             <span className="tf-num w-[30px] flex-none font-heading font-bold text-[13px]">{myPos}</span>
-            <div className="w-[30px] h-[30px] rounded-full bg-[var(--color-brand)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[10px] flex-none">KA</div>
+            <div className="w-[30px] h-[30px] rounded-full bg-[var(--color-brand)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[10px] flex-none">{myInitials || '??'}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-[7px]">
-                <span className="font-heading font-bold text-[13.5px]">Kolade</span>
+                <span className="font-heading font-bold text-[13.5px]">{myName || 'You'}</span>
                 <span className="font-heading font-bold text-[8.5px] tracking-[0.07em] p-[2px_5px] rounded-[4px] bg-[var(--color-brand)] text-[var(--color-on-brand)]">YOU</span>
                 <span className="w-[7px] h-[7px] rounded-full bg-[var(--role-owner)] flex-none"></span>
               </div>
-              <div className="text-[10.5px] text-[rgba(255,255,255,0.6)] mt-[2px]">{isFinal ? "final position" : "up 2 since last visit"}</div>
+              <div className="text-[10.5px] text-[rgba(255,255,255,0.6)] mt-[2px]">{isFinal ? "final position" : "current position"}</div>
             </div>
-            <span className="tf-num font-heading font-bold text-[15px] flex-none">846</span>
+            <span className="tf-num font-heading font-bold text-[15px] flex-none">{myPoints}</span>
             <span className={`text-[12px] text-[rgba(255,255,255,0.6)] flex-none transition-transform duration-150 ${selfOpen ? 'rotate-180' : ''}`}>⌄</span>
           </div>
           {selfOpen && (
@@ -159,7 +160,7 @@ export function LeagueTableMobile({
 
       <div className="flex-none flex items-center justify-between gap-[8px] p-[10px_var(--gutter)_12px] bg-[var(--surface-card)] border-t border-[var(--surface-border)]">
         <div onClick={prevPage} className={prevStyle}>‹ Prev</div>
-        <span className="tf-num text-[11px] text-[var(--text-muted)]">{range[0]}–{range[1]} of 128</span>
+        <span className="tf-num text-[11px] text-[var(--text-muted)]">{range[0]}–{range[1]} of {totalMembers}</span>
         <div onClick={nextPage} className={nextStyle}>Next ›</div>
       </div>
     </div>

@@ -2,29 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useCreateLeague, useCreateInvitation } from '@/hooks/api/useLeagues';
+import { useCreateLeague, usePublishLeague } from '@/hooks/api/useLeagues';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
 
 const BRAND = "var(--color-brand)";
-
-const LEAGUE = [{ name: "Regular season", form: "num", rounds: 38, per: 10 }];
-const COMPS = [
-  { id: "epl", abbr: "EPL", name: "English Premier League", season: "2026/27", stages: LEAGUE },
-  {
-    id: "ucl", abbr: "UCL", name: "UEFA Champions League", season: "2026/27", stages: [
-      { name: "League phase", form: "md", rounds: 8, per: 18 },
-      { name: "Round of 16", form: "legs", rounds: 2, per: 8 },
-      { name: "Quarter-final", form: "legs", rounds: 2, per: 4 },
-      { name: "Semi-final", form: "legs", rounds: 2, per: 2 },
-      { name: "Final", form: "one", rounds: 1, per: 1 }
-    ]
-  },
-  { id: "liga", abbr: "LL", name: "La Liga", season: "2026/27", stages: LEAGUE },
-  { id: "seriea", abbr: "SA", name: "Serie A", season: "2026/27", stages: LEAGUE },
-  { id: "bundes", abbr: "BL", name: "Bundesliga", season: "2026/27", stages: [{ name: "Regular season", form: "num", rounds: 34, per: 9 }] },
-  { id: "ligue1", abbr: "L1", name: "Ligue 1", season: "2026/27", stages: [{ name: "Regular season", form: "num", rounds: 34, per: 9 }] }
-];
 
 function roundsOf(c: any) {
   const out: any[] = [];
@@ -65,6 +47,7 @@ const LINES = ["0.5", "1.5", "2.5", "3.5", "4.5", "5.5", "6.5", "7.5", "8.5", "9
 export default function LeagueSetupPage() {
   const router = useRouter();
   const createLeague = useCreateLeague();
+  const publishLeague = usePublishLeague();
   const publishingRef = useRef(false); // double-tap guard
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -72,6 +55,7 @@ export default function LeagueSetupPage() {
   const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
   const [createdLeagueName, setCreatedLeagueName] = useState<string>('');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [copyToast, setCopyToast] = useState(false);
   
   const [name, setName] = useState('');
@@ -315,7 +299,7 @@ export default function LeagueSetupPage() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{step === 'done' ? name : 'New league'}</div>
-              <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{step === 'done' ? 'Published · 16 Aug' : `Step ${step} of 5 · ${{ '1': 'Name', '2': 'Competitions', '3': 'Points', '4': 'Rules', '5': 'Review' }[step] || ''}`}</div>
+              <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{step === 'done' ? 'Published just now' : `Step ${step} of 5 · ${{ '1': 'Name', '2': 'Competitions', '3': 'Points', '4': 'Rules', '5': 'Review' }[step] || ''}`}</div>
             </div>
             <div 
               onClick={() => {
@@ -892,34 +876,51 @@ export default function LeagueSetupPage() {
                       standardLock: { kind: LOCK_MAP[lock] || 'minutes_5' }
                     }
                   };
-                  // Close the modal immediately so it doesn't feel stuck
-                  setSheet(null);
+                  setPublishError(null);
                   createLeague.mutate({ idempotencyKey, payload }, {
-                    onSuccess: async (data) => {
-                      setCreatedLeagueId(data.id);
-                      setCreatedLeagueName(data.name);
-                      setStep('done');
-                      publishingRef.current = false;
-                      // Auto-create a default invitation link
-                      try {
-                        const inv = await apiFetch<any>(`/leagues/${data.id}/invitations`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ useLimit: 100 }),
-                        });
-                        // API may return joinCode, code, or shortCode
-                        const code = inv?.joinCode || inv?.code || inv?.shortCode || null;
-                        if (code) setInviteCode(code);
-                      } catch {
-                        // invitation creation failed silently; user can still manage from admin
-                      }
+                    onSuccess: (data) => {
+                      publishLeague.mutate({
+                        leagueId: data.id,
+                        idempotencyKey: crypto.randomUUID(),
+                        expectedVersion: data.version,
+                      }, {
+                        onSuccess: async () => {
+                          setCreatedLeagueId(data.id);
+                          setCreatedLeagueName(data.name);
+                          setStep('done');
+                          setSheet(null);
+                          publishingRef.current = false;
+                          // Auto-create a default invitation link
+                          try {
+                            const inv = await apiFetch<any>(`/leagues/${data.id}/invitations`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ useLimit: 100 }),
+                            });
+                            const code = inv?.data?.joinCode || inv?.joinCode || null;
+                            if (code) setInviteCode(code);
+                          } catch {
+                            // invitation creation failed silently; user can still manage from admin
+                          }
+                        },
+                        onError: () => {
+                          publishingRef.current = false;
+                          setPublishError('The league was created but publishing failed. Try again from here.');
+                        }
+                      });
                     },
-                    onError: () => { publishingRef.current = false; }
+                    onError: () => {
+                      publishingRef.current = false;
+                      setPublishError('Something went wrong creating the league. Try again.');
+                    }
                   });
-                }} className={`tf-tap flex-1 h-[48px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12.5px] shadow-[var(--elev-glow)] ${createLeague.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  {createLeague.isPending ? 'Publishing...' : 'Publish'}
+                }} className={`tf-tap flex-1 h-[48px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12.5px] shadow-[var(--elev-glow)] ${(createLeague.isPending || publishLeague.isPending) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  {createLeague.isPending || publishLeague.isPending ? 'Publishing...' : 'Publish'}
                 </div>
               </div>
+              {publishError && (
+                <div className="mt-[10px] text-[12px] text-[var(--danger-text)] leading-[1.5]">{publishError}</div>
+              )}
             </div>
           </div>
         )}

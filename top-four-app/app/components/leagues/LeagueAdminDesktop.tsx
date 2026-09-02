@@ -10,16 +10,18 @@ export function LeagueAdminDesktop({
   members, memberFilters, invites, requests, lifecycle, actions,
   fresh, setFresh, empty, invitesOpen, setInvitesOpen,
   sheetSpec, roles, toast,
-  leagueName, leagueAbbr, params
+  leagueName, leagueAbbr, params,
+  inviteCode, createInviteAction, copyInviteAction,
+  memberCount, inviteCount, pendingCount
 }: any) {
 
   const segStyle = (on: boolean) =>
     `flex items-center gap-[7px] h-[38px] px-[16px] rounded-[8px] cursor-pointer font-heading font-bold text-[12px] ${on ? 'bg-[var(--surface-card)] text-[var(--text-primary)] border border-[var(--surface-border-strong)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`;
 
   const tabDefs = [
-    { id: "members", label: "Members", count: "128" },
-    { id: "invites", label: "Invites", count: "2" },
-    { id: "requests", label: "Requests", count: "2" },
+    { id: "members", label: "Members", count: String(memberCount ?? '') },
+    { id: "invites", label: "Invites", count: String(inviteCount ?? '') },
+    { id: "requests", label: "Requests", count: String(pendingCount ?? '') },
     { id: "lifecycle", label: "Lifecycle", count: "" }
   ].map(t => {
     const on = tab === t.id;
@@ -140,7 +142,7 @@ export function LeagueAdminDesktop({
                   <div className="font-heading font-bold text-[19px] tracking-[-0.3px]">Invitation links</div>
                   <div className="text-[12px] text-[var(--text-secondary)] mt-[4px]">Anyone with a live link can request to join. Approval is still yours.</div>
                 </div>
-                <button onClick={() => setFresh(true)} className="h-[42px] px-[16px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[12px] cursor-pointer">New invite link</button>
+                <button onClick={createInviteAction} className="h-[42px] px-[16px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[12px] cursor-pointer">New invite link</button>
               </div>
 
               {fresh && (
@@ -149,10 +151,10 @@ export function LeagueAdminDesktop({
                     <span className="tf-kicker opacity-70">SHOWN ONCE — COPY IT NOW</span>
                     <span onClick={() => setFresh(false)} className="cursor-pointer font-heading font-bold text-[10px] tracking-[0.06em] opacity-70">DONE</span>
                   </div>
-                  <div className="font-heading font-bold text-[30px] leading-[1] tracking-[2px] mt-[13px]">PPX-7T4M</div>
+                  <div className="font-heading font-bold text-[30px] leading-[1] tracking-[2px] mt-[13px]">{inviteCode || '—'}</div>
                   <div className="flex items-center gap-[10px] mt-[14px] p-[12px_13px] rounded-[11px] bg-[rgba(255,255,255,0.1)]">
-                    <span className="flex-1 text-[11.5px] opacity-85">topfour.app/j/PPX-7T4M</span>
-                    <span className="cursor-pointer font-heading font-bold text-[10.5px] flex-none">COPY</span>
+                    <span className="flex-1 text-[11.5px] opacity-85">{inviteCode ? `topfour.app/j/${inviteCode}` : 'Link unavailable'}</span>
+                    <span onClick={copyInviteAction} className="cursor-pointer font-heading font-bold text-[10.5px] flex-none">COPY</span>
                   </div>
                 </div>
               )}
@@ -165,7 +167,7 @@ export function LeagueAdminDesktop({
                       <div className="text-[11.5px] text-[var(--text-muted)] mt-[4px]">{iv.meta}</div>
                     </div>
                     <span className={`tf-chip ${iv.chipStyle}`}>{iv.chip}</span>
-                    {iv.active && <span className="font-heading font-semibold text-[11px] text-[var(--danger-text)] cursor-pointer">Revoke</span>}
+                    {iv.active && <span onClick={iv.revoke} className="font-heading font-semibold text-[11px] text-[var(--danger-text)] cursor-pointer">Revoke</span>}
                   </div>
                 ))}
               </div>
