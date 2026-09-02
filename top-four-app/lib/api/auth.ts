@@ -1,10 +1,12 @@
-import { apiFetch, setCsrfToken } from './fetcher';
+import { apiFetch, setCsrfToken, generateIdempotencyKey } from './fetcher';
 
 export interface UserProfile {
   id: string;
   email: string;
   displayName: string;
   avatarUrl?: string | null;
+  signInMethods?: string[];
+  isOperator?: boolean;
 }
 
 export async function signUp(input: {
@@ -15,7 +17,7 @@ export async function signUp(input: {
   const data = await apiFetch<{ user: UserProfile; verificationEmailScheduled: boolean }>('/auth/register', {
     method: 'POST',
     headers: {
-      'Idempotency-Key': typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2)),
+      'Idempotency-Key': generateIdempotencyKey(),
     },
     body: JSON.stringify({
       email: input.email,
@@ -59,8 +61,8 @@ export async function fetchCurrentProfile(): Promise<UserProfile | null> {
     if (data.csrfToken) {
       setCsrfToken(data.csrfToken);
     }
-    
-    return data.user;
+
+    return { ...data.user, signInMethods: data.signInMethods, isOperator: data.isOperator };
   } catch (err: any) {
     // Return null when unauthenticated (401)
     if (err.status === 401) {

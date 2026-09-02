@@ -188,3 +188,63 @@ export async function cancelLeague(leagueId: string, idempotencyKey: string, exp
     body: JSON.stringify({ expectedVersion })
   });
 }
+
+export async function revokeInvitation(leagueId: string, invitationId: string): Promise<any> {
+  return apiFetch<any>(`/leagues/${leagueId}/invitations/${invitationId}/revoke`, {
+    method: 'POST',
+  });
+}
+
+export async function transferOwnership(leagueId: string, targetMembershipId: string): Promise<any> {
+  return apiFetch<any>(`/leagues/${leagueId}/ownership-transfer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetMembershipId }),
+  });
+}
+
+export async function leaveLeague(leagueId: string): Promise<void> {
+  await apiFetch<void>(`/leagues/${leagueId}/membership`, {
+    method: 'DELETE',
+  });
+}
+
+export interface LeagueDashboard {
+  league: League;
+  competitionScopes: any[];
+  summary: {
+    activeMemberCount: number;
+    fixtureCount: number;
+    enabledMarketCount: number;
+    marketStates: {
+      open: number;
+      locked: number;
+      pendingData: number;
+      pendingReview: number;
+      settled: number;
+      void: number;
+    };
+    predictionCompleteness: {
+      required: number;
+      answered: number;
+      unanswered: number;
+      complete: boolean;
+    };
+    nextFixtureDeadlineAt: string | null;
+  };
+  ownStanding: {
+    standingVersion: number;
+    position: number;
+    membershipId: string;
+    totalPoints: number;
+    counters: Record<string, unknown>;
+    competitionPoints: any[];
+    marketPoints: any[];
+    customQuestionPoints: any;
+  } | null;
+}
+
+export async function fetchLeagueDashboard(leagueId: string): Promise<LeagueDashboard> {
+  const response = await apiFetch<{ data: LeagueDashboard }>(`/leagues/${leagueId}/dashboard`);
+  return response.data;
+}

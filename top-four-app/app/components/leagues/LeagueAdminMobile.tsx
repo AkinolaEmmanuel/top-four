@@ -8,15 +8,16 @@ export function LeagueAdminMobile({
   members, memberFilters, invites, requests, lifecycle, actions,
   fresh, setFresh, empty, invitesOpen, setInvitesOpen,
   sheetSpec, roles, toast,
-  leagueName
+  leagueName, inviteCode, createInviteAction, copyInviteAction,
+  memberCount, inviteCount, pendingCount, heroRole
 }: any) {
   const segStyle = (on: boolean) =>
     `box-border flex-1 min-w-[88px] flex items-center justify-center gap-[6px] h-[38px] rounded-t-[9px] cursor-pointer font-heading font-bold text-[11px] ${on ? 'bg-[var(--surface-canvas)] text-[var(--text-primary)] border border-b-0 border-[var(--surface-border-strong)] pb-[1px]' : 'text-[var(--nav-text-faint)]'}`;
 
   const tabDefs = [
-    { id: "members", label: "Members", count: "128" },
-    { id: "invites", label: "Invites", count: "2" },
-    { id: "requests", label: "Requests", count: "2" },
+    { id: "members", label: "Members", count: String(memberCount ?? '') },
+    { id: "invites", label: "Invites", count: String(inviteCount ?? '') },
+    { id: "requests", label: "Requests", count: String(pendingCount ?? '') },
     { id: "lifecycle", label: "Lifecycle", count: "" }
   ].map(t => {
     const on = tab === t.id;
@@ -36,7 +37,7 @@ export function LeagueAdminMobile({
             <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
             <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
           </div>
-          <span className="tf-chip bg-[rgba(252,211,77,0.18)] text-[var(--nav-warning)] flex-none">OWNER</span>
+          <span className="tf-chip bg-[rgba(252,211,77,0.18)] text-[var(--nav-warning)] flex-none">{heroRole}</span>
         </div>
 
         <div className="flex items-end gap-[11px] mt-[16px]">
@@ -109,16 +110,16 @@ export function LeagueAdminMobile({
                   <span className="tf-kicker opacity-70">SHOWN ONCE — COPY IT NOW</span>
                   <span onClick={() => setFresh(false)} className="tf-tap font-heading font-bold text-[10px] tracking-[0.06em] opacity-70">DONE</span>
                 </div>
-                <div className="font-heading font-bold text-[30px] leading-[1] tracking-[2px] mt-[13px]">PPX-7T4M</div>
+                <div className="font-heading font-bold text-[30px] leading-[1] tracking-[2px] mt-[13px]">{inviteCode || '—'}</div>
                 <div className="flex items-center gap-[10px] mt-[14px] p-[12px_13px] rounded-[11px] bg-[rgba(255,255,255,0.1)]">
-                  <span className="flex-1 text-[11.5px] opacity-85 whitespace-nowrap overflow-hidden text-ellipsis">topfour.app/j/PPX-7T4M</span>
-                  <span className="tf-tap font-heading font-bold text-[10.5px] flex-none">COPY</span>
+                  <span className="flex-1 text-[11.5px] opacity-85 whitespace-nowrap overflow-hidden text-ellipsis">{inviteCode ? `topfour.app/j/${inviteCode}` : 'Link unavailable'}</span>
+                  <span onClick={copyInviteAction} className="tf-tap font-heading font-bold text-[10.5px] flex-none">COPY</span>
                 </div>
                 <div className="text-[11.5px] leading-[1.55] opacity-75 mt-[12px]">TopFour will not show this again. Every list after this carries the label and its status — never the code — so revoking is the only remedy if it gets out.</div>
               </section>
             )}
             <section className="p-[18px_var(--gutter)_0]">
-              <div onClick={() => setFresh(true)} className="tf-tap h-[48px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)]">Create an invitation</div>
+              <div onClick={createInviteAction} className="tf-tap h-[48px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)]">Create an invitation</div>
             </section>
             {empty && (
               <div className="p-[60px_30px] flex flex-col items-center text-center">
@@ -137,7 +138,7 @@ export function LeagueAdminMobile({
                     </div>
                     <div className="text-right flex-none">
                       <span className={`tf-chip ${iv.chipStyle}`}>{iv.chip}</span>
-                      <div className={iv.actionStyle}>{iv.action}</div>
+                      <div className={iv.actionStyle} onClick={iv.revoke}>{iv.action}</div>
                     </div>
                   </div>
                 ))}

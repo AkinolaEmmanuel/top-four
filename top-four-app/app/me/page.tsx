@@ -14,13 +14,12 @@ const CLUB: Record<string, string> = { PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5
 const HISTORY: { label: string; v: number; corrected?: boolean }[] = [];
 
 export default function MePage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isLoading: authLoading } = useAuth();
   const { data: leaguesData } = useMyLeagues();
   const { data: prefData } = useNotificationPreferences();
   const { mutate: updatePref } = useUpdateNotificationPreferences();
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [state, setState] = useState<'live' | 'pendingemail' | 'nogoogle' | 'loading'>('live');
 
   const prefs = {
     reminders: prefData?.roundReminder ?? true,
@@ -40,8 +39,8 @@ export default function MePage() {
     });
   };
 
-  const pendingEmail = state === "pendingemail";
-  const noGoogle = state === "nogoogle";
+  const pendingEmail = false;
+  const noGoogle = !!user?.signInMethods && !user.signInMethods.includes('google');
 
   const max = HISTORY.length > 0 ? Math.max(...HISTORY.map(h => h.v)) : 1;
   // Mobile chart (70px max height)
@@ -148,7 +147,7 @@ export default function MePage() {
         <MeMobile
           user={user}
           theme={theme}
-          state={state}
+          isLoading={authLoading}
           prefs={prefs}
           setPrefs={setPrefs}
           chart={chartMobile}
@@ -163,7 +162,7 @@ export default function MePage() {
         <MeDesktop
           user={user}
           theme={theme}
-          state={state}
+          isLoading={authLoading}
           prefs={prefs}
           setPrefs={setPrefs}
           chart={chartDesktop}

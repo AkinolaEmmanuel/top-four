@@ -3,45 +3,46 @@
 import { useState, useMemo } from 'react';
 import { LeagueMobile } from '../../components/leagues/LeagueMobile';
 import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
-import { useLeague } from '@/hooks/api/useLeagues';
+import { useLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
 import { useStandings } from '@/hooks/api/usePoints';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
+import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d" };
+const URGENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
 export default function LeagueOverviewPage({ params }: { params: { id: string } }) {
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
   const { data: standingsData, isLoading: standingsLoading } = useStandings(params.id);
+  const { data: dashboard, isLoading: dashboardLoading } = useLeagueDashboard(params.id);
   const { data: tasksData } = usePredictionTasks();
+  const { data: questionsData } = useCustomQuestions(params.id);
   const { user } = useAuth();
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [state, setState] = useState<'live' | 'urgent' | 'caughtup' | 'loading' | 'empty'>('live');
 
-  const isLoading = leagueLoading || standingsLoading || state === "loading";
-  const st = state;
-  const isTerminal = st === "empty" || leagueError, isReady = !isLoading && !isTerminal;
-  const urgent = st === "urgent", caught = st === "caughtup";
+  const isLoading = leagueLoading || standingsLoading || dashboardLoading;
+  const isTerminal = !!leagueError;
+  const isReady = !isLoading && !isTerminal;
 
-  const heroTone = urgent ? "var(--color-danger)" : caught ? "var(--nav-positive)" : "var(--nav-accent)";
-
-  // Derive task data for this league from prediction tasks
+  // Derive task data for this league from prediction tasks (used for the
+  // next-fixture identity — the dashboard summary has counts, not fixtures)
   const leagueTasks = useMemo(() => {
     if (!tasksData) return [];
     return tasksData.items.filter(t => t.league.id === params.id);
   }, [tasksData, params.id]);
 
-  const totalMarkets = leagueTasks.reduce((acc, t) => {
-    if (t.kind === 'fixture') return acc + (t.missingPredictions?.length || 0);
-    return acc + 1;
-  }, 0);
-  const answeredMarkets = 0; // Will come from predictions data when available
-  const heroProgress = totalMarkets > 0 ? `${answeredMarkets} of ${totalMarkets}` : caught ? "8 of 8" : "—";
+  const completeness = dashboard?.summary.predictionCompleteness;
+  const totalMarkets = completeness?.required ?? 0;
+  const answeredMarkets = completeness?.answered ?? 0;
+  const caught = isReady && totalMarkets > 0 && !!completeness?.complete;
+  const heroProgress = totalMarkets > 0 ? `${answeredMarkets} of ${totalMarkets}` : "—";
 
   // Next fixture from tasks for hero section
   const nextFixtureTask: any = leagueTasks.find(t => t.kind === 'fixture');
-  const nextDeadline = nextFixtureTask ? new Date(nextFixtureTask.nextDeadlineAt || nextFixtureTask.kickoffAt) : null;
+  const nextDeadlineAt = dashboard?.summary.nextFixtureDeadlineAt || nextFixtureTask?.nextDeadlineAt || nextFixtureTask?.kickoffAt || null;
+  const nextDeadline = nextDeadlineAt ? new Date(nextDeadlineAt) : null;
   const timeUntil = nextDeadline ? (() => {
     const diff = nextDeadline.getTime() - Date.now();
     if (diff <= 0) return '0m';
@@ -49,17 +50,22 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     const m = Math.floor((diff % 3600000) / 60000);
     return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
   })() : '—';
+  const urgent = isReady && !caught && !!nextDeadline && (nextDeadline.getTime() - Date.now()) <= URGENT_THRESHOLD_MS;
+  const st = urgent ? 'urgent' : caught ? 'caughtup' : 'live';
+
+  const heroTone = urgent ? "var(--color-danger)" : caught ? "var(--nav-positive)" : "var(--nav-accent)";
+
   const nextFixtureName = nextFixtureTask
     ? `${nextFixtureTask.homeTeam.displayName} v ${nextFixtureTask.awayTeam.displayName}`
     : league?.competitions?.[0]?.displayName || 'No fixtures';
 
   const HERO: Record<string, string[]> = {
-    live: ["NEXT LOCK", timeUntil, `until ${nextFixtureName} closes`, heroProgress, "Finish predictions", totalMarkets > 0 ? `${totalMarkets} markets still unanswered.` : "All markets answered."],
+    live: ["NEXT LOCK", timeUntil, `until ${nextFixtureName} closes`, heroProgress, "Finish predictions", totalMarkets > 0 ? `${totalMarkets - answeredMarkets} markets still unanswered.` : "All markets answered."],
     urgent: ["LOCKING NOW", timeUntil, `until ${nextFixtureName} closes`, heroProgress, "Finish predictions", "Markets still open. Anything unanswered at the whistle scores nothing."],
     caughtup: ["ALL ANSWERED", timeUntil, `until ${nextFixtureName} closes`, heroProgress, "Review your answers", "Every market is in. You can still change any of them until the lock."]
   };
   const heroData = HERO[isReady ? st : "live"];
-  const pct = caught ? 100 : (totalMarkets > 0 ? Math.round((answeredMarkets / totalMarkets) * 100) : 0);
+  const pct = totalMarkets > 0 ? Math.round((answeredMarkets / totalMarkets) * 100) : 0;
 
   // Derive leaderboard from API standings data — no static fallback
   const liveRows = standingsData?.items?.map((item, i) => ({
@@ -99,25 +105,13 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     pointsStyle: `font-heading font-bold text-[14px] flex-none ${r.you ? 'text-[var(--accent-text-strong)]' : 'text-[var(--text-primary)]'}`
   }));
 
-  const RESULT_DEF: Record<string, any> = {
-    correct: {
-      kicker: "YOU CALLED IT", badge: "EXACT SCORE", pts: "+18",
-      summary: "You nailed the exact score. Your best return of the season so far.",
-      breakdown: []
-    },
-    mixed: {
-      kicker: "YOUR LAST RESULT", badge: "PARTIAL", pts: "+8",
-      summary: "You got the result right but the scoreline went against you.",
-      breakdown: []
-    },
-    none: {
-      kicker: "NO RESULTS YET", badge: "—", pts: "—",
-      summary: "No settled fixtures yet in this league.",
-      breakdown: []
-    }
+  // No fixture-results API exists yet to source a real "last result" — show the honest no-data state
+  // rather than fabricated outcomes until that endpoint is available.
+  const RESULT = {
+    kicker: "NO RESULTS YET", badge: "—", pts: "—",
+    summary: "No settled fixtures yet in this league.",
+    breakdown: [] as any[]
   };
-  // TODO: Source from a fixture-results API when available
-  const RESULT = liveRows.length > 0 ? RESULT_DEF[caught ? "mixed" : "none"] : RESULT_DEF.none;
   const nailed = RESULT.badge === "EXACT SCORE";
 
   const mBreakdown = RESULT.breakdown.map(([label, pts, won]: any) => ({
@@ -130,7 +124,18 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     style: { font: "600 10.5px 'DM Sans',sans-serif", padding: "5px 10px", borderRadius: "6px", background: won ? "rgba(255,255,255,.16)" : "transparent", color: won ? "var(--tf-white)" : "rgba(255,255,255,.45)", border: won ? "none" : "1px dashed rgba(255,255,255,.28)" }
   }));
 
-  const unanswered = (isReady && !caught) ? "6" : "";
+  const unansweredCount = completeness?.unanswered ?? 0;
+  const unanswered = (isReady && unansweredCount > 0) ? String(unansweredCount) : "";
+
+  const openQuestions = (questionsData?.data || []).filter((q: any) => q.phase === 'open');
+  const earliestQuestionDeadline = openQuestions.length > 0
+    ? openQuestions.reduce((earliest: any, q: any) => (!earliest || new Date(q.deadlineAt) < new Date(earliest.deadlineAt)) ? q : earliest, null)
+    : null;
+  const questionsPoints = openQuestions.reduce((sum: number, q: any) => sum + (q.points || 0), 0);
+  const qTitle = openQuestions.length > 0 ? `${openQuestions.length} question${openQuestions.length === 1 ? '' : 's'} open` : 'No questions open';
+  const qSub = openQuestions.length > 0
+    ? `Earliest closes ${earliestQuestionDeadline ? new Date(earliestQuestionDeadline.deadlineAt).toLocaleDateString('en-GB', { weekday: 'long' }) : 'soon'} · ${questionsPoints} points between them`
+    : 'Nothing waiting on you here';
   
   const IconMap: Record<string, any> = {
     overview: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z" /><path d="M9.5 20v-6h5v6" /></svg>,
@@ -176,7 +181,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const propsMobile = {
     theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
     heroTone, heroData, pct, rivals: mobileRivals, RESULT, nailed, rBreakdown: mBreakdown, unanswered,
-    IconMap, tabs, heroBg, resultBg: mResultBg, setState,
+    IconMap, tabs, heroBg, resultBg: mResultBg,
     leagueName: league?.name,
     memberCount: league?.memberCount,
     lifecycleLabel: league?.lifecycleState?.replace('_', ' '),
@@ -227,7 +232,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     rHomeCode: "—", rHomeColor: '#666', rAwayCode: "—", rAwayColor: '#666',
     rScore: "—", rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
     rPoints: RESULT.pts, rPointsSub: "this fixture", rSummary: RESULT.summary, rBreakdown: dBreakdown,
-    qTitle: "2 questions open", qSub: "Earliest closes Friday · 18 points between them",
+    qTitle, qSub,
     skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w })),
     leagueName: league?.name,
     memberCount: league?.memberCount

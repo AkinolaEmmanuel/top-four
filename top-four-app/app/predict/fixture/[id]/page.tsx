@@ -6,7 +6,6 @@ import { FixtureMobile } from '../../../components/predict/FixtureMobile';
 import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
 import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
-import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
 
 const CLUB: Record<string, string> = {
@@ -21,36 +20,26 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const fixtureId = params.id;
 
   const { availability, predictions, selectablePlayers, results, isLoading: dataLoading, isError } = useFixtureData(leagueId, fixtureId);
-  const { data: tasksData } = usePredictionTasks();
   const { data: leaguesData } = useMyLeagues();
   const submitPrediction = useSubmitPrediction(leagueId, fixtureId);
   const submitLineup = useSubmitLineupPrediction(leagueId, fixtureId);
   const copyPredictionsMutation = useCopyPredictions(leagueId, fixtureId);
 
-  // Extract team names and codes from global tasks feed if available
-  let hName = "Home Team", aName = "Away Team";
-  let hCode = "HOM", aCode = "AWA";
-  if (tasksData) {
-    for (const t of tasksData.items as any[]) {
-      if (t.kind === 'fixture' && (t.fixtureId === fixtureId || t.leagueFixtureId === fixtureId)) {
-        hName = t.homeTeam.displayName;
-        aName = t.awayTeam.displayName;
-        hCode = hName.substring(0, 3).toUpperCase();
-        aCode = aName.substring(0, 3).toUpperCase();
-        break;
-      }
-    }
-  }
+  // Team identity comes straight from the fixture's own availability record.
+  const hName = availability?.homeTeam.displayName || "Home Team";
+  const aName = availability?.awayTeam.displayName || "Away Team";
+  const hCode = availability?.homeTeam.code || "HOM";
+  const aCode = availability?.awayTeam.code || "AWA";
 
   // Derive player options dynamically from selectablePlayers API
   const homePlayersList = useMemo(() => {
     if (!selectablePlayers?.players) return [];
-    return selectablePlayers.players.filter(p => p.teamSide === 'home');
+    return selectablePlayers.players.filter(p => p.side === 'home');
   }, [selectablePlayers]);
 
   const awayPlayersList = useMemo(() => {
     if (!selectablePlayers?.players) return [];
-    return selectablePlayers.players.filter(p => p.teamSide === 'away');
+    return selectablePlayers.players.filter(p => p.side === 'away');
   }, [selectablePlayers]);
 
   const scorerPlayers = useMemo(() => {
@@ -58,9 +47,9 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       return [];
     }
     return selectablePlayers.players.map(p => {
-      const code = p.teamSide === 'home' ? hCode : aCode;
+      const code = p.side === 'home' ? hCode : aCode;
       const initials = p.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-      return [p.id, p.displayName, `${code} ${p.shirtNumber || ''}`, initials];
+      return [p.playerId, p.displayName, `${code} ${p.shirtNumber || ''}`, initials];
     });
   }, [selectablePlayers, hCode, aCode]);
 
@@ -68,7 +57,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
   const homeLineupRoster = useMemo(() => {
     return homePlayersList.map(p => ({
-      id: p.id,
+      id: p.playerId,
       displayName: p.displayName,
       position: p.position || undefined,
       shirtNumber: p.shirtNumber || undefined
@@ -77,7 +66,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
   const awayLineupRoster = useMemo(() => {
     return awayPlayersList.map(p => ({
-      id: p.id,
+      id: p.playerId,
       displayName: p.displayName,
       position: p.position || undefined,
       shirtNumber: p.shirtNumber || undefined
@@ -106,31 +95,66 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const [editingLineup, setEditingLineup] = useState<'home' | 'away' | null>(null);
   const [seconds, setSeconds] = useState(8115);
 
-  const ACTUAL: Record<string, any> = { score: results?.score ? [results.score.home, results.score.away] : [0, 0] };
+  const ACTUAL: Record<string, any> = { score: [0, 0] };
   const OUTCOME: Record<string, string> = {};
   const EARNED: Record<string, string> = {};
   if (results?.markets) {
-    for (const [k, v] of Object.entries(results.markets)) {
-      OUTCOME[k] = v.status;
-      EARNED[k] = v.pointsAwarded > 0 ? `+${v.pointsAwarded}` : '0';
+    for (const m of results.markets) {
+      const key = m.marketType === 'lineup' ? `${m.side}_lineup` : m.marketType;
+      if (m.marketType === 'exact_score' && m.resolvedAnswer) {
+        const ra = m.resolvedAnswer as { homeGoals?: number; awayGoals?: number };
+        if (typeof ra.homeGoals === 'number' && typeof ra.awayGoals === 'number') {
+          ACTUAL.score = [ra.homeGoals, ra.awayGoals];
+        }
+      }
+      if (m.viewerOutcome) {
+        OUTCOME[key] = m.viewerOutcome.outcome === 'correct' ? 'hit' : m.viewerOutcome.outcome === 'void' ? 'void' : 'miss';
+        EARNED[key] = m.viewerOutcome.pointsDelta > 0 ? `+${m.viewerOutcome.pointsDelta}` : '0';
+      } else if (m.state === 'pending_review') {
+        OUTCOME[key] = 'review';
+      }
     }
   }
   const EDITS: Record<string, string[][]> = {};
+  const totalPointsEarned = (results?.markets || []).reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0);
 
   const isLoading = dataLoading || state === 'loading';
   const isReady = !isLoading && !isError;
-  const isLocked = state === "locked" || (availability && availability.availability.status === 'LOCKED');
-  const isSettled = state === "settled" || (availability && availability.availability.status === 'SETTLED');
+  const isLocked = state === "locked" || (!!availability && !availability.hasOpenMarkets && (availability.marketStateCounts.settled || 0) === 0);
+  const isSettled = state === "settled" || (!!availability && (availability.marketStateCounts.settled || 0) > 0 && availability.hasOpenMarkets === false);
   const urgent = state === "urgent";
 
   useEffect(() => {
-    if (predictions?.markets) {
-      const initial: Record<string, any> = {};
-      for (const key in predictions.markets) {
-        initial[key] = predictions.markets[key].answer;
+    if (!predictions) return;
+    const initial: Record<string, any> = {};
+    for (const slot of predictions.markets) {
+      if (!slot.answer) continue;
+      const v = slot.answer.value;
+      switch (slot.marketType) {
+        case 'match_result':
+          initial.match_result = v.outcome;
+          break;
+        case 'exact_score':
+          if (typeof v.homeGoals === 'number' && typeof v.awayGoals === 'number') {
+            initial.exact_score = [v.homeGoals, v.awayGoals];
+            initial.score = [v.homeGoals, v.awayGoals];
+          }
+          break;
+        case 'both_teams_to_score':
+          initial.both_teams_to_score = v.bothScore ? 'yes' : 'no';
+          break;
+        case 'total_goals':
+          initial.total_goals = v.selection;
+          break;
+        case 'anytime_goalscorer':
+        case 'player_card':
+          initial[slot.marketType] = v.playerId;
+          break;
       }
-      setAnswers(initial);
     }
+    if (predictions.lineups.home) initial.home_lineup = predictions.lineups.home.answer.value.playerIds;
+    if (predictions.lineups.away) initial.away_lineup = predictions.lineups.away.answer.value.playerIds;
+    setAnswers(initial);
   }, [predictions]);
 
   useEffect(() => {
@@ -148,13 +172,28 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     setTimeout(() => setSaved(null), 2200);
   };
 
+  // Turns the local UI value (a raw id/string the tiles compare against) into
+  // the shaped answer body each market actually requires on the wire.
+  const buildAnswerPayload = (marketType: string, value: any): any => {
+    switch (marketType) {
+      case 'match_result': return { outcome: value };
+      case 'both_teams_to_score': return { bothScore: value === 'yes' };
+      case 'total_goals': return { selection: value };
+      case 'anytime_goalscorer':
+      case 'player_card':
+        return { playerId: value, snapshotId: selectablePlayers?.snapshot?.snapshotId };
+      default: return value;
+    }
+  };
+
   const handleSet = (key: string, value: any, editable: boolean) => {
     if (!editable || isLocked || isSettled) return;
     setAnswers(prev => ({ ...prev, [key]: value }));
 
     if (leagueId && predictions) {
-      const expectedVersion = predictions.markets[key]?.version || 0;
-      submitPrediction.mutate({ marketType: key, expectedVersion, answer: value });
+      const slot = predictions.markets.find(m => m.marketType === key);
+      const expectedVersion = slot?.version || 0;
+      submitPrediction.mutate({ marketType: key, expectedVersion, answer: buildAnswerPayload(key, value) });
     }
     showReceipt(key);
   };
@@ -165,7 +204,8 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     sc[i] = Math.max(0, Math.min(9, sc[i] + d));
     setAnswers(prev => ({ ...prev, exact_score: sc, score: sc }));
     if (leagueId && predictions) {
-      const expectedVersion = predictions.markets['exact_score']?.version || 0;
+      const slot = predictions.markets.find(m => m.marketType === 'exact_score');
+      const expectedVersion = slot?.version || 0;
       submitPrediction.mutate({ marketType: 'exact_score', expectedVersion, answer: { homeGoals: sc[0], awayGoals: sc[1] } });
     }
     showReceipt("score");
@@ -174,8 +214,12 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const handleSetLineup = (side: 'home' | 'away', lineup: string[]) => {
     setAnswers(prev => ({ ...prev, [`${side}_lineup`]: lineup }));
     if (leagueId && predictions) {
-      const expectedVersion = predictions.markets[`${side}_lineup`]?.version || 0;
-      submitLineup.mutate({ side, expectedVersion, lineup });
+      const slot = side === 'home' ? predictions.lineups.home : predictions.lineups.away;
+      const expectedVersion = slot?.version || 0;
+      const snapshotId = predictions.lineups.snapshot?.snapshotId || selectablePlayers?.snapshot?.snapshotId;
+      if (snapshotId) {
+        submitLineup.mutate({ side, expectedVersion, playerIds: lineup, snapshotId });
+      }
     }
     setEditingLineup(null);
     showReceipt(`${side}_lineup`);
@@ -473,10 +517,10 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     scoreSize: settled ? '64px' : '52px',
     kickoffLine: settled ? "FULL TIME" : "KICKOFF",
     bannerLabel: settled ? "Provisional" : locked ? "Kick-off" : "Last market locks in",
-    bannerRight: settled ? (results?.markets ? `+${Object.values(results.markets).reduce((sum, m) => sum + (m.pointsAwarded || 0), 0)}` : "+0") : locked ? "15:00" : clock,
+    bannerRight: settled ? `+${totalPointsEarned}` : locked ? "15:00" : clock,
     bannerText: settled ? "Final once review closes" : locked ? "Nothing can change now" : "Lineups closed 2h before kickoff",
     marketsDone: `${answeredTotal} of 6`, lineupsDone: "1 of 2",
-    pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? (results?.markets ? `+${Object.values(results.markets).reduce((sum, m) => sum + (m.pointsAwarded || 0), 0)}` : "+0") : "18", pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
+    pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? `+${totalPointsEarned}` : "18", pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
     marketsHint: editable ? "Each market saves the moment you pick — there is no fixture-level save." : "Editing closed.",
     footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
     canCopy: editable && otherLeagues.length > 0,

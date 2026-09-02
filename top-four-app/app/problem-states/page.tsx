@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export default function ProblemStatesPage() {
+  if (process.env.NODE_ENV !== 'development') notFound();
   const [problem, setProblem] = useState<'field' | 'state' | 'conflict' | 'notfound' | 'forbidden' | 'ratelimit' | 'offline' | 'unexpected'>('field');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 

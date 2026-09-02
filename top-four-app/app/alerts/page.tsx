@@ -2,28 +2,100 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import {
+  useNotificationPreferences, useUpdateNotificationPreferences, useUnreadNotifications,
+  useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead
+} from '@/hooks/api/useNotifications';
+import { useMyLeagues } from '@/hooks/api/useLeagues';
+import type { NotificationItem, NotificationKind } from '@/lib/api/notifications';
+
+const KIND_COPY: Record<NotificationKind, (n: NotificationItem) => { title: string; body: string }> = {
+  'league.join_request.received': () => ({ title: 'New join request', body: 'Somebody asked to join. Approve or decline it from the admin page.' }),
+  'league.join_request.approved': () => ({ title: "You're in", body: 'Your request to join was approved.' }),
+  'league.join_request.rejected': () => ({ title: 'Request declined', body: 'Your request to join was not approved.' }),
+  'league.role.changed': () => ({ title: 'Your role changed', body: 'An owner or admin updated what you can do in this league.' }),
+  'league.membership.removed': () => ({ title: 'Removed from a league', body: 'You are no longer a member. Your history stays with the league.' }),
+  'league.round.reminder': () => ({ title: 'Predictions still open', body: 'Something in this league is still unanswered before the next deadline.' }),
+  'league.results.settled': () => ({ title: 'Results are in', body: 'A fixture in this league has settled.' }),
+  'league.results.corrected': () => ({ title: 'A result was corrected', body: 'Your points moved after a settled result was corrected.' }),
+  'league.completed': () => ({ title: 'League completed', body: 'Every fixture and question has settled. The table is final.' }),
+  'league.cancelled': () => ({ title: 'League cancelled', body: 'The owner ended this league.' }),
+  'league.fixture.moved': () => ({ title: 'A fixture moved', body: 'A kickoff time changed, which may have shifted a deadline.' }),
+  'league.custom_question.resolve_reminder': () => ({ title: 'A question needs resolving', body: 'A custom question is waiting on an outcome.' }),
+  'league.custom_question.auto_voided': () => ({ title: 'A question was voided', body: 'A custom question passed its outcome date unresolved and was voided automatically.' }),
+  'account.password.changed': () => ({ title: 'Password changed', body: 'Your account password was changed.' }),
+  'account.email.changed': () => ({ title: 'Email changed', body: 'Your account email address was changed.' }),
+  'account.password_reset.completed': () => ({ title: 'Password reset', body: 'Your password was reset.' }),
+};
+
+const CATEGORY_LABEL: Record<string, string> = {
+  membership: 'MEMBERSHIP',
+  round_reminder: 'DEADLINES',
+  correction: 'POINTS',
+  custom_question_admin: 'CUSTOM QUESTIONS',
+  account_security: 'ACCOUNT SECURITY',
+  results: 'POINTS',
+  fixture_moved: 'DEADLINES',
+};
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
 export default function AlertsPage() {
-  const [view, setView] = useState<'list' | 'prefs' | 'loading' | 'empty'>('list');
+  const [view, setView] = useState<'list' | 'prefs'>('list');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [filter, setFilter] = useState<string>('All');
-  const [read, setRead] = useState<Record<string, boolean>>({});
-  const [prefs, setPrefs] = useState<Record<string, boolean>>({ reminders: true, questions: true });
 
-  const NOTES: any[] = [];
-  const isLoading = view === "loading";
-  const isEmpty = view === "empty" || NOTES.length === 0;
+  const { data: prefsData, isLoading: prefsLoading } = useNotificationPreferences();
+  const { data: unreadData } = useUnreadNotifications();
+  const updatePrefsMutation = useUpdateNotificationPreferences();
+  const { data: notificationsData, isLoading: notificationsLoading } = useNotifications();
+  const { data: leaguesData } = useMyLeagues();
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+
+  const leagueName = (leagueId: string | null) => {
+    if (!leagueId) return 'TopFour';
+    return leaguesData?.items.find(l => l.id === leagueId)?.name || 'A league';
+  };
+
+  const NOTES = (notificationsData?.items || []).map(n => {
+    const copy = KIND_COPY[n.kind]?.(n) || { title: n.kind, body: '' };
+    return {
+      id: n.id,
+      title: copy.title,
+      body: copy.body,
+      unread: n.readAt === null,
+      accent: n.category === 'account_security' ? 'var(--color-danger)' : 'var(--color-brand)',
+      group: CATEGORY_LABEL[n.category] || n.category.toUpperCase(),
+      league: leagueName(n.leagueId),
+      when: timeAgo(n.createdAt),
+      action: n.leagueId ? 'VIEW LEAGUE' : '',
+      href: n.leagueId ? `/leagues/${n.leagueId}` : null,
+    };
+  });
+
   const onList = view === "list";
   const onPrefs = view === "prefs";
+  const isLoading = onPrefs ? prefsLoading : notificationsLoading;
+  const isEmpty = !isLoading && NOTES.length === 0;
   const showList = onList && !isLoading && !isEmpty;
 
-  const isUnread = (n: any) => n.unread && !read[n.title];
-  const unreadCount = NOTES.filter(isUnread).length;
+  const isUnread = (n: any) => n.unread;
+  const unreadCount = unreadData ?? 0;
 
   const match = (n: any) => {
     if (filter === "Unread") return isUnread(n);
-    if (filter === "Deadlines") return n.kind === "Deadline";
-    if (filter === "Points") return n.kind === "Settled" || n.kind === "Correction";
+    if (filter === "Deadlines") return n.group === "DEADLINES";
+    if (filter === "Points") return n.group === "POINTS";
     return true;
   };
   const shown = NOTES.filter(match);
@@ -39,7 +111,10 @@ export default function AlertsPage() {
         ...n,
         dotStyle: `w-[8px] h-[8px] rounded-full flex-none mt-[6px] ${u ? '' : 'border-[1.5px] border-[var(--surface-border-strong)] bg-transparent'}` + (u ? ` bg-[${n.accent}]` : ''),
         titleStyle: `font-heading ${u ? 'font-bold' : 'font-medium'} text-[13.5px] leading-[1.35] tracking-[-0.15px]`,
-        rowStyle: `flex gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b border-[var(--surface-border)]' : ''} ${u ? '' : 'opacity-70'}`
+        rowStyle: `flex gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b border-[var(--surface-border)]' : ''} ${u ? '' : 'opacity-70'}`,
+        onOpen: () => {
+          if (u) markReadMutation.mutate(n.id);
+        }
       };
     })
   })).filter(g => g.rows.length > 0);
@@ -47,8 +122,8 @@ export default function AlertsPage() {
   const counts: Record<string, string> = {
     All: String(NOTES.length),
     Unread: String(unreadCount),
-    Deadlines: String(NOTES.filter(n => n.kind === "Deadline").length),
-    Points: String(NOTES.filter(n => n.kind === "Settled" || n.kind === "Correction").length)
+    Deadlines: String(NOTES.filter(n => n.group === "DEADLINES").length),
+    Points: String(NOTES.filter(n => n.group === "POINTS").length)
   };
 
   const filters = ["All", "Unread", "Deadlines", "Points"].map(f => {
@@ -60,10 +135,9 @@ export default function AlertsPage() {
     };
   });
 
-  const mkPref = (id: string, title: string, note: string, locked?: boolean) => {
-    const on = locked ? true : prefs[id];
+  const mkPref = (id: string, title: string, note: string, on: boolean, locked?: boolean) => {
     return {
-      id, title, note, on, locked: !!locked,
+      id, title, note, on: locked ? true : on, locked: !!locked,
       titleColor: locked ? "var(--text-secondary)" : "var(--text-primary)",
       rowStyle: `flex items-center justify-between p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${locked ? 'opacity-65' : 'cursor-pointer'}`
     };
@@ -71,8 +145,8 @@ export default function AlertsPage() {
 
   const prefGroups = [
     { label: "EMAILS YOU CAN TURN OFF", note: "A simple on or off. We do not promise a send time in your timezone.",
-      rows: [mkPref("reminders", "Weekly prediction reminder", "Once a week, only if something is unanswered"),
-             mkPref("questions", "Custom question admin", "Chasers at 13, 12, 7, 3 and 1 days before a question voids")] },
+      rows: [mkPref("reminders", "Weekly prediction reminder", "Once a week, only if something is unanswered", !!prefsData?.roundReminder),
+             mkPref("questions", "Custom question admin", "Chasers at 13, 12, 7, 3 and 1 days before a question voids", !!prefsData?.customQuestionAdmin)] },
     { label: "IN-APP ONLY", note: "These never email.",
       rows: [mkPref("m1", "Membership changes", "Approvals, roles, removals, ownership", true),
              mkPref("m2", "Point corrections", "Only when your own total moves", true)] },
@@ -104,12 +178,15 @@ export default function AlertsPage() {
         </header>
 
         {onList && (
-          <div className="flex-none flex gap-[8px] py-[16px] overflow-x-auto">
+          <div className="flex-none flex items-center gap-[8px] py-[16px] overflow-x-auto">
             {filters.map(f => (
               <div key={f.label} onClick={() => { setFilter(f.label); setView('list'); }} className={f.style}>
                 {f.label}<span className={f.countStyle}>{f.count}</span>
               </div>
             ))}
+            {unreadCount > 0 && (
+              <div onClick={() => markAllReadMutation.mutate()} className="flex-none ml-auto font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer whitespace-nowrap">MARK ALL READ</div>
+            )}
           </div>
         )}
 
@@ -139,8 +216,8 @@ export default function AlertsPage() {
                 <section key={gi}>
                   <div className="p-[16px_24px_9px]"><span className="tf-kicker text-[var(--text-muted)]">{g.label}</span></div>
                   {g.rows.map((r, ri) => (
-                    <div key={ri} onClick={() => setRead({ ...read, [r.title]: true })} className={r.rowStyle}>
-                      <span className={r.dotStyle} style={r.unread && !read[r.title] ? { background: r.accent } : {}}></span>
+                    <div key={ri} onClick={r.onOpen} className={r.rowStyle}>
+                      <span className={r.dotStyle} style={r.unread ? { background: r.accent } : {}}></span>
                       <div className="flex-1 min-w-0">
                         <div className={r.titleStyle}>{r.title}</div>
                         <div className="text-[12px] leading-[1.5] text-[var(--text-secondary)] mt-[4px]">{r.body}</div>
@@ -148,7 +225,9 @@ export default function AlertsPage() {
                           <span className="font-heading font-bold text-[9px] tracking-[0.06em] p-[3px_8px] rounded-[5px] bg-[var(--surface-subtle)] text-[var(--text-muted)] flex-none">{r.league}</span>
                           <span className="text-[10.5px] text-[var(--text-muted)]">{r.when}</span>
                           <span className="flex-1"></span>
-                          <span className="font-heading font-bold text-[10.5px] text-[var(--text-link)] flex-none">{r.action} →</span>
+                          {r.href && (
+                            <Link href={r.href} className="font-heading font-bold text-[10.5px] text-[var(--text-link)] flex-none">{r.action} →</Link>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -168,7 +247,11 @@ export default function AlertsPage() {
                   <div className="p-[0_24px_6px]"><span className="tf-kicker text-[var(--text-muted)]">{g.label}</span></div>
                   {g.note && <div className="p-[0_24px_6px] text-[11.5px] leading-[1.5] text-[var(--text-muted)]">{g.note}</div>}
                   {g.rows.map((r, ri) => (
-                    <div key={ri} onClick={() => { if (!r.locked) setPrefs({ ...prefs, [r.id]: !prefs[r.id] }); }} className={r.rowStyle}>
+                    <div key={ri} onClick={() => {
+                      if (r.locked) return;
+                      const field = r.id === 'reminders' ? 'roundReminder' : r.id === 'questions' ? 'customQuestionAdmin' : null;
+                      if (field) updatePrefsMutation.mutate({ [field]: !r.on });
+                    }} className={r.rowStyle}>
                       <div className="flex-1 min-w-0">
                         <div className="font-heading font-semibold text-[13.5px]" style={{ color: r.titleColor }}>{r.title}</div>
                         <div className="text-[11px] leading-[1.45] text-[var(--text-muted)] mt-[3px]">{r.note}</div>

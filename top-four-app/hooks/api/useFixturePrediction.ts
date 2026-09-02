@@ -7,6 +7,7 @@ import {
   submitPrediction,
   submitLineupPrediction,
   copyFixturePredictions,
+  StandardAnswerValue,
 } from '@/lib/api/predictions-fixture';
 
 export function useFixtureData(leagueId: string, fixtureId: string) {
@@ -54,7 +55,7 @@ export function useSubmitPrediction(leagueId: string, fixtureId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ marketType, expectedVersion, answer }: { marketType: string, expectedVersion: number, answer: any }) => 
+    mutationFn: ({ marketType, expectedVersion, answer }: { marketType: string, expectedVersion: number, answer: StandardAnswerValue }) =>
       submitPrediction(leagueId, fixtureId, marketType, expectedVersion, answer),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fixture-predictions', leagueId, fixtureId] });
@@ -67,8 +68,8 @@ export function useSubmitLineupPrediction(leagueId: string, fixtureId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ side, expectedVersion, lineup }: { side: 'home' | 'away', expectedVersion: number, lineup: string[] }) => 
-      submitLineupPrediction(leagueId, fixtureId, side, expectedVersion, lineup),
+    mutationFn: ({ side, expectedVersion, playerIds, snapshotId }: { side: 'home' | 'away', expectedVersion: number, playerIds: string[], snapshotId: string }) =>
+      submitLineupPrediction(leagueId, fixtureId, side, expectedVersion, playerIds, snapshotId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fixture-predictions', leagueId, fixtureId] });
       queryClient.invalidateQueries({ queryKey: ['prediction-tasks'] });

@@ -3,9 +3,8 @@
 import Link from 'next/link';
 
 export function MeMobile({
-  theme, state, prefs, setPrefs, chart, leagues, groups, IconMap, tabs, ...props
+  theme, isLoading, prefs, setPrefs, chart, leagues, groups, IconMap, tabs, ...props
 }: any) {
-  const isLoading = state === "loading";
   const isReady = !isLoading;
 
   return (
