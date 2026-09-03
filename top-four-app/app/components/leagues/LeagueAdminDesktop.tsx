@@ -256,6 +256,53 @@ export function LeagueAdminDesktop({
         </div>
       </div>
 
+      {sheetSpec && (
+        <div onClick={() => setSheet(null)} className="fixed inset-0 z-[10] bg-[var(--control-scrim)] flex items-center justify-center p-[24px]">
+          <div onClick={(e: any) => e.stopPropagation()} className="w-full max-w-[440px] bg-[var(--surface-card)] rounded-[16px] p-[22px_24px] flex flex-col animate-[tfin_0.16s_ease] shadow-[var(--elev-4)]">
+            <div className="font-heading font-bold text-[18px] leading-[1.2] tracking-[-0.4px]">{sheetSpec.title}</div>
+            <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">{sheetSpec.body}</div>
+            {sheetSpec.roles && (
+              <div className="flex flex-col gap-[7px] mt-[14px]">
+                {roles.map((r: any, i: number) => (
+                  <div key={i} onClick={r.pick} className={r.rowStyle}>
+                    <div className={r.radioStyle}><div className={r.dotStyle}></div></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-heading font-semibold text-[13px]">{r.label}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-[2px] leading-[1.4]">{r.note}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {sheetSpec.list && (
+              <div className="mt-[14px]">
+                {sheetSpec.list.map((l: string, i: number) => (
+                  <div key={i} className="flex gap-[10px] items-start py-[5px]">
+                    <span className="w-[5px] h-[5px] rounded-full bg-[var(--color-danger)] mt-[6px] flex-none"></span>
+                    <span className="text-[12px] leading-[1.5] text-[var(--text-secondary)]">{l}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-[8px] mt-[18px]">
+              <div onClick={() => setSheet(null)} className="flex-1 h-[44px] rounded-[11px] border border-[var(--surface-border-strong)] grid place-items-center cursor-pointer font-heading font-bold text-[12.5px]">Cancel</div>
+              <div onClick={() => {
+                if (sheetSpec.primaryAction) sheetSpec.primaryAction();
+                else setSheet(null);
+              }} className={`flex-1 h-[44px] rounded-[11px] grid place-items-center cursor-pointer font-heading font-bold text-[12.5px] text-white ${sheetSpec.danger ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
+                {sheetSpec.primary}
+              </div>
+            </div>
+            {sheetSpec.secondary && (
+              <div onClick={() => {
+                if (sheetSpec.secondaryAction) sheetSpec.secondaryAction();
+                else setSheet(null);
+              }} className="h-[42px] rounded-[11px] grid place-items-center cursor-pointer font-heading font-bold text-[12px] text-[var(--danger-text)] mt-[8px]">{sheetSpec.secondary}</div>
+            )}
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div className="absolute left-[24px] bottom-[24px] z-[6] p-[13px_18px] rounded-[12px] bg-[var(--nav-surface)] text-[var(--nav-text)] flex items-center gap-[10px] text-[12px] shadow-[var(--elev-3)] animate-[tfup_0.2s_ease]">
           <span className="w-[7px] h-[7px] rounded-full bg-[var(--nav-positive)] flex-none"></span>
