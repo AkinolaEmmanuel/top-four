@@ -10,12 +10,12 @@ import {
   requestFixtureFactsRefresh, requestFixturePlayersRefresh,
 } from '@/lib/api/operator';
 
-export function usePlatformStatus() {
-  return useQuery({ queryKey: ['platform-status'], queryFn: fetchPlatformStatus });
+export function usePlatformStatus(enabled: boolean = true) {
+  return useQuery({ queryKey: ['platform-status'], queryFn: fetchPlatformStatus, enabled });
 }
 
-export function useSettlementReviews() {
-  return useQuery({ queryKey: ['platform-settlements'], queryFn: () => fetchSettlementReviews() });
+export function useSettlementReviews(enabled: boolean = true) {
+  return useQuery({ queryKey: ['platform-settlements'], queryFn: () => fetchSettlementReviews(), enabled });
 }
 
 export function useResolveSettlementDecision() {
@@ -30,8 +30,8 @@ export function useResolveSettlementDecision() {
   });
 }
 
-export function useFactConflicts() {
-  return useQuery({ queryKey: ['platform-fact-conflicts'], queryFn: () => fetchFactConflicts() });
+export function useFactConflicts(enabled: boolean = true) {
+  return useQuery({ queryKey: ['platform-fact-conflicts'], queryFn: () => fetchFactConflicts(), enabled });
 }
 
 export function useKeepCurrentFacts() {
@@ -42,8 +42,8 @@ export function useKeepCurrentFacts() {
   });
 }
 
-export function useProviderIssues() {
-  return useQuery({ queryKey: ['platform-provider-issues'], queryFn: () => fetchProviderIssues() });
+export function useProviderIssues(enabled: boolean = true) {
+  return useQuery({ queryKey: ['platform-provider-issues'], queryFn: () => fetchProviderIssues(), enabled });
 }
 
 export function useRetryProviderIssue() {
@@ -58,8 +58,8 @@ export function useRetryProviderIssue() {
   });
 }
 
-export function useExhaustedJobs() {
-  return useQuery({ queryKey: ['platform-jobs'], queryFn: () => fetchExhaustedJobs() });
+export function useExhaustedJobs(enabled: boolean = true) {
+  return useQuery({ queryKey: ['platform-jobs'], queryFn: () => fetchExhaustedJobs(), enabled });
 }
 
 export function useRetryExhaustedJob() {
@@ -73,8 +73,8 @@ export function useRetryExhaustedJob() {
   });
 }
 
-export function useFailedNotifications() {
-  return useQuery({ queryKey: ['platform-notifications'], queryFn: () => fetchFailedNotifications() });
+export function useFailedNotifications(enabled: boolean = true) {
+  return useQuery({ queryKey: ['platform-notifications'], queryFn: () => fetchFailedNotifications(), enabled });
 }
 
 export function useRetryFailedNotification() {

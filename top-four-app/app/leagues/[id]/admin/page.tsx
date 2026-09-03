@@ -6,7 +6,7 @@ import { LeagueAdminDesktop } from '../../../components/leagues/LeagueAdminDeskt
 import {
   useLeague, useLeagueMembers, useJoinRequests, useUpdateMemberRole, useRemoveMember,
   useProcessJoinRequest, useLeagueInvitations, useCreateInvitation, useRevokeInvitation,
-  useCloneLeague, useArchiveLeague, useCancelLeague, useLeaveLeague
+  useCloneLeague, useArchiveLeague, useCancelLeague, useLeaveLeague, usePublishLeague, useDeleteLeague
 } from '@/hooks/api/useLeagues';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
@@ -31,6 +31,8 @@ export default function LeagueAdminPage() {
   const archiveMutation = useArchiveLeague(params.id);
   const cancelMutation = useCancelLeague(params.id);
   const leaveMutation = useLeaveLeague(params.id);
+  const publishMutation = usePublishLeague();
+  const deleteMutation = useDeleteLeague();
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [tab, setTab] = useState<'members' | 'invites' | 'requests' | 'lifecycle'>('members');
@@ -63,13 +65,13 @@ export default function LeagueAdminPage() {
 
   const dynamicMembers = (membersData?.data || []).map((m: any) => ({
     id: m.id,
-    name: m.user?.displayName || "Unknown",
-    role: m.role === 'OWNER' ? 'Owner' : m.role === 'ADMIN' ? 'Admin' : 'Participant',
-    initials: (m.user?.displayName || "U").substring(0, 2).toUpperCase(),
+    name: m.displayName || "Unknown",
+    role: m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Participant',
+    initials: (m.displayName || "U").substring(0, 2).toUpperCase(),
     points: 0,
     rank: "—",
-    you: !!user && m.user?.id === user.id,
-    left: m.state === 'LEFT',
+    you: !!user && m.userId === user.id,
+    left: m.state === 'former',
     joined: `Joined recently`
   }));
   const displayMembers = dynamicMembers;
@@ -192,11 +194,19 @@ export default function LeagueAdminPage() {
     labelStyle: `font-heading font-[650] text-[13.5px] tracking-[-0.2px] ${i > currentLifecycleIdx ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`
   }));
 
-  const actions = [
-    { id: "clone", title: "Clone into a new league", note: "Same competitions and points, back in draft. The original keeps running." },
-    { id: "archive", title: "Archive", note: "Only once every fixture and question is final. History stays readable.", muted: true },
-    { id: "cancel", title: "Cancel this league", note: "Ends it permanently. Anything due after the cutoff is voided.", danger: true }
-  ].map((a: any, i, arr) => ({
+  const isDraft = lifecycleState === 'draft';
+
+  const actions = (isDraft
+    ? [
+        { id: "publish", title: "Publish this league", note: "Freezes the rules, materializes fixtures and opens invitations." },
+        { id: "delete-draft", title: "Delete this draft", note: "Permanent. Nothing has been played yet, so there is nothing else to lose.", danger: true }
+      ]
+    : [
+        { id: "clone", title: "Clone into a new league", note: "Same competitions and points, back in draft. The original keeps running." },
+        { id: "archive", title: "Archive", note: "Only once every fixture and question is final. History stays readable.", muted: lifecycleState !== 'completed' },
+        { id: "cancel", title: "Cancel this league", note: "Ends it permanently. Anything due after the cutoff is voided.", danger: true }
+      ]
+  ).map((a: any, i, arr) => ({
     title: a.title, note: a.note,
     rowStyle: `flex items-center gap-[12px] p-[16px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === arr.length - 1 ? 'border-b' : ''} ${a.danger ? 'shadow-[inset_3px_0_0_0_var(--color-danger)]' : ''} ${a.muted ? 'opacity-[0.55]' : ''}`,
     titleStyle: `font-heading font-[650] text-[13.5px] tracking-[-0.2px] ${a.danger ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`,
@@ -211,7 +221,7 @@ export default function LeagueAdminPage() {
       primary: "Save role", secondary: "Remove from league",
       primaryAction: () => {
         if (targetMemberId) {
-          updateRoleMutation.mutate({ membershipId: targetMemberId, role: role.toUpperCase() }, {
+          updateRoleMutation.mutate({ membershipId: targetMemberId, role: role.toLowerCase() }, {
             onSuccess: () => { setSheet(null); flash("Role updated"); }
           });
         }
@@ -235,6 +245,24 @@ export default function LeagueAdminPage() {
           }
         },
     former: { title: targetWho + " has left", body: "Their history is kept and their predictions stay hidden. Rejoining restores the same points — leaving cannot reset a score.", primary: "Invite them back" },
+    publish: { title: `Publish ${leagueName}?`, body: "This cannot be undone. Competitions, markets, points and tiebreakers freeze the moment you confirm, and fixtures are materialized with their deadlines.", primary: "Publish",
+      primaryAction: () => {
+        if (league?.version == null) return;
+        publishMutation.mutate({ leagueId: params.id, idempotencyKey: crypto.randomUUID(), expectedVersion: league.version }, {
+          onSuccess: () => { setSheet(null); flash("League published"); },
+          onError: () => flash("Couldn't publish this league")
+        });
+      }
+    },
+    'delete-draft': { title: `Delete ${leagueName}?`, body: "This cannot be undone. The draft and its setup are gone — nothing has been played yet, so there are no predictions or points to lose.", primary: "Delete draft", danger: true,
+      primaryAction: () => {
+        if (league?.version == null) return;
+        deleteMutation.mutate({ leagueId: params.id, idempotencyKey: crypto.randomUUID(), expectedVersion: league.version }, {
+          onSuccess: () => { setSheet(null); router.push('/leagues'); },
+          onError: () => flash("Couldn't delete this draft")
+        });
+      }
+    },
     clone: { title: `Clone ${leagueName}?`, body: "You get a fresh draft with the same competitions, markets and points. Members, invitations and predictions do not come with it.", primary: "Create the draft",
       primaryAction: () => {
         cloneMutation.mutate({ idempotencyKey: crypto.randomUUID(), payload: { name: `${leagueName} (copy)` } }, {

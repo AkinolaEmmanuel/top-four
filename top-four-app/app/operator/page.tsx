@@ -72,13 +72,14 @@ export default function OperatorConsolePage() {
   const [refreshFixtureId, setRefreshFixtureId] = useState('');
 
   const { user, isLoading: authLoading } = useAuth();
-  const { data: statusData } = usePlatformStatus();
+  const isOperator = !!user?.isOperator;
+  const { data: statusData } = usePlatformStatus(isOperator);
 
-  const settlements = useSettlementReviews();
-  const conflicts = useFactConflicts();
-  const providerIssues = useProviderIssues();
-  const jobs = useExhaustedJobs();
-  const notifications = useFailedNotifications();
+  const settlements = useSettlementReviews(isOperator);
+  const conflicts = useFactConflicts(isOperator);
+  const providerIssues = useProviderIssues(isOperator);
+  const jobs = useExhaustedJobs(isOperator);
+  const notifications = useFailedNotifications(isOperator);
 
   const resolveSettlement = useResolveSettlementDecision();
   const keepFacts = useKeepCurrentFacts();
@@ -241,7 +242,7 @@ export default function OperatorConsolePage() {
     return <div className="min-h-[100dvh] grid place-items-center font-['Sora',sans-serif] text-[13px] text-[var(--text-secondary)]">Loading…</div>;
   }
 
-  if (!user?.isOperator) {
+  if (!isOperator) {
     return (
       <div className="min-h-[100dvh] grid place-items-center font-['Sora',sans-serif] p-[24px]">
         <div className="max-w-[380px] flex flex-col items-center text-center gap-[8px]">

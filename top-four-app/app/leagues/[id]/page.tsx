@@ -208,7 +208,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     heroCta: heroData[4],
     heroCtaHref,
     heroFoot: heroData[5],
-    rivalKicker: myRow ? `YOU ARE ${myRow.pos}${myRow.pos === '1' ? 'ST' : myRow.pos === '2' ? 'ND' : myRow.pos === '3' ? 'RD' : 'TH'} OF ${liveRows.length}`.toUpperCase() : "LOADING…",
+    rivalKicker: standingsLoading ? "LOADING…" : myRow ? `YOU ARE ${myRow.pos}${myRow.pos === '1' ? 'ST' : myRow.pos === '2' ? 'ND' : myRow.pos === '3' ? 'RD' : 'TH'} OF ${liveRows.length}`.toUpperCase() : "NOT RANKED YET",
     rivals: desktopRivals,
     gapNumber: (() => {
       if (!myRow || liveRows.length < 2) return "—";
