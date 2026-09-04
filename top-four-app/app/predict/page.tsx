@@ -57,7 +57,7 @@ export default function PredictPage() {
         total: missingCount,
         href: isQuestion
           ? `/leagues/${t.league.id}/questions`
-          : `/predict/fixture/${(t as any).fixtureId || (t as any).leagueFixtureId}?leagueId=${t.league.id}`
+          : `/predict/fixture/${(t as any).leagueFixtureId || (t as any).fixtureId}?leagueId=${t.league.id}`
       };
     });
   }, [tasksData]);
