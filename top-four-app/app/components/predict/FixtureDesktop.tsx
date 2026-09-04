@@ -141,9 +141,9 @@ export function FixtureDesktop({
                     {m.showChoices && (
                       <div className="flex gap-[8px]">
                         {(m.options || []).map((opt: any, j: number) => (
-                          <div key={j} onClick={opt.pick} className={opt.style}>
+                          <div key={j} onClick={opt.pick} style={opt.style}>
                             <span className="font-heading font-semibold text-[13px]">{opt.label}</span>
-                            <span className={opt.subStyle}>{opt.sub}</span>
+                            <span style={opt.subStyle}>{opt.sub}</span>
                           </div>
                         ))}
                       </div>
@@ -154,7 +154,7 @@ export function FixtureDesktop({
                         {(m.steppers || []).map((st: any, j: number) => (
                           <div key={j} className="flex-1 flex items-center gap-[8px]">
                             <div onClick={st.dec} className={st.btnStyle}>−</div>
-                            <div className={st.boxStyle}>
+                            <div style={st.boxStyle}>
                               <span className="tf-num font-heading font-bold text-[20px] leading-[1]">{st.value}</span>
                               <span className="text-[9.5px] text-[var(--text-muted)] mt-[2px]">{st.team}</span>
                             </div>
@@ -167,11 +167,11 @@ export function FixtureDesktop({
                     {m.showPlayers && (
                       <div className="flex flex-col gap-[6px]">
                         {((m as any).players || []).map((pl: any, j: number) => (
-                          <div key={j} onClick={pl.pick} className={pl.style}>
-                            <div className={pl.badgeStyle}>{pl.initials}</div>
+                          <div key={j} onClick={pl.pick} style={pl.style}>
+                            <div style={pl.badgeStyle}>{pl.initials}</div>
                             <div className="flex-1 min-w-0"><span className="font-heading font-semibold text-[12.5px]">{pl.name}</span></div>
                             <span className="text-[10.5px] text-[var(--text-muted)] flex-none">{pl.meta}</span>
-                            <span className={pl.tickStyle}>✓</span>
+                            <span style={pl.tickStyle}>✓</span>
                           </div>
                         ))}
                         {m.searchLabel && (
@@ -195,8 +195,8 @@ export function FixtureDesktop({
                       <div className="flex flex-col mt-[9px]">
                         {(m.history || []).map((h: any, j: number) => (
                           <div key={j} className="flex items-baseline gap-[11px] py-[7px]">
-                            <span className={h.dotStyle}></span>
-                            <span className={h.valueStyle}>{h.value}</span>
+                            <span style={h.dotStyle}></span>
+                            <span style={h.valueStyle}>{h.value}</span>
                             <span className="flex-1"></span>
                             <span className="text-[10.5px] text-[var(--text-muted)] font-tabular-nums">{h.when}</span>
                           </div>
