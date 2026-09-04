@@ -175,7 +175,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const dResultStyle = { borderRadius: "16px", padding: "24px 26px", color: "var(--tf-white)", background: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" };
 
   const heroCtaHref = nextFixtureTask
-    ? `/predict/fixture/${nextFixtureTask.fixtureId || nextFixtureTask.leagueFixtureId}?leagueId=${params.id}`
+    ? `/predict/fixture/${nextFixtureTask.leagueFixtureId || nextFixtureTask.fixtureId}?leagueId=${params.id}`
     : `/predict`;
 
   const propsMobile = {
