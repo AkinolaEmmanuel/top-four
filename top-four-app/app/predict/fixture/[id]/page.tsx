@@ -506,6 +506,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
     carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
     leagueName, competitionLabel, fixtureId, leagueId,
+    hName, aName, hCode, aCode,
 
     // Desktop extra
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", true), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)],

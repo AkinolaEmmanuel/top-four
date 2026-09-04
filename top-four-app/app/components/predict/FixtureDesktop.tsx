@@ -10,7 +10,8 @@ export function FixtureDesktop({
   scoreline, scoreSize, kickoffLine, bannerLabel, bannerText, bannerRight,
   marketsDone, lineupsDone, pointsLabel, pointsValue, pointsHeroColor,
   marketsHint, footNote, canCopy, copySub, showConflict,
-  copyPrimary, copyPrimaryStyle, leagueName, competitionLabel
+  copyPrimary, copyPrimaryStyle, leagueName, competitionLabel,
+  hName, aName, hCode, aCode
 }: any) {
   
   return (
@@ -37,7 +38,7 @@ export function FixtureDesktop({
           <div className="flex items-center gap-[9px] m-[20px_0_16px] text-[12px] text-[var(--text-muted)]">
             <Link href="/predict" className="cursor-pointer hover:text-[var(--text-primary)] transition-colors">Predict</Link>
             <span>›</span>
-            <span className="text-[var(--text-primary)]">Arsenal v Chelsea</span>
+            <span className="text-[var(--text-primary)]">{hName} v {aName}</span>
           </div>
         </div>
 
@@ -57,18 +58,18 @@ export function FixtureDesktop({
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-[26px] items-center m-[24px_auto_0] max-w-[780px]">
               <div className="flex items-center justify-end gap-[16px] min-w-0">
                 <div className="text-right min-w-0">
-                  <div className="font-heading font-bold text-[32px] leading-[1] tracking-[-1.1px] whitespace-nowrap overflow-hidden text-ellipsis">Arsenal</div>
+                  <div className="font-heading font-bold text-[32px] leading-[1] tracking-[-1.1px] whitespace-nowrap overflow-hidden text-ellipsis">{hName}</div>
                   <div className="text-[10px] text-[var(--nav-text-faint)] mt-[7px] tracking-[0.1em]">HOME</div>
                 </div>
-                <span className="tf-crest w-[58px] h-[63px] text-[14px]" style={{ background: homeColor }}>ARS</span>
+                <span className="tf-crest w-[58px] h-[63px] text-[14px]" style={{ background: homeColor }}>{hCode}</span>
               </div>
               <div className="text-center flex-none min-w-[150px]">
                 <div className="tf-num font-heading font-bold leading-[1] tracking-[-2px]" style={{ fontSize: scoreSize }}>{scoreline}</div>
               </div>
               <div className="flex items-center gap-[16px] min-w-0">
-                <span className="tf-crest w-[58px] h-[63px] text-[14px]" style={{ background: awayColor }}>CHE</span>
+                <span className="tf-crest w-[58px] h-[63px] text-[14px]" style={{ background: awayColor }}>{aCode}</span>
                 <div className="min-w-0">
-                  <div className="font-heading font-bold text-[32px] leading-[1] tracking-[-1.1px] whitespace-nowrap overflow-hidden text-ellipsis">Chelsea</div>
+                  <div className="font-heading font-bold text-[32px] leading-[1] tracking-[-1.1px] whitespace-nowrap overflow-hidden text-ellipsis">{aName}</div>
                   <div className="text-[10px] text-[var(--nav-text-faint)] mt-[7px] tracking-[0.1em]">AWAY</div>
                 </div>
               </div>
