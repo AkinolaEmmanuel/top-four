@@ -62,9 +62,29 @@ export interface LeagueFixturesPage {
   nextCursor: string | null;
 }
 
+function mapFixtureStatus(fixtureState: string): LeagueFixture['status'] {
+  if (fixtureState === 'finished' || fixtureState === 'awarded' || fixtureState === 'walkover') return 'finished';
+  if (fixtureState === 'postponed' || fixtureState === 'cancelled' || fixtureState === 'abandoned') return 'voided';
+  if (fixtureState === 'live' || fixtureState === 'suspended' || fixtureState === 'interrupted' || fixtureState === 'under_review') return 'live';
+  return 'upcoming';
+}
+
 export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Promise<LeagueFixturesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-  return apiFetch<LeagueFixturesPage>(`/leagues/${leagueId}/fixtures${query}`);
+  const response = await apiFetch<{ data: any[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
+  const items: LeagueFixture[] = response.data.map((f) => ({
+    id: f.leagueFixtureId,
+    leagueId,
+    homeTeam: f.homeTeam?.displayName || 'Home',
+    homeTeamCode: f.homeTeam?.code || 'HOM',
+    awayTeam: f.awayTeam?.displayName || 'Away',
+    awayTeamCode: f.awayTeam?.code || 'AWA',
+    kickoffAt: f.kickoff?.at || '',
+    status: mapFixtureStatus(f.fixtureState),
+    markets: [],
+    predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
+  }));
+  return { items, nextCursor: response.nextCursor };
 }
 
 export interface CreateLeaguePayload {
