@@ -6,8 +6,10 @@ export function LeagueQuestionsMobile({
   theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
   groups, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
   qText, setQText, types, TYPE, qType, optionsList, setQOptions,
-  qPoints, pointOptions, qCriteria, setQCriteria, canPublish, flash, publishAction,
-  spellingsList, setSpellings, match, resolveNotesList, SHEET, toast, settleAction,
+  qPoints, pointOptions, qCriteria, setQCriteria, canPublish, publishAction,
+  resolveTitle, resolveSubtitle, outcomes, resolveIsText, resolveText, setResolveText,
+  canSettleNow, settleLabel,
+  match, resolveNotesList, SHEET, toast, settleAction, voidAction,
   presets, applyPreset, leagueName
 }: any) {
   return (
@@ -109,8 +111,25 @@ export function LeagueQuestionsMobile({
                       </div>
                     )}
 
+                    {q.hasText && (
+                      <div className="flex gap-[7px] mt-[12px]">
+                        <input
+                          type="text"
+                          value={q.textValue}
+                          onChange={(e) => q.setTextValue(e.target.value)}
+                          placeholder={q.textPlaceholder}
+                          className="tf-field flex-1"
+                        />
+                        <div onClick={q.submitTextValue} className="tf-tap h-[44px] px-[16px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12px]">Save</div>
+                      </div>
+                    )}
+
                     <div className={q.answerStyle}>{q.answer}</div>
                     <div className={q.criteriaStyle}>{q.criteria}</div>
+
+                    {q.canSettle && (
+                      <div onClick={q.settleAction} className="tf-tap mt-[12px] text-[11.5px] font-heading font-bold text-[var(--color-brand)]">{q.settleLabel}</div>
+                    )}
                   </div>
                 ))}
               </section>
@@ -215,28 +234,39 @@ export function LeagueQuestionsMobile({
             <section className="p-[20px_var(--gutter)_0]">
               <div className="flex items-center justify-between">
                 <span className="tf-chip bg-[var(--warn-surface)] text-[var(--warn-text)]">NEEDS SETTLING</span>
-                <span className="font-heading font-bold text-[11px] text-[var(--warn-text)]">2 DAYS LEFT</span>
               </div>
-              <div className="font-heading font-bold text-[20px] leading-[1.25] tracking-[-0.5px] mt-[12px]">Who wins the golden boot?</div>
-              <div className="text-[12px] leading-[1.55] text-[var(--text-secondary)] mt-[8px]">Settled on the official Premier League top scorer. 128 members answered.</div>
+              <div className="font-heading font-bold text-[20px] leading-[1.25] tracking-[-0.5px] mt-[12px]">{resolveTitle}</div>
+              <div className="text-[12px] leading-[1.55] text-[var(--text-secondary)] mt-[8px]">{resolveSubtitle}</div>
             </section>
 
             <section className="mt-[22px]">
-              <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">ACCEPTED ANSWERS</div>
-              <div className="flex flex-wrap gap-[6px] px-[var(--gutter)]">
-                {spellingsList.map((s: any, i: number) => (
-                  <div key={i} onClick={s.remove} className="tf-tap flex items-center gap-[7px] h-[32px] px-[11px] rounded-[8px] bg-[var(--accent-surface)] border border-[var(--color-brand)]">
-                    <span className="font-heading font-semibold text-[11.5px] text-[var(--accent-text-strong)]">{s.label}</span>
-                    <span className="text-[11px] text-[var(--accent-text-strong)]">×</span>
-                  </div>
-                ))}
-                <div onClick={() => setSpellings((s: any) => s.indexOf("Erling Haaland") < 0 ? s.concat("Erling Haaland") : s)} className="tf-tap flex items-center h-[32px] px-[11px] rounded-[8px] border border-dashed border-[var(--surface-border-strong)] font-heading font-semibold text-[11.5px] text-[var(--text-muted)]">+ add spelling</div>
-              </div>
-              <div className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] p-[11px_var(--gutter)_0]">Matching ignores capitals and outer spaces, nothing else. <strong>{match} of 128</strong> answers would match what you have accepted.</div>
+              <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">{resolveIsText ? "CORRECT ANSWER" : "PICK THE OUTCOME"}</div>
+              {resolveIsText ? (
+                <div className="px-[var(--gutter)]">
+                  <input
+                    type="text"
+                    value={resolveText}
+                    onChange={(e) => setResolveText(e.target.value)}
+                    placeholder="Type the correct answer…"
+                    className="tf-field w-full"
+                  />
+                  <div className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] mt-[8px]">Matched ignoring case and outer spaces against what members submitted.</div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-[6px] px-[var(--gutter)]">
+                  {(outcomes || []).map((o: any, i: number) => (
+                    <div key={i} onClick={o.pick} className={o.style}>
+                      <span className={o.markStyle}></span>
+                      <span className="flex-1 min-w-0 font-heading font-semibold text-[13px]">{o.label}</span>
+                      <span className={o.countStyle}>{o.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="p-[20px_var(--gutter)_0]">
-              <div onClick={() => setSheet("settle")} className="tf-tap h-[48px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)]">Settle this question</div>
+              <div onClick={() => { if (canSettleNow) setSheet("settle"); }} className={`tf-tap h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${canSettleNow ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>{settleLabel}</div>
               <div onClick={() => setSheet("void")} className="tf-tap h-[46px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px] mt-[8px]">Void it instead</div>
             </section>
 
@@ -298,15 +328,13 @@ export function LeagueQuestionsMobile({
             </div>
             <div className="flex gap-[8px] mt-[14px]">
               <div onClick={() => setSheet(null)} className="tf-tap flex-1 h-[46px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px]">Cancel</div>
-              <div onClick={() => { 
-                const voided = SHEET[4]; 
+              <div onClick={() => {
+                const voided = SHEET[4];
+                setSheet(null);
                 if (voided) {
-                  setSheet(null); setView("list"); flash("Voided · nobody scored");
+                  if (voidAction) voidAction();
                 } else if (settleAction) {
-                  setSheet(null);
                   settleAction();
-                } else {
-                  setSheet(null); setView("list"); flash("Settled · 128 members notified"); 
                 }
               }} className={`flex-1 h-[46px] rounded-[12px] grid place-items-center cursor-pointer font-heading font-bold text-[12.5px] text-[var(--tf-white)] ${SHEET[4] ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
                 {SHEET[3]}
