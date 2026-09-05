@@ -301,26 +301,26 @@ export function JoinLeagueDesktop(props: JoinLeagueDesktopProps) {
                     Enter invite code
                   </div>
                   <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[6px]">
-                    Six characters, not case-sensitive. Enter the code shared by the league admin.
+                    Ten characters, not case-sensitive. Enter the code shared by the league admin.
                   </div>
 
                   <div className="relative mt-[22px]">
                     <input
                       type="text"
                       value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 6))}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 10))}
                       className="absolute inset-0 opacity-0 w-full h-full cursor-text z-10"
-                      maxLength={6}
+                      maxLength={10}
                       autoFocus
                     />
-                    <div className="grid grid-cols-6 gap-[8px]">
-                      {Array.from({ length: 6 }).map((_, i) => {
+                    <div className="grid grid-cols-10 gap-[6px]">
+                      {Array.from({ length: 10 }).map((_, i) => {
                         const ch = inviteCode[i] || "";
                         const isFocused = inviteCode.length === i;
                         return (
                           <div
                             key={i}
-                            className={`h-[56px] rounded-[12px] grid place-items-center font-heading font-bold text-[22px] bg-[var(--surface-canvas)] text-[var(--text-primary)] border transition-colors ${
+                            className={`h-[52px] rounded-[10px] grid place-items-center font-heading font-bold text-[16px] bg-[var(--surface-canvas)] text-[var(--text-primary)] border transition-colors ${
                               isFocused ? 'border-[var(--color-brand)] shadow-[0_0_0_1px_var(--color-brand)]' : 'border-[var(--surface-border-strong)]'
                             }`}
                           >
@@ -333,9 +333,9 @@ export function JoinLeagueDesktop(props: JoinLeagueDesktopProps) {
 
                   <button
                     onClick={onJoinCode}
-                    disabled={inviteCode.length !== 6 || joinLeaguePending}
+                    disabled={inviteCode.length !== 10 || joinLeaguePending}
                     className={`w-full mt-[22px] h-[48px] rounded-[12px] grid place-items-center font-heading font-bold text-[13.5px] transition-all ${
-                      inviteCode.length === 6 && !joinLeaguePending
+                      inviteCode.length === 10 && !joinLeaguePending
                         ? 'bg-[var(--color-brand)] hover:bg-[var(--color-brand)]/90 text-white shadow-[var(--elev-glow)] cursor-pointer'
                         : 'bg-[var(--surface-subtle)] text-[var(--text-muted)] cursor-not-allowed opacity-60'
                     }`}
