@@ -1,6 +1,22 @@
 import { apiFetch } from './fetcher';
 import { fetchFixtureResults } from './predictions-fixture';
-import { fetchCatalogueCompetitions } from './catalogue';
+import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
+
+export interface LeagueRulesetMarket {
+  marketType: string;
+  enabled: boolean;
+  points: number;
+}
+
+export interface LeagueRuleset {
+  state: string;
+  revision: number;
+  lateJoinPolicy: 'allow' | 'close_at_start';
+  totalGoalsLine: number;
+  standardLock: { kind: string; offsetMinutes: number };
+  markets: LeagueRulesetMarket[];
+  tiebreakers: string[];
+}
 
 export interface League {
   id: string;
@@ -16,12 +32,15 @@ export interface League {
     supportedCompetitionId: string;
     seasonId: string;
     kind: string;
+    firstRound: number | null;
+    lastRound: number | null;
     displayName: string;
+    seasonLabel: string;
     slug: string;
   }[];
+  ruleset?: LeagueRuleset;
   ownStanding?: any;
   memberCount?: number;
-  configuration?: any;
   invitationSettings?: any;
   createdAt: string;
   updatedAt: string;
@@ -48,18 +67,23 @@ export async function fetchLeagueDetails(id: string): Promise<League> {
     apiFetch<any>(`/leagues/${id}`),
     fetchCatalogueCompetitions().catch(() => []),
   ]);
-  const scopes: Array<{ supportedCompetitionId: string; seasonId: string; kind: string }> =
+  const scopes: Array<{ supportedCompetitionId: string; seasonId: string; kind: string; firstRound: number | null; lastRound: number | null }> =
     league.ruleset?.competitionScopes || [];
-  const competitions = scopes.map((scope) => {
+  const competitions = await Promise.all(scopes.map(async (scope) => {
     const match = catalogue.find((c) => c.id === scope.supportedCompetitionId);
+    const seasons = await fetchCompetitionSeasons(scope.supportedCompetitionId).catch(() => []);
+    const season = seasons.find((s) => s.id === scope.seasonId);
     return {
       supportedCompetitionId: scope.supportedCompetitionId,
       seasonId: scope.seasonId,
       kind: scope.kind,
+      firstRound: scope.firstRound,
+      lastRound: scope.lastRound,
       displayName: match?.displayName || 'Competition',
+      seasonLabel: season?.label || '',
       slug: match?.slug || '',
     };
-  });
+  }));
   return { ...league, competitions };
 }
 
