@@ -153,9 +153,12 @@ export function LeagueQuestionsMobile({
             <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)]">Wording, options, deadline and point value lock the moment somebody answers — they answered partly on the value. Only the criteria and the outcome date stay editable after that.</div>
 
             <div className="tf-kicker text-[var(--text-muted)] mt-[22px]">THE QUESTION</div>
-            <div onClick={() => setQText("Will Arsenal win the league this season?")} className={`min-h-[72px] rounded-[12px] p-[13px] mt-[10px] bg-[var(--surface-card)] border border-[var(--surface-border-strong)] cursor-text text-[13px] leading-[1.5] ${qText ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
-              {qText || "Write the question. Keep it to one fact with one answer."}
-            </div>
+            <textarea
+              value={qText}
+              onChange={(e) => setQText(e.target.value)}
+              placeholder="Write the question. Keep it to one fact with one answer."
+              className="w-full min-h-[72px] rounded-[12px] p-[13px] mt-[10px] bg-[var(--surface-card)] border border-[var(--surface-border-strong)] text-[13px] leading-[1.5] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none"
+            />
 
             <div className="tf-kicker text-[var(--text-muted)] mt-[20px]">ANSWER TYPE</div>
             <div className="flex gap-[6px] mt-[10px]">
@@ -170,9 +173,18 @@ export function LeagueQuestionsMobile({
                 <div className="tf-kicker text-[var(--text-muted)] mt-[20px]">OPTIONS</div>
                 <div className="flex flex-col gap-[7px] mt-[10px]">
                   {optionsList.map((o: any, i: number) => (
-                    <div key={i} className="tf-field"><span className="flex-1">{o.label}</span><span onClick={o.remove} className={o.removeStyle}>×</span></div>
+                    <div key={i} className="tf-field">
+                      <input
+                        type="text"
+                        value={o.label}
+                        onChange={(e) => o.update(e.target.value)}
+                        placeholder={`Option ${i + 1}`}
+                        className="flex-1 bg-transparent outline-none"
+                      />
+                      <span onClick={o.remove} className={o.removeStyle}>×</span>
+                    </div>
                   ))}
-                  <div onClick={() => setQOptions((s: any) => s.concat(`Option ${s.length + 1}`))} className="tf-tap min-h-[44px] rounded-[12px] border border-dashed border-[var(--surface-border-strong)] grid place-items-center text-[12px] text-[var(--text-muted)]">+ add an option</div>
+                  <div onClick={() => setQOptions((s: any) => s.concat(''))} className="tf-tap min-h-[44px] rounded-[12px] border border-dashed border-[var(--surface-border-strong)] grid place-items-center text-[12px] text-[var(--text-muted)]">+ add an option</div>
                 </div>
               </div>
             )}
@@ -205,9 +217,12 @@ export function LeagueQuestionsMobile({
               <span className="tf-kicker text-[var(--text-muted)]">HOW IT GETS SETTLED</span>
               <span className="font-heading font-bold text-[9.5px] text-[var(--danger-text)]">REQUIRED</span>
             </div>
-            <div onClick={() => setQCriteria("Settled on the final Premier League table published by the league.")} className={`min-h-[64px] rounded-[12px] p-[13px] mt-[10px] bg-[var(--surface-card)] cursor-text text-[12.5px] leading-[1.5] border ${qCriteria ? 'border-[var(--surface-border-strong)] text-[var(--text-primary)]' : 'border-[var(--color-danger)] text-[var(--text-muted)]'}`}>
-              {qCriteria || "Name the source that decides this."}
-            </div>
+            <textarea
+              value={qCriteria}
+              onChange={(e) => setQCriteria(e.target.value)}
+              placeholder="Name the source that decides this."
+              className={`w-full min-h-[64px] rounded-[12px] p-[13px] mt-[10px] bg-[var(--surface-card)] text-[12.5px] leading-[1.5] border resize-none placeholder:text-[var(--text-muted)] ${qCriteria ? 'border-[var(--surface-border-strong)] text-[var(--text-primary)]' : 'border-[var(--color-danger)] text-[var(--text-primary)]'}`}
+            />
             <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[8px]">Members read this before answering. Name the source that decides it, so nobody argues later.</div>
 
             <div className="tf-kicker text-[var(--text-muted)] mt-[22px]">HOW IT WILL READ</div>
