@@ -247,9 +247,12 @@ export function LeagueQuestionsDesktop({
 
               <div className="mt-[20px]">
                 <div className="tf-kicker">The question</div>
-                <div onClick={() => setQText("Will Arsenal win the league?")} className={`mt-[9px] p-[14px_15px] rounded-[11px] border bg-[var(--surface-card)] font-heading font-semibold text-[14px] cursor-text ${qText ? 'border-[var(--surface-border-strong)] text-[var(--text-primary)]' : 'border-[var(--surface-border-strong)] text-[var(--text-muted)]'}`}>
-                  {qText || "Write the question..."}
-                </div>
+                <textarea
+                  value={qText}
+                  onChange={(e) => setQText(e.target.value)}
+                  placeholder="Write the question..."
+                  className="w-full mt-[9px] p-[14px_15px] rounded-[11px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] font-heading font-semibold text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] placeholder:font-normal resize-none min-h-[52px]"
+                />
               </div>
 
               {qType === "choice" && (
@@ -258,11 +261,17 @@ export function LeagueQuestionsDesktop({
                   <div className="flex flex-col gap-[7px] mt-[9px]">
                     {optionsList.map((o: any, i: number) => (
                       <div key={i} className="flex items-center gap-[10px] h-[42px] px-[13px] rounded-[10px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)]">
-                        <span className="flex-1 font-heading font-semibold text-[12.5px]">{o.label}</span>
+                        <input
+                          type="text"
+                          value={o.label}
+                          onChange={(e) => o.update(e.target.value)}
+                          placeholder={`Option ${i + 1}`}
+                          className="flex-1 font-heading font-semibold text-[12.5px] bg-transparent outline-none"
+                        />
                         <span onClick={o.remove} style={o.removeStyle}>×</span>
                       </div>
                     ))}
-                    <div onClick={() => setQOptions((s: any) => s.concat(`Option ${s.length + 1}`))} className="h-[42px] rounded-[10px] border border-dashed border-[var(--surface-border-strong)] grid place-items-center cursor-pointer font-heading font-semibold text-[12px] text-[var(--text-link)]">Add another option</div>
+                    <div onClick={() => setQOptions((s: any) => s.concat(''))} className="h-[42px] rounded-[10px] border border-dashed border-[var(--surface-border-strong)] grid place-items-center cursor-pointer font-heading font-semibold text-[12px] text-[var(--text-link)]">Add another option</div>
                   </div>
                 </div>
               )}
@@ -278,9 +287,12 @@ export function LeagueQuestionsDesktop({
 
               <div className="mt-[20px]">
                 <div className="tf-kicker">How it will be settled</div>
-                <div onClick={() => setQCriteria("Settled on the final Premier League standings, on the day the season ends.")} className={`mt-[9px] p-[14px_15px] rounded-[11px] border bg-[var(--surface-card)] text-[12.5px] leading-[1.55] cursor-text ${qCriteria ? 'border-[var(--surface-border-strong)] text-[var(--text-primary)]' : 'border-[var(--color-danger)] text-[var(--text-muted)]'}`}>
-                  {qCriteria || "Criteria..."}
-                </div>
+                <textarea
+                  value={qCriteria}
+                  onChange={(e) => setQCriteria(e.target.value)}
+                  placeholder="Name the source that decides this..."
+                  className={`w-full mt-[9px] p-[14px_15px] rounded-[11px] border bg-[var(--surface-card)] text-[12.5px] leading-[1.55] resize-none min-h-[52px] placeholder:text-[var(--text-muted)] ${qCriteria ? 'border-[var(--surface-border-strong)] text-[var(--text-primary)]' : 'border-[var(--color-danger)] text-[var(--text-primary)]'}`}
+                />
               </div>
             </div>
 

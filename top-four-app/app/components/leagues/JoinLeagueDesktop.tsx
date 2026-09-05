@@ -126,7 +126,7 @@ export function JoinLeagueDesktop(props: JoinLeagueDesktopProps) {
 
               <p className="text-[13.5px] text-[var(--nav-text-quiet)] leading-[1.6] mt-[12px] max-w-[500px]">
                 {byCode
-                  ? "Enter your six-character invitation code to join this prediction league and battle on the community leaderboard."
+                  ? "Enter your ten-character invitation code to join this prediction league and battle on the community leaderboard."
                   : "Compete with friends, predict match outcomes, correct scores, goalscorers, and squad lineups across the season."}
               </p>
 

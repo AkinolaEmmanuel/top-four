@@ -362,11 +362,13 @@ export default function QuestionsPage() {
 
   const optionsListMobile = qOptions.map((label, i) => ({
     label,
+    update: (v: string) => setQOptions(s => s.map((o, j) => j === i ? v : o)),
     removeStyle: `text-[15px] text-[var(--text-muted)] flex-none px-[2px] ${qOptions.length > 2 ? 'cursor-pointer' : 'opacity-30'}`,
     remove: () => { if (qOptions.length > 2) setQOptions(s => s.filter((_, j) => j !== i)); }
   }));
   const optionsListDesktop = qOptions.map((label, i) => ({
     label,
+    update: (v: string) => setQOptions(s => s.map((o, j) => j === i ? v : o)),
     removeStyle: { fontSize: '15px', color: 'var(--text-muted)', flex: 'none', padding: '0 2px', cursor: qOptions.length > 2 ? 'pointer' : 'default', opacity: qOptions.length > 2 ? 1 : 0.3 },
     remove: () => { if (qOptions.length > 2) setQOptions(s => s.filter((_, j) => j !== i)); }
   }));
