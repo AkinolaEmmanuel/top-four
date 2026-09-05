@@ -170,18 +170,6 @@ export function MeDesktop({
                     </div>
                   </div>
                 ))}
-
-                {/* Delete account */}
-                <div className="mt-[30px] pb-[11px] border-b border-[var(--surface-border-strong)]">
-                  <div className="font-heading font-bold text-[14px] text-[var(--danger-text)]">Danger zone</div>
-                </div>
-                <div className="py-[14px] border-b border-[var(--surface-border)] flex items-center gap-[13px] shadow-[inset_3px_0_0_0_var(--color-danger)] opacity-70">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-heading font-semibold text-[13.5px] text-[var(--danger-text)]">Delete account</div>
-                    <div className="text-[11.5px] text-[var(--text-muted)] leading-[1.45] mt-[3px]">Leagues you own need a new owner first. Your predictions stay, without your name.</div>
-                  </div>
-                  <span className="text-[10px] font-heading font-bold tracking-[0.05em] text-[var(--text-muted)] flex-none">COMING SOON</span>
-                </div>
               </div>
             </div>
           </div>
