@@ -11,8 +11,8 @@ export function LeagueQuestionsDesktop({
   qPoints, setQPoints, pointOptions, qCriteria, setQCriteria,
   canPublish, publishStyle, publishLabel, publishNoteStyle, publishNote, publishAction,
   previewText, previewPoints,
-  outcomes, spellingsList, setSpellings, match, addSpelling,
-  settleStyle, settleLabel, settleAction, resolveNotesList, toast, toastStyle,
+  outcomes, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
+  settleStyle, settleLabel, settleAction, voidAction, resolveNotesList, toast, toastStyle,
   presets, applyPreset, leagueName, memberCount, params
 }: any) {
 
@@ -116,6 +116,19 @@ export function LeagueQuestionsDesktop({
                       </div>
                     )}
 
+                    {q.hasText && (
+                      <div className="flex gap-[9px] mt-[14px]">
+                        <input
+                          type="text"
+                          value={q.textValue}
+                          onChange={(e) => q.setTextValue(e.target.value)}
+                          placeholder={q.textPlaceholder}
+                          className="flex-1 h-[42px] px-[13px] rounded-[10px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[13px]"
+                        />
+                        <div onClick={q.submitTextValue} className="h-[42px] px-[16px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center cursor-pointer font-heading font-bold text-[12.5px]">Save</div>
+                      </div>
+                    )}
+
                     <div style={q.criteriaStyle}>{q.criteria}</div>
                   </div>
                 ))}
@@ -157,8 +170,12 @@ export function LeagueQuestionsDesktop({
                               ))}
                             </div>
                           )}
-                          
+
                           <div style={q.criteriaStyle}>{q.criteria}</div>
+
+                          {q.canSettle && (
+                            <div onClick={q.settleAction} className="cursor-pointer font-heading font-bold text-[11px] mt-[9px]" style={{ color: 'var(--color-brand)' }}>{q.settleLabel}</div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -295,37 +312,37 @@ export function LeagueQuestionsDesktop({
           <div className="max-w-[1080px] mx-auto p-[24px_24px_30px] flex gap-[20px] items-start animate-[tfin_0.16s_ease]">
             <div className="flex-1 min-w-0">
               <div className="tf-kicker">Settling</div>
-              <div className="font-heading font-bold text-[24px] leading-[1.2] tracking-[-0.6px] mt-[9px]">Who wins the golden boot?</div>
-              <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px] max-w-[64ch]">128 members answered. Awarding an outcome pays out immediately and tells everybody what they scored.</div>
+              <div className="font-heading font-bold text-[24px] leading-[1.2] tracking-[-0.6px] mt-[9px]">{resolveTitle}</div>
+              <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px] max-w-[64ch]">{resolveSubtitle}</div>
 
               <div className="mt-[22px]">
-                <div className="tf-kicker">The outcome</div>
-                <div className="flex flex-col gap-[8px] mt-[10px]">
-                  {outcomes.map((o: any, i: number) => (
-                    <div key={i} onClick={o.pick} style={o.style}>
-                      <span style={o.markStyle}></span>
-                      <span className="flex-1 min-w-0 font-heading font-[650] text-[13.5px]">{o.label}</span>
-                      <span className="tf-num" style={o.countStyle}>{o.count}</span>
-                    </div>
-                  ))}
-                </div>
+                <div className="tf-kicker">{resolveIsText ? "Correct answer" : "The outcome"}</div>
+                {resolveIsText ? (
+                  <div className="mt-[10px]">
+                    <input
+                      type="text"
+                      value={resolveText}
+                      onChange={(e) => setResolveText(e.target.value)}
+                      placeholder="Type the correct answer…"
+                      className="w-full h-[46px] px-[15px] rounded-[11px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[13.5px]"
+                    />
+                    <div className="text-[11.5px] leading-[1.5] text-[var(--text-muted)] mt-[8px]">Matched ignoring case and outer spaces against what members submitted.</div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-[8px] mt-[10px]">
+                    {outcomes.map((o: any, i: number) => (
+                      <div key={i} onClick={o.pick} style={o.style}>
+                        <span style={o.markStyle}></span>
+                        <span className="flex-1 min-w-0 font-heading font-[650] text-[13.5px]">{o.label}</span>
+                        <span className="tf-num" style={o.countStyle}>{o.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="mt-[22px]">
-                <div className="tf-kicker">Accepted spellings</div>
-                <div className="text-[11.5px] leading-[1.5] text-[var(--text-muted)] mt-[6px]">Open-text answers only count if they match one of these. Add every form members actually typed.</div>
-                <div className="flex flex-wrap gap-[7px] mt-[11px]">
-                  {spellingsList.map((s: any, i: number) => (
-                    <span key={i} className="flex items-center gap-[7px] h-[30px] px-[11px] rounded-full bg-[var(--surface-subtle)] font-heading font-semibold text-[11.5px]">
-                      {s.label}
-                      <span onClick={s.remove} className="cursor-pointer text-[var(--text-muted)]">×</span>
-                    </span>
-                  ))}
-                  <span onClick={addSpelling} className="flex items-center h-[30px] px-[11px] rounded-full border border-dashed border-[var(--surface-border-strong)] font-heading font-semibold text-[11.5px] text-[var(--text-link)] cursor-pointer">+ Add</span>
-                </div>
-              </div>
-
-              <div style={settleStyle} onClick={settleAction}>{settleLabel}</div>
+              <div style={settleStyle} onClick={() => { if (canSettleNow) settleAction(); }}>{settleLabel}</div>
+              <div onClick={voidAction} className="mt-[12px] text-center cursor-pointer font-heading font-bold text-[12px] text-[var(--text-muted)]">Void it instead</div>
             </div>
 
             <div className="w-[330px] flex-none">

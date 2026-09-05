@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LeagueQuestionsMobile } from '../../../components/leagues/LeagueQuestionsMobile';
 import { LeagueQuestionsDesktop } from '../../../components/leagues/LeagueQuestionsDesktop';
-import { useCustomQuestions, useCreateCustomQuestion, useSubmitCustomAnswer, useResolveCustomQuestion, useOwnCustomAnswers } from '@/hooks/api/useCustomQuestions';
+import { useCustomQuestions, useCreateCustomQuestion, useSubmitCustomAnswer, useResolveCustomQuestion, useVoidCustomQuestion, useOwnCustomAnswers, useDisclosedAnswers } from '@/hooks/api/useCustomQuestions';
 import { useLeague } from '@/hooks/api/useLeagues';
 import { useAuth } from '@/context/auth-context';
 import { useParams } from 'next/navigation';
@@ -12,19 +12,19 @@ import { STANDINGS_QUESTION_PRESETS, QuestionPreset } from '@/lib/constants/ques
 
 
 const GROUPS = [
-  ["open", "OPEN NOW", "25 POINTS"],
-  ["closed", "WAITING ON THE OUTCOME", "1 QUESTION"],
-  ["done", "ALREADY SETTLED", "2 QUESTIONS"]
+  ["open", "OPEN NOW"],
+  ["closed", "WAITING ON THE OUTCOME"],
+  ["done", "ALREADY SETTLED"]
 ];
 
 const TYPES = [
   ["yesno", "Yes / No", "Two options, fixed. The simplest thing to settle."],
   ["choice", "Choice", "You write the options. Members pick exactly one."],
-  ["text", "Open text", "Members type an answer. You approve the spellings when you settle."]
+  ["text", "Open text", "Members type an answer. You settle it with a single correct answer, matched ignoring case and outer spaces."]
 ];
 
 const RESOLVE_NOTES = [
-  { title: "Changing the answer later", body: "Correcting a settlement reverses what you already awarded and pays out again on the new answer. Both stay on record, and every member is told it changed.", effect: [["74 members lose", "15 pts"], ["33 members gain", "15 pts"]], action: "Correct the settlement", danger: true },
+  { title: "Changing the answer later", body: "Correcting a settlement reverses what you already awarded and pays out again on the new answer. Both stay on record, and every member is told it changed." },
   { title: "Terms are locked", body: "Somebody has answered, so the wording, options, deadline and point value cannot change — they answered partly on the value.", foot: "You can still edit the resolution criteria and the outcome date." },
   { title: "If you leave it too long", body: "A question not settled within 14 days of its outcome date is voided automatically, and nobody scores." }
 ];
@@ -37,6 +37,7 @@ export default function QuestionsPage() {
   const createQuestion = useCreateCustomQuestion(params.id);
   const submitAnswer = useSubmitCustomAnswer(params.id);
   const resolveQuestion = useResolveCustomQuestion(params.id);
+  const voidQuestion = useVoidCustomQuestion(params.id);
 
   const apiQuestions = questionsPage?.data || [];
   
@@ -50,32 +51,58 @@ export default function QuestionsPage() {
     return acc;
   }, {} as Record<string, any>);
 
+  // Converts the real stored answer ({value}/{option}/{text}) back into the
+  // raw UI id these tiles compare against ("yes"/"no", "true"/"false", the
+  // option string itself, or the free-text value).
+  const answerToRawId = (answerKind: string, answer: any): string | undefined => {
+    if (!answer || typeof answer !== 'object') return undefined;
+    if ('value' in answer) {
+      const v = !!answer.value;
+      if (answerKind === 'true_false') return v ? 'true' : 'false';
+      return v ? 'yes' : 'no';
+    }
+    if ('option' in answer) return answer.option;
+    if ('text' in answer) return answer.text;
+    return undefined;
+  };
+
+  // Builds the real per-kind wire shape from the raw UI id/text a member picked.
+  const buildAnswerPayload = (answerKind: string, rawValue: string): { value: boolean } | { option: string } | { text: string } => {
+    if (answerKind === 'yes_no') return { value: rawValue === 'yes' };
+    if (answerKind === 'true_false') return { value: rawValue === 'true' };
+    if (answerKind === 'open_text') return { text: rawValue };
+    return { option: rawValue };
+  };
+
   const dynamicQuestions = apiQuestions.map(q => {
     let choices: any = undefined;
     let options: any = undefined;
-    
+
     if (q.answerKind === 'yes_no') choices = [["yes", "Yes"], ["no", "No"]];
     else if (q.answerKind === 'true_false') choices = [["true", "True"], ["false", "False"]];
     else if (q.answerKind === 'single_choice' && q.options) options = q.options.map(o => [o, o, ""]);
-    
+
     return {
       id: q.id,
+      answerKind: q.answerKind,
+      realOptions: q.options || [],
       group: q.phase === 'open' ? 'open' : q.phase === 'resolved' ? 'done' : 'closed',
       pts: String(q.points),
       title: q.questionText,
       chip: q.phase === 'open' ? `OPEN · CLOSES ${new Date(q.deadlineAt).toLocaleDateString()}` : q.phase === 'closed' ? `CLOSED` : `SETTLED`,
       choices,
       options,
+      hasText: q.answerKind === 'open_text',
       criteria: q.resolutionCriteria
     };
   });
-  
+
   const displayQuestions = dynamicQuestions;
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [view, setView] = useState<'list' | 'empty' | 'create' | 'resolve'>('list');
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [spellings, setSpellings] = useState(["Haaland", "E. Haaland"]);
+  const [textDrafts, setTextDrafts] = useState<Record<string, string>>({});
   const [sheet, setSheet] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [qType, setQType] = useState("yesno");
@@ -84,6 +111,9 @@ export default function QuestionsPage() {
   const [qCriteria, setQCriteria] = useState("");
   const [qOptions, setQOptions] = useState(["Haaland", "Saka", "Salah"]);
   const [outcome, setOutcome] = useState<string | null>(null);
+  const [resolveText, setResolveText] = useState("");
+  const [resolveQuestionId, setResolveQuestionId] = useState<string | null>(null);
+  const { data: disclosedAnswers } = useDisclosedAnswers(params.id, resolveQuestionId);
 
   useEffect(() => {
     const newAnswers = { ...answers };
@@ -91,8 +121,10 @@ export default function QuestionsPage() {
     ownAnswersQueries.forEach((q, idx) => {
       if (q.data?.data?.answered && q.data.data.answer) {
         const qId = questionIds[idx];
-        if (!newAnswers[qId]) {
-          newAnswers[qId] = typeof q.data.data.answer === 'string' ? q.data.data.answer : String(q.data.data.answer);
+        const kind = apiQuestions.find(aq => aq.id === qId)?.answerKind || '';
+        const raw = answerToRawId(kind, q.data.data.answer);
+        if (!newAnswers[qId] && raw !== undefined) {
+          newAnswers[qId] = raw;
           changed = true;
         }
       }
@@ -100,7 +132,7 @@ export default function QuestionsPage() {
     if (changed) {
       setAnswers(newAnswers);
     }
-  }, [ownAnswersQueries, questionIds, answers]);
+  }, [ownAnswersQueries, questionIds, answers, apiQuestions]);
 
   useEffect(() => {
     let t: NodeJS.Timeout;
@@ -114,6 +146,24 @@ export default function QuestionsPage() {
 
   const onList = view === "list", onEmpty = view === "empty", onCreate = view === "create", onResolve = view === "resolve";
   const admin = onCreate || onResolve;
+
+  const submitTextAnswer = (q: any) => {
+    const draft = (textDrafts[q.id] || '').trim();
+    if (!draft) return;
+    setAnswers(s => ({ ...s, [q.id]: draft }));
+    const existing = ownAnswersMap[q.id];
+    const expectedVersion = existing?.version || 0;
+    submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, draft) }, {
+      onSuccess: () => flash("Answer saved · you can change it until the deadline")
+    });
+  };
+
+  const goToSettle = (questionId: string) => {
+    setResolveQuestionId(questionId);
+    setOutcome(null);
+    setResolveText("");
+    setView("resolve");
+  };
 
   const chipToneMobile = (q: any) => {
     if (q.voided) return "border border-dashed border-[var(--surface-border-strong)] text-[var(--text-muted)]";
@@ -148,7 +198,7 @@ export default function QuestionsPage() {
           setAnswers(s => ({ ...s, [q.id]: id })); 
           const existing = ownAnswersMap[q.id];
           const expectedVersion = existing?.version || 0;
-          submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: id }, {
+          submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
             onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
           }); 
         }
@@ -166,7 +216,7 @@ export default function QuestionsPage() {
             setAnswers(s => ({ ...s, [q.id]: id })); 
             const existing = ownAnswersMap[q.id];
             const expectedVersion = existing?.version || 0;
-            submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: id }, {
+            submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
               onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
             }); 
           }
@@ -180,6 +230,16 @@ export default function QuestionsPage() {
         fillStyle: `w-[${Math.round(count / 128 * 100)}%] h-full rounded-full ${lead ? 'bg-[var(--color-brand)]' : 'bg-[var(--state-locked)]'}`
       })),
       
+      hasText: !!q.hasText,
+      textValue: textDrafts[q.id] ?? picked ?? '',
+      textPlaceholder: "Type your answer…",
+      setTextValue: (v: string) => setTextDrafts(s => ({ ...s, [q.id]: v })),
+      submitTextValue: () => submitTextAnswer(q),
+
+      canSettle: admin && q.group === 'closed',
+      settleLabel: "Settle this question →",
+      settleAction: () => goToSettle(q.id),
+
       answer: q.answer || "",
       answerStyle: `text-[12px] leading-[1.5] mt-[11px] ${q.voided ? 'text-[var(--text-muted)]' : 'text-[var(--text-secondary)]'} ${q.answer ? '' : 'hidden'}`,
       criteria: q.criteria || "",
@@ -207,7 +267,7 @@ export default function QuestionsPage() {
           setAnswers(s => ({ ...s, [q.id]: id })); 
           const existing = ownAnswersMap[q.id];
           const expectedVersion = existing?.version || 0;
-          submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: id }, {
+          submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
             onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
           }); 
         }
@@ -225,7 +285,7 @@ export default function QuestionsPage() {
             setAnswers(s => ({ ...s, [q.id]: id })); 
             const existing = ownAnswersMap[q.id];
             const expectedVersion = existing?.version || 0;
-            submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: id }, {
+            submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
               onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
             }); 
           }
@@ -239,6 +299,16 @@ export default function QuestionsPage() {
         fillStyle: `width:${Math.round(count / 128 * 100)}%;height:100%;border-radius:999px;background:${lead ? 'var(--color-brand)' : 'var(--state-locked)'}`
       })),
       
+      hasText: !!q.hasText,
+      textValue: textDrafts[q.id] ?? picked ?? '',
+      textPlaceholder: "Type your answer…",
+      setTextValue: (v: string) => setTextDrafts(s => ({ ...s, [q.id]: v })),
+      submitTextValue: () => submitTextAnswer(q),
+
+      canSettle: admin && q.group === 'closed',
+      settleLabel: "Settle this question →",
+      settleAction: () => goToSettle(q.id),
+
       answer: q.answer || "",
       answerStyle: `font-size:11.5px;line-height:1.5;margin-top:9px;color:${q.voided ? 'var(--text-muted)' : 'var(--text-secondary)'};${q.answer ? '' : 'display:none'}`,
       criteria: q.criteria || "",
@@ -246,9 +316,13 @@ export default function QuestionsPage() {
     };
   };
 
-  const groupsMobile = GROUPS.map(([id, kicker, right]) => {
+  const groupRight = (id: string, items: any[]) => id === 'open'
+    ? `${items.reduce((n, q) => n + parseInt(q.pts || '0', 10), 0)} POINTS`
+    : `${items.length} ${items.length === 1 ? 'QUESTION' : 'QUESTIONS'}`;
+
+  const groupsMobile = GROUPS.map(([id, kicker]) => {
     const items = displayQuestions.filter(q => q.group === id);
-    return { kicker, right, items: items.map(buildMobile) };
+    return { kicker, right: groupRight(id, items), items: items.map(buildMobile) };
   }).filter(g => g.items.length > 0);
 
   const openQs = displayQuestions.filter(q => q.group === "open");
@@ -260,11 +334,11 @@ export default function QuestionsPage() {
   
   const openItemsDesktop = openQs.map((q, i, a) => buildDesktop(q, i, a, false));
   const pastGroupsDesktop = [
-    ["closed", "WAITING ON THE OUTCOME", "1 QUESTION"],
-    ["done", "ALREADY SETTLED", "2 QUESTIONS"]
-  ].map(([id, kicker, right], gi) => {
+    ["closed", "WAITING ON THE OUTCOME"],
+    ["done", "ALREADY SETTLED"]
+  ].map(([id, kicker], gi) => {
     const items = displayQuestions.filter(q => q.group === id);
-    return { kicker, right, items: items.map((q, i, a) => buildDesktop(q, i, a, true)), wrapStyle: { marginTop: gi === 0 ? 0 : '22px' } };
+    return { kicker, right: groupRight(id, items), items: items.map((q, i, a) => buildDesktop(q, i, a, true)), wrapStyle: { marginTop: gi === 0 ? 0 : '22px' } };
   }).filter(g => g.items.length > 0);
 
   const TYPE = TYPES.find(t => t[0] === qType) || TYPES[0];
@@ -298,9 +372,6 @@ export default function QuestionsPage() {
   }));
 
   const canPublish = !!qText && !!qCriteria && !createQuestion.isPending;
-  const spellingsList = spellings.map((sp, i) => ({
-    label: sp, remove: () => setSpellings(s => s.filter((_, j) => j !== i))
-  }));
 
   const applyPreset = (preset: QuestionPreset) => {
     setQText(preset.questionText);
@@ -344,24 +415,44 @@ export default function QuestionsPage() {
   };
 
   const handleResolve = () => {
-    if (!outcome || resolveQuestion.isPending) return;
-    
-    // We will use the first closed question for resolve flow for now
-    const targetQ = displayQuestions.find(q => q.group === "closed");
+    if (resolveQuestion.isPending) return;
+    const targetQ = displayQuestions.find(q => q.id === resolveQuestionId);
     if (!targetQ) return;
-    
+
+    const isText = targetQ.answerKind === 'open_text';
+    const rawValue = isText ? resolveText.trim() : outcome;
+    if (!rawValue) return;
+
     resolveQuestion.mutate({
       questionId: targetQ.id,
-      correctAnswer: { choice: outcome },
+      correctAnswer: buildAnswerPayload(targetQ.answerKind, rawValue),
       reason: "Resolved by admin"
     }, {
       onSuccess: () => {
         setView("list");
         setOutcome(null);
+        setResolveText("");
+        setResolveQuestionId(null);
         flash("Question settled · Points awarded");
       },
       onError: () => {
         flash("Failed to settle question");
+      }
+    });
+  };
+
+  const handleVoid = () => {
+    if (voidQuestion.isPending || !resolveQuestionId) return;
+    voidQuestion.mutate({ questionId: resolveQuestionId, reason: "Voided by admin" }, {
+      onSuccess: () => {
+        setView("list");
+        setOutcome(null);
+        setResolveText("");
+        setResolveQuestionId(null);
+        flash("Voided · nobody scored");
+      },
+      onError: () => {
+        flash("Failed to void question");
       }
     });
   };
@@ -386,18 +477,19 @@ export default function QuestionsPage() {
     actionStyle: { marginTop: '13px', height: '38px', borderRadius: '9px', display: n.action ? 'grid' : 'none', placeItems: 'center', cursor: 'pointer', font: "700 12px 'DM Sans',sans-serif", background: 'var(--color-danger)', color: 'var(--tf-white)' }
   }));
 
-  const match = 60 + spellings.length * 7;
-  const SHEET = sheet === "void"
-    ? ["Void this question?", "Nobody scores, and anything already awarded is reversed. Use it when the question can no longer be answered fairly. Members are told why.", [["Members scoring", "0"], ["Awards reversed", "0"], ["Members notified", "128"]], "Void now", true]
-    : sheet === "settle"
-    ? ["Settle on Haaland?", "Every answer matching an accepted spelling is awarded now. Members are notified either way.", [["Members gaining points", String(match)], ["Members gaining nothing", String(128 - match)], ["Points each", "15"]], "Settle now", false]
-    : null;
-    
-  const targetQForResolve = displayQuestions.find(q => q.group === "closed");
-  const OUT: [string, string, number][] = targetQForResolve?.options 
-    ? targetQForResolve.options.map((o: any) => [o[0] as string, o[1] as string, 0]) 
-    : targetQForResolve?.choices 
-      ? targetQForResolve.choices.map((c: any) => [c[0] as string, c[1] as string, 0]) 
+  const targetQForResolve = displayQuestions.find(q => q.id === resolveQuestionId);
+  const disclosedCountsByRawId: Record<string, number> = {};
+  if (targetQForResolve && disclosedAnswers?.answers) {
+    for (const a of disclosedAnswers.answers) {
+      const raw = answerToRawId(targetQForResolve.answerKind, a.answer);
+      if (raw !== undefined) disclosedCountsByRawId[raw] = (disclosedCountsByRawId[raw] || 0) + 1;
+    }
+  }
+  const totalDisclosed = disclosedAnswers?.answers?.length || 0;
+  const OUT: [string, string, number][] = targetQForResolve?.options
+    ? targetQForResolve.options.map((o: any) => [o[0] as string, o[1] as string, disclosedCountsByRawId[o[0]] || 0])
+    : targetQForResolve?.choices
+      ? targetQForResolve.choices.map((c: any) => [c[0] as string, c[1] as string, disclosedCountsByRawId[c[0]] || 0])
       : [];
   const outcomesDesktop = OUT.map(([id, label, count]) => {
     const sel = outcome === id;
@@ -409,6 +501,30 @@ export default function QuestionsPage() {
       countStyle: { font: "600 11.5px 'DM Sans',sans-serif", flex: 'none', color: sel ? 'rgba(255,255,255,.78)' : 'var(--text-muted)' }
     };
   });
+  const outcomesMobile = OUT.map(([id, label, count]) => {
+    const sel = outcome === id;
+    return {
+      label, count: `${count} answered`,
+      pick: () => setOutcome(id as string),
+      style: `flex items-center gap-[11px] min-h-[50px] rounded-[12px] px-[15px] cursor-pointer ${sel ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)]' : 'bg-[var(--surface-card)] text-[var(--text-primary)] border border-[var(--surface-border-strong)]'}`,
+      markStyle: `w-[15px] h-[15px] rounded-full flex-none ${sel ? 'bg-[var(--tf-white)] border-[4px] border-[var(--brand-fill)] shadow-[0_0_0_1.5px_var(--tf-white)]' : 'border-[1.5px] border-[var(--surface-border-strong)]'}`,
+      countStyle: `tf-num font-heading font-semibold text-[11.5px] flex-none ${sel ? 'text-[rgba(255,255,255,0.78)]' : 'text-[var(--text-muted)]'}`
+    };
+  });
+  const resolveIsText = targetQForResolve?.answerKind === 'open_text';
+  const canSettleNow = resolveIsText ? !!resolveText.trim() : !!outcome;
+  const settleLabelText = resolveQuestion.isPending ? "Settling…" : canSettleNow ? `Settle and pay out ${totalDisclosed} ${totalDisclosed === 1 ? 'member' : 'members'}` : "Pick the outcome first";
+  const resolveTitle = targetQForResolve?.title || "Pick a question to settle";
+  const resolveSubtitle = targetQForResolve ? `${totalDisclosed} ${totalDisclosed === 1 ? 'member has' : 'members have'} answered. Awarding an outcome pays out immediately and tells everybody what they scored.` : "";
+
+  const match = resolveIsText ? totalDisclosed : (outcome ? (disclosedCountsByRawId[outcome] || 0) : 0);
+  const questionPoints = targetQForResolve?.pts ?? "0";
+  const settleQuestionName = targetQForResolve?.title || "this question";
+  const SHEET = sheet === "void"
+    ? ["Void this question?", "Nobody scores. Use it when the question can no longer be answered fairly. Members are told why.", [["Members answered", String(totalDisclosed)], ["Awards reversed", "0"]], "Void now", true]
+    : sheet === "settle"
+    ? [`Settle "${settleQuestionName}"?`, "Members are notified either way.", [["Members gaining points", String(match)], ["Members gaining nothing", String(Math.max(0, totalDisclosed - match))], ["Points each", String(questionPoints)]], "Settle now", false]
+    : null;
 
   const IconMap: Record<string, any> = {
     overview: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z" /><path d="M9.5 20v-6h5v6" /></svg>,
@@ -447,7 +563,9 @@ export default function QuestionsPage() {
     groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
     qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
     qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
-    spellingsList, setSpellings, match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve,
+    resolveTitle, resolveSubtitle, outcomes: outcomesMobile, resolveIsText, resolveText, setResolveText,
+    canSettleNow, settleLabel: settleLabelText,
+    match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve, voidAction: handleVoid,
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     leagueName: league?.name
   };
@@ -473,10 +591,11 @@ export default function QuestionsPage() {
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     publishAction: handlePublish,
     previewText: qText || "Your question will read here", previewPoints: String(qPoints),
-    outcomes: outcomesDesktop, spellingsList, setSpellings, match, addSpelling: () => setSpellings(s => s.concat("Erling Haaland")),
-    settleStyle: { marginTop: '24px', height: '48px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 13.5px 'DM Sans',sans-serif", background: outcome ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: outcome ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: outcome ? 'pointer' : 'not-allowed' },
-    settleLabel: resolveQuestion.isPending ? "Settling..." : outcome ? "Settle and pay out 128 members" : "Pick the outcome first",
-    settleAction: handleResolve,
+    outcomes: outcomesDesktop, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText,
+    match,
+    settleStyle: { marginTop: '24px', height: '48px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 13.5px 'DM Sans',sans-serif", background: canSettleNow ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canSettleNow ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: canSettleNow ? 'pointer' : 'not-allowed' },
+    settleLabel: settleLabelText,
+    settleAction: handleResolve, voidAction: handleVoid,
     resolveNotesList: resolveNotesListDesktop, toast, toastStyle: {
       position: 'fixed' as const, bottom: '30px', left: '50%', transform: `translateX(-50%) translateY(${toast ? '0' : '20px'})`,
       opacity: toast ? 1 : 0, transition: 'all .2s cubic-bezier(.1,.9,.2,1)', pointerEvents: 'none' as const, zIndex: 100,
