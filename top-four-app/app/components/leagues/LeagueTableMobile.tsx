@@ -107,7 +107,7 @@ export function LeagueTableMobile({
                     <div className="mt-[8px]">
                       {r.breakdown.map((b: any, j: number) => (
                         <div key={j} className={b.rowStyle}>
-                          <span className={b.labelStyle} dangerouslySetInnerHTML={{ __html: b.label.replace(/Total|Premier League|Champions League|FA Cup|Custom questions/g, (match: string) => `<span class="${b.total ? 'font-heading font-bold text-[' + (b.labelStyle.includes('rgba') ? 'var(--tf-white)' : 'var(--text-primary)') + ']' : ''}">${match}</span>`) }}></span>
+                          <span className={b.labelStyle}>{b.label}</span>
                           <span className={`tf-num ${b.valueStyle}`}>{b.value}</span>
                         </div>
                       ))}
@@ -149,7 +149,7 @@ export function LeagueTableMobile({
             <div className="p-[0_var(--gutter)_14px_71px] animate-[tfin_0.16s_ease]">
               {selfBreakdown.map((b: any, j: number) => (
                 <div key={j} className={b.rowStyle}>
-                  <span className={b.labelStyle} dangerouslySetInnerHTML={{ __html: b.label.replace(/Total|Premier League|Champions League|FA Cup|Custom questions/g, (match: string) => `<span class="${b.total ? 'font-heading font-bold text-[var(--tf-white)]' : ''}">${match}</span>`) }}></span>
+                  <span className={b.labelStyle}>{b.label}</span>
                   <span className={`tf-num ${b.valueStyle}`}>{b.value}</span>
                 </div>
               ))}

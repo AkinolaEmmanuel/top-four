@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { LeagueMobile } from '../../components/leagues/LeagueMobile';
 import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
 import { useLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
-import { useStandings } from '@/hooks/api/usePoints';
+import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
 import { useAuth } from '@/context/auth-context';
@@ -15,6 +15,7 @@ const URGENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 export default function LeagueOverviewPage({ params }: { params: { id: string } }) {
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
   const { data: standingsData, isLoading: standingsLoading } = useStandings(params.id);
+  const { data: ownStanding } = useOwnStanding(params.id);
   const { data: dashboard, isLoading: dashboardLoading } = useLeagueDashboard(params.id);
   const { data: tasksData } = usePredictionTasks();
   const { data: questionsData } = useCustomQuestions(params.id);
@@ -68,13 +69,13 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const pct = totalMarkets > 0 ? Math.round((answeredMarkets / totalMarkets) * 100) : 0;
 
   // Derive leaderboard from API standings data — no static fallback
-  const liveRows = standingsData?.items?.map((item, i) => ({
-    pos: item.rank.toString(),
-    name: item.member.displayName,
-    initials: item.member.displayName.substring(0, 2).toUpperCase(),
-    points: item.points,
+  const liveRows = standingsData?.entries?.map((item, i) => ({
+    pos: item.position.toString(),
+    name: item.membershipId === ownStanding?.membershipId && user?.displayName ? user.displayName : item.displayName,
+    initials: (item.membershipId === ownStanding?.membershipId && user?.displayName ? user.displayName : item.displayName).substring(0, 2).toUpperCase(),
+    points: item.totalPoints,
     tint: `var(--ident-${(i % 7) + 1})`,
-    you: user?.displayName === item.member.displayName
+    you: item.membershipId === ownStanding?.membershipId
   })) || [];
 
   // Find the user's own points from standings
