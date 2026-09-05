@@ -439,13 +439,14 @@ export default function QuestionsPage() {
   };
 
   const handleResolve = () => {
+    console.log('[DEBUG handleResolve]', { isPending: resolveQuestion.isPending, resolveQuestionId, outcome, resolveText, displayQuestionsIds: displayQuestions.map(q => q.id) });
     if (resolveQuestion.isPending) return;
     const targetQ = displayQuestions.find(q => q.id === resolveQuestionId);
-    if (!targetQ) return;
+    if (!targetQ) { console.log('[DEBUG handleResolve] no targetQ found'); return; }
 
     const isText = targetQ.answerKind === 'open_text';
     const rawValue = isText ? resolveText.trim() : outcome;
-    if (!rawValue) return;
+    if (!rawValue) { console.log('[DEBUG handleResolve] no rawValue', { isText, outcome, resolveText }); return; }
 
     resolveQuestion.mutate({
       questionId: targetQ.id,
