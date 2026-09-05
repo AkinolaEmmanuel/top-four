@@ -4,75 +4,98 @@ import { useState, useRef, useMemo } from 'react';
 import { LeagueTableMobile } from '../../../components/leagues/LeagueTableMobile';
 import { LeagueTableDesktop } from '../../../components/leagues/LeagueTableDesktop';
 import { useLeague } from '@/hooks/api/useLeagues';
-import { useStandings } from '@/hooks/api/usePoints';
+import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { useAuth } from '@/context/auth-context';
+import { StandingCompetitionPoints, StandingEntry } from '@/lib/api/points';
 
 const TINTS = ["var(--ident-2)", "var(--ident-3)", "var(--ident-1)", "var(--ident-5)", "var(--ident-4)", "var(--ident-7)", "var(--ident-6)"];
-
-const SPLIT = [["Premier League", "PL", 0.6], ["Champions League", "UCL", 0.3], ["FA Cup", "FA", 0.05], ["Custom questions", "Custom", 0.05]];
 
 export default function LeagueTablePage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
   const { data: league, isLoading: leagueLoading } = useLeague(params.id);
-  const { data: standingsData, isLoading: standingsLoading } = useStandings(params.id);
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+  const { data: standingsData, isLoading: standingsLoading } = useStandings(params.id, page + 1, pageSize);
+  const { data: ownStanding } = useOwnStanding(params.id);
 
   const [theme] = useState<'light' | 'dark'>('dark');
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [selfOpen, setSelfOpen] = useState(false);
-  const [page, setPage] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   const listRef = useRef<HTMLElement>(null);
   const meRef = useRef<HTMLDivElement>(null);
 
   const isLoading = leagueLoading || standingsLoading;
-  const rawItems = standingsData?.items || [];
+  const rawItems = standingsData?.entries || [];
   const isEmpty = !isLoading && rawItems.length === 0;
   const isFinal = league?.lifecycleState === 'completed';
   const showRows = !isLoading && !isEmpty;
 
   const fmt = (n: number) => n.toLocaleString("en-GB");
 
-  const splitCells = (points: number, accent: boolean) => {
-    return SPLIT.map(s => ({
-      value: fmt(Math.round(points * (s[2] as number))),
-      style: { width: "92px", flexShrink: 0, textAlign: "right", fontFamily: "'DM Sans',sans-serif", fontWeight: 500, fontSize: "12.5px", fontVariantNumeric: "tabular-nums", color: accent ? "var(--nav-text-faint)" : "var(--text-secondary)" }
-    }));
+  // The columns are the league's own chosen competitions, not a fixed set — a
+  // league running Premier League + La Liga has two columns, not four.
+  const competitionColumns = (league?.competitions || []).map(c => ({ id: c.supportedCompetitionId, label: c.displayName }));
+
+  const realBreakdown = (competitionPoints: StandingCompetitionPoints[], customQuestionPoints: number, totalPoints: number) => {
+    const byId = new Map(competitionPoints.map(cp => [cp.supportedCompetitionId, cp.points]));
+    return [
+      ...competitionColumns.map(c => ({ label: c.label, value: byId.get(c.id) || 0, rule: false, total: false })),
+      { label: "Custom questions", value: customQuestionPoints, rule: true, total: false },
+      { label: "Total", value: totalPoints, rule: false, total: true }
+    ];
   };
 
-  const totalMembers = rawItems.length || league?.memberCount || 0;
-  const pageSize = 50;
+  const splitCells = (competitionPoints: StandingCompetitionPoints[], customQuestionPoints: number, accent: boolean) => {
+    const byId = new Map(competitionPoints.map(cp => [cp.supportedCompetitionId, cp.points]));
+    const style = { width: "92px", flexShrink: 0, textAlign: "right" as const, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, fontSize: "12.5px", fontVariantNumeric: "tabular-nums" as const, color: accent ? "var(--nav-text-faint)" : "var(--text-secondary)" };
+    return [
+      ...competitionColumns.map(c => ({ value: fmt(byId.get(c.id) || 0), style })),
+      { value: fmt(customQuestionPoints), style }
+    ];
+  };
+
+  const totalMembers = standingsData?.totalActiveMembers ?? league?.memberCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalMembers / pageSize));
   const p = Math.min(page, totalPages - 1);
   const range = [p * pageSize + 1, Math.min((p + 1) * pageSize, totalMembers)];
 
-  // Convert raw items into structured rows
+  // Convert raw entries into structured rows. Leader points for the "share of
+  // leader" bar comes from whichever entry is loaded highest right now — exact
+  // on page one, an honest floor beyond it rather than a second fetch just for
+  // a progress bar.
   const allRows = useMemo(() => {
-    const leaderPoints = rawItems[0]?.points || 1;
-    return rawItems.map((item, idx) => {
-      const isSelf = user?.id === item.member.id || user?.displayName === item.member.displayName;
-      const rankCount = rawItems.filter(r => r.rank === item.rank).length;
+    const leaderPoints = rawItems[0]?.totalPoints || ownStanding?.totalPoints || 1;
+    return rawItems.map((item: StandingEntry, idx: number) => {
+      const isSelf = item.membershipId === ownStanding?.membershipId;
+      const rankCount = rawItems.filter((r: StandingEntry) => r.position === item.position).length;
       const isTie = rankCount > 1;
       return {
-        pos: item.rank,
-        rawRank: item.rank,
-        name: isSelf && user?.displayName ? user.displayName : item.member.displayName,
-        initials: (isSelf && user?.displayName ? user.displayName : item.member.displayName).substring(0, 2).toUpperCase(),
-        points: item.points,
+        pos: item.position,
+        membershipId: item.membershipId,
+        name: isSelf && user?.displayName ? user.displayName : item.displayName,
+        initials: (isSelf && user?.displayName ? user.displayName : item.displayName).substring(0, 2).toUpperCase(),
+        points: item.totalPoints,
+        competitionPoints: item.competitionPoints,
+        customQuestionPoints: item.customQuestionPoints,
         self: isSelf,
         tie: isTie,
         color: isSelf ? "var(--color-brand)" : TINTS[idx % TINTS.length],
-        share: leaderPoints > 0 ? Math.round((item.points / leaderPoints) * 100) : 0,
-        trend: item.trend
+        share: leaderPoints > 0 ? Math.round((item.totalPoints / leaderPoints) * 100) : 0
       };
     });
-  }, [rawItems, user]);
+  }, [rawItems, user, ownStanding]);
 
   const pageRows = (isEmpty || isLoading) ? [] : allRows.slice(range[0] - 1, range[1]);
 
+  // ownStanding is fetched independent of which page is loaded, so "my" stats
+  // stay correct even when my row isn't on the currently displayed page.
   const myRow = allRows.find(r => r.self);
-  const myPosNumber = myRow ? myRow.pos : null;
-  const myPointsNumber = myRow ? myRow.points : 0;
+  const myPosNumber = myRow ? myRow.pos : (ownStanding?.position ?? null);
+  const myPointsNumber = myRow ? myRow.points : (ownStanding?.totalPoints ?? 0);
+  const myCompetitionPoints = myRow ? myRow.competitionPoints : (ownStanding?.competitionPoints ?? []);
+  const myCustomQuestionPoints = myRow ? myRow.customQuestionPoints : (ownStanding?.customQuestionPoints ?? 0);
   const myPos = isEmpty ? "—" : myPosNumber ? `${myPosNumber}${myPosNumber === 1 ? 'st' : myPosNumber === 2 ? 'nd' : myPosNumber === 3 ? 'rd' : 'th'}` : "—";
   const myPosLabel = isFinal ? "WHERE YOU FINISHED" : "YOUR POSITION";
   const myPoints = `${fmt(myPointsNumber)} pts`;
@@ -100,7 +123,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     return {
       ref: m.self ? meRef : null,
       pos: m.pos, name: m.name, initials: m.initials, points: fmt(m.points),
-      cells: splitCells(m.points, false),
+      cells: splitCells(m.competitionPoints, m.customQuestionPoints, false),
       tieStyle: { fontFamily: "'DM Sans',sans-serif", fontWeight: 500, fontSize: "11.5px", color: "var(--text-muted)", display: m.tie ? "inline" : "none" },
       avatarStyle: { width: "36px", height: "36px", borderRadius: "999px", flexShrink: 0, display: "flex", justifyContent: "center", alignItems: "center", fontSize: "12px", fontFamily: "'DM Sans',sans-serif", fontWeight: 700, color: "var(--text-primary)", background: m.color },
       roleDotStyle: { display: "none" },
@@ -116,16 +139,10 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     };
   });
 
-  const breakdownMobile = (total: number, accent: boolean) => {
+  const breakdownMobile = (competitionPoints: StandingCompetitionPoints[], customQuestionPoints: number, totalPoints: number, accent: boolean) => {
     const on = accent ? "rgba(255,255,255,.72)" : "var(--text-secondary)";
     const strong = accent ? "var(--tf-white)" : "var(--text-primary)";
-    return [
-      { label: "Premier League", value: Math.round(total * .6) },
-      { label: "Champions League", value: Math.round(total * .3) },
-      { label: "FA Cup", value: Math.round(total * .05) },
-      { label: "Custom questions", value: Math.round(total * .05), rule: true },
-      { label: "Total", value: total, total: true }
-    ].map(b => ({
+    return realBreakdown(competitionPoints, customQuestionPoints, totalPoints).map(b => ({
       label: b.label, value: fmt(b.value),
       rowStyle: `flex items-baseline justify-between gap-[10px] py-[5px] ${b.rule ? `mt-[4px] pt-[8px] border-t border-[${accent ? 'rgba(255,255,255,0.18)' : 'var(--surface-border)'}]` : ''}`,
       labelStyle: `text-[11.5px] ${b.total ? `font-heading font-bold text-[${strong}]` : `text-[${on}]`}`,
@@ -151,7 +168,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
       wrapStyle: `border-b border-[var(--surface-border)] ${open ? 'bg-[var(--surface-subtle)]' : ''}`,
       open: open,
       breakLabel: "by competition",
-      breakdown: breakdownMobile(m.points, false),
+      breakdown: breakdownMobile(m.competitionPoints, m.customQuestionPoints, m.points, false),
       toggle: () => setOpenIdx(openIdx === i ? null : i)
     };
   });
@@ -215,7 +232,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     refreshing, hasStanding, totalMembers,
     winnerName: winner?.name || '', winnerLine,
     rows: rowsMobile, TINTS, breakdown: breakdownMobile,
-    selfBreakdown: breakdownMobile(myPointsNumber, true), listRef,
+    selfBreakdown: breakdownMobile(myCompetitionPoints, myCustomQuestionPoints, myPointsNumber, true), listRef,
     page: p, PAGES: Array.from({ length: totalPages }, (_, i) => [i * pageSize + 1, Math.min((i + 1) * pageSize, totalMembers)]), range, prevStyle: prevStyleMobile, nextStyle: nextStyleMobile, prevPage, nextPage,
     selfOpen, setSelfOpen, setRefreshing,
     leagueName: league?.name
@@ -229,7 +246,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     neighbours: desktopNeighbours.length > 0 ? desktopNeighbours : [{ delta: "", deltaStyle: { display: 'none' }, text: `${totalMembers} members` }],
     pageLabel: totalMembers > 0 ? `${range[0]}–${range[1]} of ${totalMembers}` : "0 members",
     refreshing, refresh: () => setRefreshing(false), nudge: () => setRefreshing(true), isReady: !isLoading && !isEmpty,
-    listRef, cols: SPLIT.map(s => ({ label: s[1], style: { width: "92px", flexShrink: 0, textAlign: "right", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } })),
+    listRef, cols: [...competitionColumns.map(c => ({ label: c.label })), { label: "Custom" }].map(c => ({ label: c.label, style: { width: "92px", flexShrink: 0, textAlign: "right", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } })),
     legend: [{ label: "Owner", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-owner)" } }, { label: "Admin", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-admin)" } }],
     skeletons: ["62%", "48%", "71%", "55%", "66%", "44%", "58%", "69%", "51%", "64%"].map(w => ({ nameStyle: { height: "11px", borderRadius: "99px", background: "var(--surface-subtle)", maxWidth: w }, cells: ["38px", "34px", "26px", "26px"].map(cw => ({ width: cw, height: "11px", borderRadius: "99px", background: "var(--surface-subtle)" })) })),
     rows: rowsDesktop,
@@ -237,7 +254,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     showTies: !isEmpty && !isLoading,
     hasStanding, selfPos: isEmpty ? "—" : myPosNumber ? String(myPosNumber) : "—", selfMove: isEmpty ? "no points yet" : isFinal ? "final position" : "live position",
     myName, myInitials, selfPoints: myPointsFmt,
-    selfCells: splitCells(myPointsNumber, true), prevPage, nextPage,
+    selfCells: splitCells(myCompetitionPoints, myCustomQuestionPoints, true), prevPage, nextPage,
     prevStyle: prevStyleDesktop, nextStyle: nextStyleDesktop,
     prevLabel: p > 0 ? `‹ ${(p - 1) * pageSize + 1}–${p * pageSize}` : "‹ Start",
     nextLabel: p < totalPages - 1 ? `${(p + 1) * pageSize + 1}–${Math.min((p + 2) * pageSize, totalMembers)} ›` : "End ›", jumpToMe,
