@@ -90,7 +90,7 @@ export default function QuestionsPage() {
       group: q.phase === 'open' ? 'open' : q.phase === 'resolved' ? 'done' : 'closed',
       pts: String(q.points),
       title: q.questionText,
-      chip: q.phase === 'open' ? `OPEN · CLOSES ${new Date(q.deadlineAt).toLocaleDateString()}` : q.phase === 'closed' ? `CLOSED` : `SETTLED`,
+      chip: q.phase === 'open' ? `OPEN · CLOSES ${new Date(q.deadlineAt).toLocaleDateString()}` : q.phase === 'resolved' ? `SETTLED` : `CLOSED`,
       choices,
       options,
       hasText: q.answerKind === 'open_text',
@@ -146,7 +146,7 @@ export default function QuestionsPage() {
   const flash = (msg: string) => setToast(msg);
 
   const onList = view === "list", onEmpty = view === "empty", onCreate = view === "create", onResolve = view === "resolve";
-  const admin = onCreate || onResolve;
+  const admin = league?.membership?.role === 'owner' || league?.membership?.role === 'admin';
 
   const submitTextAnswer = (q: any) => {
     const draft = (textDrafts[q.id] || '').trim();
