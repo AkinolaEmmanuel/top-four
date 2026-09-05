@@ -13,8 +13,8 @@ export async function signUp(input: {
   email: string;
   displayName: string;
   password: string;
-}): Promise<UserProfile> {
-  const data = await apiFetch<{ user: UserProfile; verificationEmailScheduled: boolean }>('/auth/register', {
+}): Promise<{ user: UserProfile; verificationEmailScheduled: boolean }> {
+  return apiFetch<{ user: UserProfile; verificationEmailScheduled: boolean }>('/auth/register', {
     method: 'POST',
     headers: {
       'Idempotency-Key': generateIdempotencyKey(),
@@ -25,7 +25,6 @@ export async function signUp(input: {
       password: input.password,
     }),
   });
-  return data.user;
 }
 
 export async function signIn(input: {
