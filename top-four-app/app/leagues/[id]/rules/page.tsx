@@ -32,37 +32,52 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const editable = (title: string, value: string, note?: string) => ({ cls: `${LINE} cursor-pointer`, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "text-[var(--text-link)]", chevron: true });
   const readonly = (title: string, value: string, note?: string) => ({ cls: LINE, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "", chevron: false });
 
+  // Market and tiebreaker display names, keyed by the real ruleset's market
+  // type strings — the ruleset itself carries no labels, only types and points.
+  const MARKET_INFO: Record<string, { label: string; note: string; color: string; perPlayer?: boolean }> = {
+    match_result: { label: "Match result", note: "Home, draw or away", color: "var(--cat-1)" },
+    exact_score: { label: "Exact score", note: "Both teams' goals", color: "var(--cat-6)" },
+    both_teams_to_score: { label: "Both teams to score", note: "Yes or no", color: "var(--cat-2)" },
+    total_goals: { label: "Total goals", note: `Over or under ${league?.ruleset?.totalGoalsLine ?? 2.5}`, color: "var(--cat-4)" },
+    anytime_goalscorer: { label: "Anytime goalscorer", note: "Extra time counts; shootouts and own goals do not", color: "var(--cat-3)" },
+    player_card: { label: "Player card", note: "Yellow, second yellow or straight red, if the player appears", color: "var(--cat-5)" },
+    lineup: { label: "Starting lineups", note: "Both elevens, 22 points at most", color: "var(--cat-7)", perPlayer: true }
+  };
+  const TIEBREAK_LABELS: Record<string, string> = {
+    match_result: "Match results correct", exact_score: "Exact scores correct",
+    both_teams_to_score: "Both teams to score, correct", total_goals: "Total goals, correct",
+    anytime_goalscorer: "Anytime goalscorers correct", player_card: "Player cards correct",
+    lineup: "Lineup players correct"
+  };
+
+  const rulesetMarkets = league?.ruleset?.markets || [];
+  const rulesetTiebreakers = league?.ruleset?.tiebreakers || [];
+  const enabledMarkets = rulesetMarkets.filter(m => m.enabled);
+  const maxPoints = enabledMarkets.reduce((a, m) => a + m.points * (MARKET_INFO[m.marketType]?.perPlayer ? 22 : 1), 0);
+
   // Competitions from real league
   const compsFromLeague = league?.competitions?.length
-    ? league.competitions.map(c => frozen(c.displayName, "Full season", "2025/26"))
-    : [
-        frozen("Premier League", "Full season", "2025/26 · all 38 rounds"),
-        frozen("Champions League", "Rounds 1–8", "2025/26 · league phase only")
-      ];
+    ? league.competitions.map(c => frozen(
+        c.displayName,
+        c.kind === 'full_season' ? "Full season" : (c.firstRound && c.lastRound ? `Rounds ${c.firstRound}–${c.lastRound}` : "Partial season"),
+        c.seasonLabel
+      ))
+    : [];
 
-  const lockMinutes = league?.configuration?.standardLock?.offsetMinutes ?? 15;
+  const lockMinutes = league?.ruleset?.standardLock?.offsetMinutes ?? 5;
 
   const RULES = [
     { label: "Competitions", hasIntro: true, intro: "Chosen once, at publication. A league cannot gain or lose a competition afterwards.", lines: compsFromLeague },
-    { label: "Markets and points", hasIntro: true, intro: "Every enabled market and what a correct answer is worth.", lines: [
-      frozen("Match result", "2 pts"),
-      frozen("Exact score", "5 pts"),
-      frozen("Both teams to score", "1 pt"),
-      frozen("Total goals", "1 pt", "Over or under 2.5"),
-      frozen("Anytime goalscorer", "5 pts", "Extra time counts; shootouts and own goals do not"),
-      frozen("Player card", "4 pts", "Yellow, second yellow or straight red, if the player appears"),
-      frozen("Starting lineups", "1 pt per starter", "Both elevens, 22 points at most")
-    ]},
+    { label: "Markets and points", hasIntro: true, intro: "Every enabled market and what a correct answer is worth.", lines: rulesetMarkets.filter(m => m.enabled).map(m => {
+      const info = MARKET_INFO[m.marketType] || { label: m.marketType, note: "" };
+      return frozen(info.label, info.perPlayer ? `${m.points} pt per starter` : `${m.points} ${m.points === 1 ? 'pt' : 'pts'}`, info.note);
+    }) },
     { label: "Timing and joining", hasIntro: false, intro: "", lines: [
       frozen("Standard lock", `${lockMinutes} minutes before`, "Applies to every market except the lineups"),
       frozen("Lineup lock", "2 hours before", "Fixed by TopFour — the standard lock never applies to it"),
-      frozen("Late joining", "Permitted", "A late member starts on zero and cannot answer locked matches")
+      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_at_start' ? "Closes when the league starts" : "Permitted", "A late member starts on zero and cannot answer locked matches")
     ]},
-    { label: "Tiebreakers", hasIntro: true, intro: "Applied in order when totals are equal. Members who tie on all of them share a position.", lines: [
-      frozen("1 · Exact scores correct", ""),
-      frozen("2 · Match results correct", ""),
-      frozen("3 · Anytime goalscorers correct", "")
-    ]}
+    { label: "Tiebreakers", hasIntro: true, intro: "Applied in order when totals are equal. Members who tie on all of them share a position.", lines: rulesetTiebreakers.map((t, i) => frozen(`${i + 1} · ${TIEBREAK_LABELS[t] || t}`, "")) }
   ];
 
   const memberCount = league?.memberCount || 1;
@@ -83,11 +98,11 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
       editable("Results and corrections", "On")
     ]},
     { label: "Frozen at publication", hasIntro: true, intro: `Locked on ${createdDate}. Cloning the league is the only way to play these rules differently.`, lines: [
-      frozen("Competitions", `${league?.competitions?.length || 1} selected`),
-      frozen("Markets and points", "7 enabled · 40 max"),
+      frozen("Competitions", `${league?.competitions?.length || 0} selected`),
+      frozen("Markets and points", `${enabledMarkets.length} enabled · ${maxPoints} max`),
       frozen("Standard lock", `${lockMinutes} minutes before`),
-      frozen("Late joining", "Permitted"),
-      frozen("Tiebreakers", "3 in order")
+      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_at_start' ? "Closes when the league starts" : "Permitted"),
+      frozen("Tiebreakers", `${rulesetTiebreakers.length} in order`)
     ]}
   ];
 
@@ -100,7 +115,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
       readonly("Name", leagueName),
       readonly("Approve new members", league?.invitationSettings?.joinApprovalRequired ? "Required" : "Automatic"),
       readonly("Members", String(memberCount)),
-      frozen("Markets and points", "7 enabled · 40 max"),
+      frozen("Markets and points", `${enabledMarkets.length} enabled · ${maxPoints} max`),
       frozen("Standard lock", `${lockMinutes} minutes before`)
     ]}
   ];
@@ -157,30 +172,20 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
 
   const footNote = isRules ? "Shown to every member, in the same words. Nobody plays to different rules." : "Changes save one at a time and take effect immediately.";
 
-  // --- Desktop Specific Logic ---
-  const MARKETS = [
-    { name: "Match result", note: "Home, draw or away", pts: 2, color: "var(--cat-1)" },
-    { name: "Exact score", note: "Both teams' goals", pts: 5, color: "var(--cat-6)" },
-    { name: "Both teams to score", note: "Yes or no", pts: 1, color: "var(--cat-2)" },
-    { name: "Total goals", note: "Over or under 2.5", pts: 1, color: "var(--cat-4)" },
-    { name: "Anytime goalscorer", note: "Own goals don't count", pts: 5, color: "var(--cat-3)" },
-    { name: "Player card", note: "Not run in this league", pts: 0, off: true, color: "var(--cat-5)" },
-    { name: "Correct lineup starter", note: "Per player, across both elevens", pts: 1, perPlayer: true, color: "var(--cat-7)" }
-  ];
+  // --- Desktop Specific Logic — same real ruleset data, desktop layout ---
+  const MARKETS = rulesetMarkets.map(m => {
+    const info = MARKET_INFO[m.marketType] || { label: m.marketType, note: "", color: "var(--cat-1)" };
+    return { name: info.label, note: m.enabled ? info.note : "Not run in this league", pts: m.points, off: !m.enabled, perPlayer: !!info.perPlayer, color: info.color };
+  });
 
-  const COMPS = league?.competitions?.length
-    ? league.competitions.map(c => ({
-        abbr: c.displayName.substring(0, 3).toUpperCase(),
-        name: c.displayName,
-        scope: "Whole season"
-      }))
-    : [
-        { abbr: "EPL", name: "English Premier League", scope: "Whole season · 38 rounds" },
-        { abbr: "UCL", name: "UEFA Champions League", scope: "Matchdays 1–8" }
-      ];
+  const COMPS = league?.competitions?.map(c => ({
+    abbr: c.displayName.substring(0, 3).toUpperCase(),
+    name: c.displayName,
+    scope: [c.kind === 'full_season' ? "Whole season" : (c.firstRound && c.lastRound ? `Rounds ${c.firstRound}–${c.lastRound}` : "Partial season"), c.seasonLabel].filter(Boolean).join(' · ')
+  })) || [];
 
   const enabled = MARKETS.filter(m => !m.off);
-  const maxPointsDesktop = enabled.reduce((a, m) => a + m.pts * (m.perPlayer ? 22 : 1), 0);
+  const maxPointsDesktop = maxPoints;
 
   const marketsDesktop = MARKETS.map((m, i, a) => ({
     name: m.name, note: m.note,
@@ -192,8 +197,8 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   }));
 
   const tiebreakersDesktop = [
-    { n: "1", label: "Total points" }, { n: "2", label: "Exact scores correct" },
-    { n: "3", label: "Match results correct" }, { n: "4", label: "Lineup players correct" }
+    { n: "1", label: "Total points" },
+    ...rulesetTiebreakers.map((t, i) => ({ n: String(i + 2), label: TIEBREAK_LABELS[t] || t }))
   ];
 
   const deadlinesDesktop = [
@@ -251,7 +256,16 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     retry: () => {},
     isReady, showMaxPoints: true,
     heroStyle: { flex: "none", background: "var(--nav-surface)", color: "var(--nav-text)", padding: "24px 0 26px", borderBottom: "1px solid rgba(255,255,255,.1)" },
-    maxPoints: String(maxPointsDesktop), maxNote: "Five markets at " + enabled.filter(m => !m.perPlayer).reduce((a, m) => a + m.pts, 0) + " points, plus twenty-two lineup places at 1 each — both elevens. Player card is not run here.",
+    maxPoints: String(maxPointsDesktop), maxNote: (() => {
+      const flat = enabled.filter(m => !m.perPlayer);
+      const lineup = enabled.find(m => m.perPlayer);
+      const off = MARKETS.filter(m => m.off).map(m => m.name);
+      const parts = [`${flat.length} ${flat.length === 1 ? 'market' : 'markets'} at ${flat.reduce((a, m) => a + m.pts, 0)} points`];
+      if (lineup) parts.push(`plus twenty-two lineup places at ${lineup.pts} each — both elevens`);
+      let note = parts.join(', ') + '.';
+      if (off.length) note += ` ${off.join(', ')} ${off.length === 1 ? 'is' : 'are'} not run here.`;
+      return note;
+    })(),
     showFrozenBanner: true, lockIcon: IconMap.lock(16),
     frozenText: participant ? "These rules were frozen when the league was published. Nobody can change them now, including the owner — you answered under them, so they hold." : "Scoring, tiebreakers and competitions froze at publication. Members answered under them, so they cannot change while the league runs.",
     markets: marketsDesktop, tiebreakers: tiebreakersDesktop,

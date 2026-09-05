@@ -82,8 +82,7 @@ export default function MePage() {
   ];
 
   const DANGER = [
-    { title: "Sign out", note: "This device only. Your other sessions stay signed in.", action: signOut },
-    { title: "Delete account", note: "Leagues you own need a new owner first. Your predictions stay, without your name.", tone: "danger" }
+    { title: "Sign out", note: "This device only. Your other sessions stay signed in.", action: signOut }
   ];
 
   const mkRow = (r: any, i: number, a: any[]) => {
@@ -100,7 +99,7 @@ export default function MePage() {
 
   const groups = [
     { label: "ACCOUNT", labelColor: "var(--text-muted)", rows: ACCOUNT.map(mkRow) },
-    { label: "SIGNING OUT AND LEAVING", labelColor: "var(--danger-text)", rows: DANGER.map(mkRow) }
+    { label: "SIGNING OUT", labelColor: "var(--text-muted)", rows: DANGER.map(mkRow) }
   ];
 
   // Desktop-specific row formatters
