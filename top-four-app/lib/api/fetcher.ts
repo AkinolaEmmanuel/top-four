@@ -61,7 +61,14 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
 
   const response = await fetch(url, config);
 
-  if (response.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/') {
+  // /auth/me is how callers check "am I signed in?" -- a 401 there is an
+  // expected, benign outcome on any public page, not a session that just
+  // died mid-action. Force-navigating on it broke every logged-out visit to
+  // a public page (sign-up included) the instant the initial session check
+  // ran, bouncing the visitor straight back to "/" before they could do
+  // anything. Only a 401 from an actual protected call should kick the user
+  // out.
+  if (response.status === 401 && endpoint !== '/auth/me' && typeof window !== 'undefined' && window.location.pathname !== '/') {
     window.location.href = '/';
     throw new ApiError(401, 'Authentication Required');
   }

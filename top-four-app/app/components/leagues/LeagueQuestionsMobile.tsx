@@ -7,6 +7,7 @@ export function LeagueQuestionsMobile({
   groups, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
   qText, setQText, types, TYPE, qType, optionsList, setQOptions,
   qPoints, pointOptions, qCriteria, setQCriteria, canPublish, publishAction,
+  qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel, publishLabel: publishActionLabel, publishNote: publishActionNote,
   resolveTitle, resolveSubtitle, outcomes, resolveIsText, resolveText, setResolveText,
   canSettleNow, settleLabel,
   match, resolveNotesList, SHEET, toast, settleAction, voidAction,
@@ -205,11 +206,21 @@ export function LeagueQuestionsMobile({
             <div className="flex gap-[10px] mt-[20px]">
               <div className="flex-1 min-w-0">
                 <div className="tf-kicker text-[var(--text-muted)]">ANSWER BY</div>
-                <div className="tf-field mt-[10px]">Sat 18:00</div>
+                <input
+                  type="datetime-local"
+                  value={qDeadline}
+                  onChange={(e) => setQDeadline(e.target.value)}
+                  className="tf-field mt-[10px] w-full"
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="tf-kicker text-[var(--text-muted)]">OUTCOME KNOWN</div>
-                <div className="tf-field mt-[10px]">24 May</div>
+                <input
+                  type="datetime-local"
+                  value={qOutcomeAt}
+                  onChange={(e) => setQOutcomeAt(e.target.value)}
+                  className="tf-field mt-[10px] w-full"
+                />
               </div>
             </div>
 
@@ -227,7 +238,7 @@ export function LeagueQuestionsMobile({
 
             <div className="tf-kicker text-[var(--text-muted)] mt-[22px]">HOW IT WILL READ</div>
             <div className="border border-[var(--surface-border)] rounded-[14px] p-[15px] mt-[10px] bg-[var(--surface-card)]">
-              <span className="tf-chip bg-[var(--accent-surface)] text-[var(--accent-text-strong)]">OPEN · ANSWER BY SAT 18:00</span>
+              <span className="tf-chip bg-[var(--accent-surface)] text-[var(--accent-text-strong)]">{`OPEN · ANSWER BY ${previewDeadlineLabel}`}</span>
               <div className="flex items-start gap-[12px] mt-[10px]">
                 <span className="flex-1 font-heading font-[650] text-[15px] leading-[1.3] tracking-[-0.3px]">{qText || "Your question will read here"}</span>
                 <span className="tf-num font-heading font-bold text-[22px] tracking-[-0.7px] flex-none">{qPoints}</span>
@@ -236,10 +247,10 @@ export function LeagueQuestionsMobile({
             </div>
 
             <div onClick={() => { if (canPublish && publishAction) publishAction(); }} className={`mt-[22px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${canPublish ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
-              {canPublish ? "Ask the league" : "Add the criteria to continue"}
+              {publishActionLabel}
             </div>
             <div className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] mt-[10px] text-center">
-              {canPublish ? "Goes live straight away. Everyone in the league is told a new question is open." : "Every question needs a stated way to settle it before it can go live."}
+              {publishActionNote}
             </div>
           </div>
         )}

@@ -1,20 +1,24 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { Suspense, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../../components/auth/auth-shell';
 import { signUp } from '@/lib/api/auth';
+import { useAuth } from '@/context/auth-context';
 
-export default function SignupPage() {
-  const router = useRouter();
+function SignupForm() {
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams.get('redirect') || '/home';
+  const { signIn } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -22,13 +26,45 @@ export default function SignupPage() {
     setIsSubmitting(true);
 
     try {
-      await signUp({ email, displayName, password });
-      window.location.href = '/';
+      const { verificationEmailScheduled } = await signUp({ email, displayName, password });
+      if (verificationEmailScheduled) {
+        setNeedsVerification(true);
+        return;
+      }
+      try {
+        await signIn({ email, password });
+        window.location.href = redirectTarget;
+      } catch {
+        // The account exists but couldn't be signed straight in -- most likely
+        // it does need verifying after all, so fall back to that messaging
+        // rather than leaving the user looking at a blank failed submit.
+        setNeedsVerification(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (needsVerification) {
+    return (
+      <AuthShell
+        eyebrow="Almost there"
+        title="Check your inbox"
+        subtitle={`We sent a verification link to ${email}.`}
+      >
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+          Your account is created but not verified yet. Follow the link in that email, then come back and sign in.
+        </p>
+        <Link
+          href={redirectTarget !== '/home' ? `/?redirect=${encodeURIComponent(redirectTarget)}` : '/'}
+          className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors"
+        >
+          Go to sign in
+        </Link>
+      </AuthShell>
+    );
   }
 
   const inputClasses = "flex h-11 w-full rounded-md border border-[var(--border-base)] bg-[var(--surface-canvas)] px-3 py-2 text-sm ring-offset-[var(--surface-canvas)] file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-[var(--text-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-[var(--text-primary)]";
@@ -111,10 +147,21 @@ export default function SignupPage() {
 
       <p className="text-center text-sm text-[var(--text-secondary)] mt-8">
         Already have an account?{' '}
-        <Link href="/" className="font-bold text-[var(--text-primary)] hover:text-[var(--color-brand)] hover:underline">
+        <Link
+          href={redirectTarget !== '/home' ? `/?redirect=${encodeURIComponent(redirectTarget)}` : '/'}
+          className="font-bold text-[var(--text-primary)] hover:text-[var(--color-brand)] hover:underline"
+        >
           Sign in
         </Link>
       </p>
     </AuthShell>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-4 text-xs font-bold font-heading">Loading...</div>}>
+      <SignupForm />
+    </Suspense>
   );
 }

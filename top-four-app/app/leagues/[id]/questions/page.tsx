@@ -30,6 +30,13 @@ const RESOLVE_NOTES = [
   { title: "If you leave it too long", body: "A question not settled within 14 days of its outcome date is voided automatically, and nobody scores." }
 ];
 
+// Formats a Date for a <input type="datetime-local"> value, in the
+// viewer's own local time (what datetime-local inputs always show/expect).
+function toDatetimeLocalValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function QuestionsPage() {
   const params = useParams() as { id: string };
   const { user } = useAuth();
@@ -112,6 +119,8 @@ export default function QuestionsPage() {
   const [qText, setQText] = useState("");
   const [qCriteria, setQCriteria] = useState("");
   const [qOptions, setQOptions] = useState(["Haaland", "Saka", "Salah"]);
+  const [qDeadline, setQDeadline] = useState(() => toDatetimeLocalValue(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)));
+  const [qOutcomeAt, setQOutcomeAt] = useState(() => toDatetimeLocalValue(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000)));
   const [outcome, setOutcome] = useState<string | null>(null);
   const [resolveText, setResolveText] = useState("");
   const [resolveQuestionId, setResolveQuestionId] = useState<string | null>(null);
@@ -396,7 +405,22 @@ export default function QuestionsPage() {
     remove: () => { if (qOptions.length > 2) setQOptions(s => s.filter((_, j) => j !== i)); }
   }));
 
-  const canPublish = !!qText && !!qCriteria && !createQuestion.isPending;
+  const qDeadlineDate = new Date(qDeadline);
+  const qOutcomeAtDate = new Date(qOutcomeAt);
+  const datesValid = !isNaN(qDeadlineDate.getTime()) && !isNaN(qOutcomeAtDate.getTime())
+    && qDeadlineDate.getTime() > Date.now()
+    && qOutcomeAtDate.getTime() >= qDeadlineDate.getTime();
+  const canPublish = !!qText && !!qCriteria && datesValid && !createQuestion.isPending;
+  const missingCriteria = !qText || !qCriteria;
+  const publishLabelText = createQuestion.isPending ? "Publishing..." : canPublish ? "Ask the league" : missingCriteria ? "Add the criteria to continue" : "Fix the dates to continue";
+  const publishNoteText = canPublish
+    ? "Goes live straight away. Everyone in the league is told a new question is open."
+    : missingCriteria
+      ? "Every question needs a stated way to settle it before it can go live."
+      : "The answer-by time must be in the future, and the outcome date can't be before it.";
+  const previewDeadlineLabel = !isNaN(qDeadlineDate.getTime())
+    ? qDeadlineDate.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }).toUpperCase()
+    : '';
 
   const applyPreset = (preset: QuestionPreset) => {
     setQText(preset.questionText);
@@ -411,26 +435,25 @@ export default function QuestionsPage() {
 
   const handlePublish = () => {
     if (!canPublish) return;
-    
-    // Convert relative dates for MVP (e.g. opens now, closes in 1 week, outcomes in 1 week + 2 hours)
+
     const now = new Date();
-    const deadlineAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const outcomeAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString();
-    
+
     createQuestion.mutate({
       answerKind: qType === 'yesno' ? 'yes_no' : qType === 'choice' ? 'single_choice' : 'open_text',
       questionText: qText,
       resolutionCriteria: qCriteria,
       points: qPoints,
       opensAt: now.toISOString(),
-      deadlineAt,
-      outcomeAt,
+      deadlineAt: qDeadlineDate.toISOString(),
+      outcomeAt: qOutcomeAtDate.toISOString(),
       options: qType === 'choice' ? qOptions : undefined
     }, {
       onSuccess: () => {
         setView("list");
         setQText("");
         setQCriteria("");
+        setQDeadline(toDatetimeLocalValue(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)));
+        setQOutcomeAt(toDatetimeLocalValue(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000)));
         flash("Question is live · Members notified");
       },
       onError: () => {
@@ -588,6 +611,8 @@ export default function QuestionsPage() {
     groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
     qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
     qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
+    qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
+    publishLabel: publishLabelText, publishNote: publishNoteText,
     resolveTitle, resolveSubtitle, outcomes: outcomesMobile, resolveIsText, resolveText, setResolveText,
     canSettleNow, settleLabel: settleLabelText,
     match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve, voidAction: handleVoid,
@@ -609,10 +634,11 @@ export default function QuestionsPage() {
     setView, allIn, stake, committed, owing, openItems: openItemsDesktop, pastGroups: pastGroupsDesktop,
     qText, setQText, qType, setQType, types: typesDesktop, TYPE, optionsList: optionsListDesktop, setQOptions,
     qPoints, setQPoints, pointOptions: pointOptionsDesktop, qCriteria, setQCriteria,
+    qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
     canPublish, publishStyle: { marginTop: '22px', height: '48px', borderRadius: '13px', display: 'grid', placeItems: 'center', cursor: canPublish ? 'pointer' : 'default', font: "700 13.5px 'DM Sans',sans-serif", background: canPublish ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canPublish ? 'var(--color-on-brand)' : 'var(--text-muted)' },
-    publishLabel: createQuestion.isPending ? "Publishing..." : canPublish ? "Ask the league" : "Add the criteria to continue",
+    publishLabel: publishLabelText,
     publishNoteStyle: { fontSize: '10.5px', lineHeight: 1.55, color: 'var(--text-muted)', marginTop: '10px', textAlign: 'center' },
-    publishNote: canPublish ? "Goes live straight away. Everyone in the league is told a new question is open." : "Every question needs a stated way to settle it before it can go live.",
+    publishNote: publishNoteText,
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     publishAction: handlePublish,
     previewText: qText || "Your question will read here", previewPoints: String(qPoints),

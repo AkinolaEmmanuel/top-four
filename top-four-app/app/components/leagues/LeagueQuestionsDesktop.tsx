@@ -9,6 +9,7 @@ export function LeagueQuestionsDesktop({
   allIn, stake, committed, owing, openItems, pastGroups,
   qText, setQText, qType, setQType, types, TYPE, optionsList, setQOptions,
   qPoints, setQPoints, pointOptions, qCriteria, setQCriteria,
+  qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
   canPublish, publishStyle, publishLabel, publishNoteStyle, publishNote, publishAction,
   previewText, previewPoints,
   outcomes, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
@@ -285,6 +286,27 @@ export function LeagueQuestionsDesktop({
                 </div>
               </div>
 
+              <div className="mt-[20px] flex gap-[16px]">
+                <div className="flex-1 min-w-0">
+                  <div className="tf-kicker">Answer by</div>
+                  <input
+                    type="datetime-local"
+                    value={qDeadline}
+                    onChange={(e) => setQDeadline(e.target.value)}
+                    className="w-full mt-[9px] h-[42px] px-[13px] rounded-[10px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[12.5px] text-[var(--text-primary)]"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="tf-kicker">Outcome known</div>
+                  <input
+                    type="datetime-local"
+                    value={qOutcomeAt}
+                    onChange={(e) => setQOutcomeAt(e.target.value)}
+                    className="w-full mt-[9px] h-[42px] px-[13px] rounded-[10px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[12.5px] text-[var(--text-primary)]"
+                  />
+                </div>
+              </div>
+
               <div className="mt-[20px]">
                 <div className="tf-kicker">How it will be settled</div>
                 <textarea
@@ -300,7 +322,7 @@ export function LeagueQuestionsDesktop({
               <div className="tf-card p-[18px_20px]">
                 <div className="tf-kicker text-[var(--text-muted)]">Members will see</div>
                 <div className="mt-[13px] p-[15px] rounded-[12px] bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]">
-                  <span className="font-heading font-bold text-[8.5px] tracking-[0.07em] p-[3px_7px] rounded-[4px] bg-[var(--accent-surface)] text-[var(--accent-text-strong)] border border-[var(--accent-border)]">OPEN · ANSWER BY SAT 18:00</span>
+                  <span className="font-heading font-bold text-[8.5px] tracking-[0.07em] p-[3px_7px] rounded-[4px] bg-[var(--accent-surface)] text-[var(--accent-text-strong)] border border-[var(--accent-border)]">{`OPEN · ANSWER BY ${previewDeadlineLabel}`}</span>
                   <div className="font-heading font-bold text-[14px] leading-[1.35] tracking-[-0.2px] mt-[10px]">{previewText || "Your question will read here"}</div>
                   <div className="flex items-baseline gap-[5px] mt-[9px]">
                     <span className="tf-num font-heading font-bold text-[20px] tracking-[-0.6px]">{previewPoints}</span>
