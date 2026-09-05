@@ -1,5 +1,6 @@
 import { apiFetch } from './fetcher';
 import { fetchFixtureResults } from './predictions-fixture';
+import { fetchCatalogueCompetitions } from './catalogue';
 
 export interface League {
   id: string;
@@ -38,8 +39,28 @@ export async function fetchMyLeagues(cursor?: string): Promise<LeaguesPage> {
   return apiFetch<LeaguesPage>(`/leagues${query}`);
 }
 
+// The single-league read (unlike the leagues list) carries no embedded
+// competition names — only `ruleset.competitionScopes`, which is IDs only.
+// Join against the (small, cached) catalogue to give every consumer a real
+// `competitions[].displayName` instead of silently-undefined data.
 export async function fetchLeagueDetails(id: string): Promise<League> {
-  return apiFetch<League>(`/leagues/${id}`);
+  const [league, catalogue] = await Promise.all([
+    apiFetch<any>(`/leagues/${id}`),
+    fetchCatalogueCompetitions().catch(() => []),
+  ]);
+  const scopes: Array<{ supportedCompetitionId: string; seasonId: string; kind: string }> =
+    league.ruleset?.competitionScopes || [];
+  const competitions = scopes.map((scope) => {
+    const match = catalogue.find((c) => c.id === scope.supportedCompetitionId);
+    return {
+      supportedCompetitionId: scope.supportedCompetitionId,
+      seasonId: scope.seasonId,
+      kind: scope.kind,
+      displayName: match?.displayName || 'Competition',
+      slug: match?.slug || '',
+    };
+  });
+  return { ...league, competitions };
 }
 
 export interface LeagueFixture {
