@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { LeagueQuestionsMobile } from '../../../components/leagues/LeagueQuestionsMobile';
 import { LeagueQuestionsDesktop } from '../../../components/leagues/LeagueQuestionsDesktop';
@@ -172,13 +173,13 @@ export default function QuestionsPage() {
     return "bg-[var(--accent-surface)] text-[var(--accent-text-strong)]";
   };
   
-  const chipToneDesktop = (q: any) => {
-    if (q.voided) return "border:1px dashed var(--surface-border-strong);color:var(--text-muted)";
-    if (q.won) return "background:var(--color-success);color:var(--tf-white)";
-    if (q.group === "closed") return "background:var(--state-locked);color:var(--tf-white)";
-    return "background:var(--accent-surface);color:var(--accent-text-strong);border:1px solid var(--accent-border)";
+  const chipToneDesktop = (q: any): CSSProperties => {
+    if (q.voided) return { border: '1px dashed var(--surface-border-strong)', color: 'var(--text-muted)' };
+    if (q.won) return { background: 'var(--color-success)', color: 'var(--tf-white)' };
+    if (q.group === "closed") return { background: 'var(--state-locked)', color: 'var(--tf-white)' };
+    return { background: 'var(--accent-surface)', color: 'var(--accent-text-strong)', border: '1px solid var(--accent-border)' };
   };
-  const chipBaseDesktop = "display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:5px;font:700 8.5px 'DM Sans',sans-serif;letter-spacing:.06em;";
+  const chipBaseDesktop: CSSProperties = { display: 'inline-flex', alignItems: 'center', height: '20px', padding: '0 8px', borderRadius: '5px', font: "700 8.5px 'DM Sans',sans-serif", letterSpacing: '.06em' };
 
   const buildMobile = (q: any, i: number, arr: any[]) => {
     const picked = answers[q.id];
@@ -251,54 +252,75 @@ export default function QuestionsPage() {
     const picked = answers[q.id];
     const unanswered = q.group === "open" && !picked;
     return {
-      title: q.title, chip: q.chip, chipStyle: chipBaseDesktop + chipToneDesktop(q),
+      title: q.title, chip: q.chip, chipStyle: { ...chipBaseDesktop, ...chipToneDesktop(q) } as CSSProperties,
       pts: q.pts, ptsUnit: q.pts ? (q.won ? "scored" : "pts") : "",
-      ptsStyle: `font:700 ${compact ? '18px' : '26px'} 'DM Sans',sans-serif;letter-spacing:-.7px;color:${q.won ? 'var(--prediction-correct)' : q.group === "open" ? 'var(--text-primary)' : 'var(--text-secondary)'};${q.pts ? '' : 'display:none'}`,
-      ptsUnitStyle: `font-size:9.5px;color:var(--text-muted);margin-top:3px;${q.pts ? '' : 'display:none'}`,
-      blockStyle: compact
-        ? `padding:14px 16px;${i === arr.length - 1 ? '' : 'border-bottom:1px solid var(--surface-border);'}`
-        : `background:var(--surface-card);border:1px solid var(--surface-border);border-radius:14px;padding:18px 20px;margin-top:11px;${unanswered ? 'background:var(--accent-surface);box-shadow:inset 3px 0 0 0 var(--color-brand);' : ''}`,
-      
+      ptsStyle: {
+        font: `700 ${compact ? '18px' : '26px'} 'DM Sans',sans-serif`, letterSpacing: '-.7px',
+        color: q.won ? 'var(--prediction-correct)' : q.group === "open" ? 'var(--text-primary)' : 'var(--text-secondary)',
+        display: q.pts ? undefined : 'none'
+      } as CSSProperties,
+      ptsUnitStyle: { fontSize: '9.5px', color: 'var(--text-muted)', marginTop: '3px', display: q.pts ? undefined : 'none' } as CSSProperties,
+      blockStyle: (compact
+        ? { padding: '14px 16px', borderBottom: i === arr.length - 1 ? undefined : '1px solid var(--surface-border)' }
+        : { background: unanswered ? 'var(--accent-surface)' : 'var(--surface-card)', border: '1px solid var(--surface-border)', borderRadius: '14px', padding: '18px 20px', marginTop: '11px', boxShadow: unanswered ? 'inset 3px 0 0 0 var(--color-brand)' : undefined }
+      ) as CSSProperties,
+
       hasChoices: !!q.choices,
       choices: (q.choices || []).map(([id, label]: [string, string]) => ({
         label,
-        style: `flex:1;height:46px;border-radius:12px;display:grid;place-items:center;cursor:pointer;font:650 13px 'DM Sans',sans-serif;transition:background .14s;${picked === id ? 'background:var(--brand-fill);color:var(--color-on-brand)' : 'border:1px solid var(--surface-border-strong);background:var(--surface-canvas)'}`,
-        pick: () => { 
-          setAnswers(s => ({ ...s, [q.id]: id })); 
+        style: {
+          flex: 1, height: '46px', borderRadius: '12px', display: 'grid', placeItems: 'center', cursor: 'pointer',
+          font: "650 13px 'DM Sans',sans-serif", transition: 'background .14s',
+          background: picked === id ? 'var(--brand-fill)' : 'var(--surface-canvas)',
+          color: picked === id ? 'var(--color-on-brand)' : undefined,
+          border: picked === id ? undefined : '1px solid var(--surface-border-strong)'
+        } as CSSProperties,
+        pick: () => {
+          setAnswers(s => ({ ...s, [q.id]: id }));
           const existing = ownAnswersMap[q.id];
           const expectedVersion = existing?.version || 0;
           submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
             onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
-          }); 
+          });
         }
       })),
-      
+
       hasOptions: !!q.options,
       options: (q.options || []).map(([id, label, sub]: [string, string, string]) => {
         const sel = picked === id;
         return {
           label, sub,
-          subStyle: `font-size:10.5px;flex:none;${sub ? (sel ? 'color:rgba(255,255,255,.75)' : 'color:var(--text-muted)') : 'display:none'}`,
-          style: `display:flex;align-items:center;gap:10px;min-height:46px;border-radius:12px;padding:0 13px;cursor:pointer;transition:background .14s;${sel ? 'background:var(--brand-fill);color:var(--color-on-brand)' : 'border:1px solid var(--surface-border-strong);background:var(--surface-canvas)'}`,
-          markStyle: `width:15px;height:15px;border-radius:999px;flex:none;${sel ? 'background:var(--tf-white);border:4px solid var(--brand-fill);box-shadow:0 0 0 1.5px var(--tf-white)' : 'border:1.5px solid var(--surface-border-strong)'}`,
-          pick: () => { 
-            setAnswers(s => ({ ...s, [q.id]: id })); 
+          subStyle: { fontSize: '10.5px', flex: 'none', color: sub ? (sel ? 'rgba(255,255,255,.75)' : 'var(--text-muted)') : undefined, display: sub ? undefined : 'none' } as CSSProperties,
+          style: {
+            display: 'flex', alignItems: 'center', gap: '10px', minHeight: '46px', borderRadius: '12px', padding: '0 13px', cursor: 'pointer', transition: 'background .14s',
+            background: sel ? 'var(--brand-fill)' : 'var(--surface-canvas)',
+            color: sel ? 'var(--color-on-brand)' : undefined,
+            border: sel ? undefined : '1px solid var(--surface-border-strong)'
+          } as CSSProperties,
+          markStyle: {
+            width: '15px', height: '15px', borderRadius: '999px', flex: 'none',
+            background: sel ? 'var(--tf-white)' : undefined,
+            border: sel ? '4px solid var(--brand-fill)' : '1.5px solid var(--surface-border-strong)',
+            boxShadow: sel ? '0 0 0 1.5px var(--tf-white)' : undefined
+          } as CSSProperties,
+          pick: () => {
+            setAnswers(s => ({ ...s, [q.id]: id }));
             const existing = ownAnswersMap[q.id];
             const expectedVersion = existing?.version || 0;
             submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
               onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
-            }); 
+            });
           }
         };
       }),
-      
+
       hasBars: !!q.bars,
       bars: (q.bars || []).map(([label, count, lead]: [string, number, boolean]) => ({
         label, count: String(count),
-        labelStyle: `font-size:11px;width:58px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${lead ? 'var(--text-primary)' : 'var(--text-secondary)'}`,
-        fillStyle: `width:${Math.round(count / 128 * 100)}%;height:100%;border-radius:999px;background:${lead ? 'var(--color-brand)' : 'var(--state-locked)'}`
+        labelStyle: { fontSize: '11px', width: '58px', flex: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: lead ? 'var(--text-primary)' : 'var(--text-secondary)' } as CSSProperties,
+        fillStyle: { width: `${Math.round(count / 128 * 100)}%`, height: '100%', borderRadius: '999px', background: lead ? 'var(--color-brand)' : 'var(--state-locked)' } as CSSProperties
       })),
-      
+
       hasText: !!q.hasText,
       textValue: textDrafts[q.id] ?? picked ?? '',
       textPlaceholder: "Type your answer…",
@@ -310,9 +332,9 @@ export default function QuestionsPage() {
       settleAction: () => goToSettle(q.id),
 
       answer: q.answer || "",
-      answerStyle: `font-size:11.5px;line-height:1.5;margin-top:9px;color:${q.voided ? 'var(--text-muted)' : 'var(--text-secondary)'};${q.answer ? '' : 'display:none'}`,
+      answerStyle: { fontSize: '11.5px', lineHeight: 1.5, marginTop: '9px', color: q.voided ? 'var(--text-muted)' : 'var(--text-secondary)', display: q.answer ? undefined : 'none' } as CSSProperties,
       criteria: q.criteria || "",
-      criteriaStyle: `font-size:10.5px;line-height:1.5;color:var(--text-muted);margin-top:${compact ? '8px' : '13px'};${q.criteria ? '' : 'display:none'}`
+      criteriaStyle: { fontSize: '10.5px', lineHeight: 1.5, color: 'var(--text-muted)', marginTop: compact ? '8px' : '13px', display: q.criteria ? undefined : 'none' } as CSSProperties
     };
   };
 
