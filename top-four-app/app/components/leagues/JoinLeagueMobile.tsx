@@ -202,7 +202,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
                 </div>
                 <div className="text-[11.5px] leading-[1.5] text-[var(--text-secondary)] mt-[5px]">
                   {attempts >= 2
-                    ? "Try again in 48 seconds. Your invitation is still held."
+                    ? "Try again shortly. Your invitation is still held."
                     : "Check the address the invitation was sent to."}
                 </div>
               </div>
@@ -232,7 +232,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
               </span>
             </div>
             <div className="mt-[20px] text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
-              Signing in takes you straight into the league. The invitation survives the round trip, and the hold above keeps counting.
+              Signing in takes you straight into the league. The invitation survives the round trip.
             </div>
           </div>
         )}
@@ -244,24 +244,24 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
               Enter the code you were given
             </div>
             <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">
-              Six characters, not case sensitive. A code names one league and behaves exactly like a link to it.
+              Ten characters, not case sensitive. A code names one league and behaves exactly like a link to it.
             </div>
             <div className="relative mt-[18px]">
               <input
                 type="text"
                 value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 6))}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase().slice(0, 10))}
                 className="absolute inset-0 opacity-0 w-full h-full cursor-text z-10"
-                maxLength={6}
+                maxLength={10}
               />
-              <div className="flex gap-[7px]">
-                {Array.from({ length: 6 }).map((_, i) => {
+              <div className="flex gap-[4px]">
+                {Array.from({ length: 10 }).map((_, i) => {
                   const ch = inviteCode[i] || "";
                   const isFocused = inviteCode.length === i;
                   return (
                     <div
                       key={i}
-                      className={`flex-1 h-[52px] rounded-[11px] grid place-items-center font-heading font-bold text-[20px] bg-[var(--surface-card)] text-[var(--text-primary)] border ${
+                      className={`flex-1 h-[48px] rounded-[9px] grid place-items-center font-heading font-bold text-[14px] bg-[var(--surface-card)] text-[var(--text-primary)] border ${
                         isFocused ? 'border-[var(--color-brand)]' : 'border-[var(--surface-border-strong)]'
                       }`}
                     >
@@ -274,7 +274,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
             <div
               onClick={onJoinCode}
               className={`tf-tap mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${
-                inviteCode.length === 6 && !joinLeaguePending
+                inviteCode.length === 10 && !joinLeaguePending
                   ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] shadow-[var(--elev-glow)]'
                   : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'
               }`}

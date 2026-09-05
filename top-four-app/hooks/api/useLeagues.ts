@@ -3,7 +3,9 @@ import {
   fetchMyLeagues,
   fetchLeagueDetails,
   createLeague,
-  joinLeague,
+  establishInvitationIntent,
+  fetchCurrentInvitationIntent,
+  consumeInvitationIntent,
   League,
   LeaguesPage,
   CreateLeaguePayload,
@@ -64,11 +66,32 @@ export function useCreateLeague() {
   });
 }
 
-export function useJoinLeague() {
-  const queryClient = useQueryClient();
-  
+// Step 1 of joining a league: turns a join code or link token into an
+// httpOnly-cookie-backed intent. Works whether the caller is signed in yet or not.
+export function useEstablishInvitationIntent() {
   return useMutation({
-    mutationFn: (inviteCode: string) => joinLeague(inviteCode),
+    mutationFn: (credential: { joinCode: string } | { linkToken: string }) => establishInvitationIntent(credential),
+  });
+}
+
+// Reads back a previously-established intent using only the cookie already
+// on the browser — used to resume the invitation after sign-up/sign-in.
+export function useCurrentInvitationIntent(enabled: boolean) {
+  return useQuery({
+    queryKey: ['invitation-intents', 'current'],
+    queryFn: () => fetchCurrentInvitationIntent(),
+    enabled,
+    retry: false,
+  });
+}
+
+// Step 2: consumes the intent established above. Must be called while
+// authenticated. Resolves to 'joined' | 'already_active' | 'pending'.
+export function useConsumeInvitationIntent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => consumeInvitationIntent(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] });
     }

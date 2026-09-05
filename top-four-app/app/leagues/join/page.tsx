@@ -1,30 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useJoinLeague } from '@/hooks/api/useLeagues';
+import { useEstablishInvitationIntent, useConsumeInvitationIntent } from '@/hooks/api/useLeagues';
 import { JoinLeagueMobile } from '@/app/components/leagues/JoinLeagueMobile';
 import { JoinLeagueDesktop } from '@/app/components/leagues/JoinLeagueDesktop';
 
 export default function JoinLeaguePage() {
   const router = useRouter();
-  const joinLeague = useJoinLeague();
+  const establishIntent = useEstablishInvitationIntent();
+  const consumeIntent = useConsumeInvitationIntent();
   
   const [step, setStep] = useState<'signup' | 'signin' | 'code'>('code');
   const [theme] = useState<'light' | 'dark'>('dark');
   const [outcome, setOutcome] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
-  const [seconds, setSeconds] = useState(1680);
   const [inviteCode, setInviteCode] = useState('');
   const [joinedLeague, setJoinedLeague] = useState<any>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSeconds(s => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const joinedLeagueName = joinedLeague?.name || joinedLeague?.league?.name || "Your league";
 
@@ -79,10 +72,6 @@ export default function JoinLeaguePage() {
   const onOutcome = outcome !== null;
   const o = outcome ? OUTCOMES[outcome] : {};
 
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  const hold = `${m}m ${String(s).padStart(2, '0')}s`;
-
   const concealed = outcome === "dead";
   const dead = concealed || outcome === "closed";
   const joined = outcome === "welcome";
@@ -92,15 +81,13 @@ export default function JoinLeaguePage() {
     : dead ? ["INVITATION NO LONGER VALID", "var(--nav-text-faint)"]
     : ["YOU HAVE BEEN INVITED TO", "var(--nav-accent)"];
 
-  const facts = joined
-    ? [[String(joinedLeague?.memberCount || "1"), "MEMBERS"], ["3", "COMPETITIONS"], ["38", "ROUNDS"]]
-    : [["1", "MEMBERS"], ["3", "COMPETITIONS"], ["38", "ROUNDS"]];
+  const facts: [string, string][] = [];
 
   const TAGS = joined
     ? [["JOINED TODAY", "ok"]]
     : concealed ? []
     : dead ? [["NOT ACCEPTING JOINS", "muted"]]
-    : [["OWNER APPROVES JOINS", "warn"], [`HELD ${hold}`, "muted"], ["IN PROGRESS", "plain"]];
+    : [];
 
   const tags = TAGS.map(([label, kind]) => ({
     label,
@@ -118,18 +105,28 @@ export default function JoinLeaguePage() {
   };
 
   const handleJoinCode = () => {
-    if (inviteCode.length !== 6 || joinLeague.isPending) return;
-    joinLeague.mutate(inviteCode, {
-      onSuccess: (data: any) => {
-        setJoinedLeague(data);
-        setOutcome("welcome");
+    if (inviteCode.length !== 10 || establishIntent.isPending || consumeIntent.isPending) return;
+    establishIntent.mutate({ joinCode: inviteCode }, {
+      onSuccess: (preview) => {
+        consumeIntent.mutate(undefined, {
+          onSuccess: (outcome) => {
+            if (outcome.outcome === 'pending') {
+              setJoinedLeague({ name: preview.league.name });
+              setOutcome("pending");
+            } else {
+              setJoinedLeague({ name: preview.league.name, id: outcome.leagueId });
+              setOutcome("welcome");
+            }
+          },
+          onError: (err: any) => {
+            setOutcome(err?.data?.code === 'USER_LEAGUE_LIMIT_REACHED' ? "limit" : "dead");
+          }
+        });
       },
-      onError: (err: any) => {
-        if (err?.message?.includes('closed') || err?.status === 409) {
-          setOutcome("closed");
-        } else {
-          setOutcome("dead");
-        }
+      onError: () => {
+        // The backend deliberately collapses expired/used-up/withdrawn/closed
+        // invitations into one generic error — nothing to disambiguate here.
+        setOutcome("dead");
       }
     });
   };
@@ -160,7 +157,7 @@ export default function JoinLeaguePage() {
     setFocus,
     attempts,
     trySignin,
-    joinLeaguePending: joinLeague.isPending,
+    joinLeaguePending: establishIntent.isPending || consumeIntent.isPending,
     onJoinCode: handleJoinCode,
     onNavigateHome: handleNavigateHome,
     MY_LEAGUES

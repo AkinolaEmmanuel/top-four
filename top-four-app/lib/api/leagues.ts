@@ -192,14 +192,50 @@ export async function createLeague(idempotencyKey: string, payload: CreateLeague
   });
 }
 
-export async function joinLeague(inviteCode: string): Promise<any> {
-  return apiFetch<any>(`/invitation-intents/consume`, {
+export interface InvitationIntentPreview {
+  league: {
+    id: string;
+    name: string;
+    lifecycleState: string;
+    joinApprovalRequired: boolean;
+  };
+  invitationExpiresAt: string;
+  intentExpiresAt: string;
+}
+
+export type InvitationConsumeOutcome =
+  | { outcome: 'joined'; leagueId: string; membershipId: string; role: 'participant' }
+  | { outcome: 'already_active'; leagueId: string; membershipId: string; role: 'owner' | 'admin' | 'participant' }
+  | { outcome: 'pending'; leagueId: string; joinRequestId: string; state: 'pending' };
+
+// Step 1 of joining: establishes an httpOnly-cookie-backed "intent" from a
+// join code or link token. Works whether or not the caller is authenticated
+// — the capability never appears in the JSON body, only the cookie.
+export async function establishInvitationIntent(credential: { joinCode: string } | { linkToken: string }): Promise<InvitationIntentPreview> {
+  const response = await apiFetch<{ data: InvitationIntentPreview }>(`/invitation-intents`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ joinCode: inviteCode }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credential),
   });
+  return response.data;
+}
+
+// Reads back the previously-established intent (e.g. after returning from
+// sign-up/sign-in) using only the httpOnly cookie already on the browser.
+export async function fetchCurrentInvitationIntent(): Promise<InvitationIntentPreview> {
+  const response = await apiFetch<{ data: InvitationIntentPreview }>(`/invitation-intents/current`);
+  return response.data;
+}
+
+// Step 2: consumes the intent cookie set by establishInvitationIntent. Must
+// be called while authenticated — takes no body, the capability travels only
+// via the httpOnly cookie.
+export async function consumeInvitationIntent(): Promise<InvitationConsumeOutcome> {
+  const response = await apiFetch<{ data: InvitationConsumeOutcome }>(`/invitation-intents/consume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.data;
 }
 
 export async function fetchLeagueMembers(leagueId: string): Promise<any> {
