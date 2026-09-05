@@ -26,18 +26,16 @@ function SignupForm() {
     setIsSubmitting(true);
 
     try {
-      const { verificationEmailScheduled } = await signUp({ email, displayName, password });
-      if (verificationEmailScheduled) {
-        setNeedsVerification(true);
-        return;
-      }
+      await signUp({ email, displayName, password });
+      // Registering never signs you in by itself, and a scheduled
+      // verification email doesn't gate login either (confirmed against the
+      // backend's login path) -- it's purely a courtesy notice. So always
+      // try to sign the new account straight in, and only fall back to
+      // "check your inbox" messaging if that attempt genuinely fails.
       try {
         await signIn({ email, password });
         window.location.href = redirectTarget;
       } catch {
-        // The account exists but couldn't be signed straight in -- most likely
-        // it does need verifying after all, so fall back to that messaging
-        // rather than leaving the user looking at a blank failed submit.
         setNeedsVerification(true);
       }
     } catch (err) {
