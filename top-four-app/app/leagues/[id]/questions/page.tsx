@@ -439,14 +439,13 @@ export default function QuestionsPage() {
   };
 
   const handleResolve = () => {
-    console.log('[DEBUG handleResolve]', { isPending: resolveQuestion.isPending, resolveQuestionId, outcome, resolveText, displayQuestionsIds: displayQuestions.map(q => q.id) });
     if (resolveQuestion.isPending) return;
     const targetQ = displayQuestions.find(q => q.id === resolveQuestionId);
-    if (!targetQ) { console.log('[DEBUG handleResolve] no targetQ found'); return; }
+    if (!targetQ) return;
 
     const isText = targetQ.answerKind === 'open_text';
     const rawValue = isText ? resolveText.trim() : outcome;
-    if (!rawValue) { console.log('[DEBUG handleResolve] no rawValue', { isText, outcome, resolveText }); return; }
+    if (!rawValue) return;
 
     resolveQuestion.mutate({
       questionId: targetQ.id,
@@ -539,9 +538,6 @@ export default function QuestionsPage() {
   const resolveIsText = targetQForResolve?.answerKind === 'open_text';
   const canSettleNow = resolveIsText ? !!resolveText.trim() : !!outcome;
   const settleLabelText = resolveQuestion.isPending ? "Settling…" : canSettleNow ? `Settle and pay out ${totalDisclosed} ${totalDisclosed === 1 ? 'member' : 'members'}` : "Pick the outcome first";
-  if (typeof window !== 'undefined') {
-    (window as any).__tfDebug = { canSettleNow, outcome, resolveQuestionId, resolveIsText, resolveText, isPending: resolveQuestion.isPending, view, targetQForResolveId: targetQForResolve?.id };
-  }
   const resolveTitle = targetQForResolve?.title || "Pick a question to settle";
   const resolveSubtitle = targetQForResolve ? `${totalDisclosed} ${totalDisclosed === 1 ? 'member has' : 'members have'} answered. Awarding an outcome pays out immediately and tells everybody what they scored.` : "";
 
@@ -619,7 +615,7 @@ export default function QuestionsPage() {
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     publishAction: handlePublish,
     previewText: qText || "Your question will read here", previewPoints: String(qPoints),
-    outcomes: outcomesDesktop, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText,
+    outcomes: outcomesDesktop, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
     match,
     settleStyle: { marginTop: '24px', height: '48px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 13.5px 'DM Sans',sans-serif", background: canSettleNow ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canSettleNow ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: canSettleNow ? 'pointer' : 'not-allowed' },
     settleLabel: settleLabelText,
