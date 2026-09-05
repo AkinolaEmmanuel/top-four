@@ -539,6 +539,9 @@ export default function QuestionsPage() {
   const resolveIsText = targetQForResolve?.answerKind === 'open_text';
   const canSettleNow = resolveIsText ? !!resolveText.trim() : !!outcome;
   const settleLabelText = resolveQuestion.isPending ? "Settling…" : canSettleNow ? `Settle and pay out ${totalDisclosed} ${totalDisclosed === 1 ? 'member' : 'members'}` : "Pick the outcome first";
+  if (typeof window !== 'undefined') {
+    (window as any).__tfDebug = { canSettleNow, outcome, resolveQuestionId, resolveIsText, resolveText, isPending: resolveQuestion.isPending, view, targetQForResolveId: targetQForResolve?.id };
+  }
   const resolveTitle = targetQForResolve?.title || "Pick a question to settle";
   const resolveSubtitle = targetQForResolve ? `${totalDisclosed} ${totalDisclosed === 1 ? 'member has' : 'members have'} answered. Awarding an outcome pays out immediately and tells everybody what they scored.` : "";
 
