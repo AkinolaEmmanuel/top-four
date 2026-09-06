@@ -1,17 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { LeagueMoreMobile } from '../../../components/leagues/LeagueMoreMobile';
 import { LeagueMoreDesktop } from '../../../components/leagues/LeagueMoreDesktop';
-import { useLeague, useJoinRequests } from '@/hooks/api/useLeagues';
+import { useLeague, useJoinRequests, useLeaveLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
 import { useAuth } from '@/context/auth-context';
 
 export default function LeagueMorePage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
+  const router = useRouter();
   const { data: league } = useLeague(params.id);
   const { data: requestsData } = useJoinRequests(params.id);
   const { data: questionsPage } = useCustomQuestions(params.id);
+  const { data: dashboard } = useLeagueDashboard(params.id);
+  const leaveMutation = useLeaveLeague(params.id);
 
   const [theme] = useState<'light' | 'dark'>('dark');
 
@@ -21,7 +25,7 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
   const runs = owner || admin;
   const done = league?.lifecycleState === 'completed';
 
-  const memberCount = league?.memberCount || 1;
+  const memberCount = dashboard?.summary?.activeMemberCount ?? league?.memberCount ?? 1;
   const leagueName = league?.name || 'League';
 
   const openQuestionsCount = questionsPage?.data?.filter(q => q.phase === 'open').length || 0;
@@ -62,14 +66,25 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
     { glyph: "✕", title: "Cancel this league", note: `Voids every prediction and every point, for all ${memberCount} members`, tone: "danger", href: `/leagues/${params.id}/admin` }
   ];
   
+  const handleLeave = (e: any) => {
+    e?.preventDefault?.();
+    if (leaveMutation.isPending) return;
+    const ok = window.confirm('Leave this league? Your predictions and points stay, without your name attached. Rejoining later starts you back on zero.');
+    if (!ok) return;
+    leaveMutation.mutate(undefined, {
+      onSuccess: () => router.push('/leagues'),
+      onError: (err: any) => window.alert(err?.message || "Couldn't leave the league"),
+    });
+  };
+
   const ENDING_MEMBER = [
-    { glyph: "→", title: "Leave this league", note: "Your points and answers stay in the table. You would need a fresh invitation to return.", tone: "danger" }
+    { glyph: "→", title: "Leave this league", note: "Your points and answers stay in the table. You would need a fresh invitation to return.", tone: "danger", onClick: handleLeave }
   ];
 
   // Mobile formatting logic
   const mkMobile = (r: any, i: number, a: any[]) => ({
     title: r.title, note: r.note, glyph: r.glyph, badge: r.badge || "",
-    href: r.href,
+    href: r.href, onClick: r.onClick,
     titleColor: r.tone === "danger" ? "var(--danger-text)" : "var(--text-primary)",
     iconStyle: `w-[32px] h-[32px] rounded-[9px] flex-none grid place-items-center font-heading font-bold text-[13px] ${r.tone === "danger" ? 'bg-[var(--surface-subtle)] text-[var(--danger-text)]' : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)]'}`,
     badgeStyle: r.badge ? `font-heading font-bold text-[8.5px] tracking-[0.07em] p-[2px_7px] rounded-[4px] flex-none ${r.tone === "live" ? 'bg-[var(--accent-surface)] text-[var(--accent-text)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}` : "hidden",
@@ -87,7 +102,7 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
 
   // Desktop formatting logic
   const mkDesktop = (r: any, i: number, a: any[]) => ({
-    title: r.title, note: r.note, glyph: r.glyph, badge: r.badge || "", href: r.href,
+    title: r.title, note: r.note, glyph: r.glyph, badge: r.badge || "", href: r.href, onClick: r.onClick,
     titleColor: r.tone === "danger" ? "var(--danger-text)" : "var(--text-primary)",
     iconStyle: { width: '32px', height: '32px', borderRadius: '9px', flex: 'none', display: 'grid', placeItems: 'center', font: "700 13px 'DM Sans',sans-serif", background: 'var(--surface-subtle)', color: r.tone === "danger" ? "var(--danger-text)" : "var(--text-secondary)" },
     badgeStyle: r.badge ? { font: "700 8.5px 'DM Sans',sans-serif", letterSpacing: '.07em', padding: '2px 7px', borderRadius: '4px', flex: 'none', background: r.tone === "live" ? 'var(--accent-surface)' : 'var(--surface-subtle)', color: r.tone === "live" ? 'var(--accent-text)' : 'var(--text-muted)' } : { display: 'none' },
