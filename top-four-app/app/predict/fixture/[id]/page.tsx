@@ -265,12 +265,23 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     const histOpen = history === d.key;
     const unanswered = mine === null || mine === undefined;
 
+    // The fixture-wide `locked`/`editable` above come from a status field this
+    // page never actually updates, so they can't tell one market's real state
+    // from another's -- a market the backend has genuinely locked (kickoff
+    // passed, its own deadline passed) still read as open here, and a pick on
+    // it silently no-opped since handleSet correctly checks the real
+    // per-market data anyway. Each market's own submissionAllowed/state from
+    // predictions.markets is the actual source of truth.
+    const marketSlot = predictions?.markets.find(ms => ms.marketType === d.key);
+    const marketLocked = !settled && (locked || marketSlot?.submissionAllowed === false);
+    const editable = isReady && !marketLocked && !settled;
+
     let right, rightStyle;
     if (settled) {
       const tone = out === "hit" ? "var(--prediction-correct)" : "var(--text-muted)";
       right = EARNED[d.key] || "0";
       rightStyle = `font-heading font-bold text-[17px] tracking-[-0.4px] flex-none tf-num text-[${tone}]`;
-    } else if (locked) {
+    } else if (marketLocked) {
       right = unanswered ? "NO ANSWER" : "LOCKED";
       rightStyle = `font-heading font-bold text-[9.5px] tracking-[0.05em] flex-none ${unanswered ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`;
     } else {
@@ -286,7 +297,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     const m = {
       ...d, right, rightStyle,
       ptsStyle: `font-heading font-semibold text-[10px] text-[var(--text-muted)] flex-none ${settled ? 'hidden' : ''}`,
-      blockStyle: `p-[15px_var(--gutter)] border-t border-[var(--surface-border)] ${i === DEFS.length - 1 ? 'border-b' : ''} ${(!settled && !locked && unanswered) ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`,
+      blockStyle: `p-[15px_var(--gutter)] border-t border-[var(--surface-border)] ${i === DEFS.length - 1 ? 'border-b' : ''} ${(!settled && !marketLocked && unanswered) ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`,
       cardStyle: `border-top: 1px solid var(--surface-border); ${!editable ? 'opacity: .96;' : ''} ${editable && unanswered ? 'background: var(--accent-surface); box-shadow: inset 3px 0 0 0 var(--color-brand);' : ''}`,
       historyLink: edits.length ? (histOpen ? "HIDE EDITS" : `EDITED ${edits.length}×`) : "Never changed",
       historyStyle: edits.length ? `font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer` : "hidden",
@@ -347,14 +358,14 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       const v = a.exact_score || a.score;
       const vStr = Array.isArray(v) ? `${v[0]}–${v[1]}` : (v ? `${v.homeGoals}–${v.awayGoals}` : null);
       m.scoreNote = settled ? `You said ${vStr || 'nothing'} · it finished ${ACTUAL.score[0]}–${ACTUAL.score[1]}`
-        : locked ? (vStr ? `Locked at ${vStr}` : "Nothing was ever saved here.")
+        : marketLocked ? (vStr ? `Locked at ${vStr}` : "Nothing was ever saved here.")
           : vStr ? `${hName} ${Array.isArray(v) ? v[0] : v?.homeGoals} · ${aName} ${Array.isArray(v) ? v[1] : v?.awayGoals}` : "Untouched — an exact score is not assumed to be 0–0.";
       const scoreHit = settled && v && ((Array.isArray(v) && v[0] === ACTUAL.score[0] && v[1] === ACTUAL.score[1]) || (!Array.isArray(v) && v.homeGoals === ACTUAL.score[0] && v.awayGoals === ACTUAL.score[1]));
-      m.scoreNoteStyle = `text-[10.5px] md:text-[12.5px] leading-[1.5] mt-[9px] md:mt-[5px] ${scoreHit ? 'text-[var(--success-text)]' : (settled || (locked && !v)) ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`;
+      m.scoreNoteStyle = `text-[10.5px] md:text-[12.5px] leading-[1.5] mt-[9px] md:mt-[5px] ${scoreHit ? 'text-[var(--success-text)]' : (settled || (marketLocked && !v)) ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`;
     }
 
     if (d.kind === "players") {
-      const shown = (settled || locked) ? ((d.players as any[]) || []).filter(([id]) => id === mine) : ((d.players as any[]) || []);
+      const shown = (settled || marketLocked) ? ((d.players as any[]) || []).filter(([id]) => id === mine) : ((d.players as any[]) || []);
       (m as any).playerItems = shown.map(([id, name, meta, initials]: any) => {
         const isMine = mine === id, isWon = settled && ACTUAL[d.key] === id, inReview = settled && out === "review";
         return {
@@ -386,19 +397,19 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
     if (d.key === "exact_score" || d.key === "score") {
       const sc = a.exact_score || a.score;
-      (m as any).answer = sc ? (Array.isArray(sc) ? `${sc[0]} — ${sc[1]}` : `${sc.homeGoals} — ${sc.awayGoals}`) : (locked ? "Nothing was ever saved here" : "Untouched — an exact score is not assumed to be 0–0");
+      (m as any).answer = sc ? (Array.isArray(sc) ? `${sc[0]} — ${sc[1]}` : `${sc.homeGoals} — ${sc.awayGoals}`) : (marketLocked ? "Nothing was ever saved here" : "Untouched — an exact score is not assumed to be 0–0");
     } else {
-      (m as any).answer = a[d.key] ? (typeof a[d.key] === 'string' ? a[d.key] : JSON.stringify(a[d.key])) : (locked ? "Not answered — no points from this one" : "Not answered");
+      (m as any).answer = a[d.key] ? (typeof a[d.key] === 'string' ? a[d.key] : JSON.stringify(a[d.key])) : (marketLocked ? "Not answered — no points from this one" : "Not answered");
     }
     (m as any).answerStyle = a[d.key] ? "font-size: 12.5px; color: var(--text-secondary); margin-top: 5px;" : "font-size: 12.5px; color: var(--text-muted); font-style: italic; margin-top: 5px;";
 
-    let chipText = settled ? (out === "review" ? "In review" : out === "void" ? "Void" : "Provisional") : locked ? "Locked" : "Open";
+    let chipText = settled ? (out === "review" ? "In review" : out === "void" ? "Void" : "Provisional") : marketLocked ? "Locked" : "Open";
     let chipBase = "font: 600 10px 'DM Sans', sans-serif; letter-spacing: .03em; padding: 3px 9px; border-radius: 999px; white-space: nowrap; ";
-    let chipSpec = settled ? (out === "review" ? "border: 1px solid var(--surface-border-strong); color: var(--text-secondary);" : out === "void" ? "border: 1px solid var(--surface-border-strong); color: var(--text-muted);" : "background: var(--state-provisional); color: var(--nav-on-accent);") : locked ? "background: var(--state-locked); color: var(--color-on-brand);" : "background: var(--surface-subtle); color: var(--text-secondary);";
+    let chipSpec = settled ? (out === "review" ? "border: 1px solid var(--surface-border-strong); color: var(--text-secondary);" : out === "void" ? "border: 1px solid var(--surface-border-strong); color: var(--text-muted);" : "background: var(--state-provisional); color: var(--nav-on-accent);") : marketLocked ? "background: var(--state-locked); color: var(--color-on-brand);" : "background: var(--surface-subtle); color: var(--text-secondary);";
     (m as any).chipStyle = chipBase + chipSpec;
     (m as any).chip = chipText;
     (m as any).outcomeWrapStyle = `display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 3px; justify-self: end; width: ${settled ? '150px' : '86px'}`;
-    (m as any).lockLine = settled ? "Settled" : locked ? "Locked at kick-off" : `Locks at kickoff · ${clock}`;
+    (m as any).lockLine = settled ? "Settled" : marketLocked ? "Locked at kick-off" : `Locks at kickoff · ${clock}`;
     (m as any).historyNote = "Only the top line counted. Earlier answers are kept so a score can be checked, never re-scored.";
 
     return m;
