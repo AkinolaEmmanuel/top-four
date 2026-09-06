@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { StandingsPickerMobile } from '../../components/predict/StandingsPickerMobile';
 import { StandingsPickerDesktop } from '../../components/predict/StandingsPickerDesktop';
-import { submitCustomAnswer } from '@/lib/api/custom-questions';
+import { submitCustomAnswer, fetchOwnCustomAnswer } from '@/lib/api/custom-questions';
 import { useCatalogueCompetitions, useCompetitionSeasons, useSeasonTeams } from '@/hooks/api/useCatalogue';
 
 function StandingsPredictionContent() {
@@ -36,12 +36,15 @@ function StandingsPredictionContent() {
     setIsSaving(true);
     try {
       if (leagueId && questionId) {
-        await submitCustomAnswer(leagueId, questionId, 0, formattedAnswer);
+        const existing = await fetchOwnCustomAnswer(leagueId, questionId).catch(() => null);
+        const expectedVersion = existing?.data?.version || 0;
+        await submitCustomAnswer(leagueId, questionId, expectedVersion, formattedAnswer);
         setSaveMessage('Standings prediction saved to league custom question!');
         setTimeout(() => router.push(`/leagues/${leagueId}/questions`), 1200);
       } else {
-        setSaveMessage('Standings prediction saved in custom question format!');
-        setTimeout(() => router.push('/predict'), 1200);
+        // Reached without a real league/question to submit to -- there is
+        // nothing to save yet, so say so instead of claiming success.
+        alert("This picker isn't attached to a league question yet, so nothing was saved. Open it from a specific custom question to submit a real answer.");
       }
     } catch (err: any) {
       alert(err.message || 'Failed to save prediction');
