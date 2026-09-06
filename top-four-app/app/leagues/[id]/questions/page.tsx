@@ -660,7 +660,7 @@ export default function QuestionsPage() {
   const propsDesktop = {
     theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "", showContext: true,
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, "6"), tabItem("Table", false, ""), tabItem("Questions", true, questionBadge), tabItem("More", false, "")],
-    onList, onEmpty, onCreate, onResolve,
+    onList, onEmpty, onCreate, onResolve, setSheet, SHEET,
     heroStyle: { padding: '24px 0 26px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' },
     heroTone: allIn ? "var(--nav-positive)" : "var(--nav-warning)",
     heroKicker: allIn ? "NOTHING OWED" : "RIDING ON YOUR ANSWERS",
