@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 export function MeMobile({
-  theme, isLoading, prefs, setPrefs, chart, leagues, groups, IconMap, tabs, ...props
+  theme, isLoading, prefs, setPrefs, chart, leagues, groups, IconMap, tabs, totalPoints, leagueCount, ...props
 }: any) {
   const isReady = !isLoading;
 
@@ -21,10 +21,10 @@ export function MeMobile({
         </div>
 
         <div className="flex items-end gap-[12px] mt-[20px]">
-          <div className="tf-num font-heading font-bold text-[44px] leading-[0.85] tracking-[-2px]">2,272</div>
+          <div className="tf-num font-heading font-bold text-[44px] leading-[0.85] tracking-[-2px]">{totalPoints.toLocaleString()}</div>
           <div className="pb-[4px]">
             <div className="font-heading font-semibold text-[12.5px]">points in total</div>
-            <div className="text-[11px] text-[var(--nav-text-faint)] mt-[3px]">across eight leagues · 61% of markets correct</div>
+            <div className="text-[11px] text-[var(--nav-text-faint)] mt-[3px]">across {leagueCount} {leagueCount === 1 ? 'league' : 'leagues'}</div>
           </div>
         </div>
       </header>
