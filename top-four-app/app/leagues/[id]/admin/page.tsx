@@ -19,7 +19,8 @@ export default function LeagueAdminPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: league } = useLeague(params.id);
-  const { data: membersData, isLoading: loadingMembers } = useLeagueMembers(params.id);
+  const [filter, setFilter] = useState("All");
+  const { data: membersData, isLoading: loadingMembers } = useLeagueMembers(params.id, filter === 'Former' ? 'former' : 'active');
   const { data: requestsData, isLoading: loadingRequests } = useJoinRequests(params.id);
   const { data: invitationsData } = useLeagueInvitations(params.id);
   const { data: standingsData } = useStandings(params.id);
@@ -48,7 +49,6 @@ export default function LeagueAdminPage() {
   const [who, setWho] = useState<string>("");
   const [targetMemberId, setTargetMemberId] = useState<string | null>(null);
   const [role, setRole] = useState("Admin");
-  const [filter, setFilter] = useState("All");
   const [fresh, setFresh] = useState(false);
   const [latestInviteCode, setLatestInviteCode] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);

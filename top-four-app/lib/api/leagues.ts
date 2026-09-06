@@ -238,8 +238,8 @@ export async function consumeInvitationIntent(): Promise<InvitationConsumeOutcom
   return response.data;
 }
 
-export async function fetchLeagueMembers(leagueId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/members`);
+export async function fetchLeagueMembers(leagueId: string, state: 'active' | 'former' | 'all' = 'active'): Promise<any> {
+  return apiFetch<any>(`/leagues/${leagueId}/members?state=${state}`);
 }
 
 export async function fetchJoinRequests(leagueId: string): Promise<any> {
