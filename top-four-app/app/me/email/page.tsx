@@ -21,7 +21,7 @@ export default function EmailPage() {
     if (!email.trim() || email === user?.email) return;
 
     requestEmailChange.mutate(
-      { currentPassword: currentPassword.trim() || undefined, newEmail: email.trim() } as any,
+      { currentPassword: currentPassword.trim() || undefined, newEmail: email.trim() },
       {
         onSuccess: () => {
           setSuccess(true);

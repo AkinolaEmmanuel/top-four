@@ -31,7 +31,7 @@ export default function PasswordPage() {
     }
 
     changePassword.mutate(
-      { currentPassword: currentPassword.trim() || undefined, newPassword: newPassword.trim() } as any,
+      { currentPassword: currentPassword.trim() || undefined, newPassword: newPassword.trim() },
       {
         onSuccess: () => {
           setSuccess(true);
