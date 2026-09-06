@@ -11,6 +11,8 @@ export function LeagueAdminMobile({
   leagueName, inviteCode, createInviteAction, copyInviteAction,
   memberCount, inviteCount, pendingCount, heroRole
 }: any) {
+
+
   const segStyle = (on: boolean) =>
     `box-border flex-1 min-w-[88px] flex items-center justify-center gap-[6px] h-[38px] rounded-t-[9px] cursor-pointer font-heading font-bold text-[11px] ${on ? 'bg-[var(--surface-canvas)] text-[var(--text-primary)] border border-b-0 border-[var(--surface-border-strong)] pb-[1px]' : 'text-[var(--nav-text-faint)]'}`;
 
@@ -37,7 +39,7 @@ export function LeagueAdminMobile({
             <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
             <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
           </div>
-          <span className="tf-chip bg-[rgba(252,211,77,0.18)] text-[var(--nav-warning)] flex-none">{heroRole}</span>
+
         </div>
 
         <div className="flex items-end gap-[11px] mt-[16px]">
@@ -59,7 +61,7 @@ export function LeagueAdminMobile({
 
         {loading && (
           <div>
-            {[0,1,2,3,4,5].map(i => (
+            {[0, 1, 2, 3, 4, 5].map(i => (
               <div key={i} className="flex items-center gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] animate-[tfpulse_1.4s_ease-in-out_infinite]">
                 <div className="w-[34px] h-[34px] rounded-full bg-[var(--surface-subtle)] flex-none"></div>
                 <div className="flex-1">
@@ -261,7 +263,7 @@ export function LeagueAdminMobile({
                 ))}
               </div>
             )}
-            <div onClick={() => { 
+            <div onClick={() => {
               if (sheetSpec.primaryAction) {
                 sheetSpec.primaryAction();
               } else {
@@ -270,6 +272,15 @@ export function LeagueAdminMobile({
             }} className={`h-[47px] rounded-[12px] grid place-items-center cursor-pointer font-heading font-bold text-[13.5px] text-[var(--tf-white)] mt-[16px] ${sheetSpec.danger ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
               {sheetSpec.primary}
             </div>
+            {sheetSpec.tertiary && (
+              <div onClick={() => {
+                if (sheetSpec.tertiaryAction) {
+                  sheetSpec.tertiaryAction();
+                } else {
+                  setSheet(null);
+                }
+              }} className="tf-tap h-[46px] rounded-[12px] grid place-items-center font-heading font-bold text-[13px] text-[var(--text-secondary)] mt-[8px]">{sheetSpec.tertiary}</div>
+            )}
             {sheetSpec.secondary && (
               <div onClick={() => {
                 if (sheetSpec.secondaryAction) {
