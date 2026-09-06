@@ -8,6 +8,7 @@ import {
   useProcessJoinRequest, useLeagueInvitations, useCreateInvitation, useRevokeInvitation,
   useCloneLeague, useArchiveLeague, useCancelLeague, useLeaveLeague, usePublishLeague, useDeleteLeague
 } from '@/hooks/api/useLeagues';
+import { useStandings } from '@/hooks/api/usePoints';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 
@@ -21,6 +22,12 @@ export default function LeagueAdminPage() {
   const { data: membersData, isLoading: loadingMembers } = useLeagueMembers(params.id);
   const { data: requestsData, isLoading: loadingRequests } = useJoinRequests(params.id);
   const { data: invitationsData } = useLeagueInvitations(params.id);
+  const { data: standingsData } = useStandings(params.id);
+
+  const standingsByMembershipId = (standingsData?.entries || []).reduce((acc: Record<string, { totalPoints: number; position: number }>, e) => {
+    acc[e.membershipId] = { totalPoints: e.totalPoints, position: e.position };
+    return acc;
+  }, {} as Record<string, { totalPoints: number; position: number }>);
 
   const updateRoleMutation = useUpdateMemberRole(params.id);
   const removeMemberMutation = useRemoveMember(params.id);
@@ -63,17 +70,26 @@ export default function LeagueAdminPage() {
   const leagueName = league?.name || '';
   const leagueAbbr = leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG';
 
-  const dynamicMembers = (membersData?.data || []).map((m: any) => ({
-    id: m.id,
-    name: m.displayName || "Unknown",
-    role: m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Participant',
-    initials: (m.displayName || "U").substring(0, 2).toUpperCase(),
-    points: 0,
-    rank: "—",
-    you: !!user && m.userId === user.id,
-    left: m.state === 'former',
-    joined: `Joined recently`
-  }));
+  const ordinal = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  const dynamicMembers = (membersData?.data || []).map((m: any) => {
+    const standing = standingsByMembershipId[m.id];
+    return {
+      id: m.id,
+      name: m.displayName || "Unknown",
+      role: m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Participant',
+      initials: (m.displayName || "U").substring(0, 2).toUpperCase(),
+      points: standing?.totalPoints ?? 0,
+      rank: standing ? ordinal(standing.position) : "—",
+      you: !!user && m.userId === user.id,
+      left: m.state === 'former',
+      joined: m.joinedAt ? `Joined ${new Date(m.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Joined recently'
+    };
+  });
   const displayMembers = dynamicMembers;
 
   const members = displayMembers.filter((m: any) => {
