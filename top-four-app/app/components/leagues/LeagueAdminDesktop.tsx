@@ -43,7 +43,7 @@ export function LeagueAdminDesktop({
             {leagueAbbr || (leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG')}
           </span>
           <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">{leagueName || 'League'}</span>
-          <span className="text-[11px] text-[var(--text-muted)]">You own this league</span>
+          <span className="text-[11px] text-[var(--text-muted)]">{heroRole === 'OWNER' ? 'You own this league' : 'You help run this league'}</span>
         </div>
         <div className="flex items-center gap-[2px] ml-auto">
           {contextTabs.map((t: any, i: number) => {

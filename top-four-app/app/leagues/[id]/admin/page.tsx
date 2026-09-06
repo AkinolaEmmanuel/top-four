@@ -19,6 +19,19 @@ export default function LeagueAdminPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: league } = useLeague(params.id);
+  const canManage = league?.membership?.role === 'owner' || league?.membership?.role === 'admin';
+
+  // The backend correctly 403s every admin-only read for a participant (the
+  // members/invitations/join-requests calls below all fail for one) --
+  // but the page carried on rendering a half-empty admin screen with a
+  // hardcoded "You own this league" regardless of who was actually looking
+  // at it. Send anyone without real access back to the league instead.
+  useEffect(() => {
+    if (league && !canManage) {
+      router.replace(`/leagues/${params.id}`);
+    }
+  }, [league, canManage, params.id, router]);
+
   const [filter, setFilter] = useState("All");
   const { data: membersData, isLoading: loadingMembers } = useLeagueMembers(params.id, filter === 'Former' ? 'former' : 'active');
   const { data: requestsData, isLoading: loadingRequests } = useJoinRequests(params.id);
