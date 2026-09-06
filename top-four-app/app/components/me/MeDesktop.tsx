@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export function MeDesktop({
   theme, isLoading, prefs, setPrefs, chart, leagues, rootNav, accountRows,
-  emailPrefs, pendingEmail, noGoogle, user, ...props
+  emailPrefs, pendingEmail, noGoogle, user, totalPoints, leagueCount, ...props
 }: any) {
   const isReady = !isLoading;
 
@@ -62,13 +62,13 @@ export function MeDesktop({
                   </div>
                   <div>
                     <div className="font-heading font-[650] text-[26px] leading-[1] tracking-[-0.8px]">{user?.displayName || 'User'}</div>
-                    <div className="font-['Sora',sans-serif] font-medium text-[13px] text-[var(--nav-text-faint)] mt-[9px]">Since August 2026</div>
+                    <div className="font-['Sora',sans-serif] font-medium text-[13px] text-[var(--nav-text-faint)] mt-[9px]">{user?.email || ''}</div>
                   </div>
                 </div>
                 <div className="flex-none pl-[34px] border-l border-[var(--nav-border)]">
                   <div className="flex items-end gap-[12px]">
-                    <span className="tf-num font-heading font-bold text-[46px] leading-[0.9] tracking-[-2px]">2,272</span>
-                    <span className="text-[12.5px] leading-[1.45] text-[var(--nav-text-faint)] pb-[5px]">points in total<br />across eight leagues · 61% correct</span>
+                    <span className="tf-num font-heading font-bold text-[46px] leading-[0.9] tracking-[-2px]">{totalPoints.toLocaleString()}</span>
+                    <span className="text-[12.5px] leading-[1.45] text-[var(--nav-text-faint)] pb-[5px]">points in total<br />across {leagueCount} {leagueCount === 1 ? 'league' : 'leagues'}</span>
                   </div>
                 </div>
               </div>

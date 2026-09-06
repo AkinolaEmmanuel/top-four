@@ -66,6 +66,8 @@ export default function MePage() {
   }));
 
   const leagues = liveLeagues || [];
+  const totalPoints = (leaguesData?.items || []).reduce((sum, l) => sum + (l.ownStanding?.totalPoints || 0), 0);
+  const leagueCount = leaguesData?.items.length || 0;
 
   const emailDisplay = user?.email || "";
   const nameDisplay = user?.displayName || "";
@@ -151,6 +153,8 @@ export default function MePage() {
           setPrefs={setPrefs}
           chart={chartMobile}
           leagues={leagues}
+          totalPoints={totalPoints}
+          leagueCount={leagueCount}
           groups={groups}
           IconMap={IconMap}
           tabs={tabs}
@@ -166,6 +170,8 @@ export default function MePage() {
           setPrefs={setPrefs}
           chart={chartDesktop}
           leagues={leagues}
+          totalPoints={totalPoints}
+          leagueCount={leagueCount}
           rootNav={rootNav}
           accountRows={accountRows}
           emailPrefs={emailPrefs}
