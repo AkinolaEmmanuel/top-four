@@ -384,6 +384,23 @@ export default function LeagueAdminPage() {
     flash("Copied invitation link to clipboard");
   };
 
+  const handleExportMembers = () => {
+    const rows = [
+      ['Name', 'Role', 'Points', 'Standing', 'Joined'],
+      ...dynamicMembers.map((m: any) => [m.name, m.role, m.left ? '' : String(m.points), m.left ? '' : String(m.rank), m.joined])
+    ];
+    const csv = rows.map(r => r.map((cell: string) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(leagueName || 'league').replace(/[^a-z0-9]+/gi, '-')}-members.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const sharedProps = {
     theme, tab, setTab, setSheet, setWho, setRole,
     headSub, HERO, loading, onMembers, onInvites, onRequests, onLifecycle,
@@ -395,7 +412,8 @@ export default function LeagueAdminPage() {
     heroRole: (league?.membership?.role || 'owner').toUpperCase(),
     inviteCode: latestInviteCode,
     createInviteAction: handleCreateInvite,
-    copyInviteAction: handleCopyInvite
+    copyInviteAction: handleCopyInvite,
+    exportMembersAction: handleExportMembers
   };
 
   return (

@@ -11,7 +11,7 @@ export function LeagueAdminDesktop({
   fresh, setFresh, empty, invitesOpen, setInvitesOpen,
   sheetSpec, roles, toast,
   leagueName, leagueAbbr, params,
-  inviteCode, createInviteAction, copyInviteAction,
+  inviteCode, createInviteAction, copyInviteAction, exportMembersAction,
   memberCount, inviteCount, pendingCount
 }: any) {
 
@@ -100,7 +100,7 @@ export function LeagueAdminDesktop({
                   <div key={i} onClick={f.pick} className={f.style}>{f.label}</div>
                 ))}
                 <div className="flex-1"></div>
-                <button className="h-[36px] px-[14px] rounded-[9px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] font-heading font-bold text-[11.5px] cursor-pointer">Export members</button>
+                <button onClick={exportMembersAction} className="h-[36px] px-[14px] rounded-[9px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] font-heading font-bold text-[11.5px] cursor-pointer">Export members</button>
                 <button className="h-[36px] px-[14px] rounded-[9px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px] cursor-pointer">Invite people</button>
               </div>
 
