@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export function LeagueQuestionsMobile({
   theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
-  groups, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
+  groups, IconMap, tabs, onList, onEmpty, onCreate, onResolve, standingsHref,
   qText, setQText, types, TYPE, qType, optionsList, setQOptions,
   qPoints, pointOptions, qCriteria, setQCriteria, canPublish, publishAction,
   qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel, publishLabel: publishActionLabel, publishNote: publishActionNote,
@@ -42,10 +42,10 @@ export function LeagueQuestionsMobile({
       </header>
 
       <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
-        {onList && (
+        {onList && standingsHref && (
           <div className="p-[14px_var(--gutter)_0]">
             <Link
-              href="/predict/standings"
+              href={standingsHref}
               className="flex items-center justify-between p-[12px_14px] rounded-[12px] bg-[var(--surface-card)] border border-[var(--color-brand)]/40 shadow-sm"
             >
               <div className="flex items-center gap-[8px]">

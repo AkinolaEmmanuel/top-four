@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export function LeagueQuestionsDesktop({
   theme, rootNav, avatarInitials, avatarName, showContext, contextTabs,
-  onList, onEmpty, onCreate, onResolve, setSheet, SHEET,
+  onList, onEmpty, onCreate, onResolve, setSheet, SHEET, standingsHref,
   heroStyle, heroTone, heroKicker, heroNum, heroSub, heroNote, newBtnStyle, setView,
   allIn, stake, committed, owing, openItems, pastGroups,
   qText, setQText, qType, setQType, types, TYPE, optionsList, setQOptions,
@@ -61,24 +61,27 @@ export function LeagueQuestionsDesktop({
 
             <div className="max-w-[1080px] mx-auto p-[24px_24px_30px] flex gap-[20px] items-start">
               <div className="flex-1 min-w-0">
-                {/* Standings Predictor Interactive Banner */}
-                <div className="mb-[20px] p-[16px_20px] rounded-[14px] bg-[var(--surface-card)] border border-[var(--color-brand)]/40 flex items-center justify-between shadow-sm">
-                  <div>
-                    <div className="font-heading font-bold text-[14px] flex items-center gap-[8px]">
-                      <span>📊</span>
-                      <span>Predict Final Standings & Tournament Paths</span>
+                {/* Standings Predictor Interactive Banner -- only when a real open_text
+                    "final table order" question actually exists to open */}
+                {standingsHref && (
+                  <div className="mb-[20px] p-[16px_20px] rounded-[14px] bg-[var(--surface-card)] border border-[var(--color-brand)]/40 flex items-center justify-between shadow-sm">
+                    <div>
+                      <div className="font-heading font-bold text-[14px] flex items-center gap-[8px]">
+                        <span>📊</span>
+                        <span>Predict Final Standings & Tournament Paths</span>
+                      </div>
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-[3px]">
+                        Predict the Premier League winner, Top 4, relegation, complete 1–20 table, or Champions League knockout road.
+                      </p>
                     </div>
-                    <p className="text-[12px] text-[var(--text-secondary)] mt-[3px]">
-                      Predict the Premier League winner, Top 4, relegation, complete 1–20 table, or Champions League knockout road.
-                    </p>
+                    <Link
+                      href={standingsHref}
+                      className="h-[36px] px-[16px] rounded-[10px] bg-[var(--color-brand)] text-white font-heading font-semibold text-[12.5px] flex items-center gap-[6px] hover:bg-[var(--color-brand)]/90 transition-all flex-none"
+                    >
+                      Open Standings Predictor →
+                    </Link>
                   </div>
-                  <Link
-                    href="/predict/standings"
-                    className="h-[36px] px-[16px] rounded-[10px] bg-[var(--color-brand)] text-white font-heading font-semibold text-[12.5px] flex items-center gap-[6px] hover:bg-[var(--color-brand)]/90 transition-all flex-none"
-                  >
-                    Open Standings Predictor →
-                  </Link>
-                </div>
+                )}
 
                 <div className="flex items-baseline justify-between gap-[10px]">
                   <div className="tf-kicker text-[var(--text-secondary)]">{allIn ? "OPEN — ALL ANSWERED" : "OPEN NOW"}</div>
