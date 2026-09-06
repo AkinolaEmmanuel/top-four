@@ -21,7 +21,7 @@ const GROUPS = [
 const TYPES = [
   ["yesno", "Yes / No", "Two options, fixed. The simplest thing to settle."],
   ["choice", "Choice", "You write the options. Members pick exactly one."],
-  ["text", "Open text", "Members type an answer. You settle it with a single correct answer, matched ignoring case and outer spaces."]
+  ["text", "Open text", "Members type an answer. You settle it against one or more accepted spellings, matched ignoring case and outer spaces."]
 ];
 
 const RESOLVE_NOTES = [
@@ -123,6 +123,7 @@ export default function QuestionsPage() {
   const [qOutcomeAt, setQOutcomeAt] = useState(() => toDatetimeLocalValue(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000)));
   const [outcome, setOutcome] = useState<string | null>(null);
   const [resolveText, setResolveText] = useState("");
+  const [resolveSpellings, setResolveSpellings] = useState<string[]>([]);
   const [resolveQuestionId, setResolveQuestionId] = useState<string | null>(null);
   const { data: disclosedAnswers } = useDisclosedAnswers(params.id, resolveQuestionId);
 
@@ -185,8 +186,17 @@ export default function QuestionsPage() {
     setResolveQuestionId(questionId);
     setOutcome(null);
     setResolveText("");
+    setResolveSpellings([]);
     setView("resolve");
   };
+
+  const addResolveSpelling = () => {
+    const v = resolveText.trim();
+    if (!v) return;
+    setResolveSpellings(s => s.some(sp => sp.toLowerCase() === v.toLowerCase()) ? s : s.concat(v));
+    setResolveText("");
+  };
+  const removeResolveSpelling = (i: number) => setResolveSpellings(s => s.filter((_, j) => j !== i));
 
   const chipToneMobile = (q: any) => {
     if (q.voided) return "border border-dashed border-[var(--surface-border-strong)] text-[var(--text-muted)]";
@@ -484,18 +494,21 @@ export default function QuestionsPage() {
     if (!targetQ) return;
 
     const isText = targetQ.answerKind === 'open_text';
-    const rawValue = isText ? resolveText.trim() : outcome;
-    if (!rawValue) return;
+    const correctAnswer = isText
+      ? (resolveSpellings.length > 0 ? { acceptedAnswers: resolveSpellings } : null)
+      : (outcome ? buildAnswerPayload(targetQ.answerKind, outcome) as { value: boolean } | { option: string } : null);
+    if (!correctAnswer) return;
 
     resolveQuestion.mutate({
       questionId: targetQ.id,
-      correctAnswer: buildAnswerPayload(targetQ.answerKind, rawValue),
+      correctAnswer,
       reason: "Resolved by admin"
     }, {
       onSuccess: () => {
         setView("list");
         setOutcome(null);
         setResolveText("");
+        setResolveSpellings([]);
         setResolveQuestionId(null);
         flash("Question settled · Points awarded");
       },
@@ -576,12 +589,19 @@ export default function QuestionsPage() {
     };
   });
   const resolveIsText = targetQForResolve?.answerKind === 'open_text';
-  const canSettleNow = resolveIsText ? !!resolveText.trim() : !!outcome;
+  const canSettleNow = resolveIsText ? resolveSpellings.length > 0 : !!outcome;
   const settleLabelText = resolveQuestion.isPending ? "Settling…" : canSettleNow ? `Settle and pay out ${totalDisclosed} ${totalDisclosed === 1 ? 'member' : 'members'}` : "Pick the outcome first";
   const resolveTitle = targetQForResolve?.title || "Pick a question to settle";
   const resolveSubtitle = targetQForResolve ? `${totalDisclosed} ${totalDisclosed === 1 ? 'member has' : 'members have'} answered. Awarding an outcome pays out immediately and tells everybody what they scored.` : "";
 
-  const match = resolveIsText ? totalDisclosed : (outcome ? (disclosedCountsByRawId[outcome] || 0) : 0);
+  const normalizeForMatch = (s: string) => s.trim().toLowerCase();
+  const textMatchCount = resolveIsText
+    ? (disclosedAnswers?.answers || []).filter(a => {
+        const raw = answerToRawId('open_text', a.answer);
+        return raw !== undefined && resolveSpellings.some(sp => normalizeForMatch(sp) === normalizeForMatch(raw));
+      }).length
+    : 0;
+  const match = resolveIsText ? textMatchCount : (outcome ? (disclosedCountsByRawId[outcome] || 0) : 0);
   const questionPoints = targetQForResolve?.pts ?? "0";
   const settleQuestionName = targetQForResolve?.title || "this question";
   const SHEET = sheet === "void"
@@ -630,6 +650,7 @@ export default function QuestionsPage() {
     qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
     publishLabel: publishLabelText, publishNote: publishNoteText,
     resolveTitle, resolveSubtitle, outcomes: outcomesMobile, resolveIsText, resolveText, setResolveText,
+    resolveSpellings, addResolveSpelling, removeResolveSpelling,
     canSettleNow, settleLabel: settleLabelText,
     match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve, voidAction: handleVoid,
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
@@ -659,6 +680,7 @@ export default function QuestionsPage() {
     publishAction: handlePublish,
     previewText: qText || "Your question will read here", previewPoints: String(qPoints),
     outcomes: outcomesDesktop, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
+    resolveSpellings, addResolveSpelling, removeResolveSpelling,
     match,
     settleStyle: { marginTop: '24px', height: '48px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 13.5px 'DM Sans',sans-serif", background: canSettleNow ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canSettleNow ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: canSettleNow ? 'pointer' : 'not-allowed' },
     settleLabel: settleLabelText,

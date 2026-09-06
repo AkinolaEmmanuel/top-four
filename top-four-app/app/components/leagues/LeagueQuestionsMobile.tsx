@@ -9,6 +9,7 @@ export function LeagueQuestionsMobile({
   qPoints, pointOptions, qCriteria, setQCriteria, canPublish, publishAction,
   qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel, publishLabel: publishActionLabel, publishNote: publishActionNote,
   resolveTitle, resolveSubtitle, outcomes, resolveIsText, resolveText, setResolveText,
+  resolveSpellings, addResolveSpelling, removeResolveSpelling,
   canSettleNow, settleLabel,
   match, resolveNotesList, SHEET, toast, settleAction, voidAction,
   presets, applyPreset, leagueName
@@ -266,17 +267,31 @@ export function LeagueQuestionsMobile({
             </section>
 
             <section className="mt-[22px]">
-              <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">{resolveIsText ? "CORRECT ANSWER" : "PICK THE OUTCOME"}</div>
+              <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">{resolveIsText ? "ACCEPTED ANSWERS" : "PICK THE OUTCOME"}</div>
               {resolveIsText ? (
                 <div className="px-[var(--gutter)]">
-                  <input
-                    type="text"
-                    value={resolveText}
-                    onChange={(e) => setResolveText(e.target.value)}
-                    placeholder="Type the correct answer…"
-                    className="tf-field w-full"
-                  />
-                  <div className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] mt-[8px]">Matched ignoring case and outer spaces against what members submitted.</div>
+                  {resolveSpellings.length > 0 && (
+                    <div className="flex flex-wrap gap-[6px] mb-[10px]">
+                      {resolveSpellings.map((sp: string, i: number) => (
+                        <div key={i} onClick={() => removeResolveSpelling(i)} className="tf-tap flex items-center gap-[7px] h-[32px] px-[11px] rounded-[8px] bg-[var(--accent-surface)] border border-[var(--color-brand)]">
+                          <span className="font-heading font-semibold text-[11.5px] text-[var(--accent-text-strong)]">{sp}</span>
+                          <span className="text-[11px] text-[var(--accent-text-strong)]">×</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-[7px]">
+                    <input
+                      type="text"
+                      value={resolveText}
+                      onChange={(e) => setResolveText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addResolveSpelling(); } }}
+                      placeholder="Type an accepted spelling…"
+                      className="tf-field flex-1"
+                    />
+                    <div onClick={addResolveSpelling} className="tf-tap h-[44px] px-[16px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12px]">Add</div>
+                  </div>
+                  <div className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] mt-[8px]">Matched ignoring case and outer spaces. Add every spelling a member might have typed — "Haaland" and "Erling Haaland" both need adding if either should count.</div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-[6px] px-[var(--gutter)]">
