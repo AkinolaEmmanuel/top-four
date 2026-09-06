@@ -48,7 +48,17 @@ export default function QuestionsPage() {
   const voidQuestion = useVoidCustomQuestion(params.id);
 
   const apiQuestions = questionsPage?.data || [];
-  
+
+  // There is no backend field marking a custom question as "the" standings
+  // predictor -- it's a plain open_text question like any other. The only
+  // reliable signal is the exact wording the 1-click preset button writes
+  // (see lib/constants/question-presets.ts), so match on that pattern rather
+  // than pretending every league has one to link to.
+  const standingsQuestion = apiQuestions.find(
+    (q) => (q.phase === 'open' || q.phase === 'scheduled') && q.answerKind === 'open_text' && /Final Table Order/i.test(q.questionText)
+  );
+  const standingsHref = standingsQuestion ? `/predict/standings?leagueId=${params.id}&questionId=${standingsQuestion.id}` : null;
+
   const questionIds = apiQuestions.map(q => q.id);
   const ownAnswersQueries = useOwnCustomAnswers(params.id, questionIds);
 
@@ -644,7 +654,7 @@ export default function QuestionsPage() {
   
   const propsMobile = {
     theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
-    groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve,
+    groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve, standingsHref,
     qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
     qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
     qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
@@ -660,7 +670,7 @@ export default function QuestionsPage() {
   const propsDesktop = {
     theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "", showContext: true,
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, "6"), tabItem("Table", false, ""), tabItem("Questions", true, questionBadge), tabItem("More", false, "")],
-    onList, onEmpty, onCreate, onResolve, setSheet, SHEET,
+    onList, onEmpty, onCreate, onResolve, setSheet, SHEET, standingsHref,
     heroStyle: { padding: '24px 0 26px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' },
     heroTone: allIn ? "var(--nav-positive)" : "var(--nav-warning)",
     heroKicker: allIn ? "NOTHING OWED" : "RIDING ON YOUR ANSWERS",
