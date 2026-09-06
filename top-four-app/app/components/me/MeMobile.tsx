@@ -57,7 +57,9 @@ export function MeMobile({
                   </div>
                 ))}
               </div>
-              <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[10px]">Round 7 is amber because a correction reversed a goalscorer award after it settled. Corrections are applied in place, so this always matches the tables.</div>
+              {chart.some((c: any) => c.corrected) && (
+                <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[10px]">A round shown in amber had a correction reverse an award after it settled. Corrections are applied in place, so this always matches the tables.</div>
+              )}
             </section>
 
             <section className="mt-[20px]">
