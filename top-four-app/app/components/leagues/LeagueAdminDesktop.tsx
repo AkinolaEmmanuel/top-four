@@ -293,6 +293,12 @@ export function LeagueAdminDesktop({
                 {sheetSpec.primary}
               </div>
             </div>
+            {sheetSpec.tertiary && (
+              <div onClick={() => {
+                if (sheetSpec.tertiaryAction) sheetSpec.tertiaryAction();
+                else setSheet(null);
+              }} className="h-[42px] rounded-[11px] grid place-items-center cursor-pointer font-heading font-bold text-[12px] text-[var(--text-secondary)] mt-[8px]">{sheetSpec.tertiary}</div>
+            )}
             {sheetSpec.secondary && (
               <div onClick={() => {
                 if (sheetSpec.secondaryAction) sheetSpec.secondaryAction();

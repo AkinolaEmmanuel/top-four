@@ -6,7 +6,8 @@ import { LeagueAdminDesktop } from '../../../components/leagues/LeagueAdminDeskt
 import {
   useLeague, useLeagueMembers, useJoinRequests, useUpdateMemberRole, useRemoveMember,
   useProcessJoinRequest, useLeagueInvitations, useCreateInvitation, useRevokeInvitation,
-  useCloneLeague, useArchiveLeague, useCancelLeague, useLeaveLeague, usePublishLeague, useDeleteLeague
+  useCloneLeague, useArchiveLeague, useCancelLeague, useLeaveLeague, usePublishLeague, useDeleteLeague,
+  useTransferOwnership
 } from '@/hooks/api/useLeagues';
 import { useStandings } from '@/hooks/api/usePoints';
 import { useParams, useRouter } from 'next/navigation';
@@ -52,6 +53,7 @@ export default function LeagueAdminPage() {
   const archiveMutation = useArchiveLeague(params.id);
   const cancelMutation = useCancelLeague(params.id);
   const leaveMutation = useLeaveLeague(params.id);
+  const transferMutation = useTransferOwnership(params.id);
   const publishMutation = usePublishLeague();
   const deleteMutation = useDeleteLeague();
 
@@ -261,7 +263,18 @@ export default function LeagueAdminPage() {
             onSuccess: () => { setSheet(null); flash("Member removed"); }
           });
         }
-      }
+      },
+      ...(league?.membership?.role === 'owner' ? {
+        tertiary: `Transfer ownership to ${targetWho}`,
+        tertiaryAction: () => {
+          if (targetMemberId) {
+            transferMutation.mutate(targetMemberId, {
+              onSuccess: () => { setSheet(null); flash(`${targetWho} is now the owner`); },
+              onError: () => flash("Couldn't transfer ownership")
+            });
+          }
+        }
+      } : {})
     },
     self: role === "Owner"
       ? { title: "You own this league", body: "An owner has to hand the league over before leaving it. Open another member's row to transfer ownership to them first.", primary: "Got it" }
