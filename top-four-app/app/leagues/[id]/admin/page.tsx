@@ -218,7 +218,7 @@ export default function LeagueAdminPage() {
         { id: "delete-draft", title: "Delete this draft", note: "Permanent. Nothing has been played yet, so there is nothing else to lose.", danger: true }
       ]
     : [
-        { id: "clone", title: "Clone into a new league", note: "Same competitions and points, back in draft. The original keeps running." },
+        { id: "clone", title: "Clone into a new league", note: lifecycleState === 'published' ? "Same competitions and points, back in draft. The original keeps running." : "Only while a league is published and hasn't started. This one has moved past that.", muted: lifecycleState !== 'published' },
         { id: "archive", title: "Archive", note: "Only once every fixture and question is final. History stays readable.", muted: lifecycleState !== 'completed' },
         { id: "cancel", title: "Cancel this league", note: "Ends it permanently. Anything due after the cutoff is voided.", danger: true }
       ]
