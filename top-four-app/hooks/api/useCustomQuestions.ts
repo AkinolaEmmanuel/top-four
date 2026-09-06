@@ -9,6 +9,7 @@ import {
   CustomQuestionsPage,
   CreateCustomQuestionPayload,
   CustomAnswerValue,
+  CustomResolutionValue,
   fetchOwnCustomAnswer
 } from '@/lib/api/custom-questions';
 
@@ -73,7 +74,7 @@ export function useResolveCustomQuestion(leagueId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ questionId, correctAnswer, reason }: { questionId: string, correctAnswer: CustomAnswerValue, reason?: string }) => resolveCustomQuestion(leagueId, questionId, correctAnswer, reason),
+    mutationFn: ({ questionId, correctAnswer, reason }: { questionId: string, correctAnswer: CustomResolutionValue, reason?: string }) => resolveCustomQuestion(leagueId, questionId, correctAnswer, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'custom-questions'] });
     }

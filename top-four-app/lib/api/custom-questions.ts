@@ -29,6 +29,15 @@ export type CustomAnswerValue =
   | { option: string }
   | { text: string };
 
+// Resolving a question is NOT the same shape as submitting an answer for
+// yes_no/true_false/single_choice, but open_text is the exception: the
+// domain (parseCustomResolution) takes a list of accepted spellings, not a
+// single {text}, so the admin can accept every real variant members typed.
+export type CustomResolutionValue =
+  | { value: boolean }
+  | { option: string }
+  | { acceptedAnswers: string[] };
+
 export interface DisclosedCustomAnswer {
   membershipId: string;
   answer: CustomAnswerValue;
@@ -105,9 +114,9 @@ export async function submitCustomAnswer(leagueId: string, questionId: string, e
   return response.data;
 }
 
-// `correctAnswer` must be the same real per-kind shape the question's
-// answerKind expects — the domain parses it exactly like a submitted answer.
-export async function resolveCustomQuestion(leagueId: string, questionId: string, correctAnswer: CustomAnswerValue, reason?: string): Promise<any> {
+// `correctAnswer` must match the real per-kind resolution shape -- open_text
+// takes {acceptedAnswers: string[]}, not {text}. See CustomResolutionValue.
+export async function resolveCustomQuestion(leagueId: string, questionId: string, correctAnswer: CustomResolutionValue, reason?: string): Promise<any> {
   return apiFetch<any>(`/leagues/${leagueId}/custom-questions/${questionId}/resolution`, {
     method: 'POST',
     headers: {

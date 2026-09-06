@@ -13,6 +13,7 @@ export function LeagueQuestionsDesktop({
   canPublish, publishStyle, publishLabel, publishNoteStyle, publishNote, publishAction,
   previewText, previewPoints,
   outcomes, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
+  resolveSpellings, addResolveSpelling, removeResolveSpelling,
   settleStyle, settleLabel, settleAction, voidAction, resolveNotesList, toast, toastStyle,
   presets, applyPreset, leagueName, memberCount, params
 }: any) {
@@ -350,17 +351,31 @@ export function LeagueQuestionsDesktop({
               <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px] max-w-[64ch]">{resolveSubtitle}</div>
 
               <div className="mt-[22px]">
-                <div className="tf-kicker">{resolveIsText ? "Correct answer" : "The outcome"}</div>
+                <div className="tf-kicker">{resolveIsText ? "Accepted answers" : "The outcome"}</div>
                 {resolveIsText ? (
                   <div className="mt-[10px]">
-                    <input
-                      type="text"
-                      value={resolveText}
-                      onChange={(e) => setResolveText(e.target.value)}
-                      placeholder="Type the correct answer…"
-                      className="w-full h-[46px] px-[15px] rounded-[11px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[13.5px]"
-                    />
-                    <div className="text-[11.5px] leading-[1.5] text-[var(--text-muted)] mt-[8px]">Matched ignoring case and outer spaces against what members submitted.</div>
+                    {resolveSpellings.length > 0 && (
+                      <div className="flex flex-wrap gap-[7px] mb-[10px]">
+                        {resolveSpellings.map((sp: string, i: number) => (
+                          <span key={i} className="flex items-center gap-[7px] h-[30px] px-[11px] rounded-full bg-[var(--surface-subtle)] font-heading font-semibold text-[11.5px]">
+                            {sp}
+                            <span onClick={() => removeResolveSpelling(i)} className="cursor-pointer text-[var(--text-muted)]">×</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-[8px]">
+                      <input
+                        type="text"
+                        value={resolveText}
+                        onChange={(e) => setResolveText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addResolveSpelling(); } }}
+                        placeholder="Type an accepted spelling…"
+                        className="flex-1 h-[46px] px-[15px] rounded-[11px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[13.5px]"
+                      />
+                      <div onClick={addResolveSpelling} className="h-[46px] px-[18px] rounded-[11px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center cursor-pointer font-heading font-bold text-[12.5px]">Add</div>
+                    </div>
+                    <div className="text-[11.5px] leading-[1.5] text-[var(--text-muted)] mt-[8px]">Matched ignoring case and outer spaces. Add every spelling a member might have typed — "Haaland" and "Erling Haaland" both need adding if either should count.</div>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-[8px] mt-[10px]">
