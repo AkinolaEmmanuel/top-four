@@ -158,14 +158,26 @@ export default function QuestionsPage() {
   const onList = view === "list", onEmpty = view === "empty", onCreate = view === "create", onResolve = view === "resolve";
   const admin = league?.membership?.role === 'owner' || league?.membership?.role === 'admin';
 
+  // A failed submit must not leave the optimistic pick showing as saved --
+  // without this, a rejected answer (deadline just passed, a version
+  // conflict, a dropped connection) looked identical to a successful one.
+  const revertAnswer = (s: Record<string, string>, questionId: string, previous: string | undefined) => {
+    const next = { ...s };
+    if (previous === undefined) delete next[questionId];
+    else next[questionId] = previous;
+    return next;
+  };
+
   const submitTextAnswer = (q: any) => {
     const draft = (textDrafts[q.id] || '').trim();
     if (!draft) return;
+    const previous = answers[q.id];
     setAnswers(s => ({ ...s, [q.id]: draft }));
     const existing = ownAnswersMap[q.id];
     const expectedVersion = existing?.version || 0;
     submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, draft) }, {
-      onSuccess: () => flash("Answer saved · you can change it until the deadline")
+      onSuccess: () => flash("Answer saved · you can change it until the deadline"),
+      onError: () => { setAnswers(s => revertAnswer(s, q.id, previous)); flash("Couldn't save that answer — try again"); }
     });
   };
 
@@ -210,11 +222,12 @@ export default function QuestionsPage() {
           const existing = ownAnswersMap[q.id];
           const expectedVersion = existing?.version || 0;
           submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-            onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
-          }); 
+            onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+            onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
+          });
         }
       })),
-      
+
       hasOptions: !!q.options,
       options: (q.options || []).map(([id, label, sub]: [string, string, string]) => {
         const sel = picked === id;
@@ -223,13 +236,14 @@ export default function QuestionsPage() {
           subStyle: `text-[10.5px] flex-none ${sub ? (sel ? 'text-[rgba(255,255,255,0.75)]' : 'text-[var(--text-muted)]') : 'hidden'}`,
           style: `flex items-center gap-[10px] min-h-[46px] rounded-[12px] px-[13px] cursor-pointer transition-colors duration-140 ${sel ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)]' : 'border border-[var(--surface-border-strong)] bg-[var(--surface-canvas)]'}`,
           markStyle: `w-[15px] h-[15px] rounded-full flex-none ${sel ? 'bg-[var(--tf-white)] border-[4px] border-[var(--brand-fill)] shadow-[0_0_0_1.5px_var(--tf-white)]' : 'border-[1.5px] border-[var(--surface-border-strong)]'}`,
-          pick: () => { 
-            setAnswers(s => ({ ...s, [q.id]: id })); 
+          pick: () => {
+            setAnswers(s => ({ ...s, [q.id]: id }));
             const existing = ownAnswersMap[q.id];
             const expectedVersion = existing?.version || 0;
             submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-              onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
-            }); 
+              onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+              onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
+            });
           }
         };
       }),
@@ -290,7 +304,8 @@ export default function QuestionsPage() {
           const existing = ownAnswersMap[q.id];
           const expectedVersion = existing?.version || 0;
           submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-            onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
+            onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+            onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
           });
         }
       })),
@@ -318,7 +333,8 @@ export default function QuestionsPage() {
             const existing = ownAnswersMap[q.id];
             const expectedVersion = existing?.version || 0;
             submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-              onSuccess: () => flash("Answer saved · you can change it until Sat 18:00")
+              onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+              onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
             });
           }
         };
