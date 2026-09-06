@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export function LeagueQuestionsDesktop({
   theme, rootNav, avatarInitials, avatarName, showContext, contextTabs,
-  onList, onEmpty, onCreate, onResolve,
+  onList, onEmpty, onCreate, onResolve, setSheet, SHEET,
   heroStyle, heroTone, heroKicker, heroNum, heroSub, heroNote, newBtnStyle, setView,
   allIn, stake, committed, owing, openItems, pastGroups,
   qText, setQText, qType, setQType, types, TYPE, optionsList, setQOptions,
@@ -390,8 +390,8 @@ export function LeagueQuestionsDesktop({
                 )}
               </div>
 
-              <div style={settleStyle} onClick={() => { if (canSettleNow) settleAction(); }}>{settleLabel}</div>
-              <div onClick={voidAction} className="mt-[12px] text-center cursor-pointer font-heading font-bold text-[12px] text-[var(--text-muted)]">Void it instead</div>
+              <div style={settleStyle} onClick={() => { if (canSettleNow) setSheet("settle"); }}>{settleLabel}</div>
+              <div onClick={() => setSheet("void")} className="mt-[12px] text-center cursor-pointer font-heading font-bold text-[12px] text-[var(--text-muted)]">Void it instead</div>
             </div>
 
             <div className="w-[330px] flex-none">
@@ -416,7 +416,33 @@ export function LeagueQuestionsDesktop({
         )}
 
       </div>
-      
+
+      {SHEET && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 20, background: 'var(--scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ width: '100%', maxWidth: '420px', background: 'var(--surface-card)', borderRadius: '16px', padding: '22px' }}>
+            <div style={{ font: "700 17px 'DM Sans',sans-serif", letterSpacing: '-0.3px' }}>{SHEET[0]}</div>
+            <div style={{ fontSize: '13px', lineHeight: 1.55, color: 'var(--text-secondary)', marginTop: '9px' }}>{SHEET[1]}</div>
+            <div style={{ marginTop: '14px', padding: '13px 14px', borderRadius: '11px', background: 'var(--surface-subtle)' }}>
+              {(SHEET[2] as [string, string][]).map((e, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', padding: '4px 0' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{e[0]}</span>
+                  <span className="tf-num" style={{ font: "700 12px 'DM Sans',sans-serif" }}>{e[1]}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+              <div onClick={() => setSheet(null)} style={{ flex: 1, height: '46px', borderRadius: '11px', border: '1px solid var(--surface-border-strong)', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 12.5px 'DM Sans',sans-serif" }}>Cancel</div>
+              <div onClick={() => {
+                const voided = SHEET[4];
+                setSheet(null);
+                if (voided) { if (voidAction) voidAction(); }
+                else if (settleAction) { settleAction(); }
+              }} style={{ flex: 1, height: '46px', borderRadius: '11px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 12.5px 'DM Sans',sans-serif", color: 'var(--tf-white)', background: SHEET[4] ? 'var(--color-danger)' : 'var(--brand-fill)' }}>{SHEET[3]}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={toastStyle}>{toast}</div>
     </div>
   );
