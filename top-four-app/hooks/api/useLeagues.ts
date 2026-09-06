@@ -98,10 +98,10 @@ export function useConsumeInvitationIntent() {
   });
 }
 
-export function useLeagueMembers(leagueId: string) {
+export function useLeagueMembers(leagueId: string, state: 'active' | 'former' | 'all' = 'active') {
   return useQuery({
-    queryKey: ['leagues', leagueId, 'members'],
-    queryFn: () => fetchLeagueMembers(leagueId),
+    queryKey: ['leagues', leagueId, 'members', state],
+    queryFn: () => fetchLeagueMembers(leagueId, state),
     enabled: !!leagueId,
   });
 }
