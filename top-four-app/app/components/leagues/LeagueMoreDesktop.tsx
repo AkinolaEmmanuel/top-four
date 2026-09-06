@@ -73,16 +73,19 @@ export function LeagueMoreDesktop({
             <div className="w-[352px] flex-none">
               <div className="tf-kicker text-[var(--danger-text)]">{endLabel}</div>
               <div className="mt-[10px] border-t border-[var(--surface-border)]">
-                {endRows.map((r: any, i: number) => (
-                  <div key={i} style={r.rowStyle}>
-                    <span style={r.iconStyle}>{r.glyph}</span>
-                    <div className="flex-1 min-w-0">
-                      <div style={{ font: "650 13.5px 'DM Sans',sans-serif", letterSpacing: '-.2px', color: r.titleColor }}>{r.title}</div>
-                      <div className="text-[11.5px] leading-[1.5] text-[var(--text-muted)] mt-[4px]">{r.note}</div>
-                    </div>
-                    <span style={r.chevronStyle}>›</span>
-                  </div>
-                ))}
+                {endRows.map((r: any, i: number) => {
+                  const Wrapper = r.href ? Link : 'div';
+                  return (
+                    <Wrapper href={r.href || '#'} key={i} onClick={r.onClick} style={r.rowStyle}>
+                      <span style={r.iconStyle}>{r.glyph}</span>
+                      <div className="flex-1 min-w-0">
+                        <div style={{ font: "650 13.5px 'DM Sans',sans-serif", letterSpacing: '-.2px', color: r.titleColor }}>{r.title}</div>
+                        <div className="text-[11.5px] leading-[1.5] text-[var(--text-muted)] mt-[4px]">{r.note}</div>
+                      </div>
+                      <span style={r.chevronStyle}>›</span>
+                    </Wrapper>
+                  );
+                })}
               </div>
               <div className="mt-[20px] pt-[16px] border-t border-[var(--surface-border)]">
                 <div className="text-[11.5px] leading-[1.6] text-[var(--text-muted)]">{footNote}</div>

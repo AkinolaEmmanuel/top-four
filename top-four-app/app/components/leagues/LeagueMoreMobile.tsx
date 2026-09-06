@@ -33,7 +33,7 @@ export function LeagueMoreMobile({
             {g.rows.map((r: any, j: number) => {
               const Wrapper = r.href ? Link : 'div';
               return (
-                <Wrapper href={r.href || '#'} key={j} className={`tf-tap ${r.rowStyle}`}>
+                <Wrapper href={r.href || '#'} key={j} onClick={r.onClick} className={`tf-tap ${r.rowStyle}`}>
                   <span className={r.iconStyle}>{r.glyph}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-[8px]">

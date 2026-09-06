@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { LeagueRulesMobile } from '../../../components/leagues/LeagueRulesMobile';
 import { LeagueRulesDesktop } from '../../../components/leagues/LeagueRulesDesktop';
-import { useLeague } from '@/hooks/api/useLeagues';
+import { useLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
 import { useAuth } from '@/context/auth-context';
 
 export default function LeagueRulesPage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
+  const { data: dashboard } = useLeagueDashboard(params.id);
 
   const [theme] = useState<'light' | 'dark'>('dark');
   const [screen] = useState<'rules' | 'settings' | 'participant'>('rules');
@@ -80,7 +81,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     { label: "Tiebreakers", hasIntro: true, intro: "Applied in order when totals are equal. Members who tie on all of them share a position.", lines: rulesetTiebreakers.map((t, i) => frozen(`${i + 1} · ${TIEBREAK_LABELS[t] || t}`, "")) }
   ];
 
-  const memberCount = league?.memberCount || 1;
+  const memberCount = dashboard?.summary?.activeMemberCount ?? league?.memberCount ?? 1;
 
   const OWNER = [
     { label: "League", hasIntro: true, intro: "These stay editable for the life of the league.", lines: [
