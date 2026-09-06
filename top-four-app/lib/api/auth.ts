@@ -79,16 +79,16 @@ export async function changeDisplayName(displayName: string): Promise<UserProfil
   return data.user;
 }
 
-export async function changePassword(password: string): Promise<void> {
+export async function changePassword(input: { currentPassword?: string; newPassword: string }): Promise<void> {
   await apiFetch('/me/password/change', {
     method: 'POST',
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ currentPassword: input.currentPassword, newPassword: input.newPassword }),
   });
 }
 
-export async function requestEmailChange(newEmail: string): Promise<void> {
+export async function requestEmailChange(input: { currentPassword?: string; newEmail: string }): Promise<void> {
   await apiFetch('/me/email-change/request', {
     method: 'POST',
-    body: JSON.stringify({ newEmail }),
+    body: JSON.stringify({ currentPassword: input.currentPassword, newEmail: input.newEmail }),
   });
 }
