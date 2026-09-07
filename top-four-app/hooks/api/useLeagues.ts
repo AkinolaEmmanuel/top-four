@@ -28,7 +28,9 @@ import {
   transferOwnership,
   leaveLeague,
   fetchLeagueDashboard,
-  LeagueDashboard
+  LeagueDashboard,
+  updateLeague,
+  UpdateLeaguePayload
 } from '@/lib/api/leagues';
 
 export function useMyLeagues() {
@@ -217,6 +219,14 @@ export function useCancelLeague(leagueId: string) {
   return useMutation({
     mutationFn: ({ idempotencyKey, expectedVersion }: { idempotencyKey: string, expectedVersion: number }) =>
       cancelLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] }),
+  });
+}
+
+export function useUpdateLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateLeaguePayload) => updateLeague(leagueId, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] }),
   });
 }

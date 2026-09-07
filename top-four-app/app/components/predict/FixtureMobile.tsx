@@ -1,13 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
+
+function Crest({ logo, code, color }: { logo?: string | null; code: string; color: string }) {
+  if (logo) {
+    return (
+      <span className="tf-crest w-[40px] h-[43px] relative overflow-hidden bg-white">
+        <Image src={logo} alt={code} fill sizes="40px" className="object-contain p-[3px]" />
+      </span>
+    );
+  }
+  return <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: color }}>{code}</span>;
+}
 
 export function FixtureMobile({
   theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone,
   answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
   leagueName, competitionLabel, fixtureId, leagueId,
-  hName, aName, hCode, aCode, scoreline, bannerRight
+  hName, aName, hCode, aCode, hLogo, aLogo, scoreline, bannerRight
 }: any) {
 
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB[hCode] || '#666'} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB[aCode] || '#666'} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
@@ -58,13 +70,13 @@ export function FixtureMobile({
 
                 <div className="flex items-center gap-[14px] mt-[20px]">
                   <div className="flex-1 flex items-center gap-[9px] min-w-0">
-                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: CLUB[hCode] || '#666' }}>{hCode}</span>
+                    <Crest logo={hLogo} code={hCode} color={CLUB[hCode] || '#666'} />
                     <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{hName}</span>
                   </div>
                   <span className={settled ? "font-heading font-bold text-[19px] tracking-[-0.6px] flex-none tf-num" : "font-heading font-semibold text-[10px] text-[var(--nav-text-faint)] flex-none"}>{scoreline}</span>
                   <div className="flex-1 flex items-center gap-[9px] justify-end min-w-0">
                     <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis text-right">{aName}</span>
-                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: CLUB[aCode] || '#666' }}>{aCode}</span>
+                    <Crest logo={aLogo} code={aCode} color={CLUB[aCode] || '#666'} />
                   </div>
                 </div>
 

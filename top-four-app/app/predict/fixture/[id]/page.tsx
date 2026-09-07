@@ -30,6 +30,8 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const aName = availability?.awayTeam.displayName || "Away Team";
   const hCode = availability?.homeTeam.code || "HOM";
   const aCode = availability?.awayTeam.code || "AWA";
+  const hLogo = availability?.homeTeam.logoUrl || null;
+  const aLogo = availability?.awayTeam.logoUrl || null;
 
   // Derive player options dynamically from selectablePlayers API
   const homePlayersList = useMemo(() => {
@@ -517,7 +519,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
     carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
     leagueName, competitionLabel, fixtureId, leagueId,
-    hName, aName, hCode, aCode,
+    hName, aName, hCode, aCode, hLogo, aLogo,
 
     // Desktop extra
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", true), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)],

@@ -20,6 +20,34 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
     }
   };
 
+  const byId: Record<string, any> = {};
+  players.forEach((p) => { byId[p.id] = p; });
+
+  const bucketOf = (position: string | null | undefined) => {
+    const p = (position || '').toLowerCase();
+    if (p.includes('keeper')) return 'GK';
+    if (p.includes('defen') || p.includes('back')) return 'DEF';
+    if (p.includes('mid')) return 'MID';
+    if (p.includes('forward') || p.includes('wing') || p.includes('striker') || p.includes('attack')) return 'FWD';
+    return 'MID';
+  };
+
+  const selectedPlayers = selected.map((id) => byId[id]).filter(Boolean);
+  const rows: Record<'GK' | 'DEF' | 'MID' | 'FWD', any[]> = { GK: [], DEF: [], MID: [], FWD: [] };
+  selectedPlayers.forEach((p) => { rows[bucketOf(p.position) as 'GK' | 'DEF' | 'MID' | 'FWD'].push(p); });
+
+  const formationLabel = selected.length === 11
+    ? `${rows.DEF.length}-${rows.MID.length}-${rows.FWD.length}`
+    : null;
+
+  // Attacking third at the top of the pitch, own goal at the bottom.
+  const pitchRows: Array<{ key: 'FWD' | 'MID' | 'DEF' | 'GK'; top: string }> = [
+    { key: 'FWD', top: '13%' },
+    { key: 'MID', top: '40%' },
+    { key: 'DEF', top: '67%' },
+    { key: 'GK', top: '90%' },
+  ];
+
   return (
     <div className="bg-[var(--surface-card)] border border-[var(--surface-border-strong)] rounded-[12px] p-[16px] mt-[16px]">
       <div className="flex justify-between items-center mb-[16px]">
@@ -44,6 +72,14 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
         {selected.length} / 11 selected
       </div>
 
+      {view === 'pitch' && (
+        <div className="text-center mb-[10px]">
+          <span className="inline-block px-[10px] py-[3px] rounded-[6px] bg-[var(--surface-canvas)] font-heading font-bold text-[12px]">
+            {formationLabel ? `Formation ${formationLabel}` : `Pick ${11 - selected.length} more to see the formation`}
+          </span>
+        </div>
+      )}
+
       {view === 'list' ? (
         <div className="flex flex-col gap-[8px] max-h-[300px] overflow-y-auto pr-[8px] tf-scroll">
           {players.map((p) => {
@@ -64,7 +100,7 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
           })}
         </div>
       ) : (
-        <div className="relative w-full aspect-[2/3] bg-[#2a8b38] rounded-[8px] border-2 border-[rgba(255,255,255,0.3)] p-[8px] overflow-hidden select-none flex flex-wrap gap-[4px] content-start">
+        <div className="relative w-full aspect-[2/3] bg-[#2a8b38] rounded-[8px] border-2 border-[rgba(255,255,255,0.3)] overflow-hidden select-none">
           <div className="absolute inset-0 pointer-events-none opacity-30">
             {/* Simple pitch markings */}
             <div className="absolute top-[50%] left-0 w-full h-[2px] bg-white transform -translate-y-[50%]"></div>
@@ -73,23 +109,38 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
             <div className="absolute bottom-0 left-[50%] w-[100px] h-[60px] border-[2px] border-b-0 border-white transform -translate-x-[50%]"></div>
           </div>
           
-          <div className="relative z-10 w-full flex flex-col justify-around h-full">
-            {/* Since we don't have formation data, just render them in a rough grid, or a list style overlay */}
-            <div className="flex flex-wrap justify-center gap-[10px]">
-              {players.map((p) => {
-                const isSel = selected.includes(p.id);
-                return (
-                  <div 
-                    key={p.id}
-                    onClick={() => togglePlayer(p.id)}
-                    className={`cursor-pointer px-[8px] py-[4px] rounded-[4px] text-[10px] font-bold shadow-md transition-transform ${isSel ? 'bg-[var(--color-brand)] text-white scale-110' : 'bg-white text-black bg-opacity-80'}`}
-                  >
-                    {p.displayName.split(' ').pop()}
-                  </div>
-                );
-              })}
+          {selected.length > 0 ? (
+            pitchRows.map(({ key, top }) => {
+              const rowPlayers = rows[key];
+              if (rowPlayers.length === 0) return null;
+              return (
+                <div
+                  key={key}
+                  className="absolute left-0 right-0 z-10 flex justify-evenly px-[10px]"
+                  style={{ top }}
+                >
+                  {rowPlayers.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => togglePlayer(p.id)}
+                      className="cursor-pointer flex flex-col items-center gap-[3px] transition-transform hover:scale-105"
+                    >
+                      <div className="w-[30px] h-[30px] rounded-full bg-white text-black grid place-items-center font-heading font-bold text-[11px] shadow-md border-2 border-[var(--color-brand)]">
+                        {p.shirtNumber ?? ''}
+                      </div>
+                      <div className="px-[6px] py-[1px] rounded-[4px] bg-black/60 text-white text-[9.5px] font-semibold whitespace-nowrap max-w-[74px] overflow-hidden text-ellipsis">
+                        {p.displayName.split(' ').pop()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })
+          ) : (
+            <div className="relative z-10 w-full h-full grid place-items-center text-white/70 text-[12px] font-heading font-semibold">
+              Pick 11 players in List view to see them on the pitch
             </div>
-          </div>
+          )}
         </div>
       )}
 

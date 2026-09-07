@@ -92,8 +92,10 @@ export interface LeagueFixture {
   leagueId: string;
   homeTeam: string;
   homeTeamCode: string;
+  homeTeamLogoUrl: string | null;
   awayTeam: string;
   awayTeamCode: string;
+  awayTeamLogoUrl: string | null;
   kickoffAt: string;
   status: 'upcoming' | 'live' | 'finished' | 'voided';
   score?: { home: number; away: number };
@@ -125,8 +127,10 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
       leagueId,
       homeTeam: f.homeTeam?.displayName || 'Home',
       homeTeamCode: f.homeTeam?.code || 'HOM',
+      homeTeamLogoUrl: f.homeTeam?.logoUrl || null,
       awayTeam: f.awayTeam?.displayName || 'Away',
       awayTeamCode: f.awayTeam?.code || 'AWA',
+      awayTeamLogoUrl: f.awayTeam?.logoUrl || null,
       kickoffAt: f.kickoff?.at || '',
       status,
       markets: [],
@@ -320,6 +324,24 @@ export async function cancelLeague(leagueId: string, idempotencyKey: string, exp
 export async function revokeInvitation(leagueId: string, invitationId: string): Promise<any> {
   return apiFetch<any>(`/leagues/${leagueId}/invitations/${invitationId}/revoke`, {
     method: 'POST',
+  });
+}
+
+export interface UpdateLeaguePayload {
+  expectedVersion: number;
+  name?: string;
+  description?: string | null;
+  invitationSettings?: {
+    enabled?: boolean;
+    joinApprovalRequired?: boolean;
+  };
+}
+
+export async function updateLeague(leagueId: string, payload: UpdateLeaguePayload): Promise<any> {
+  return apiFetch<any>(`/leagues/${leagueId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
 }
 

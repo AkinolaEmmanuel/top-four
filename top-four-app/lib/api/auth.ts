@@ -46,6 +46,25 @@ export async function signIn(input: {
   return data.user;
 }
 
+export async function googleChallenge(): Promise<{ nonce: string; expiresAt: string }> {
+  return apiFetch<{ nonce: string; expiresAt: string }>('/auth/google/challenge', {
+    method: 'POST',
+  });
+}
+
+export async function googleLogin(idToken: string): Promise<UserProfile> {
+  const data = await apiFetch<{ user: UserProfile; csrfToken: string }>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (data.csrfToken) {
+    setCsrfToken(data.csrfToken);
+  }
+
+  return data.user;
+}
+
 export async function signOut(): Promise<void> {
   await apiFetch('/auth/logout', {
     method: 'POST',

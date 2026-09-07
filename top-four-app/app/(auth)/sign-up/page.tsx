@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../../components/auth/auth-shell';
+import { GoogleSignInButton } from '../../components/auth/google-sign-in-button';
 import { signUp } from '@/lib/api/auth';
 import { useAuth } from '@/context/auth-context';
 
@@ -142,6 +143,14 @@ function SignupForm() {
           Create account
         </button>
       </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
+        <div className="h-px flex-1 bg-[var(--border-base)]" />
+        <span>or</span>
+        <div className="h-px flex-1 bg-[var(--border-base)]" />
+      </div>
+
+      <GoogleSignInButton redirectTarget={redirectTarget} onError={setError} />
 
       <p className="text-center text-sm text-[var(--text-secondary)] mt-8">
         Already have an account?{' '}

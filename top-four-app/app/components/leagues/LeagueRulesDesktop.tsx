@@ -188,7 +188,7 @@ export function LeagueRulesDesktop({
                       <div className="font-heading font-bold text-[14px]">Still editable</div>
                       <div className="flex flex-col mt-[6px]">
                         {editable.map((e: any, i: number) => (
-                          <div key={i} className="flex items-center gap-[12px] py-[12px] border-t border-[var(--surface-border)] cursor-pointer">
+                          <div key={i} onClick={e.onClick} className="flex items-center gap-[12px] py-[12px] border-t border-[var(--surface-border)] cursor-pointer">
                             <div className="flex-1 min-w-0">
                               <div className="font-heading font-semibold text-[12.5px]">{e.label}</div>
                               <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{e.note}</div>

@@ -1,6 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
+
+function Crest({ logo, code, color }: { logo?: string | null; code: string; color: string }) {
+  if (logo) {
+    return (
+      <span className="tf-crest w-[26px] h-[29px] relative overflow-hidden bg-white flex-none">
+        <Image src={logo} alt={code} fill sizes="26px" className="object-contain p-[2px]" />
+      </span>
+    );
+  }
+  return <span className="tf-crest w-[26px] h-[29px] text-[9px]" style={{ background: color }}>{code}</span>;
+}
 
 export function LeagueFixturesMobile({
   theme, params, st, isLoading, isEmpty, showList, results,
@@ -68,7 +80,7 @@ export function LeagueFixturesMobile({
                   <div key={j} onClick={f.onClick} className={`tf-tap ${f.rowStyle}`}>
                     <div className="flex items-center gap-[11px]">
                       <div className="flex-1 flex items-center gap-[8px] min-w-0">
-                        <span className="tf-crest w-[26px] h-[29px] text-[9px]" style={{ background: f.homeColor }}>{f.homeCode}</span>
+                        <Crest logo={f.homeLogo} code={f.homeCode} color={f.homeColor} />
                         <span className={f.teamStyle}>{f.home}</span>
                       </div>
                       <div className="flex-none text-center min-w-[44px]">
@@ -76,7 +88,7 @@ export function LeagueFixturesMobile({
                       </div>
                       <div className="flex-1 flex items-center gap-[8px] justify-end min-w-0">
                         <span className={`${f.teamStyle} text-right`}>{f.away}</span>
-                        <span className="tf-crest w-[26px] h-[29px] text-[9px]" style={{ background: f.awayColor }}>{f.awayCode}</span>
+                        <Crest logo={f.awayLogo} code={f.awayCode} color={f.awayColor} />
                       </div>
                     </div>
                     <div className="flex items-center gap-[9px] mt-[11px]">
