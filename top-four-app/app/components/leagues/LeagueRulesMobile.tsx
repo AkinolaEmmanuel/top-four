@@ -71,7 +71,7 @@ export function LeagueRulesMobile({
                 )}
                 <div className="border-y border-[var(--surface-border)]">
                   {sec.lines.map((l: any, j: number) => (
-                    <div key={j} className={l.cls}>
+                    <div key={j} className={l.cls} onClick={l.onClick}>
                       {l.locked && <span className="w-[15px] h-[15px] flex-none text-[var(--text-muted)]">{IconMap.lock(15)}</span>}
                       <div className="flex-1 min-w-0">
                         <div className="font-heading font-semibold text-[13px] leading-[1.25]" style={{ color: l.titleColor }}>{l.title}</div>

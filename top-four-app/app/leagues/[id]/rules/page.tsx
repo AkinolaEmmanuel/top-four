@@ -1,15 +1,63 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { LeagueRulesMobile } from '../../../components/leagues/LeagueRulesMobile';
 import { LeagueRulesDesktop } from '../../../components/leagues/LeagueRulesDesktop';
-import { useLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
+import { useLeague, useLeagueDashboard, useUpdateLeague } from '@/hooks/api/useLeagues';
+import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
 import { useAuth } from '@/context/auth-context';
 
 export default function LeagueRulesPage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
+  const router = useRouter();
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
   const { data: dashboard } = useLeagueDashboard(params.id);
+  const updateLeagueMutation = useUpdateLeague(params.id);
+  const { data: notifPrefs } = useNotificationPreferences();
+  const updateNotifPrefs = useUpdateNotificationPreferences();
+
+  const flash = (msg: string) => window.alert(msg);
+
+  const handleEditName = () => {
+    if (league?.version == null) return;
+    const next = window.prompt('League name', leagueName);
+    if (next === null || !next.trim() || next.trim() === leagueName) return;
+    updateLeagueMutation.mutate({ expectedVersion: league.version, name: next.trim() }, {
+      onError: () => flash("Couldn't update the name"),
+    });
+  };
+
+  const handleEditDescription = () => {
+    if (league?.version == null) return;
+    const next = window.prompt('League description', league?.description || '');
+    if (next === null || next.trim() === (league?.description || '')) return;
+    updateLeagueMutation.mutate({ expectedVersion: league.version, description: next.trim() || null }, {
+      onError: () => flash("Couldn't update the description"),
+    });
+  };
+
+  const handleToggleInvites = () => {
+    if (league?.version == null) return;
+    const nextEnabled = league?.invitationSettings?.enabled === false;
+    updateLeagueMutation.mutate({ expectedVersion: league.version, invitationSettings: { enabled: nextEnabled } }, {
+      onError: () => flash("Couldn't update invitation links"),
+    });
+  };
+
+  const handleToggleApproval = () => {
+    if (league?.version == null) return;
+    const nextRequired = !league?.invitationSettings?.joinApprovalRequired;
+    updateLeagueMutation.mutate({ expectedVersion: league.version, invitationSettings: { joinApprovalRequired: nextRequired } }, {
+      onError: () => flash("Couldn't update the approval setting"),
+    });
+  };
+
+  const handleToggleReminder = () => {
+    updateNotifPrefs.mutate({ roundReminder: !notifPrefs?.roundReminder }, {
+      onError: () => flash("Couldn't update your reminder setting"),
+    });
+  };
 
   const [theme] = useState<'light' | 'dark'>('dark');
   const [screen] = useState<'rules' | 'settings' | 'participant'>('rules');
@@ -30,7 +78,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
 
   const LINE = "flex items-center gap-[12px] p-[16px_var(--gutter)] border-b border-[var(--surface-border)] last:border-b-0";
   const frozen = (title: string, value: string, note?: string) => ({ cls: LINE, locked: true, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "", chevron: false });
-  const editable = (title: string, value: string, note?: string) => ({ cls: `${LINE} cursor-pointer`, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "text-[var(--text-link)]", chevron: true });
+  const editable = (title: string, value: string, note?: string, onClick?: () => void) => ({ cls: `${LINE}${onClick ? ' cursor-pointer' : ''}`, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: onClick ? "text-[var(--text-link)]" : "", chevron: !!onClick, onClick });
   const readonly = (title: string, value: string, note?: string) => ({ cls: LINE, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "", chevron: false });
 
   // Market and tiebreaker display names, keyed by the real ruleset's market
@@ -85,18 +133,18 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
 
   const OWNER = [
     { label: "League", hasIntro: true, intro: "These stay editable for the life of the league.", lines: [
-      editable("Name", leagueName),
-      editable("Description", league?.description || "No description"),
-      editable("Crest colour", "Brand")
+      editable("Name", leagueName, undefined, handleEditName),
+      editable("Description", league?.description || "No description", undefined, handleEditDescription),
+      readonly("Crest colour", "Brand")
     ]},
     { label: "Joining", hasIntro: false, intro: "", lines: [
-      editable("Invitation links", league?.invitationSettings?.enabled === false ? "Off" : "On", "Anyone with a link can request to join"),
-      editable("Approve new members", league?.invitationSettings?.joinApprovalRequired ? "Required" : "Automatic", "You or an admin approves every request"),
+      editable("Invitation links", league?.invitationSettings?.enabled === false ? "Off" : "On", "Anyone with a link can request to join", handleToggleInvites),
+      editable("Approve new members", league?.invitationSettings?.joinApprovalRequired ? "Required" : "Automatic", "You or an admin approves every request", handleToggleApproval),
       readonly("Members", `${memberCount} members`)
     ]},
     { label: "Notifications", hasIntro: true, intro: "Applies to your own email only. Other members choose their own.", lines: [
-      editable("Deadline reminders", "On", "We never promise a send time"),
-      editable("Results and corrections", "On")
+      editable("Deadline reminders", notifPrefs?.roundReminder === false ? "Off" : "On", "We never promise a send time", handleToggleReminder),
+      readonly("Results and corrections", "On")
     ]},
     { label: "Frozen at publication", hasIntro: true, intro: `Locked on ${createdDate}. Cloning the league is the only way to play these rules differently.`, lines: [
       frozen("Competitions", `${league?.competitions?.length || 0} selected`),
@@ -109,8 +157,8 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
 
   const PARTICIPANT = [
     { label: "Your notifications", hasIntro: true, intro: "The only settings a participant controls. Everything else belongs to the owner.", lines: [
-      editable("Deadline reminders", "On"),
-      editable("Results and corrections", "On")
+      editable("Deadline reminders", notifPrefs?.roundReminder === false ? "Off" : "On", undefined, handleToggleReminder),
+      readonly("Results and corrections", "On")
     ]},
     { label: "This league", hasIntro: true, intro: "Read-only for you. The owner can change the first three; nothing can change the rest.", lines: [
       readonly("Name", leagueName),
@@ -218,10 +266,10 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   }));
 
   const editableDesktop = [
-    { label: "League name and description", note: "Members see the change immediately" },
-    { label: "Invitation links", note: "Create, share or revoke" },
-    { label: "Admins", note: "Promote or demote members" },
-    { label: "Approval for new members", note: league?.invitationSettings?.joinApprovalRequired ? "Currently on" : "Currently off" }
+    { label: "League name and description", note: "Members see the change immediately", onClick: () => { handleEditName(); handleEditDescription(); } },
+    { label: "Invitation links", note: league?.invitationSettings?.enabled === false ? "Currently off" : "Currently on", onClick: handleToggleInvites },
+    { label: "Admins", note: "Promote or demote members", onClick: () => router.push(`/leagues/${params.id}/admin`) },
+    { label: "Approval for new members", note: league?.invitationSettings?.joinApprovalRequired ? "Currently on" : "Currently off", onClick: handleToggleApproval }
   ];
 
   const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map((it) => {

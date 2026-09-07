@@ -44,7 +44,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     note: "",
     rows: upcomingFixtures.map(f => ({
       id: f.id,
-      home: f.homeTeam, hc: f.homeTeamCode, away: f.awayTeam, ac: f.awayTeamCode,
+      home: f.homeTeam, hc: f.homeTeamCode, hLogo: f.homeTeamLogoUrl, away: f.awayTeam, ac: f.awayTeamCode, aLogo: f.awayTeamLogoUrl,
       mid: f.kickoffAt ? new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "TBD",
       state: f.predictionState || "open",
       note: f.predictionNote || "", action: "Predict", right: "—", urgent: false
@@ -56,7 +56,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     note: "",
     rows: pastFixtures.map(f => ({
       id: f.id,
-      home: f.homeTeam, hc: f.homeTeamCode, away: f.awayTeam, ac: f.awayTeamCode,
+      home: f.homeTeam, hc: f.homeTeamCode, hLogo: f.homeTeamLogoUrl, away: f.awayTeam, ac: f.awayTeamCode, aLogo: f.awayTeamLogoUrl,
       mid: f.score ? `${f.score.home} — ${f.score.away}` : "—",
       state: f.predictionState || "lost",
       note: f.predictionNote || "", action: "See result", points: f.pointsAwarded ? `+${f.pointsAwarded}` : "0", right: f.pointsAwarded ? `+${f.pointsAwarded}` : "0"
@@ -83,6 +83,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
       return {
         home: r.home, away: r.away, homeCode: r.hc, awayCode: r.ac,
         homeColor: CLUB[r.hc], awayColor: CLUB[r.ac],
+        homeLogo: r.hLogo, awayLogo: r.aLogo,
         mid: r.mid,
         midStyle: results ? "font-heading font-bold text-[15px] tracking-[-0.4px]" : "font-heading font-semibold text-[12px] text-[var(--text-muted)]",
         teamStyle: "font-heading font-semibold text-[13.5px] tracking-[-0.1px] whitespace-nowrap overflow-hidden text-ellipsis min-w-0",
@@ -111,6 +112,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
       return {
         home: r.home, away: r.away, homeCode: r.hc, awayCode: r.ac,
         homeColor: CLUB[r.hc], awayColor: CLUB[r.ac],
+        homeLogo: r.hLogo, awayLogo: r.aLogo,
         mid: r.mid,
         midStyle: results ? { textAlign: 'center', font: "700 15px 'DM Sans',sans-serif", letterSpacing: '-.4px' } : { textAlign: 'center', font: "600 12px 'DM Sans',sans-serif", color: 'var(--text-muted)' },
         teamStyle: { font: "600 13px 'DM Sans',sans-serif", letterSpacing: '-.1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 },

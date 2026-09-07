@@ -1,17 +1,29 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
-export function FixtureDesktop({ 
-  theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone, 
-  answeredTotal, conflict, setResolved, a, setAnswers, markets, lineups, 
+function Crest({ logo, code, color, size, textSize }: { logo?: string | null; code: string; color: string; size: number; textSize: number }) {
+  if (logo) {
+    return (
+      <span className="tf-crest relative overflow-hidden bg-white" style={{ width: size, height: Math.round(size * 1.086) }}>
+        <Image src={logo} alt={code} fill sizes={`${size}px`} className="object-contain p-[4px]" />
+      </span>
+    );
+  }
+  return <span className="tf-crest" style={{ width: size, height: Math.round(size * 1.086), fontSize: textSize, background: color }}>{code}</span>;
+}
+
+export function FixtureDesktop({
+  theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone,
+  answeredTotal, conflict, setResolved, a, setAnswers, markets, lineups,
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
   contextTabs, heroStyle, homeColor, awayColor, heroKicker, heroDotStyle,
   scoreline, scoreSize, kickoffLine, bannerLabel, bannerText, bannerRight,
   marketsDone, lineupsDone, pointsLabel, pointsValue, pointsHeroColor,
   marketsHint, footNote, canCopy, copySub, showConflict,
   copyPrimary, copyPrimaryStyle, leagueName, competitionLabel,
-  hName, aName, hCode, aCode
+  hName, aName, hCode, aCode, hLogo, aLogo
 }: any) {
   
   return (
@@ -61,13 +73,13 @@ export function FixtureDesktop({
                   <div className="font-heading font-bold text-[32px] leading-[1] tracking-[-1.1px] whitespace-nowrap overflow-hidden text-ellipsis">{hName}</div>
                   <div className="text-[10px] text-[var(--nav-text-faint)] mt-[7px] tracking-[0.1em]">HOME</div>
                 </div>
-                <span className="tf-crest w-[58px] h-[63px] text-[14px]" style={{ background: homeColor }}>{hCode}</span>
+                <Crest logo={hLogo} code={hCode} color={homeColor} size={58} textSize={14} />
               </div>
               <div className="text-center flex-none min-w-[150px]">
                 <div className="tf-num font-heading font-bold leading-[1] tracking-[-2px]" style={{ fontSize: scoreSize }}>{scoreline}</div>
               </div>
               <div className="flex items-center gap-[16px] min-w-0">
-                <span className="tf-crest w-[58px] h-[63px] text-[14px]" style={{ background: awayColor }}>{aCode}</span>
+                <Crest logo={aLogo} code={aCode} color={awayColor} size={58} textSize={14} />
                 <div className="min-w-0">
                   <div className="font-heading font-bold text-[32px] leading-[1] tracking-[-1.1px] whitespace-nowrap overflow-hidden text-ellipsis">{aName}</div>
                   <div className="text-[10px] text-[var(--nav-text-faint)] mt-[7px] tracking-[0.1em]">AWAY</div>

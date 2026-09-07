@@ -1,13 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { UserProfile, fetchCurrentProfile, signIn as apiSignIn, signOut as apiSignOut } from '@/lib/api/auth';
+import { UserProfile, fetchCurrentProfile, signIn as apiSignIn, signOut as apiSignOut, googleLogin as apiGoogleLogin } from '@/lib/api/auth';
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   signIn: (credentials: Parameters<typeof apiSignIn>[0]) => Promise<void>;
+  signInWithGoogle: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   refetchUser: () => Promise<void>;
 }
@@ -47,6 +48,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(profile);
   };
 
+  const signInWithGoogle = async (idToken: string) => {
+    await apiGoogleLogin(idToken);
+    const profile = await fetchCurrentProfile();
+    if (!profile) {
+      throw new Error('Session verification failed after Google login');
+    }
+    setUser(profile);
+  };
+
   const signOut = async () => {
     await apiSignOut();
     setUser(null);
@@ -64,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut, refetchUser }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signInWithGoogle, signOut, refetchUser }}>
       {children}
     </AuthContext.Provider>
   );
