@@ -400,6 +400,14 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     if (d.key === "exact_score" || d.key === "score") {
       const sc = a.exact_score || a.score;
       (m as any).answer = sc ? (Array.isArray(sc) ? `${sc[0]} — ${sc[1]}` : `${sc.homeGoals} — ${sc.awayGoals}`) : (marketLocked ? "Nothing was ever saved here" : "Untouched — an exact score is not assumed to be 0–0");
+    } else if (d.kind === "players") {
+      const pickedId = a[d.key];
+      const pickedPlayer = pickedId ? ((d.players as any[]) || []).find(([id]) => id === pickedId) : null;
+      (m as any).answer = pickedPlayer ? pickedPlayer[1] : (marketLocked ? "Not answered — no points from this one" : "Not answered");
+    } else if (d.kind === "lineup") {
+      const picked = a[d.key];
+      const count = Array.isArray(picked) ? picked.length : 0;
+      (m as any).answer = count === 11 ? "11 of 11 selected" : count > 0 ? `${count} of 11 selected` : (marketLocked ? "Not set — no points from this one" : "Not set");
     } else {
       (m as any).answer = a[d.key] ? (typeof a[d.key] === 'string' ? a[d.key] : JSON.stringify(a[d.key])) : (marketLocked ? "Not answered — no points from this one" : "Not answered");
     }
@@ -479,6 +487,11 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     if (!val) return null;
     if (k === "exact_score" || k === "score") {
       return Array.isArray(val) ? `${val[0]}–${val[1]}` : `${val.homeGoals}–${val.awayGoals}`;
+    }
+    if (k === "anytime_goalscorer" || k === "player_card") {
+      const roster = k === "anytime_goalscorer" ? scorerPlayers : cardPlayers;
+      const player = (roster as any[]).find(([id]) => id === val);
+      return player ? player[1] : null;
     }
     if (typeof val === 'string') return val;
     return k;
