@@ -266,3 +266,14 @@ export function useLeaveLeague(leagueId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
   });
 }
+
+// Same call, but for contexts (e.g. the "pick one of your 20 leagues to
+// leave" list) where the target league is chosen at click time rather than
+// fixed for the life of the component.
+export function useLeaveAnyLeague() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leagueId }: { leagueId: string }) => leaveLeague(leagueId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
+  });
+}

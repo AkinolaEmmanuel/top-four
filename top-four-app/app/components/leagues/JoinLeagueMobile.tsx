@@ -10,22 +10,17 @@ interface JoinLeagueMobileProps {
   INVITE: string[];
   facts: string[][];
   tags: { label: string; style: string }[];
-  step: 'signup' | 'signin' | 'code';
-  setStep: (s: 'signup' | 'signin' | 'code') => void;
   onOutcome: boolean;
   outcome: string | null;
   setOutcome: (o: string | null) => void;
   o: any;
   inviteCode: string;
   setInviteCode: (c: string) => void;
-  focus: string | null;
-  setFocus: (f: string | null) => void;
-  attempts: number;
-  trySignin: () => void;
   joinLeaguePending: boolean;
   onJoinCode: () => void;
   onNavigateHome: () => void;
-  MY_LEAGUES: string[][];
+  MY_LEAGUES: [string, string, string, string, string, string][];
+  onLeaveLeague: (leagueId: string) => void;
   secondaryAction?: () => void;
 }
 
@@ -38,41 +33,19 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
     INVITE,
     facts,
     tags,
-    step,
-    setStep,
     onOutcome,
     outcome,
     setOutcome,
     o,
     inviteCode,
     setInviteCode,
-    focus,
-    setFocus,
-    attempts,
-    trySignin,
     joinLeaguePending,
     onJoinCode,
     onNavigateHome,
     MY_LEAGUES,
+    onLeaveLeague,
     secondaryAction,
   } = props;
-
-  const Field = ({ label, fieldKey, hint }: { label: string; fieldKey: string; hint?: string }) => {
-    const on = focus === fieldKey;
-    return (
-      <div>
-        <div
-          onClick={() => setFocus(fieldKey)}
-          className={`min-h-[48px] rounded-[12px] flex items-center px-[13px] cursor-text bg-[var(--surface-card)] text-[12.5px] text-[var(--text-muted)] border ${
-            on ? 'border-[var(--color-brand)]' : 'border-[var(--surface-border-strong)]'
-          }`}
-        >
-          {label}
-        </div>
-        {hint && <div className="text-[10.5px] text-[var(--text-muted)] mt-[6px] pl-[2px]">{hint}</div>}
-      </div>
-    );
-  };
 
   return (
     <div className="flex flex-col flex-1 w-full overflow-hidden bg-[var(--surface-canvas)] font-['Sora',sans-serif] text-[var(--text-primary)]">
@@ -132,115 +105,8 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
       </header>
 
       <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
-        {/* CREATE ACCOUNT */}
-        {!onOutcome && step === "signup" && (
-          <div className="p-[20px_var(--gutter)_26px] animate-[tfin_0.16s_ease]">
-            <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.5px]">
-              Create an account to join
-            </div>
-            <div className="flex flex-col gap-[12px] mt-[16px]">
-              <Field label="Email address" fieldKey="email" />
-              <Field label="Display name" fieldKey="name" hint="Shown on the table. You can change it later." />
-              <Field label="Password" fieldKey="pw" hint="Twelve characters or more." />
-            </div>
-            <div
-              onClick={() => {
-                setOutcome("verify");
-                setFocus(null);
-              }}
-              className="tf-tap mt-[16px] h-[48px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)]"
-            >
-              Create account and join
-            </div>
-
-            <div className="flex items-center gap-[10px] my-[16px]">
-              <div className="flex-1 h-[1px] bg-[var(--surface-border)]" />
-              <span className="text-[10.5px] text-[var(--text-muted)]">or</span>
-              <div className="flex-1 h-[1px] bg-[var(--surface-border)]" />
-            </div>
-            <div className="tf-tap h-[48px] rounded-[13px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[13px]">
-              Continue with Google
-            </div>
-
-            <div className="text-center mt-[18px] text-[12.5px] text-[var(--text-secondary)]">
-              Already have an account?{" "}
-              <span
-                onClick={() => {
-                  setStep("signin");
-                  setFocus(null);
-                }}
-                className="tf-tap text-[var(--text-link)] font-semibold"
-              >
-                Sign in
-              </span>
-            </div>
-            <div className="text-center mt-[14px]">
-              <span
-                onClick={() => {
-                  setStep("code");
-                  setFocus(null);
-                }}
-                className="tf-tap text-[11.5px] text-[var(--text-link)]"
-              >
-                Have a code instead?
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* SIGN IN */}
-        {!onOutcome && step === "signin" && (
-          <div className="p-[20px_var(--gutter)_26px] animate-[tfin_0.16s_ease]">
-            <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.5px]">Sign in to join</div>
-            <div className="flex flex-col gap-[12px] mt-[16px]">
-              <Field label="Email address" fieldKey="semail" />
-              <Field label="Password" fieldKey="spw" />
-            </div>
-
-            {attempts > 0 && (
-              <div className="mt-[12px] p-[12px_13px] rounded-[12px] border border-[var(--color-danger)] bg-[var(--surface-card)]">
-                <div className="font-heading font-bold text-[12px] text-[var(--danger-text)]">
-                  {attempts >= 2 ? "Too many attempts" : "Email or password is incorrect"}
-                </div>
-                <div className="text-[11.5px] leading-[1.5] text-[var(--text-secondary)] mt-[5px]">
-                  {attempts >= 2
-                    ? "Try again shortly. Your invitation is still held."
-                    : "Check the address the invitation was sent to."}
-                </div>
-              </div>
-            )}
-
-            <div
-              onClick={trySignin}
-              className={`tf-tap mt-[16px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${
-                attempts >= 2
-                  ? 'bg-[var(--surface-subtle)] text-[var(--text-muted)] cursor-not-allowed'
-                  : 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] shadow-[var(--elev-glow)]'
-              }`}
-            >
-              {attempts >= 2 ? "Locked for 48s" : "Sign in and join"}
-            </div>
-
-            <div className="flex justify-between mt-[16px]">
-              <span className="tf-tap text-[11.5px] text-[var(--text-link)]">Forgot password</span>
-              <span
-                onClick={() => {
-                  setStep("signup");
-                  setFocus(null);
-                }}
-                className="tf-tap text-[11.5px] text-[var(--text-link)]"
-              >
-                Create an account
-              </span>
-            </div>
-            <div className="mt-[20px] text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
-              Signing in takes you straight into the league. The invitation survives the round trip.
-            </div>
-          </div>
-        )}
-
         {/* CODE */}
-        {!onOutcome && step === "code" && (
+        {!onOutcome && (
           <div className="p-[20px_var(--gutter)_26px] animate-[tfin_0.16s_ease]">
             <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.5px]">
               Enter the code you were given
@@ -303,9 +169,10 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
 
             {o.list && (
               <div className="mt-[18px]">
-                {MY_LEAGUES.map(([name, meta, action, tint, initials], i, arr) => (
+                {MY_LEAGUES.map(([name, meta, action, tint, initials, id], i, arr) => (
                   <div
                     key={i}
+                    onClick={action === "—" ? undefined : () => onLeaveLeague(id)}
                     className={`flex items-center gap-[11px] py-[12px] border-t border-[var(--surface-border)] ${
                       i === arr.length - 1 ? 'border-b' : ''
                     } ${action === "—" ? 'opacity-55' : 'cursor-pointer'}`}
@@ -335,7 +202,6 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
                     onNavigateHome();
                   } else {
                     setOutcome(null);
-                    setStep("code");
                   }
                 }}
                 className="tf-tap mt-[22px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] shadow-[var(--elev-glow)]"
