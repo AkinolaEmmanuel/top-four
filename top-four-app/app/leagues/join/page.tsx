@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEstablishInvitationIntent, useConsumeInvitationIntent } from '@/hooks/api/useLeagues';
+import { useEstablishInvitationIntent, useConsumeInvitationIntent, useCancelJoinRequest } from '@/hooks/api/useLeagues';
 import { JoinLeagueMobile } from '@/app/components/leagues/JoinLeagueMobile';
 import { JoinLeagueDesktop } from '@/app/components/leagues/JoinLeagueDesktop';
 
@@ -10,7 +10,8 @@ export default function JoinLeaguePage() {
   const router = useRouter();
   const establishIntent = useEstablishInvitationIntent();
   const consumeIntent = useConsumeInvitationIntent();
-  
+  const cancelJoinRequestMutation = useCancelJoinRequest();
+
   const [step, setStep] = useState<'signup' | 'signin' | 'code'>('code');
   const [theme] = useState<'light' | 'dark'>('dark');
   const [outcome, setOutcome] = useState<string | null>(null);
@@ -18,6 +19,7 @@ export default function JoinLeaguePage() {
   const [attempts, setAttempts] = useState(0);
   const [inviteCode, setInviteCode] = useState('');
   const [joinedLeague, setJoinedLeague] = useState<any>(null);
+  const [pendingRequest, setPendingRequest] = useState<{ leagueId: string; requestId: string } | null>(null);
 
   const joinedLeagueName = joinedLeague?.name || joinedLeague?.league?.name || "Your league";
 
@@ -112,6 +114,7 @@ export default function JoinLeaguePage() {
           onSuccess: (outcome) => {
             if (outcome.outcome === 'pending') {
               setJoinedLeague({ name: preview.league.name });
+              setPendingRequest({ leagueId: outcome.leagueId, requestId: outcome.joinRequestId });
               setOutcome("pending");
             } else {
               setJoinedLeague({ name: preview.league.name, id: outcome.leagueId });
@@ -133,6 +136,18 @@ export default function JoinLeaguePage() {
 
   const handleNavigateHome = () => {
     router.push('/home');
+  };
+
+  const handleWithdrawRequest = () => {
+    if (!pendingRequest || cancelJoinRequestMutation.isPending) return;
+    cancelJoinRequestMutation.mutate(pendingRequest, {
+      onSuccess: () => {
+        setPendingRequest(null);
+        setOutcome(null);
+        setStep("code");
+        setInviteCode('');
+      }
+    });
   };
 
   const sharedProps = {
@@ -158,6 +173,7 @@ export default function JoinLeaguePage() {
     attempts,
     trySignin,
     joinLeaguePending: establishIntent.isPending || consumeIntent.isPending,
+    secondaryAction: outcome === 'pending' ? handleWithdrawRequest : undefined,
     onJoinCode: handleJoinCode,
     onNavigateHome: handleNavigateHome,
     MY_LEAGUES

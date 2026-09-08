@@ -100,14 +100,14 @@ export function MeDesktop({
                   <div className="font-heading font-bold text-[14px]">Where they came from</div>
                 </div>
                 {leagues.map((l: any, i: number) => (
-                  <div key={i} className="flex items-center gap-[13px] py-[13px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors px-[2px]">
+                  <Link href={`/leagues/${l.id}`} key={i} className="flex items-center gap-[13px] py-[13px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors px-[2px]">
                     <span className="tf-crest w-[32px] h-[35px] text-[9px]" style={{ background: l.bg }}>{l.crest}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-heading font-semibold text-[13.5px]">{l.name}</div>
                       <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">{l.meta}</div>
                     </div>
                     <span className="tf-num font-heading font-bold text-[17px]">{l.points}</span>
-                  </div>
+                  </Link>
                 ))}
 
                 {/* Sign-in section */}

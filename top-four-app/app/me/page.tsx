@@ -57,6 +57,7 @@ export default function MePage() {
   }));
 
   const liveLeagues = leaguesData?.items.map((l, i, a) => ({
+    id: l.id,
     crest: l.name.substring(0, 2).toUpperCase(),
     bg: CLUB[l.name.substring(0, 2).toUpperCase()] || CLUB.PP,
     name: l.name,

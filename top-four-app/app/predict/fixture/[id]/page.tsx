@@ -303,6 +303,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       cardStyle: `border-top: 1px solid var(--surface-border); ${!editable ? 'opacity: .96;' : ''} ${editable && unanswered ? 'background: var(--accent-surface); box-shadow: inset 3px 0 0 0 var(--color-brand);' : ''}`,
       historyLink: edits.length ? (histOpen ? "HIDE EDITS" : `EDITED ${edits.length}×`) : "Never changed",
       historyStyle: edits.length ? `font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer` : "hidden",
+      toggleHistory: () => setHistory(histOpen ? null : d.key),
       historyLinkStyle: `flex-none font-heading font-semibold text-[10.5px] ${edits.length ? 'color-[var(--text-link)] cursor-pointer' : 'text-[var(--text-muted)]'}`,
       showHistory: histOpen && edits.length > 0,
       histories: edits.map((e, j) => ({

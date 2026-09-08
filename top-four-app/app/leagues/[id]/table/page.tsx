@@ -154,6 +154,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   const rowsMobile = pageRows.map((m: any, i: number) => {
     const open = openIdx === i;
     return {
+      ref: m.self ? meRef : null,
       pos: m.pos, name: m.name, initials: m.initials, points: fmt(m.points),
       posStyle: `font-heading font-bold text-[13px] ${i === 0 && isFinal ? 'text-[var(--color-crown)]' : 'text-[var(--text-primary)]'}`,
       tieStyle: `font-heading font-medium text-[10px] text-[var(--text-muted)] ${m.tie ? '' : 'hidden'}`,
@@ -232,7 +233,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     refreshing, hasStanding, totalMembers,
     winnerName: winner?.name || '', winnerLine,
     rows: rowsMobile, TINTS, breakdown: breakdownMobile,
-    selfBreakdown: breakdownMobile(myCompetitionPoints, myCustomQuestionPoints, myPointsNumber, true), listRef,
+    selfBreakdown: breakdownMobile(myCompetitionPoints, myCustomQuestionPoints, myPointsNumber, true), listRef, jumpToMe,
     page: p, PAGES: Array.from({ length: totalPages }, (_, i) => [i * pageSize + 1, Math.min((i + 1) * pageSize, totalMembers)]), range, prevStyle: prevStyleMobile, nextStyle: nextStyleMobile, prevPage, nextPage,
     selfOpen, setSelfOpen, setRefreshing,
     leagueName: league?.name

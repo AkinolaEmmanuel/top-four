@@ -16,7 +16,7 @@ export function LeaguesMobile({
             <div className="font-heading font-[650] text-[24px] leading-[1] tracking-[-0.8px]">Leagues</div>
             <div className="font-['Sora',sans-serif] font-medium text-[11.5px] mt-[6px]" style={{ color: atCapacity ? 'var(--nav-accent)' : 'var(--nav-text-faint)' }}>{capacityLabel}</div>
           </div>
-          <Link href="/leagues/create" className="tf-tap w-[42px] h-[42px] rounded-[13px] grid place-items-center font-['DM_Sans',sans-serif] font-normal text-[24px] flex-none" style={atCapacity ? { background: 'var(--nav-fill)', color: 'var(--nav-text-faint)', cursor: 'not-allowed', pointerEvents: 'none' } : { background: 'var(--nav-accent)', color: 'var(--nav-on-accent)' }}>+</Link>
+          <Link href="/leagues/setup" className="tf-tap w-[42px] h-[42px] rounded-[13px] grid place-items-center font-['DM_Sans',sans-serif] font-normal text-[24px] flex-none" style={atCapacity ? { background: 'var(--nav-fill)', color: 'var(--nav-text-faint)', cursor: 'not-allowed', pointerEvents: 'none' } : { background: 'var(--nav-accent)', color: 'var(--nav-on-accent)' }}>+</Link>
         </div>
       </header>
 
@@ -52,8 +52,8 @@ export function LeaguesMobile({
             <div className="font-heading font-bold text-[21px] leading-[1.2] tracking-[-0.5px] mt-[20px]">Where to join a league</div>
             <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[270px]">Join a league to begin. You can be in up to twenty at once.</div>
             <div className="w-full max-w-[280px] mt-[22px]">
-              <div className="h-[50px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] cursor-pointer">Create a league</div>
-              <div className="h-[50px] rounded-[13px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-semibold text-[13.5px] mt-[10px] cursor-pointer">Join with a code</div>
+              <Link href="/leagues/setup" className="h-[50px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] cursor-pointer">Create a league</Link>
+              <Link href="/leagues/join" className="h-[50px] rounded-[13px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-semibold text-[13.5px] mt-[10px] cursor-pointer">Join with a code</Link>
             </div>
           </div>
         )}

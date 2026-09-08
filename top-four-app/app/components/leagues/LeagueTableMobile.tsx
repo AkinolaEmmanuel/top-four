@@ -8,7 +8,7 @@ export function LeagueTableMobile({
   rows, TINTS, breakdown, selfBreakdown, listRef,
   page, PAGES, range, prevStyle, nextStyle, prevPage, nextPage,
   selfOpen, setSelfOpen, setRefreshing, leagueName, myName, myInitials, myPoints,
-  winnerName, winnerLine, totalMembers
+  winnerName, winnerLine, totalMembers, jumpToMe
 }: any) {
 
   return (
@@ -30,7 +30,7 @@ export function LeagueTableMobile({
               <div className="font-heading font-semibold text-[12.5px]">{myPosLabel}</div>
               <div className="text-[11px] text-[var(--nav-text-faint)] mt-[3px]">{myGap}</div>
             </div>
-            <div className="flex-none px-[12px] h-[34px] rounded-[9px] bg-[var(--nav-fill)] text-[var(--nav-text)] grid place-items-center font-heading font-bold text-[10px] cursor-pointer">JUMP</div>
+            <div onClick={jumpToMe} className="flex-none px-[12px] h-[34px] rounded-[9px] bg-[var(--nav-fill)] text-[var(--nav-text)] grid place-items-center font-heading font-bold text-[10px] cursor-pointer">JUMP</div>
           </div>
         )}
       </header>
@@ -84,7 +84,7 @@ export function LeagueTableMobile({
             )}
 
             {rows.map((r: any, i: number) => (
-              <div key={i} className={r.wrapStyle}>
+              <div key={i} ref={r.ref} className={r.wrapStyle}>
                 <div onClick={r.toggle} className="flex items-center gap-[11px] p-[12px_var(--gutter)] cursor-pointer">
                   <div className="w-[30px] flex-none flex items-baseline gap-[1px]">
                     <span className={`tf-num ${r.posStyle}`}>{r.pos}</span>

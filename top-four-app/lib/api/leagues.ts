@@ -270,6 +270,12 @@ export async function processJoinRequest(leagueId: string, requestId: string, ac
   });
 }
 
+export async function cancelJoinRequest(leagueId: string, requestId: string): Promise<void> {
+  await apiFetch<void>(`/leagues/${leagueId}/join-requests/${requestId}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function createInvitation(leagueId: string, useLimit: number = 100): Promise<any> {
   return apiFetch<any>(`/leagues/${leagueId}/invitations`, {
     method: 'POST',

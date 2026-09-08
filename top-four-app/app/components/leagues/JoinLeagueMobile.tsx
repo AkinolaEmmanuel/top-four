@@ -26,6 +26,7 @@ interface JoinLeagueMobileProps {
   onJoinCode: () => void;
   onNavigateHome: () => void;
   MY_LEAGUES: string[][];
+  secondaryAction?: () => void;
 }
 
 export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
@@ -53,6 +54,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
     onJoinCode,
     onNavigateHome,
     MY_LEAGUES,
+    secondaryAction,
   } = props;
 
   const Field = ({ label, fieldKey, hint }: { label: string; fieldKey: string; hint?: string }) => {
@@ -343,8 +345,9 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
             )}
             {o.secondary && (
               <div
+                onClick={o.secondaryOff ? undefined : secondaryAction}
                 className={`mt-[8px] h-[46px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px] ${
-                  o.secondaryOff ? 'opacity-45' : 'cursor-pointer'
+                  o.secondaryOff || !secondaryAction ? 'opacity-45' : 'cursor-pointer'
                 }`}
               >
                 {o.secondary}
