@@ -17,7 +17,7 @@ function Crest({ logo, code, color }: { logo?: string | null; code: string; colo
 export function LeagueFixturesDesktop({
   theme, rootNav, avatarInitials, avatarName, showContext, contextTabs,
   headSub, segments, showFilters, filters, isLoading, skeletons, chipSkeletons, skeletonRowStyle, headRowStyle,
-  isEmpty, emptyTitle, emptyBody, showList, groups, loadMore, footNote, footNoteStyle, colMid, colNote, colRight,
+  isEmpty, emptyTitle, emptyBody, showList, groups, loadMore, showLoadMore, loadMoreAction, footNote, footNoteStyle, colMid, colNote, colRight,
   leagueName, memberCount, params
 }: any) {
 
@@ -148,9 +148,11 @@ export function LeagueFixturesDesktop({
                 ))}
               </div>
 
-              <div className="grid place-items-center mt-[20px]">
-                <span className="font-heading font-bold text-[10.5px] tracking-[0.07em] text-[var(--text-link)] cursor-pointer">{loadMore}</span>
-              </div>
+              {showLoadMore && (
+                <div className="grid place-items-center mt-[20px]">
+                  <span onClick={loadMoreAction} className="font-heading font-bold text-[10.5px] tracking-[0.07em] text-[var(--text-link)] cursor-pointer">{loadMore}</span>
+                </div>
+              )}
 
               <div style={footNoteStyle}>{footNote}</div>
             </div>

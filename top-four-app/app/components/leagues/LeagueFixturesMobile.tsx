@@ -16,7 +16,7 @@ function Crest({ logo, code, color }: { logo?: string | null; code: string; colo
 
 export function LeagueFixturesMobile({
   theme, params, st, isLoading, isEmpty, showList, results,
-  headSub, emptyTitle, emptyBody, loadMore, footNote,
+  headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
   segments, filters, groups,
   IconMap, tabs
 }: any) {
@@ -101,7 +101,9 @@ export function LeagueFixturesMobile({
               </section>
             ))}
             <div className="p-[16px_var(--gutter)_24px]">
-              <div className="tf-tap p-[13px] rounded-[11px] border border-[var(--surface-border-strong)] text-center font-heading font-bold text-[10.5px] text-[var(--text-link)]">{loadMore}</div>
+              {showLoadMore && (
+                <div onClick={loadMoreAction} className="tf-tap p-[13px] rounded-[11px] border border-[var(--surface-border-strong)] text-center font-heading font-bold text-[10.5px] text-[var(--text-link)]">{loadMore}</div>
+              )}
               <div className="text-[11px] leading-[1.55] text-[var(--text-muted)] mt-[14px]">{footNote}</div>
             </div>
           </div>

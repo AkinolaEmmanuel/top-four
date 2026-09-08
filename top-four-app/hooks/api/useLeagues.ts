@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import {
   fetchMyLeagues,
   fetchLeagueDetails,
@@ -30,7 +30,8 @@ import {
   fetchLeagueDashboard,
   LeagueDashboard,
   updateLeague,
-  UpdateLeaguePayload
+  UpdateLeaguePayload,
+  cancelJoinRequest
 } from '@/lib/api/leagues';
 
 export function useMyLeagues() {
@@ -52,6 +53,16 @@ export function useLeagueFixtures(leagueId: string) {
   return useQuery<LeagueFixturesPage, Error>({
     queryKey: ['leagues', leagueId, 'fixtures'],
     queryFn: () => fetchLeagueFixtures(leagueId),
+    enabled: !!leagueId,
+  });
+}
+
+export function useLeagueFixturesInfinite(leagueId: string) {
+  return useInfiniteQuery<LeagueFixturesPage, Error>({
+    queryKey: ['leagues', leagueId, 'fixtures', 'infinite'],
+    queryFn: ({ pageParam }) => fetchLeagueFixtures(leagueId, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     enabled: !!leagueId,
   });
 }
@@ -140,6 +151,12 @@ export function useProcessJoinRequest(leagueId: string) {
       queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'join-requests'] });
       queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'members'] });
     },
+  });
+}
+
+export function useCancelJoinRequest() {
+  return useMutation({
+    mutationFn: ({ leagueId, requestId }: { leagueId: string; requestId: string }) => cancelJoinRequest(leagueId, requestId),
   });
 }
 

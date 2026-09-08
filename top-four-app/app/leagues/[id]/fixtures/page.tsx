@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { LeagueFixturesMobile } from '../../../components/leagues/LeagueFixturesMobile';
 import { LeagueFixturesDesktop } from '../../../components/leagues/LeagueFixturesDesktop';
-import { useLeagueFixtures, useLeague } from '@/hooks/api/useLeagues';
+import { useLeagueFixturesInfinite, useLeague } from '@/hooks/api/useLeagues';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d", MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a" };
@@ -13,7 +13,10 @@ const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7
 
 export default function LeagueFixturesPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { data: fixturesPage, isLoading: fixturesLoading } = useLeagueFixtures(params.id);
+  const {
+    data: fixturesData, isLoading: fixturesLoading,
+    fetchNextPage, hasNextPage, isFetchingNextPage,
+  } = useLeagueFixturesInfinite(params.id);
   const { data: league } = useLeague(params.id);
   const { user } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -35,7 +38,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     void: ["VOID", "border border-dashed border-[var(--surface-border-strong)] text-[var(--text-muted)]", "border:1px dashed var(--surface-border-strong);color:var(--text-muted)"]
   };
 
-  const apiFixtures = fixturesPage?.items || [];
+  const apiFixtures = fixturesData?.pages.flatMap((p) => p.items) || [];
   const upcomingFixtures = apiFixtures.filter(f => f.status === 'upcoming' || f.status === 'live');
   const pastFixtures = apiFixtures.filter(f => f.status === 'finished' || f.status === 'voided');
 
@@ -93,7 +96,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
         action: r.action,
         actionStyle: "font-heading font-bold text-[10px] text-[var(--text-link)] flex-none",
         rowStyle: `p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${i === a.length - 1 ? 'border-b' : ''} ${r.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`,
-        onClick: () => router.push(results ? `/fixtures/${r.id}/results` : `/predict/fixture/${r.id}?leagueId=${params.id}`)
+        onClick: () => router.push(`/predict/fixture/${r.id}?leagueId=${params.id}`)
       };
     })
   })).filter(g => g.rows.length > 0);
@@ -124,7 +127,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
         action: r.action,
         actionStyle: { textAlign: 'right', font: "700 10px 'DM Sans',sans-serif", letterSpacing: '.05em', color: 'var(--text-link)', cursor: 'pointer' },
         rowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', background: r.urgent ? 'var(--accent-surface)' : 'transparent', boxShadow: r.urgent ? 'inset 3px 0 0 0 var(--color-brand)' : 'none', cursor: 'pointer' },
-        onClick: () => router.push(results ? `/fixtures/${r.id}/results` : `/predict/fixture/${r.id}?leagueId=${params.id}`)
+        onClick: () => router.push(`/predict/fixture/${r.id}?leagueId=${params.id}`)
       };
     }).map(r => ({ ...r, rowStyle: { ...r.rowStyle, ...Object.fromEntries(GRID.split(' ').filter(c => c.startsWith('grid') || c.startsWith('gap') || c.startsWith('items')).map(c => [c, true])) } }))
   })).filter(g => g.rows.length > 0);
@@ -186,7 +189,9 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
   const headSub = results ? `${pastFixtures.length} settled${competitionName ? ' · ' + competitionName : ''}` : `${leagueName}${competitionName ? ' · ' + competitionName : ''}`;
   const emptyTitle = "No fixtures on this day";
   const emptyBody = "Nothing in this league's competitions is scheduled here. Try another day — the league itself is fine.";
-  const loadMore = results ? "LOAD EARLIER RESULTS" : "LOAD LATER FIXTURES";
+  const loadMore = isFetchingNextPage ? "LOADING…" : results ? "LOAD EARLIER RESULTS" : "LOAD LATER FIXTURES";
+  const showLoadMore = !!hasNextPage;
+  const loadMoreAction = () => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); };
   const footNote = results
     ? "A voided market scores nothing for everyone, not only for you. Provisional results become final once review closes."
     : "Lineups lock two hours before kick-off, everything else at the whistle. A fixture can be part-locked, which is why a row can be open and closed at once.";
@@ -240,7 +245,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
 
   const propsMobile = {
     theme, params, st, isLoading, isEmpty, showList, results,
-    headSub, emptyTitle, emptyBody, loadMore, footNote,
+    headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
     segments: segmentsMobile, filters: filtersMobile, groups: groupsMobile,
     IconMap, tabs,
     leagueName: league?.name,
@@ -255,7 +260,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     chipSkeletons: ["58px", "96px", "72px", "78px"].map(w => ({ w })),
     skeletonRowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center' },
     headRowStyle: { display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center', padding: '10px 4px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--surface-canvas)', borderBottom: '1px solid var(--surface-border-strong)' },
-    isEmpty, emptyTitle, emptyBody, showList, groups: groupsDesktop, loadMore, footNote,
+    isEmpty, emptyTitle, emptyBody, showList, groups: groupsDesktop, loadMore, showLoadMore, loadMoreAction, footNote,
     footNoteStyle: { marginTop: '26px', paddingTop: '18px', borderTop: '1px solid var(--surface-border)', fontSize: '11.5px', lineHeight: 1.6, color: 'var(--text-muted)', maxWidth: '78ch' },
     colMid: results ? "Score" : "Kick-off", colNote: results ? "What landed" : "Your answers", colRight: results ? "Points" : "Locks in",
     leagueName: league?.name,

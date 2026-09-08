@@ -43,7 +43,8 @@ export default function Home() {
         homeCode: t.homeTeam.displayName.substring(0, 3).toUpperCase(),
         homeColor: CLUB[t.homeTeam.displayName.substring(0, 3).toUpperCase()] || '#000',
         awayCode: t.awayTeam.displayName.substring(0, 3).toUpperCase(),
-        awayColor: CLUB[t.awayTeam.displayName.substring(0, 3).toUpperCase()] || '#000'
+        awayColor: CLUB[t.awayTeam.displayName.substring(0, 3).toUpperCase()] || '#000',
+        href: `/predict/fixture/${t.leagueFixtureId}?leagueId=${t.league.id}`
       };
     }
     return {
@@ -52,12 +53,14 @@ export default function Home() {
       meta: t.league.name,
       time: new Date(t.question?.deadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       missing: 'Open',
-      homeCode: 'Q', homeColor: '#333', awayCode: 'A', awayColor: '#555'
+      homeCode: 'Q', homeColor: '#333', awayCode: 'A', awayColor: '#555',
+      href: `/leagues/${t.league.id}/questions`
     };
   }) || []);
 
   // Build leagues from API only
   const leagues = leaguesData?.items.map(l => ({
+    id: l.id,
     crest: l.name.substring(0, 2).toUpperCase(),
     crestBg: CLUB[l.name.substring(0, 2).toUpperCase()] || CLUB.PP,
     name: l.name,

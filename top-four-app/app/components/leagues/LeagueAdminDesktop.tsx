@@ -101,7 +101,7 @@ export function LeagueAdminDesktop({
                 ))}
                 <div className="flex-1"></div>
                 <button onClick={exportMembersAction} className="h-[36px] px-[14px] rounded-[9px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] font-heading font-bold text-[11.5px] cursor-pointer">Export members</button>
-                <button className="h-[36px] px-[14px] rounded-[9px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px] cursor-pointer">Invite people</button>
+                <button onClick={() => setTab('invites')} className="h-[36px] px-[14px] rounded-[9px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px] cursor-pointer">Invite people</button>
               </div>
 
               <div className="mt-[14px]">

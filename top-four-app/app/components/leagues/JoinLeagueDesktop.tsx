@@ -28,6 +28,7 @@ interface JoinLeagueDesktopProps {
   onJoinCode: () => void;
   onNavigateHome: () => void;
   MY_LEAGUES: string[][];
+  secondaryAction?: () => void;
 }
 
 export function JoinLeagueDesktop(props: JoinLeagueDesktopProps) {
@@ -56,6 +57,7 @@ export function JoinLeagueDesktop(props: JoinLeagueDesktopProps) {
     onJoinCode,
     onNavigateHome,
     MY_LEAGUES,
+    secondaryAction,
   } = props;
 
   const Field = ({ label, fieldKey, hint, type = "text" }: { label: string; fieldKey: string; hint?: string; type?: string }) => {
@@ -409,8 +411,10 @@ export function JoinLeagueDesktop(props: JoinLeagueDesktopProps) {
                   )}
                   {o.secondary && (
                     <button
+                      onClick={o.secondaryOff ? undefined : secondaryAction}
+                      disabled={o.secondaryOff || !secondaryAction}
                       className={`w-full mt-[10px] h-[46px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-semibold text-[13px] transition-colors ${
-                        o.secondaryOff ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-[var(--surface-subtle)]'
+                        o.secondaryOff || !secondaryAction ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-[var(--surface-subtle)]'
                       }`}
                     >
                       {o.secondary}

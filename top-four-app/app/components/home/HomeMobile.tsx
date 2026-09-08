@@ -111,14 +111,16 @@ export function HomeMobile({ state, theme, ...props }: any) {
               <section className="p-[24px_var(--gutter)]">
                 <div className="flex items-baseline justify-between mb-[12px]">
                   <span className="tf-kicker">{props.queueKicker}</span>
-                  <span className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">{props.queueLink}</span>
+                  {props.queueLink && (
+                    <Link href="/predict" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">{props.queueLink}</Link>
+                  )}
                 </div>
                 {props.queueClear ? (
                   <div className="text-[12px] leading-[1.6] text-[var(--text-secondary)]">Nothing else is waiting on you. Every other market in every league is answered.</div>
                 ) : (
                   <div className="flex flex-col">
                     {props.queue.map((q: any, i: number) => (
-                      <div key={i} style={q.rowStyle}>
+                      <Link href={q.href || '/predict'} key={i} style={q.rowStyle}>
                         <div className="flex flex-col gap-[2px]">
                           <span className="tf-crest w-[22px] h-[24px] text-[7.5px]" style={{ background: q.homeColor }}>{q.homeCode}</span>
                           <span className="tf-crest w-[22px] h-[24px] text-[7.5px]" style={{ background: q.awayColor }}>{q.awayCode}</span>
@@ -131,7 +133,7 @@ export function HomeMobile({ state, theme, ...props }: any) {
                           <div className="tf-num font-heading font-bold text-[12px] text-[var(--text-primary)]">{q.time}</div>
                           <div className="tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{q.missing}</div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -142,10 +144,10 @@ export function HomeMobile({ state, theme, ...props }: any) {
               <section className="p-[24px_0_0]">
                 <div className="flex items-baseline justify-between px-[var(--gutter)] mb-[10px]">
                   <span className="tf-kicker">Where you stand</span>
-                  <span className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">SEE ALL {props.leagueCount} →</span>
+                  <Link href="/leagues" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">SEE ALL {props.leagueCount} →</Link>
                 </div>
                 {props.leagues.map((l: any, i: number) => (
-                  <Link href={`/leagues/${i + 1}`} key={i} style={l.rowStyle} className="px-[var(--gutter)]">
+                  <Link href={`/leagues/${l.id}`} key={i} style={l.rowStyle} className="px-[var(--gutter)]">
                     <span className="tf-crest w-[22px] h-[24px] text-[7.5px]" style={{ background: l.crestBg }}>{l.crest}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-heading font-semibold text-[11.5px] truncate">{l.name}</div>

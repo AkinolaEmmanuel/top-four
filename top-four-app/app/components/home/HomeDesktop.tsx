@@ -127,7 +127,9 @@ export function HomeDesktop({ state, theme, ...props }: any) {
                 {/* THE QUEUE */}
                 <div className="flex items-baseline justify-between">
                   <span className="tf-kicker">{props.queueKicker}</span>
-                  <span className="font-heading font-bold text-[10px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">{props.queueLink}</span>
+                  {props.queueLink && (
+                    <Link href="/predict" className="font-heading font-bold text-[10px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">{props.queueLink}</Link>
+                  )}
                 </div>
 
                 {props.queueClear ? (
@@ -144,7 +146,7 @@ export function HomeDesktop({ state, theme, ...props }: any) {
                       <span className="tf-kicker text-right">Locks</span>
                     </div>
                     {props.queue.map((q: any, i: number) => (
-                      <div key={i} style={q.rowStyle} className="grid grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] gap-[14px] items-center p-[13px_18px] cursor-pointer border-b border-[var(--surface-border)] last:border-0 hover:bg-[var(--surface-subtle)] transition-colors">
+                      <Link href={q.href || '/predict'} key={i} style={q.rowStyle} className="grid grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] gap-[14px] items-center p-[13px_18px] cursor-pointer border-b border-[var(--surface-border)] last:border-0 hover:bg-[var(--surface-subtle)] transition-colors">
                         <div className="flex flex-col gap-[2px]">
                           <span className="tf-crest" style={{ background: q.homeColor, width: '26px', height: '28px', fontSize: '8.5px' }}>{q.homeCode}</span>
                           <span className="tf-crest" style={{ background: q.awayColor, width: '26px', height: '28px', fontSize: '8.5px' }}>{q.awayCode}</span>
@@ -156,7 +158,7 @@ export function HomeDesktop({ state, theme, ...props }: any) {
                         <div className="text-[11.5px] text-[var(--text-secondary)] truncate">{q.meta}</div>
                         <div className="tf-num text-right font-heading font-bold text-[12px] text-[var(--text-link)]">{q.missing}</div>
                         <div className="tf-num text-right font-heading font-bold text-[13px]">{q.time}</div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -186,11 +188,11 @@ export function HomeDesktop({ state, theme, ...props }: any) {
 
                 <div className="flex items-baseline justify-between mt-[24px]">
                   <span className="tf-kicker">Where you stand</span>
-                  <span className="font-heading font-bold text-[10px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">SEE ALL {props.leagueCount} →</span>
+                  <Link href="/leagues" className="font-heading font-bold text-[10px] tracking-[0.06em] text-[var(--text-link)] cursor-pointer">SEE ALL {props.leagueCount} →</Link>
                 </div>
                 <div className="mt-[12px] border-t border-[var(--surface-border-strong)]">
                   {props.leagues.map((l: any, i: number) => (
-                    <Link href={`/leagues/${i + 1}`} key={i} className="flex items-center gap-[11px] p-[12px_4px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors">
+                    <Link href={`/leagues/${l.id}`} key={i} className="flex items-center gap-[11px] p-[12px_4px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors">
                       <span className="tf-crest" style={{ background: l.crestBg, width: '26px', height: '28px', fontSize: '8px' }}>{l.crest}</span>
                       <div className="flex-1 min-w-0">
                         <div className="font-heading font-semibold text-[12.5px] truncate">{l.name}</div>
