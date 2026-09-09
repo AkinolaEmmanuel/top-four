@@ -1,6 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
+
+function Crest({ logo, code, color, size, fontSize }: { logo?: string | null; code: string; color: string; size: number; fontSize: number }) {
+  if (logo) {
+    return (
+      <span className="tf-crest relative overflow-hidden bg-white flex-none" style={{ width: size, height: Math.round(size * 1.06) }}>
+        <Image src={logo} alt={code} fill sizes={`${size}px`} className="object-contain p-[3px]" />
+      </span>
+    );
+  }
+  return <span className="tf-crest flex-none" style={{ background: color, width: size, height: Math.round(size * 1.06), fontSize }}>{code}</span>;
+}
 
 export function HomeDesktop({ state, theme, ...props }: any) {
   const isLoading = state === 'loading';
@@ -99,13 +111,13 @@ export function HomeDesktop({ state, theme, ...props }: any) {
                     </div>
                     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-[22px] items-center mt-[16px]">
                       <div className="flex items-center gap-[11px] justify-end min-w-0">
-                        <span className="tf-crest" style={{ background: props.homeColor, width: '34px', height: '36px' }}>{props.homeCode}</span>
+                        <Crest logo={props.homeLogo} code={props.homeCode} color={props.homeColor} size={34} fontSize={11} />
                         <span className="font-heading font-[650] text-[21px] leading-[1.15] tracking-[-0.5px] whitespace-nowrap overflow-hidden text-ellipsis">{props.homeName}</span>
                       </div>
                       <span className="font-heading font-semibold text-[11px] text-[var(--nav-text-faint)]">v</span>
                       <div className="flex items-center gap-[11px] min-w-0">
                         <span className="font-heading font-[650] text-[21px] leading-[1.15] tracking-[-0.5px] whitespace-nowrap overflow-hidden text-ellipsis text-right">{props.awayName}</span>
-                        <span className="tf-crest" style={{ background: props.awayColor, width: '34px', height: '36px' }}>{props.awayCode}</span>
+                        <Crest logo={props.awayLogo} code={props.awayCode} color={props.awayColor} size={34} fontSize={11} />
                       </div>
                     </div>
                     <div className="flex items-center gap-[14px] mt-[20px]">
@@ -148,8 +160,8 @@ export function HomeDesktop({ state, theme, ...props }: any) {
                     {props.queue.map((q: any, i: number) => (
                       <Link href={q.href || '/predict'} key={i} style={q.rowStyle} className="grid grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] gap-[14px] items-center p-[13px_18px] cursor-pointer border-b border-[var(--surface-border)] last:border-0 hover:bg-[var(--surface-subtle)] transition-colors">
                         <div className="flex flex-col gap-[2px]">
-                          <span className="tf-crest" style={{ background: q.homeColor, width: '26px', height: '28px', fontSize: '8.5px' }}>{q.homeCode}</span>
-                          <span className="tf-crest" style={{ background: q.awayColor, width: '26px', height: '28px', fontSize: '8.5px' }}>{q.awayCode}</span>
+                          <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={26} fontSize={8.5} />
+                          <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={26} fontSize={8.5} />
                         </div>
                         <div className="min-w-0">
                           <div className="font-heading font-semibold text-[13.5px] tracking-[-0.2px] truncate">{q.match}</div>
