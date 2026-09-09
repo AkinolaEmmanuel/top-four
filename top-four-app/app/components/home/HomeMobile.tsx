@@ -1,7 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
+
+function Crest({ logo, code, color, size, fontSize }: { logo?: string | null; code: string; color: string; size: number; fontSize: number }) {
+  if (logo) {
+    return (
+      <span className="tf-crest relative overflow-hidden bg-white flex-none" style={{ width: size, height: Math.round(size * 1.06) }}>
+        <Image src={logo} alt={code} fill sizes={`${size}px`} className="object-contain p-[3px]" />
+      </span>
+    );
+  }
+  return <span className="tf-crest flex-none" style={{ background: color, width: size, height: Math.round(size * 1.06), fontSize }}>{code}</span>;
+}
 
 export function HomeMobile({ state, theme, ...props }: any) {
   const isLoading = state === 'loading';
@@ -68,13 +80,13 @@ export function HomeMobile({ state, theme, ...props }: any) {
                   </div>
                   <div className="grid grid-cols-[1fr_auto_1fr] gap-[16px] items-center mt-[14px]">
                     <div className="flex items-center gap-[9px] justify-end min-w-0">
-                      <span className="tf-crest" style={{ background: props.homeColor }}>{props.homeCode}</span>
+                      <Crest logo={props.homeLogo} code={props.homeCode} color={props.homeColor} size={28} fontSize={9} />
                       <span className="font-heading font-[650] text-[18px] leading-[1.15] tracking-[-0.4px] truncate">{props.homeName}</span>
                     </div>
                     <span className="font-heading font-semibold text-[10px] text-[var(--nav-text-faint)]">v</span>
                     <div className="flex items-center gap-[9px] min-w-0">
                       <span className="font-heading font-[650] text-[18px] leading-[1.15] tracking-[-0.4px] truncate text-right">{props.awayName}</span>
-                      <span className="tf-crest" style={{ background: props.awayColor }}>{props.awayCode}</span>
+                      <Crest logo={props.awayLogo} code={props.awayCode} color={props.awayColor} size={28} fontSize={9} />
                     </div>
                   </div>
                   <div className="flex items-center gap-[12px] mt-[16px]">
@@ -122,8 +134,8 @@ export function HomeMobile({ state, theme, ...props }: any) {
                     {props.queue.map((q: any, i: number) => (
                       <Link href={q.href || '/predict'} key={i} style={q.rowStyle}>
                         <div className="flex flex-col gap-[2px]">
-                          <span className="tf-crest w-[22px] h-[24px] text-[7.5px]" style={{ background: q.homeColor }}>{q.homeCode}</span>
-                          <span className="tf-crest w-[22px] h-[24px] text-[7.5px]" style={{ background: q.awayColor }}>{q.awayCode}</span>
+                          <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={22} fontSize={7.5} />
+                          <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={22} fontSize={7.5} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-heading font-semibold text-[12.5px] truncate">{q.match}</div>
