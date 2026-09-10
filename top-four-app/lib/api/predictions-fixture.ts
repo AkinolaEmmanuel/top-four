@@ -22,6 +22,7 @@ export interface FixtureAvailability {
   leagueFixtureId: string;
   fixtureId: string;
   fixtureState: string;
+  kickoff: KickoffBasis;
   homeTeam: FixtureAvailabilityTeam;
   awayTeam: FixtureAvailabilityTeam;
   hasOpenMarkets: boolean;
@@ -29,6 +30,16 @@ export interface FixtureAvailability {
   marketStateCounts: Record<string, number>;
   predictionCompleteness: { required: number; answered: number; unanswered: number; complete: boolean };
   markets: FixtureMarketAvailability[];
+}
+
+/**
+ * `serverTime` travels with the fixture because every deadline on the screen is
+ * measured against it — the browser's clock can be wrong by minutes, and a
+ * market that reads open when the server has closed it costs the member points.
+ */
+export interface FixtureAvailabilitySnapshot {
+  fixture: FixtureAvailability;
+  serverTime: string;
 }
 
 export interface KickoffBasis {
@@ -209,9 +220,9 @@ export interface FixtureResultsResponse {
   markets: MemberMarketResult[];
 }
 
-export async function fetchFixtureAvailability(leagueId: string, fixtureId: string): Promise<FixtureAvailability> {
-  const response = await apiFetch<{ data: FixtureAvailability }>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`);
-  return response.data;
+export async function fetchFixtureAvailability(leagueId: string, fixtureId: string): Promise<FixtureAvailabilitySnapshot> {
+  const response = await apiFetch<{ data: FixtureAvailability; serverTime: string }>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`);
+  return { fixture: response.data, serverTime: response.serverTime };
 }
 
 export async function fetchOwnPredictions(leagueId: string, fixtureId: string): Promise<OwnFixturePredictions> {

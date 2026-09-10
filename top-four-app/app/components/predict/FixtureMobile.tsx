@@ -16,10 +16,11 @@ function Crest({ logo, code, color }: { logo?: string | null; code: string; colo
 
 export function FixtureMobile({
   theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone,
-  answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
+  answeredTotal, pct, a, setAnswers, markets, lineups,
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
   leagueName, competitionLabel, fixtureId, leagueId,
-  hName, aName, hCode, aCode, hLogo, aLogo, scoreline, bannerRight
+  hName, aName, hCode, aCode, hLogo, aLogo, scoreline, bannerRight,
+  totalSlots, lineupDeadlineLabel
 }: any) {
 
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB[hCode] || '#666'} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB[aCode] || '#666'} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
@@ -85,24 +86,13 @@ export function FixtureMobile({
                     <div className="flex-1 h-[5px] rounded-full bg-[rgba(255,255,255,0.16)] overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-200" style={{ width: `${pct}%`, background: locked ? 'var(--nav-text-faint)' : urgent ? 'var(--color-danger)' : 'var(--nav-accent)' }}></div>
                     </div>
-                    <span className="tf-num font-heading font-bold text-[11px] flex-none">{answeredTotal} of 8</span>
+                    <span className="tf-num font-heading font-bold text-[11px] flex-none">{answeredTotal} of {totalSlots}</span>
                   </div>
                 )}
 
                 <div className="text-[10.5px] leading-[1.5] text-[var(--nav-text-faint)] mt-[14px] pb-[16px]">{HERO[2]}</div>
               </div>
             </section>
-
-            {conflict && (
-              <section className="p-[16px_var(--gutter)] bg-[var(--warn-surface)] border-b border-[var(--surface-border)]">
-                <div className="tf-kicker text-[var(--warn-text)]">ANSWERED SOMEWHERE ELSE</div>
-                <div className="text-[12.5px] leading-[1.55] text-[var(--text-primary)] mt-[9px]">Match result is stored as <strong>Draw</strong>. This device was about to save <strong>Arsenal to win</strong>.</div>
-                <div className="flex gap-[8px] mt-[13px]">
-                  <div onClick={() => { setResolved(true); setAnswers({ ...a, result: "home" }); }} className="tf-tap flex-1 h-[44px] rounded-[11px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12.5px]">Save Arsenal to win</div>
-                  <div onClick={() => { setResolved(true); setAnswers({ ...a, result: "draw" }); }} className="tf-tap flex-1 h-[44px] rounded-[11px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px]">Keep Draw</div>
-                </div>
-              </section>
-            )}
 
             <section className="mt-[20px]">
               <div className="flex items-baseline justify-between p-[0_var(--gutter)_12px]">
@@ -198,7 +188,7 @@ export function FixtureMobile({
             <section className="mt-[22px]">
               <div className="flex items-baseline justify-between p-[0_var(--gutter)_12px]">
                 <span className="tf-kicker text-[var(--text-muted)]">LINEUPS</span>
-                <span className={locked ? "font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-muted)]" : "font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--danger-text)]"}>{settled ? "" : locked ? "CLOSED" : "CLOSE AT 13:00 · 15m"}</span>
+                <span className={locked ? "font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-muted)]" : "font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--danger-text)]"}>{lineupDeadlineLabel}</span>
               </div>
               {lineups.map((l: any, i: number) => (
                 <div onClick={l.pick} key={i} className={`tf-tap cursor-pointer ${l.rowStyle}`}>

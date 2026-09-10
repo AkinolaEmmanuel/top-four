@@ -16,12 +16,12 @@ function Crest({ logo, code, color, size, textSize }: { logo?: string | null; co
 
 export function FixtureDesktop({
   theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone,
-  answeredTotal, conflict, setResolved, a, setAnswers, markets, lineups,
+  answeredTotal, a, setAnswers, markets, lineups,
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
   contextTabs, heroStyle, homeColor, awayColor, heroKicker, heroDotStyle,
   scoreline, scoreSize, kickoffLine, bannerLabel, bannerText, bannerRight,
   marketsDone, lineupsDone, pointsLabel, pointsValue, pointsHeroColor,
-  marketsHint, footNote, canCopy, copySub, showConflict,
+  marketsHint, footNote, canCopy, copySub,
   copyPrimary, copyPrimaryStyle, leagueName, competitionLabel,
   hName, aName, hCode, aCode, hLogo, aLogo
 }: any) {
@@ -113,18 +113,6 @@ export function FixtureDesktop({
 
         <div className="max-w-[1080px] mx-auto px-[24px]">
           
-          {showConflict && (
-            <div className="tf-card mt-[14px] border-[var(--color-warning)] p-[16px_18px] grid grid-cols-[minmax(0,1fr)_auto] gap-[20px] items-center">
-              <div>
-                <div className="font-heading font-semibold text-[14px]">You answered this on another device</div>
-                <div className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] mt-[5px]">Now stored: <strong>Draw</strong>. You were about to save <strong>Arsenal to win</strong>.</div>
-              </div>
-              <div className="flex gap-[9px] flex-none">
-                <div onClick={() => { setResolved(true); setAnswers({ ...a, result: "home" }); }} className="p-[0_18px] h-[42px] rounded-[11px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center cursor-pointer font-heading font-semibold text-[12.5px]">Replace it</div>
-                <div onClick={() => { setResolved(true); setAnswers({ ...a, result: "draw" }); }} className="p-[0_18px] h-[42px] rounded-[11px] border border-[var(--surface-border-strong)] grid place-items-center cursor-pointer font-heading font-semibold text-[12.5px]">Keep stored</div>
-              </div>
-            </div>
-          )}
 
           <div className="flex items-baseline justify-between mt-[26px]">
             <span className="font-heading font-bold text-[19px] tracking-[-0.3px]">Markets</span>

@@ -36,7 +36,8 @@ export function useFixtureData(leagueId: string, fixtureId: string) {
   });
 
   return {
-    availability: availabilityQuery.data,
+    availability: availabilityQuery.data?.fixture,
+    serverTime: availabilityQuery.data?.serverTime,
     predictions: predictionsQuery.data,
     selectablePlayers: selectablePlayersQuery.data,
     results: resultsQuery.data,

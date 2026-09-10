@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FixtureMobile } from '../../../components/predict/FixtureMobile';
 import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
@@ -20,7 +20,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const leagueId = searchParams?.get('leagueId') || '';
   const fixtureId = params.id;
 
-  const { availability, predictions, selectablePlayers, results, isLoading: dataLoading, isError } = useFixtureData(leagueId, fixtureId);
+  const { availability, serverTime, predictions, selectablePlayers, results, isLoading: dataLoading, isError } = useFixtureData(leagueId, fixtureId);
   const { data: leaguesData } = useMyLeagues();
   const submitPrediction = useSubmitPrediction(leagueId, fixtureId);
   const submitLineup = useSubmitLineupPrediction(leagueId, fixtureId);
@@ -88,16 +88,22 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   ], [hName, aName, scorerPlayers, cardPlayers, homeLineupRoster, awayLineupRoster]);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [state, setState] = useState<'open' | 'urgent' | 'locked' | 'settled' | 'conflict' | 'loading'>('open');
   const [history, setHistory] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [failed, setFailed] = useState<Record<string, string>>({});
-  const [resolved, setResolved] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'done' | null>(null);
   const [copyTargets, setCopyTargets] = useState<Record<string, boolean>>({});
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [editingLineup, setEditingLineup] = useState<'home' | 'away' | null>(null);
-  const [seconds, setSeconds] = useState(8115);
+  const [tick, setTick] = useState(() => Date.now());
+
+  // Deadlines belong to the server. Measure the browser's offset from it once
+  // per availability read and apply that to every countdown, so a wrong local
+  // clock cannot make a closed market look open.
+  const clockOffsetMs = useRef(0);
+  useEffect(() => {
+    if (serverTime) clockOffsetMs.current = Date.parse(serverTime) - Date.now();
+  }, [serverTime]);
 
   const ACTUAL: Record<string, any> = { score: [0, 0] };
   const OUTCOME: Record<string, string> = {};
@@ -122,11 +128,21 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const EDITS: Record<string, string[][]> = {};
   const totalPointsEarned = (results?.markets || []).reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0);
 
-  const isLoading = dataLoading || state === 'loading';
+  const isLoading = dataLoading;
   const isReady = !isLoading && !isError;
-  const isLocked = state === "locked" || (!!availability && !availability.hasOpenMarkets && (availability.marketStateCounts.settled || 0) === 0);
-  const isSettled = state === "settled" || (!!availability && (availability.marketStateCounts.settled || 0) > 0 && availability.hasOpenMarkets === false);
-  const urgent = state === "urgent";
+
+  const serverNow = tick + clockOffsetMs.current;
+  const msUntil = (at: string | null | undefined) => (at ? Date.parse(at) - serverNow : null);
+
+  const lineupMarket = availability?.markets.find(m => m.marketType === 'lineup');
+  const settledCount = availability?.marketStateCounts.settled ?? 0;
+
+  // The three phases the design draws, each read from the fixture rather than
+  // from a flag the screen sets itself. "Urgent" is the window after the
+  // lineups have closed while the standard markets are still open.
+  const isSettled = settledCount > 0;
+  const isLocked = !isSettled && !!availability && !availability.hasOpenMarkets;
+  const urgent = !isSettled && !isLocked && !!lineupMarket && !lineupMarket.submissionAllowed;
 
   useEffect(() => {
     if (!predictions) return;
@@ -162,7 +178,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   }, [predictions]);
 
   useEffect(() => {
-    const timer = setInterval(() => setSeconds(s => s > 0 ? s - 1 : 0), 1000);
+    const timer = setInterval(() => setTick(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -170,6 +186,15 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
     return h > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}:${String(s).padStart(2, "0")}`;
   };
+
+  const countdown = (at: string | null | undefined) => {
+    const ms = msUntil(at);
+    if (ms === null) return "—";
+    return fmt(Math.max(0, Math.round(ms / 1000)));
+  };
+
+  const timeOfDay = (at: string | null | undefined) =>
+    at ? new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "—";
 
   const clearFailure = (key: string) =>
     setFailed(prev => {
@@ -269,19 +294,37 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     );
   };
 
-  const st = state;
-  const locked = st === "locked", settled = st === "settled";
-  const conflict = st === "conflict" && !resolved;
+  const locked = isLocked, settled = isSettled;
+  const st = settled ? "settled" : locked ? "locked" : urgent ? "urgent" : "open";
   const editable = isReady && !locked && !settled;
-  const clock = fmt(urgent ? Math.min(seconds, 842) : seconds);
+  const clock = countdown(availability?.nextDeadlineAt);
+  const kickoffLabel = timeOfDay(availability?.kickoff?.at);
 
-  const a = conflict ? { ...answers, match_result: "draw" } : answers;
+  // Lineups close on their own deadline — two hours before kickoff — and never
+  // consult the league's standard lock, so this line is read from that market.
+  const lineupsOpen = !!lineupMarket?.submissionAllowed;
+  const lineupDeadlineLabel = settled ? ""
+    : !lineupsOpen ? "CLOSED"
+      : `CLOSE AT ${timeOfDay(lineupMarket?.deadlineAt)} · ${countdown(lineupMarket?.deadlineAt)}`;
+  const lineupBannerText = lineupsOpen
+    ? `Lineups close at ${timeOfDay(lineupMarket?.deadlineAt)}, two hours before kickoff.`
+    : "Lineups have closed. Everything else stays open until the whistle.";
+
+  const a = answers;
 
   const heroTone = urgent ? "var(--color-danger)" : settled ? "var(--state-provisional)" : locked ? "var(--nav-text-faint)" : "var(--nav-accent)";
   const MARKET_KEYS = ["match_result", "exact_score", "both_teams_to_score", "total_goals", "anytime_goalscorer", "player_card"];
   const answeredMarkets = MARKET_KEYS.filter(k => a[k] !== null && a[k] !== undefined).length;
-  const answeredTotal = answeredMarkets + 1;
-  const pct = Math.round((answeredTotal / 8) * 100);
+
+  // Both elevens are separate answers, so the fixture has one slot per enabled
+  // standard market plus two. Counting anything else misreports progress.
+  const enabledStandardMarkets = (availability?.markets ?? []).filter(m => m.enabled && m.marketType !== 'lineup');
+  const standardSlots = enabledStandardMarkets.length || MARKET_KEYS.length;
+  const lineupsAnswered = (a.home_lineup ? 1 : 0) + (a.away_lineup ? 1 : 0);
+  const lineupSlots = lineupMarket?.enabled === false ? 0 : 2;
+  const totalSlots = standardSlots + lineupSlots;
+  const answeredTotal = answeredMarkets + lineupsAnswered;
+  const pct = totalSlots > 0 ? Math.round((answeredTotal / totalSlots) * 100) : 0;
 
   const tileStyleMobile = (mine: boolean, won: boolean) => {
     const base = `flex-1 min-w-0 min-h-[52px] rounded-[11px] flex flex-col justify-center items-center gap-[3px] p-[6px_4px] text-center transition-all duration-140 ${editable ? 'cursor-pointer' : 'cursor-default'} `;
@@ -497,7 +540,6 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     urgent: ["LOCKING NOW", "until everything locks", "Anything still unanswered when the whistle goes scores nothing. Lineups have already closed."],
     locked: ["LOCKED", "kick-off", "Nothing can change now. Any unanswered markets will score nothing."],
     settled: ["PROVISIONAL", "so far", "Provisional until review closes. A voided market scores nothing for everyone."],
-    conflict: ["OPEN", "until everything locks", "This fixture is open on another device too. The stored answer always wins until you replace it."],
     loading: ["", "", ""]
   };
   const heroData = HERO[isReady ? st : "open"] || HERO.open;
@@ -574,9 +616,10 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
   const props = {
     theme, isLoading, isReady, settled, locked, urgent, clock, HERO: heroData, heroTone,
-    answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
+    answeredTotal, pct, totalSlots, a, setAnswers, markets, lineups,
     carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
     leagueName, competitionLabel, fixtureId, leagueId,
+    kickoffLabel, lineupDeadlineLabel,
     hName, aName, hCode, aCode, hLogo, aLogo,
 
     // Desktop extra
@@ -585,19 +628,18 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     homeColor: CLUB[hCode] || '#666', awayColor: CLUB[aCode] || '#666',
     heroKicker: settled ? "PROVISIONAL" : locked ? "LOCKED" : "OPEN",
     heroDotStyle: { width: '8px', height: '8px', borderRadius: '999px', flex: 'none', background: settled ? 'var(--nav-positive)' : locked ? 'var(--nav-text-faint)' : 'var(--nav-warning)' },
-    scoreline: settled ? `${ACTUAL.score[0]} — ${ACTUAL.score[1]}` : "15:00",
+    scoreline: settled ? `${ACTUAL.score[0]} — ${ACTUAL.score[1]}` : kickoffLabel,
     scoreSize: settled ? '64px' : '52px',
     kickoffLine: settled ? "FULL TIME" : "KICKOFF",
     bannerLabel: settled ? "Provisional" : locked ? "Kick-off" : "Last market locks in",
-    bannerRight: settled ? `+${totalPointsEarned}` : locked ? "15:00" : clock,
-    bannerText: settled ? "Final once review closes" : locked ? "Nothing can change now" : "Lineups closed 2h before kickoff",
-    marketsDone: `${answeredTotal} of 6`, lineupsDone: "1 of 2",
+    bannerRight: settled ? `+${totalPointsEarned}` : locked ? kickoffLabel : clock,
+    bannerText: settled ? "Final once review closes" : locked ? "Nothing can change now" : lineupBannerText,
+    marketsDone: `${answeredMarkets} of ${standardSlots}`, lineupsDone: `${lineupsAnswered} of ${lineupSlots}`,
     pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? `+${totalPointsEarned}` : "18", pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
     marketsHint: editable ? "Each market saves the moment you pick — there is no fixture-level save." : "Editing closed.",
     footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
     canCopy: editable && otherLeagues.length > 0,
     copySub: `${otherLeagues.length} other leagues · ${carryLabels.length} answers ready to carry`,
-    showConflict: conflict,
     copyPrimary: chosen ? `Copy into ${chosen} ${chosen === 1 ? 'league' : 'leagues'}` : "Pick a league",
     copyPrimaryStyle: `mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`,
     onCopyExecute: handleExecuteCopy
