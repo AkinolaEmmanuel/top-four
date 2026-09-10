@@ -603,6 +603,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     bannerText: settled ? "Final once review closes" : locked ? "Nothing can change now" : "Lineups closed 2h before kickoff",
     marketsDone: `${answeredMarkets} of ${enabledStandardKeys.length}`, lineupsDone: `${lineupsSetCount} of ${enabledLineupCount}`,
     pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? `+${totalPointsEarned}` : String(totalPointsAtStake), pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
+    pointsAtStake: totalPointsAtStake, pointsEarned: totalPointsEarned,
     marketsHint: editable ? "Each market saves the moment you pick — there is no fixture-level save." : "Editing closed.",
     footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
     canCopy: editable && otherLeagues.length > 0,
