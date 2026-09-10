@@ -10,6 +10,14 @@ import {
   StandardAnswerValue,
 } from '@/lib/api/predictions-fixture';
 
+export function useFixtureResults(leagueId: string, fixtureId: string) {
+  return useQuery({
+    queryKey: ['fixture-results', leagueId, fixtureId],
+    queryFn: () => fetchFixtureResults(leagueId, fixtureId),
+    enabled: !!leagueId && !!fixtureId,
+  });
+}
+
 export function useFixtureData(leagueId: string, fixtureId: string) {
   const availabilityQuery = useQuery({
     queryKey: ['fixture-availability', leagueId, fixtureId],
