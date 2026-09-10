@@ -694,7 +694,10 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     marketsHint: editable ? "Each market saves the moment you pick — there is no fixture-level save." : "Editing closed.",
     footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
     canCopy: editable && otherLeagues.length > 0,
-    copySub: `${otherLeagues.length} other leagues · ${carryLabels.length} answers ready to carry`,
+    copySub: `${otherLeagues.length} other ${otherLeagues.length === 1 ? 'league includes' : 'leagues include'} this match · ${carryLabels.length} ${carryLabels.length === 1 ? 'answer' : 'answers'} ready to carry`,
+    copyExplainer: otherLeagues.length === 1
+      ? "One other league you are in includes this match. It keeps its own copy — a later edit here changes nothing there."
+      : `${otherLeagues.length} other leagues you are in include this match. Each keeps its own copy — a later edit here changes nothing there.`,
     copyPrimary: chosen ? `Copy into ${chosen} ${chosen === 1 ? 'league' : 'leagues'}` : "Pick a league",
     copyPrimaryStyle: `mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`,
     onCopyExecute: handleExecuteCopy

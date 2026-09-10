@@ -34,6 +34,11 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     return tasksData.items.filter(t => t.league.id === params.id);
   }, [tasksData, params.id]);
 
+  // The league DTOs carry no member count; the dashboard summary does, and the
+  // standings page knows the league-wide total behind its current page.
+  const activeMemberCount = dashboard?.summary.activeMemberCount ?? null;
+  const totalActiveMembers = standingsData?.totalActiveMembers ?? 0;
+
   const completeness = dashboard?.summary.predictionCompleteness;
   const totalMarkets = completeness?.required ?? 0;
   const answeredMarkets = completeness?.answered ?? 0;
@@ -106,10 +111,13 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     pointsStyle: `font-heading font-bold text-[14px] flex-none ${r.you ? 'text-[var(--accent-text-strong)]' : 'text-[var(--text-primary)]'}`
   }));
 
-  // No fixture-results API exists yet to source a real "last result" — show the honest no-data state
-  // rather than fabricated outcomes until that endpoint is available.
+  // The last-settled-fixture block is not wired yet (finding 26). Until it is,
+  // `hasResult` keeps the solid block — and its scoreline — off the screen
+  // rather than filling it with an invented one.
   const RESULT = {
+    hasResult: false,
     kicker: "NO RESULTS YET", badge: "—", pts: "—",
+    homeCode: "", awayCode: "", homeColor: "#666", awayColor: "#666", score: "",
     summary: "No settled fixtures yet in this league.",
     breakdown: [] as any[]
   };
@@ -179,14 +187,44 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     ? `/predict/fixture/${nextFixtureTask.leagueFixtureId || nextFixtureTask.fixtureId}?leagueId=${params.id}`
     : `/predict`;
 
+  // The next fixture and the gap to the member above are the same facts on both
+  // platforms, so they are derived once. The mobile twin used to draw a fixed
+  // Arsenal v Chelsea and a rival called Tobi here, whatever the real league was.
+  const teamCode = (name: string | undefined) => (name ? name.substring(0, 3).toUpperCase() : "—");
+  const nextFixture = {
+    homeCode: teamCode(nextFixtureTask?.homeTeam.displayName),
+    homeName: nextFixtureTask?.homeTeam.displayName ?? "—",
+    homeColor: CLUB[teamCode(nextFixtureTask?.homeTeam.displayName)] || '#666',
+    awayCode: teamCode(nextFixtureTask?.awayTeam.displayName),
+    awayName: nextFixtureTask?.awayTeam.displayName ?? "—",
+    awayColor: CLUB[teamCode(nextFixtureTask?.awayTeam.displayName)] || '#666',
+    kickoff: nextFixtureTask?.kickoffAt
+      ? new Date(nextFixtureTask.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+      : "—",
+  };
+
+  const memberAbove = myRow ? liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1) : undefined;
+  const memberBelow = myRow ? liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) + 1) : undefined;
+  const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
+
+  // Counts the whole league, not the page of standings currently loaded.
+  const rivalKicker = standingsLoading ? "LOADING…"
+    : myRow ? `You are ${ordinal(parseInt(myRow.pos))} of ${totalActiveMembers}`.toUpperCase()
+      : "NOT RANKED YET";
+  const gapNumber = memberAbove ? String(memberAbove.points - myRow!.points) : "—";
+  const gapLabel = memberAbove ? `points behind ${memberAbove.name}` : "";
+  const gapNote = memberBelow ? `and ${myRow!.points - memberBelow.points} clear of ${ordinal(parseInt(myRow!.pos) + 1)}` : "";
+
   const propsMobile = {
     theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
     heroTone, heroData, pct, rivals: mobileRivals, RESULT, nailed, rBreakdown: mBreakdown, unanswered,
     IconMap, tabs, heroBg, resultBg: mResultBg,
     leagueName: league?.name,
-    memberCount: league?.memberCount,
+    memberCount: activeMemberCount,
     lifecycleLabel: league?.lifecycleState?.replace('_', ' '),
-    heroCtaHref
+    heroCtaHref,
+    ...nextFixture,
+    rivalKicker, gapNumber, gapLabel, gapNote
   };
 
   const propsDesktop = {
@@ -196,37 +234,16 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     heroKicker: heroData[0], heroKickerColor: heroTone,
     heroClock: heroData[1], heroClockSub: heroData[2],
     heroClockColor: urgent ? "var(--color-danger)" : "var(--nav-text)",
-    homeCode: nextFixtureTask ? nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase() : "—",
-    homeName: nextFixtureTask ? nextFixtureTask.homeTeam.displayName : "—",
-    homeColor: nextFixtureTask ? (CLUB[nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
-    awayCode: nextFixtureTask ? nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase() : "—",
-    awayName: nextFixtureTask ? nextFixtureTask.awayTeam.displayName : "—",
-    awayColor: nextFixtureTask ? (CLUB[nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
-    kickoff: nextDeadline ? nextDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+    ...nextFixture,
     heroBarStyle: { width: `${pct}%`, height: '100%', borderRadius: '999px', background: caught ? 'var(--nav-positive)' : 'var(--nav-accent)' },
     heroProgress: heroData[3],
     heroCtaStyle: { flex: 'none', height: '48px', minWidth: '186px', padding: '0 26px', borderRadius: '12px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 14px 'DM Sans',sans-serif", letterSpacing: '-.1px', background: caught ? 'transparent' : 'var(--nav-accent)', color: caught ? 'var(--nav-text)' : 'var(--nav-on-accent)', border: caught ? '1px solid var(--nav-border)' : 'none', boxShadow: caught ? 'none' : 'var(--elev-2)' },
     heroCta: heroData[4],
     heroCtaHref,
     heroFoot: heroData[5],
-    rivalKicker: standingsLoading ? "LOADING…" : myRow ? `YOU ARE ${myRow.pos}${myRow.pos === '1' ? 'ST' : myRow.pos === '2' ? 'ND' : myRow.pos === '3' ? 'RD' : 'TH'} OF ${liveRows.length}`.toUpperCase() : "NOT RANKED YET",
+    rivalKicker,
     rivals: desktopRivals,
-    gapNumber: (() => {
-      if (!myRow || liveRows.length < 2) return "—";
-      const above = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1);
-      return above ? String(above.points - myRow.points) : "—";
-    })(),
-    gapColor: "var(--text-primary)",
-    gapLabel: (() => {
-      if (!myRow || liveRows.length < 2) return "";
-      const above = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1);
-      return above ? `points behind ${above.name}` : "";
-    })(),
-    gapNote: (() => {
-      if (!myRow || liveRows.length < 2) return "";
-      const below = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) + 1);
-      return below ? `and ${myRow.points - below.points} clear of ${parseInt(myRow.pos) + 1}${parseInt(myRow.pos) + 1 === 2 ? 'nd' : parseInt(myRow.pos) + 1 === 3 ? 'rd' : 'th'}` : "";
-    })(),
+    gapNumber, gapColor: "var(--text-primary)", gapLabel, gapNote,
     resultStyle: dResultStyle, resultKicker: RESULT.kicker, resultKickerColor: "rgba(255,255,255,.62)",
     resultBadgeStyle: { font: "700 9.5px 'DM Sans',sans-serif", letterSpacing: ".09em", padding: "4px 9px", borderRadius: "6px", background: "var(--tf-white)", color: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" },
     resultBadge: RESULT.badge,

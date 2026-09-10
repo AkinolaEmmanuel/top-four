@@ -121,10 +121,31 @@ export default function PredictPage() {
   const openCount = tasksToUse.reduce((a, t) => a + (t.total - t.done), 0);
   const markets = tasksToUse.reduce((a, t) => a + (t.kind === "question" ? 1 : parseInt(t.missing as string, 10) || 1), 0);
 
+  // Both halves of this line used to be fixed strings — "across 3 leagues" for a
+  // member who might have one, and a countdown that never moved.
+  const leaguesInQueue = new Set(tasksToUse.map(t => t.leagueId)).size;
+  const nextLockAt = tasksData?.items.reduce<string | null>((earliest, task) => {
+    const at = task.kind === 'custom_question' ? task.question.deadlineAt : task.nextDeadlineAt;
+    if (!at) return earliest;
+    return !earliest || Date.parse(at) < Date.parse(earliest) ? at : earliest;
+  }, null) ?? null;
+
+  const nextLockLabel = (() => {
+    if (!nextLockAt || !tasksData?.serverTime) return null;
+    const ms = Date.parse(nextLockAt) - Date.parse(tasksData.serverTime);
+    if (ms <= 0) return "now";
+    const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+  })();
+
   const total = isReady ? String(markets) : "0";
   const totalColor = isReady ? "var(--nav-text)" : "var(--nav-text-faint)";
   const totalLabel = isReady ? "markets open" : "no predictions to make";
-  const totalSub = isReady ? "across 3 leagues · next locks in 2h 15m" : "";
+  const totalSub = !isReady ? ""
+    : [
+        `across ${leaguesInQueue} ${leaguesInQueue === 1 ? 'league' : 'leagues'}`,
+        nextLockLabel ? `next locks in ${nextLockLabel}` : null,
+      ].filter(Boolean).join(' · ');
 
   const uniqueLeagues = useMemo(() => {
     if (!leaguesData) return [];

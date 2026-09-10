@@ -20,7 +20,7 @@ export function FixtureMobile({
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
   leagueName, competitionLabel, fixtureId, leagueId,
   hName, aName, hCode, aCode, hLogo, aLogo, scoreline, bannerRight,
-  totalSlots, lineupDeadlineLabel, stakeLabel
+  totalSlots, lineupDeadlineLabel, stakeLabel, canCopy, copySub, copyExplainer
 }: any) {
 
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB[hCode] || '#666'} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB[aCode] || '#666'} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
@@ -202,12 +202,12 @@ export function FixtureMobile({
               ))}
             </section>
 
-            {!locked && !settled && carryLabels.length > 0 && (
+            {canCopy && carryLabels.length > 0 && (
               <div onClick={() => setCopy('idle')} className="tf-tap flex items-center gap-[12px] mt-[22px] p-[15px_var(--gutter)] border-y border-[var(--surface-border)]">
                 <span className="w-[28px] h-[28px] rounded-[8px] bg-[var(--surface-subtle)] grid place-items-center font-heading font-bold text-[13px] text-[var(--text-muted)] flex-none">⇉</span>
                 <div className="flex-1 min-w-0">
                   <div className="font-heading font-semibold text-[13px]">Answer this match once</div>
-                  <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">3 other leagues include this match · {carryLabels.length} answers ready to carry</div>
+                  <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{copySub}</div>
                 </div>
                 <span className="font-heading font-bold text-[10px] text-[var(--text-link)] flex-none">COPY →</span>
               </div>
@@ -229,7 +229,7 @@ export function FixtureMobile({
                 {copy === 'idle' && (
                   <div>
                     <div className="font-heading font-bold text-[20px] leading-[1.15] tracking-[-0.5px]">Use these answers elsewhere</div>
-                    <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">Three other leagues you are in include this match. Each keeps its own copy — a later edit here changes nothing there.</div>
+                    <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">{copyExplainer}</div>
 
                     <div className="flex flex-col gap-[8px] mt-[16px]">
                       {targets.map((t: any, i: number) => (

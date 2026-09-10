@@ -5,7 +5,9 @@ import Link from 'next/link';
 export function LeagueMobile({
   theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
   heroTone, heroData, pct, rivals, RESULT, nailed, rBreakdown, unanswered,
-  IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel, heroCtaHref
+  IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel, heroCtaHref,
+  homeCode, homeName, homeColor, awayCode, awayName, awayColor, kickoff,
+  rivalKicker, gapNumber, gapLabel, gapNote
 }: any) {
 
   return (
@@ -61,13 +63,13 @@ export function LeagueMobile({
 
                 <div className="flex items-center gap-[14px] mt-[20px]">
                   <div className="flex-1 flex items-center gap-[9px] min-w-0">
-                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: CLUB.ARS }}>ARS</span>
-                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">Arsenal</span>
+                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: homeColor }}>{homeCode}</span>
+                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{homeName}</span>
                   </div>
-                  <span className="font-heading font-semibold text-[10px] text-[var(--nav-text-faint)] flex-none">SAT 15:00</span>
+                  <span className="font-heading font-semibold text-[10px] text-[var(--nav-text-faint)] flex-none">{kickoff}</span>
                   <div className="flex-1 flex items-center gap-[9px] justify-end min-w-0">
-                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis text-right">Chelsea</span>
-                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: CLUB.CHE }}>CHE</span>
+                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis text-right">{awayName}</span>
+                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: awayColor }}>{awayCode}</span>
                   </div>
                 </div>
 
@@ -88,7 +90,7 @@ export function LeagueMobile({
             {/* RIVALRY */}
             <section className="mt-[22px]">
               <div className="flex items-baseline justify-between p-[0_var(--gutter)_10px]">
-                <span className="tf-kicker text-[var(--text-muted)]">{caught ? "YOU ARE 24TH OF 128" : "YOU ARE CHASING TOBI"}</span>
+                <span className="tf-kicker text-[var(--text-muted)]">{rivalKicker}</span>
                 <Link href={`/leagues/${params.id}/table`} className="tf-tap font-heading font-bold text-[10px] text-[var(--text-link)]">FULL TABLE →</Link>
               </div>
               {rivals.map((r: any, i: number) => (
@@ -99,41 +101,51 @@ export function LeagueMobile({
                   <span className={`tf-num ${r.pointsStyle}`}>{r.points}</span>
                 </div>
               ))}
-              <div className="flex items-end gap-[12px] p-[16px_var(--gutter)_0]">
-                <div className="tf-num font-heading font-bold text-[44px] leading-[0.85] tracking-[-2px] text-[var(--text-primary)]">6</div>
-                <div className="pb-[3px]">
-                  <div className="font-heading font-semibold text-[12.5px]">{caught ? "points behind 23rd" : "points behind Tobi"}</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">{caught ? "and 5 clear of 25th" : "One exact score would do it."}</div>
-                </div>
-              </div>
-            </section>
-
-            {/* PAYOFF */}
-            <section className="p-[22px_var(--gutter)_0]">
-              <div className="rounded-[12px] p-[18px] text-[var(--tf-white)]" style={{ background: resultBg }}>
-                <div className="flex items-center justify-between gap-[10px]">
-                  <span className="tf-kicker text-[rgba(255,255,255,0.62)]">{RESULT.kicker}</span>
-                  <span className={`tf-chip bg-[var(--tf-white)] ${nailed ? 'text-[var(--tf-green-800)]' : 'text-[var(--tf-navy-800)]'}`}>{RESULT.badge}</span>
-                </div>
-
-                <div className="flex items-center gap-[13px] mt-[14px]">
-                  <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: CLUB.LIV }}>LIV</span>
-                  <span className="tf-num font-heading font-bold text-[34px] leading-[1] tracking-[-1.2px]">2 — 1</span>
-                  <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: CLUB.TOT }}>TOT</span>
-                  <div className="flex-1 text-right">
-                    <div className="tf-num font-heading font-bold text-[26px] tracking-[-0.8px] text-[var(--tf-white)]">{RESULT.pts}</div>
-                    <div className="text-[10px] text-[rgba(255,255,255,0.55)] mt-[2px]">this fixture</div>
+              {gapLabel && (
+                <div className="flex items-end gap-[12px] p-[16px_var(--gutter)_0]">
+                  <div className="tf-num font-heading font-bold text-[44px] leading-[0.85] tracking-[-2px] text-[var(--text-primary)]">{gapNumber}</div>
+                  <div className="pb-[3px]">
+                    <div className="font-heading font-semibold text-[12.5px]">{gapLabel}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">{gapNote}</div>
                   </div>
                 </div>
+              )}
+            </section>
 
-                <div className="text-[11.5px] leading-[1.55] text-[rgba(255,255,255,0.72)] mt-[13px]">{RESULT.summary}</div>
+            {/* PAYOFF — the solid block is reserved for a real settled fixture.
+                With nothing settled it would otherwise draw an invented scoreline. */}
+            <section className="p-[22px_var(--gutter)_0]">
+              {RESULT.hasResult ? (
+                <div className="rounded-[12px] p-[18px] text-[var(--tf-white)]" style={{ background: resultBg }}>
+                  <div className="flex items-center justify-between gap-[10px]">
+                    <span className="tf-kicker text-[rgba(255,255,255,0.62)]">{RESULT.kicker}</span>
+                    <span className={`tf-chip bg-[var(--tf-white)] ${nailed ? 'text-[var(--tf-green-800)]' : 'text-[var(--tf-navy-800)]'}`}>{RESULT.badge}</span>
+                  </div>
 
-                <div className="flex flex-wrap gap-[6px] mt-[13px]">
-                  {rBreakdown.map((b: any, i: number) => (
-                    <span key={i} className={b.style}>{b.label}</span>
-                  ))}
+                  <div className="flex items-center gap-[13px] mt-[14px]">
+                    <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: RESULT.homeColor }}>{RESULT.homeCode}</span>
+                    <span className="tf-num font-heading font-bold text-[34px] leading-[1] tracking-[-1.2px]">{RESULT.score}</span>
+                    <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: RESULT.awayColor }}>{RESULT.awayCode}</span>
+                    <div className="flex-1 text-right">
+                      <div className="tf-num font-heading font-bold text-[26px] tracking-[-0.8px] text-[var(--tf-white)]">{RESULT.pts}</div>
+                      <div className="text-[10px] text-[rgba(255,255,255,0.55)] mt-[2px]">this fixture</div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11.5px] leading-[1.55] text-[rgba(255,255,255,0.72)] mt-[13px]">{RESULT.summary}</div>
+
+                  <div className="flex flex-wrap gap-[6px] mt-[13px]">
+                    {rBreakdown.map((b: any, i: number) => (
+                      <span key={i} className={b.style}>{b.label}</span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-[16px_0] border-y border-[var(--surface-border)]">
+                  <div className="tf-kicker text-[var(--text-muted)]">{RESULT.kicker}</div>
+                  <div className="text-[12.5px] leading-[1.55] text-[var(--text-secondary)] mt-[8px]">{RESULT.summary}</div>
+                </div>
+              )}
             </section>
 
             {/* QUESTIONS */}
