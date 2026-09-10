@@ -186,9 +186,11 @@ export function FixtureDesktop({
                             <span style={pl.tickStyle}>✓</span>
                           </div>
                         ))}
-                        {m.searchLabel && (
+                        {m.searchLabel && ((m as any).searchHref ? (
+                          <Link href={(m as any).searchHref} className={m.searchStyle}>{m.searchLabel}</Link>
+                        ) : (
                           <div className={m.searchStyle}>{m.searchLabel}</div>
-                        )}
+                        ))}
                       </div>
                     )}
                   </div>

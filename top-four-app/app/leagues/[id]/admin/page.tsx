@@ -429,6 +429,7 @@ export default function LeagueAdminPage() {
     theme, tab, setTab, setSheet, setWho, setRole,
     headSub, HERO, loading, onMembers, onInvites, onRequests, onLifecycle,
     members, memberFilters, invites, requests, lifecycle, actions,
+    hasMoreMembers: !!membersData?.nextCursor,
     fresh, setFresh, empty, invitesOpen, setInvitesOpen,
     sheetSpec, roles, toast,
     leagueName, leagueAbbr,

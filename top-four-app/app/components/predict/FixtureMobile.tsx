@@ -164,8 +164,8 @@ export function FixtureMobile({
                           </div>
                         ))}
                       </div>
-                      {!locked && !settled ? (
-                        <Link href={`/predict/fixture/${fixtureId || '1'}/player${leagueId ? `?leagueId=${leagueId}` : ''}`} className={(m as any).searchStyle}>{(m as any).search}</Link>
+                      {(m as any).searchHref ? (
+                        <Link href={(m as any).searchHref} className={(m as any).searchStyle}>{(m as any).search}</Link>
                       ) : (
                         <div className={(m as any).searchStyle}>{(m as any).search}</div>
                       )}

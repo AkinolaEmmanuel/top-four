@@ -9,6 +9,7 @@ import { useAuth } from '@/context/auth-context';
 import { StandingCompetitionPoints, StandingEntry } from '@/lib/api/points';
 
 const TINTS = ["var(--ident-2)", "var(--ident-3)", "var(--ident-1)", "var(--ident-5)", "var(--ident-4)", "var(--ident-7)", "var(--ident-6)"];
+const membersLabel = (n: number) => `${n} member${n === 1 ? '' : 's'}`;
 
 export default function LeagueTablePage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
@@ -115,7 +116,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
       return `${diff} ${diff === 1 ? 'point' : 'points'} behind ${rowAbove.name} in ${rowAbove.pos}${rowAbove.pos === 1 ? 'st' : rowAbove.pos === 2 ? 'nd' : rowAbove.pos === 3 ? 'rd' : 'th'}`;
     }
     if (myRow && myRow.pos === 1) return `Leading by ${rowBelow ? myPointsNumber - rowBelow.points : 0} points`;
-    return `${totalMembers} members`;
+    return membersLabel(totalMembers);
   })();
 
   const rowsDesktop = pageRows.map((m: any, i: number) => {
@@ -180,7 +181,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   });
 
   const winner = allRows.find(r => r.pos === 1);
-  const winnerLine = winner ? `${fmt(winner.points)} points · ${totalMembers} members · predictions are now history` : '';
+  const winnerLine = winner ? `${fmt(winner.points)} points · ${membersLabel(totalMembers)} · predictions are now history` : '';
 
   const hasStanding = !isEmpty;
   const selfOnPage = !isEmpty && !isLoading && myPosNumber !== null && myPosNumber >= range[0] && myPosNumber <= range[1];
@@ -224,7 +225,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   });
 
   const desktopNeighbours = isFinal
-    ? [{ delta: "", deltaStyle: { display: 'none' }, text: `of ${totalMembers} members · the league is over` }]
+    ? [{ delta: "", deltaStyle: { display: 'none' }, text: `of ${membersLabel(totalMembers)} · the league is over` }]
     : [
         ...(rowAbove ? [{ delta: "−" + (rowAbove.points - myPointsNumber), deltaStyle: { font: "700 13px 'DM Sans',sans-serif", minWidth: "32px", color: "var(--nav-text)" }, text: `behind ${rowAbove.name} in ${rowAbove.pos}${rowAbove.pos === 1 ? 'st' : rowAbove.pos === 2 ? 'nd' : rowAbove.pos === 3 ? 'rd' : 'th'}` }] : []),
         ...(rowBelow ? [{ delta: "+" + (myPointsNumber - rowBelow.points), deltaStyle: { font: "700 13px 'DM Sans',sans-serif", minWidth: "32px", color: "var(--nav-text)" }, text: `clear of ${rowBelow.name} in ${rowBelow.pos}${rowBelow.pos === 1 ? 'st' : rowBelow.pos === 2 ? 'nd' : rowBelow.pos === 3 ? 'rd' : 'th'}` }] : [])
@@ -232,7 +233,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
 
   const propsMobile = {
     theme, params, st: isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live', isLoading, isEmpty, isFinal, showRows,
-    headSub: isFinal ? `${totalMembers} members · final` : `${totalMembers} members · updated live`,
+    headSub: isFinal ? `${membersLabel(totalMembers)} · final` : `${membersLabel(totalMembers)} · updated live`,
     myPos, myPosLabel: myPosLabel.toLowerCase(),
     myGap, myName, myInitials, myPoints: myPointsFmt,
     refreshing, hasStanding, totalMembers,
@@ -249,7 +250,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     params, st: isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live', isLoading, isEmpty, isFinal, showRows,
     heroStyle: { flex: 'none', color: 'var(--nav-text)', padding: '26px 0 30px', borderBottom: '1px solid rgba(255,255,255,.1)', background: "linear-gradient(102deg, transparent 46%, color-mix(in srgb, var(--color-brand) 24%, transparent) 100%), var(--nav-surface)" },
     myPos, myPosLabel, myPoints,
-    neighbours: desktopNeighbours.length > 0 ? desktopNeighbours : [{ delta: "", deltaStyle: { display: 'none' }, text: `${totalMembers} members` }],
+    neighbours: desktopNeighbours.length > 0 ? desktopNeighbours : [{ delta: "", deltaStyle: { display: 'none' }, text: membersLabel(totalMembers) }],
     pageLabel: totalMembers > 0 ? `${range[0]}–${range[1]} of ${totalMembers}` : "0 members",
     refreshing, refresh: () => setRefreshing(false), nudge: () => setRefreshing(true), isReady: !isLoading && !isEmpty,
     listRef, cols: [...competitionColumns.map(c => ({ label: c.label })), { label: "Custom" }].map(c => ({ label: c.label, style: { width: "92px", flexShrink: 0, textAlign: "right", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } })),

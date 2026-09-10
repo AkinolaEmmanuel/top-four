@@ -9,7 +9,7 @@ export function LeagueAdminMobile({
   fresh, setFresh, empty, invitesOpen, setInvitesOpen,
   sheetSpec, roles, toast,
   leagueName, inviteCode, createInviteAction, copyInviteAction,
-  memberCount, inviteCount, pendingCount, heroRole
+  memberCount, inviteCount, pendingCount, heroRole, hasMoreMembers
 }: any) {
 
 
@@ -99,7 +99,9 @@ export function LeagueAdminMobile({
                 </div>
               </div>
             ))}
-            <div className="tf-tap p-[15px] text-center font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] border-b border-[var(--surface-border)]">LOAD 25 MORE</div>
+            {hasMoreMembers && (
+              <div className="tf-tap p-[15px] text-center font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] border-b border-[var(--surface-border)]">LOAD 25 MORE</div>
+            )}
             <div className="p-[18px_var(--gutter)_26px] text-[10.5px] leading-[1.6] text-[var(--text-muted)]">A member who leaves keeps their history and their predictions stay hidden. Rejoining restores the same points — leaving is not a way to reset a score.</div>
           </div>
         )}

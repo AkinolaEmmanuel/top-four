@@ -66,7 +66,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     return selectablePlayers.players.map(p => {
       const code = p.side === 'home' ? hCode : aCode;
       const initials = p.displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-      return [p.playerId, p.displayName, `${code} ${p.shirtNumber || ''}`, initials];
+      return [p.playerId, p.displayName, p.shirtNumber ? `${code} ${p.shirtNumber}` : code, initials];
     });
   }, [selectablePlayers, hCode, aCode]);
 
@@ -449,6 +449,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       (m as any).search = editable ? "SEARCH ALL PLAYERS →" : (unanswered ? (settled ? "You did not answer this one" : "Not answered — no points from this one") : "");
       (m as any).searchStyle = `mt-[9px] font-heading font-bold text-[9.5px] tracking-[0.05em] ${editable ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)]'} ${(m as any).search ? '' : 'hidden'}`;
       (m as any).searchLabel = editable ? "Search all players →" : "";
+      (m as any).searchHref = editable ? `/predict/fixture/${fixtureId}/player?leagueId=${leagueId}&market=${d.key === 'player_card' ? 'card' : 'scorer'}` : "";
     }
 
     if (d.key === "exact_score" || d.key === "score") {
