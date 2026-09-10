@@ -48,7 +48,7 @@ export default function MePage() {
     });
   };
 
-  const pendingEmail = false;
+  const emailUnverified = user ? user.emailVerified === false : false;
   const noGoogle = !!user?.signInMethods && !user.signInMethods.includes('google');
 
   // The points-history endpoint is per-league, but this screen is
@@ -118,7 +118,7 @@ export default function MePage() {
   const ACCOUNT = [
     { title: "Display name", note: `${nameDisplay} · shown on every leaderboard`, href: "/me/name" },
     { title: "Change password", note: "Needs your current one. This session stays open, others do not.", href: "/me/password" },
-    { title: "Email address", note: pendingEmail ? `${emailDisplay} not yet confirmed` : `${emailDisplay} · verified`, badge: pendingEmail ? "PENDING" : "", tone: pendingEmail ? "warn" : "", href: "/me/email" },
+    { title: "Email address", note: emailUnverified ? `${emailDisplay} · not yet verified` : `${emailDisplay} · verified`, badge: emailUnverified ? "UNVERIFIED" : "", tone: emailUnverified ? "warn" : "", href: "/me/email" },
     { title: "Google", note: noGoogle ? "Not linked · sign in with your password only" : `Linked to ${emailDisplay}` }
   ];
 
@@ -218,7 +218,7 @@ export default function MePage() {
           rootNav={rootNav}
           accountRows={accountRows}
           emailPrefs={emailPrefs}
-          pendingEmail={pendingEmail}
+          emailUnverified={emailUnverified}
           noGoogle={noGoogle}
           signOut={signOut}
         />

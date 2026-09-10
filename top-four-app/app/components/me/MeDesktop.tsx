@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export function MeDesktop({
   theme, isLoading, prefs, setPrefs, chart, leagues, rootNav, accountRows,
-  emailPrefs, pendingEmail, noGoogle, user, totalPoints, leagueCount, ...props
+  emailPrefs, emailUnverified, noGoogle, user, totalPoints, leagueCount, ...props
 }: any) {
   const isReady = !isLoading;
 
