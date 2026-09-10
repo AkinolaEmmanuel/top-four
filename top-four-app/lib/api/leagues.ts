@@ -87,6 +87,16 @@ export async function fetchLeagueDetails(id: string): Promise<League> {
   return { ...league, competitions };
 }
 
+/**
+ * The frozen ruleset only — no catalogue join, so this costs one request rather
+ * than the three `fetchLeagueDetails` needs to name competitions. Screens that
+ * price a market or explain a tiebreaker want this, not the whole league.
+ */
+export async function fetchLeagueRuleset(leagueId: string): Promise<LeagueRuleset | null> {
+  const league = await apiFetch<{ ruleset?: LeagueRuleset }>(`/leagues/${leagueId}`);
+  return league.ruleset ?? null;
+}
+
 export interface LeagueFixture {
   id: string;
   leagueId: string;

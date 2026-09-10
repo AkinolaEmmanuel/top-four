@@ -236,6 +236,19 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const enabled = MARKETS.filter(m => !m.off);
   const maxPointsDesktop = maxPoints;
 
+  // Read from the frozen ruleset, never spelled out — the mobile twin used to
+  // print the prototype's arithmetic under a table that said otherwise.
+  const maxNote = (() => {
+    const flat = enabled.filter(m => !m.perPlayer);
+    const lineup = enabled.find(m => m.perPlayer);
+    const off = MARKETS.filter(m => m.off).map(m => m.name);
+    const parts = [`${flat.length} ${flat.length === 1 ? 'market' : 'markets'} at ${flat.reduce((a, m) => a + m.pts, 0)} points`];
+    if (lineup) parts.push(`plus twenty-two lineup places at ${lineup.pts} each — both elevens`);
+    let note = parts.join(', ') + '.';
+    if (off.length) note += ` ${off.join(', ')} ${off.length === 1 ? 'is' : 'are'} not run here.`;
+    return note;
+  })();
+
   const marketsDesktop = MARKETS.map((m, i, a) => ({
     name: m.name, note: m.note,
     nameColor: m.off ? "var(--text-muted)" : "var(--text-primary)",
@@ -292,6 +305,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     ds: isTerminal ? 'error' : isLoading ? 'loading' : 'live',
     IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
     showDanger, sections, dangerLines: dangerLinesMobile, footNote, retry: () => {}, dataState: 'live',
+    maxPoints: String(maxPoints), maxNote,
     leagueName
   };
 
@@ -305,16 +319,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     retry: () => {},
     isReady, showMaxPoints: true,
     heroStyle: { flex: "none", background: "var(--nav-surface)", color: "var(--nav-text)", padding: "24px 0 26px", borderBottom: "1px solid rgba(255,255,255,.1)" },
-    maxPoints: String(maxPointsDesktop), maxNote: (() => {
-      const flat = enabled.filter(m => !m.perPlayer);
-      const lineup = enabled.find(m => m.perPlayer);
-      const off = MARKETS.filter(m => m.off).map(m => m.name);
-      const parts = [`${flat.length} ${flat.length === 1 ? 'market' : 'markets'} at ${flat.reduce((a, m) => a + m.pts, 0)} points`];
-      if (lineup) parts.push(`plus twenty-two lineup places at ${lineup.pts} each — both elevens`);
-      let note = parts.join(', ') + '.';
-      if (off.length) note += ` ${off.join(', ')} ${off.length === 1 ? 'is' : 'are'} not run here.`;
-      return note;
-    })(),
+    maxPoints: String(maxPointsDesktop), maxNote,
     showFrozenBanner: true, lockIcon: IconMap.lock(16),
     frozenText: participant ? "These rules were frozen when the league was published. Nobody can change them now, including the owner — you answered under them, so they hold." : "Scoring, tiebreakers and competitions froze at publication. Members answered under them, so they cannot change while the league runs.",
     markets: marketsDesktop, tiebreakers: tiebreakersDesktop,

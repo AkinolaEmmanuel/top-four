@@ -4,6 +4,7 @@ import { useState, useRef, useMemo } from 'react';
 import { LeagueTableMobile } from '../../../components/leagues/LeagueTableMobile';
 import { LeagueTableDesktop } from '../../../components/leagues/LeagueTableDesktop';
 import { useLeague } from '@/hooks/api/useLeagues';
+import { tiebreakerOrder } from '@/lib/constants/markets';
 import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { useAuth } from '@/context/auth-context';
 import { StandingCompetitionPoints, StandingEntry } from '@/lib/api/points';
@@ -236,7 +237,8 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     selfBreakdown: breakdownMobile(myCompetitionPoints, myCustomQuestionPoints, myPointsNumber, true), listRef, jumpToMe,
     page: p, PAGES: Array.from({ length: totalPages }, (_, i) => [i * pageSize + 1, Math.min((i + 1) * pageSize, totalMembers)]), range, prevStyle: prevStyleMobile, nextStyle: nextStyleMobile, prevPage, nextPage,
     selfOpen, setSelfOpen, setRefreshing,
-    leagueName: league?.name
+    leagueName: league?.name,
+    tiebreakers: tiebreakerOrder(league?.ruleset?.tiebreakers ?? []).map((label, i) => ({ n: String(i + 1), label }))
   };
 
   const propsDesktop = {
@@ -251,7 +253,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     legend: [{ label: "Owner", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-owner)" } }, { label: "Admin", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-admin)" } }],
     skeletons: ["62%", "48%", "71%", "55%", "66%", "44%", "58%", "69%", "51%", "64%"].map(w => ({ nameStyle: { height: "11px", borderRadius: "99px", background: "var(--surface-subtle)", maxWidth: w }, cells: ["38px", "34px", "26px", "26px"].map(cw => ({ width: cw, height: "11px", borderRadius: "99px", background: "var(--surface-subtle)" })) })),
     rows: rowsDesktop,
-    tiebreakers: ["Total points", "Exact scores correct", "Match results correct", "Lineup players correct"].map((label, i) => ({ n: String(i + 1), label, style: { flex: 1, display: "flex", flexDirection: "column", gap: "6px", padding: "0 16px", borderLeft: i ? "1px solid var(--surface-border)" : "none", paddingLeft: i ? "16px" : 0 } })),
+    tiebreakers: tiebreakerOrder(league?.ruleset?.tiebreakers ?? []).map((label, i) => ({ n: String(i + 1), label, style: { flex: 1, display: "flex", flexDirection: "column", gap: "6px", padding: "0 16px", borderLeft: i ? "1px solid var(--surface-border)" : "none", paddingLeft: i ? "16px" : 0 } })),
     showTies: !isEmpty && !isLoading,
     hasStanding, selfPos: isEmpty ? "—" : myPosNumber ? String(myPosNumber) : "—", selfMove: isEmpty ? "no points yet" : isFinal ? "final position" : "live position",
     myName, myInitials, selfPoints: myPointsFmt,

@@ -20,7 +20,7 @@ export function FixtureMobile({
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
   leagueName, competitionLabel, fixtureId, leagueId,
   hName, aName, hCode, aCode, hLogo, aLogo, scoreline, bannerRight,
-  totalSlots, lineupDeadlineLabel
+  totalSlots, lineupDeadlineLabel, stakeLabel
 }: any) {
 
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB[hCode] || '#666'} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB[aCode] || '#666'} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
@@ -97,7 +97,7 @@ export function FixtureMobile({
             <section className="mt-[20px]">
               <div className="flex items-baseline justify-between p-[0_var(--gutter)_12px]">
                 <span className="tf-kicker text-[var(--text-muted)]">{settled ? "HOW IT SCORED" : "MARKETS"}</span>
-                <span className="tf-num font-heading font-bold text-[10px] text-[var(--text-muted)]">{settled ? "+3 OF 18" : "18 POINTS AT STAKE"}</span>
+                <span className="tf-num font-heading font-bold text-[10px] text-[var(--text-muted)]">{stakeLabel}</span>
               </div>
 
               {markets.map((m: any, idx: number) => (

@@ -5,7 +5,8 @@ import Link from 'next/link';
 export function LeagueRulesMobile({
   theme, params, isLoading, isTerminal, isReady, isRules, isOwner,
   ds, IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
-  showDanger, sections, dangerLines, footNote, retry, dataState
+  showDanger, sections, dangerLines, footNote, retry, dataState,
+  maxPoints, maxNote
 }: any) {
 
   return (
@@ -87,7 +88,7 @@ export function LeagueRulesMobile({
 
             {showMaxPoints && (
               <div className="p-[20px_var(--gutter)_0] text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
-                The forty above is 2 result + 5 score + 1 both teams + 1 total goals + 5 scorer + 4 card + 22 lineup. One point per correct starter across both elevens, which is why the lineups carry more than half of every match.
+                {maxPoints} at most: {maxNote} One point per correct starter across both elevens.
               </div>
             )}
 

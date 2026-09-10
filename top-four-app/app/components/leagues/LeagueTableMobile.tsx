@@ -8,7 +8,7 @@ export function LeagueTableMobile({
   rows, TINTS, breakdown, selfBreakdown, listRef,
   page, PAGES, range, prevStyle, nextStyle, prevPage, nextPage,
   selfOpen, setSelfOpen, setRefreshing, leagueName, myName, myInitials, myPoints,
-  winnerName, winnerLine, totalMembers, jumpToMe
+  winnerName, winnerLine, totalMembers, jumpToMe, tiebreakers
 }: any) {
 
   return (
@@ -118,8 +118,8 @@ export function LeagueTableMobile({
             ))}
 
             <div className="p-[18px_var(--gutter)_8px]"><span className="tf-kicker text-[var(--text-muted)]">HOW TIES ARE BROKEN</span></div>
-            {[["1", "Total points"], ["2", "Exact scores correct"], ["3", "Match results correct"], ["4", "Lineup players correct"]].map(([n, label], i) => (
-              <div key={i} className={`flex items-center gap-[11px] p-[10px_var(--gutter)] border-t border-[var(--surface-border)] ${i === 3 ? 'border-b' : ''}`}>
+            {(tiebreakers || []).map(({ n, label }: { n: string; label: string }, i: number, arr: unknown[]) => (
+              <div key={i} className={`flex items-center gap-[11px] p-[10px_var(--gutter)] border-t border-[var(--surface-border)] ${i === arr.length - 1 ? 'border-b' : ''}`}>
                 <span className="tf-num w-[16px] flex-none font-semibold text-[10.5px] font-[ui-monospace,Menlo,monospace] text-[var(--text-muted)]">{n}</span>
                 <span className="flex-1 text-[12px] text-[var(--text-secondary)]">{label}</span>
               </div>

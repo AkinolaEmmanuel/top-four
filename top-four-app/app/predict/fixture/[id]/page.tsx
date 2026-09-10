@@ -6,7 +6,7 @@ import { FixtureMobile } from '../../../components/predict/FixtureMobile';
 import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
 import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
-import { useMyLeagues } from '@/hooks/api/useLeagues';
+import { useMyLeagues, useLeagueRuleset } from '@/hooks/api/useLeagues';
 import { ApiError } from '@/lib/api/fetcher';
 
 const CLUB: Record<string, string> = {
@@ -15,6 +15,19 @@ const CLUB: Record<string, string> = {
   PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f"
 };
 
+/** One shape for every market the screen draws, whatever its kind. */
+type MarketOption = [id: string, label: string, sub: string];
+
+interface MarketDef {
+  key: string;
+  name: string;
+  pts: string;
+  kind: 'tiles' | 'score' | 'players' | 'lineup';
+  options?: MarketOption[];
+  players?: unknown[];
+  side?: 'home' | 'away';
+}
+
 export default function FixturePredictPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const leagueId = searchParams?.get('leagueId') || '';
@@ -22,6 +35,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
   const { availability, serverTime, predictions, selectablePlayers, results, isLoading: dataLoading, isError } = useFixtureData(leagueId, fixtureId);
   const { data: leaguesData } = useMyLeagues();
+  const { data: ruleset } = useLeagueRuleset(leagueId);
   const submitPrediction = useSubmitPrediction(leagueId, fixtureId);
   const submitLineup = useSubmitLineupPrediction(leagueId, fixtureId);
   const copyPredictionsMutation = useCopyPredictions(leagueId, fixtureId);
@@ -76,16 +90,56 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     }));
   }, [awayPlayersList]);
 
-  const DEFS = useMemo(() => [
-    { key: "match_result", name: "Match result", pts: "2 pts", kind: "tiles", options: [["home", hName, "win"], ["draw", "Draw", ""], ["away", aName, "win"]] },
-    { key: "exact_score", name: "Exact score", pts: "5 pts", kind: "score" },
-    { key: "both_teams_to_score", name: "Both teams to score", pts: "1 pt", kind: "tiles", options: [["yes", "Yes", ""], ["no", "No", ""]] },
-    { key: "total_goals", name: "Total goals", pts: "1 pt", kind: "tiles", options: [["over", "Over 2.5", ""], ["under", "Under 2.5", ""]] },
-    { key: "anytime_goalscorer", name: "Anytime goalscorer", pts: "5 pts", kind: "players", players: scorerPlayers },
-    { key: "player_card", name: "Player to be carded", pts: "4 pts", kind: "players", players: cardPlayers },
-    { key: "home_lineup", name: `${hName} Starting XI`, pts: "11 pts", kind: "lineup", side: "home", players: homeLineupRoster },
-    { key: "away_lineup", name: `${aName} Starting XI`, pts: "11 pts", kind: "lineup", side: "away", players: awayLineupRoster }
-  ], [hName, aName, scorerPlayers, cardPlayers, homeLineupRoster, awayLineupRoster]);
+  // Every price on this screen comes from the league's frozen ruleset. A market
+  // the league disabled is not drawn at all, and the over/under tiles carry the
+  // league's own goals line — answering a different question from the one that
+  // will be scored is worse than showing nothing.
+  const STANDARD_MARKETS = useMemo(() => ['match_result', 'exact_score', 'both_teams_to_score', 'total_goals', 'anytime_goalscorer', 'player_card'], []);
+
+  const marketPoints = useMemo(() => {
+    const byType = new Map((ruleset?.markets ?? []).map(m => [m.marketType, m]));
+    return (marketType: string) => {
+      const entry = byType.get(marketType);
+      return entry?.enabled ? entry.points : null;
+    };
+  }, [ruleset]);
+
+  const pointsLabel = (points: number | null) => (points === null ? "" : `${points} ${points === 1 ? 'pt' : 'pts'}`);
+
+  const DEFS = useMemo<MarketDef[]>(() => {
+    const line = ruleset?.totalGoalsLine ?? 2.5;
+    const lineupPerStarter = marketPoints('lineup');
+
+    const shapes: Record<string, Omit<MarketDef, 'key' | 'pts'>> = {
+      match_result: { name: "Match result", kind: "tiles", options: [["home", hName, "win"], ["draw", "Draw", ""], ["away", aName, "win"]] },
+      exact_score: { name: "Exact score", kind: "score" },
+      both_teams_to_score: { name: "Both teams to score", kind: "tiles", options: [["yes", "Yes", ""], ["no", "No", ""]] },
+      total_goals: { name: "Total goals", kind: "tiles", options: [["over", `Over ${line}`, ""], ["under", `Under ${line}`, ""]] },
+      anytime_goalscorer: { name: "Anytime goalscorer", kind: "players", players: scorerPlayers },
+      player_card: { name: "Player to be carded", kind: "players", players: cardPlayers },
+    };
+
+    const standard = STANDARD_MARKETS
+      .filter(key => marketPoints(key) !== null)
+      .map(key => ({ key, ...shapes[key], pts: pointsLabel(marketPoints(key)) }));
+
+    if (lineupPerStarter === null) return standard;
+
+    // One point per correct starter, so a side is worth the per-starter price × 11.
+    const perSide = pointsLabel(lineupPerStarter * 11);
+    return [
+      ...standard,
+      { key: "home_lineup", name: `${hName} Starting XI`, pts: perSide, kind: "lineup", side: "home", players: homeLineupRoster },
+      { key: "away_lineup", name: `${aName} Starting XI`, pts: perSide, kind: "lineup", side: "away", players: awayLineupRoster }
+    ];
+  }, [ruleset, marketPoints, STANDARD_MARKETS, hName, aName, scorerPlayers, cardPlayers, homeLineupRoster, awayLineupRoster]);
+
+  // What the whole fixture is worth: every enabled market, both elevens included.
+  const pointsAtStake = useMemo(() => {
+    const standard = STANDARD_MARKETS.reduce((sum, key) => sum + (marketPoints(key) ?? 0), 0);
+    const lineup = marketPoints('lineup');
+    return standard + (lineup === null ? 0 : lineup * 22);
+  }, [STANDARD_MARKETS, marketPoints]);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [history, setHistory] = useState<string | null>(null);
@@ -313,7 +367,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const a = answers;
 
   const heroTone = urgent ? "var(--color-danger)" : settled ? "var(--state-provisional)" : locked ? "var(--nav-text-faint)" : "var(--nav-accent)";
-  const MARKET_KEYS = ["match_result", "exact_score", "both_teams_to_score", "total_goals", "anytime_goalscorer", "player_card"];
+  const MARKET_KEYS = STANDARD_MARKETS.filter(key => marketPoints(key) !== null);
   const answeredMarkets = MARKET_KEYS.filter(k => a[k] !== null && a[k] !== undefined).length;
 
   // Both elevens are separate answers, so the fixture has one slot per enabled
@@ -620,6 +674,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
     leagueName, competitionLabel, fixtureId, leagueId,
     kickoffLabel, lineupDeadlineLabel,
+    stakeLabel: settled ? `+${totalPointsEarned} OF ${pointsAtStake}` : `${pointsAtStake} POINTS AT STAKE`,
     hName, aName, hCode, aCode, hLogo, aLogo,
 
     // Desktop extra
@@ -635,7 +690,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     bannerRight: settled ? `+${totalPointsEarned}` : locked ? kickoffLabel : clock,
     bannerText: settled ? "Final once review closes" : locked ? "Nothing can change now" : lineupBannerText,
     marketsDone: `${answeredMarkets} of ${standardSlots}`, lineupsDone: `${lineupsAnswered} of ${lineupSlots}`,
-    pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? `+${totalPointsEarned}` : "18", pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
+    pointsLabel: settled ? "Points" : "Max", pointsValue: settled ? `+${totalPointsEarned}` : String(pointsAtStake), pointsHeroColor: settled ? "var(--nav-positive)" : "var(--nav-text)",
     marketsHint: editable ? "Each market saves the moment you pick — there is no fixture-level save." : "Editing closed.",
     footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
     canCopy: editable && otherLeagues.length > 0,

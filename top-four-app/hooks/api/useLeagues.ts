@@ -28,6 +28,8 @@ import {
   transferOwnership,
   leaveLeague,
   fetchLeagueDashboard,
+  fetchLeagueRuleset,
+  LeagueRuleset,
   LeagueDashboard,
   updateLeague,
   UpdateLeaguePayload,
@@ -46,6 +48,19 @@ export function useLeague(id: string) {
     queryKey: ['leagues', id],
     queryFn: () => fetchLeagueDetails(id),
     enabled: !!id, // Only run the query if we have an ID
+  });
+}
+
+/**
+ * The ruleset freezes at publication and cannot change while the league runs,
+ * so it is worth caching for far longer than ordinary league data.
+ */
+export function useLeagueRuleset(leagueId: string) {
+  return useQuery<LeagueRuleset | null, Error>({
+    queryKey: ['leagues', leagueId, 'ruleset'],
+    queryFn: () => fetchLeagueRuleset(leagueId),
+    enabled: !!leagueId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
