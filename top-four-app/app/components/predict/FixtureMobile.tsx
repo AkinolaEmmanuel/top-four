@@ -119,7 +119,7 @@ export function FixtureMobile({
                     <span className={m.rightStyle}>{m.right}</span>
                   </div>
 
-                  {m.showTiles && (
+                  {m.showChoices && (
                     <div className="flex gap-[7px] mt-[11px]">
                       {(m.tiles || []).map((o: any, j: number) => (
                         <div key={j} onClick={o.pick} className={o.style}>
@@ -173,6 +173,7 @@ export function FixtureMobile({
 
                   <div className={m.footStyle}>
                     <span onClick={m.toggleHistory} className={m.historyStyle}>{m.historyLink}</span>
+                    <span className={m.failureStyle} role="alert">{m.failureMessage}</span>
                     <span className="flex-1"></span>
                     <span className={m.savedStyle}>SAVED</span>
                   </div>

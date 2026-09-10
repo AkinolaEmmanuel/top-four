@@ -7,6 +7,7 @@ import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
 import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
+import { ApiError } from '@/lib/api/fetcher';
 
 const CLUB: Record<string, string> = {
   ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d",
@@ -90,6 +91,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const [state, setState] = useState<'open' | 'urgent' | 'locked' | 'settled' | 'conflict' | 'loading'>('open');
   const [history, setHistory] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [failed, setFailed] = useState<Record<string, string>>({});
   const [resolved, setResolved] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'done' | null>(null);
   const [copyTargets, setCopyTargets] = useState<Record<string, boolean>>({});
@@ -169,9 +171,33 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     return h > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}:${String(s).padStart(2, "0")}`;
   };
 
+  const clearFailure = (key: string) =>
+    setFailed(prev => {
+      if (!(key in prev)) return prev;
+      const { [key]: _removed, ...rest } = prev;
+      return rest;
+    });
+
   const showReceipt = (key: string) => {
+    clearFailure(key);
     setSaved(key);
     setTimeout(() => setSaved(null), 2200);
+  };
+
+  // A rejected write must never leave the optimistic value on screen: the member
+  // is scored on what the server kept, so showing them anything else is a lie.
+  // Every mutation below restores the pre-click snapshot and names the failure.
+  const failureText = (error: unknown): string => {
+    if (error instanceof ApiError && error.status === 409) {
+      return 'Changed somewhere else — reopen to see the stored answer.';
+    }
+    return error instanceof Error && error.message ? error.message : 'Not saved.';
+  };
+
+  const recordFailure = (key: string, snapshot: Record<string, any>, error: unknown) => {
+    setAnswers(snapshot);
+    setSaved(current => (current === key ? null : current));
+    setFailed(prev => ({ ...prev, [key]: failureText(error) }));
   };
 
   // Turns the local UI value (a raw id/string the tiles compare against) into
@@ -190,41 +216,57 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
   const handleSet = (key: string, value: any, editable: boolean) => {
     if (!editable || isLocked || isSettled) return;
-    setAnswers(prev => ({ ...prev, [key]: value }));
+    if (!leagueId || !predictions) return;
 
-    if (leagueId && predictions) {
-      const slot = predictions.markets.find(m => m.marketType === key);
-      const expectedVersion = slot?.version || 0;
-      submitPrediction.mutate({ marketType: key, expectedVersion, answer: buildAnswerPayload(key, value) });
-    }
-    showReceipt(key);
+    const snapshot = answers;
+    setAnswers(prev => ({ ...prev, [key]: value }));
+    clearFailure(key);
+
+    const slot = predictions.markets.find(m => m.marketType === key);
+    submitPrediction.mutate(
+      { marketType: key, expectedVersion: slot?.version || 0, answer: buildAnswerPayload(key, value) },
+      { onSuccess: () => showReceipt(key), onError: (error) => recordFailure(key, snapshot, error) }
+    );
   };
 
   const handleBump = (i: number, d: number, editable: boolean) => {
-    if (!editable) return;
+    if (!editable || isLocked || isSettled) return;
+    if (!leagueId || !predictions) return;
+
     const sc = (answers.exact_score || answers.score || [0, 0]).slice();
     sc[i] = Math.max(0, Math.min(9, sc[i] + d));
+
+    const snapshot = answers;
     setAnswers(prev => ({ ...prev, exact_score: sc, score: sc }));
-    if (leagueId && predictions) {
-      const slot = predictions.markets.find(m => m.marketType === 'exact_score');
-      const expectedVersion = slot?.version || 0;
-      submitPrediction.mutate({ marketType: 'exact_score', expectedVersion, answer: { homeGoals: sc[0], awayGoals: sc[1] } });
-    }
-    showReceipt("score");
+    clearFailure('exact_score');
+
+    const slot = predictions.markets.find(m => m.marketType === 'exact_score');
+    submitPrediction.mutate(
+      { marketType: 'exact_score', expectedVersion: slot?.version || 0, answer: { homeGoals: sc[0], awayGoals: sc[1] } },
+      { onSuccess: () => showReceipt('exact_score'), onError: (error) => recordFailure('exact_score', snapshot, error) }
+    );
   };
 
   const handleSetLineup = (side: 'home' | 'away', lineup: string[]) => {
-    setAnswers(prev => ({ ...prev, [`${side}_lineup`]: lineup }));
-    if (leagueId && predictions) {
-      const slot = side === 'home' ? predictions.lineups.home : predictions.lineups.away;
-      const expectedVersion = slot?.version || 0;
-      const snapshotId = predictions.lineups.snapshot?.snapshotId || selectablePlayers?.snapshot?.snapshotId;
-      if (snapshotId) {
-        submitLineup.mutate({ side, expectedVersion, playerIds: lineup, snapshotId });
-      }
+    const key = `${side}_lineup`;
+    if (!leagueId || !predictions) return;
+
+    const snapshotId = predictions.lineups.snapshot?.snapshotId || selectablePlayers?.snapshot?.snapshotId;
+    if (!snapshotId) {
+      setFailed(prev => ({ ...prev, [key]: 'The squad list is still loading — try again in a moment.' }));
+      return;
     }
+
+    const snapshot = answers;
+    setAnswers(prev => ({ ...prev, [key]: lineup }));
+    clearFailure(key);
     setEditingLineup(null);
-    showReceipt(`${side}_lineup`);
+
+    const slot = side === 'home' ? predictions.lineups.home : predictions.lineups.away;
+    submitLineup.mutate(
+      { side, expectedVersion: slot?.version || 0, playerIds: lineup, snapshotId },
+      { onSuccess: () => showReceipt(key), onError: (error) => recordFailure(key, snapshot, error) }
+    );
   };
 
   const st = state;
@@ -317,7 +359,9 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
         valueStyle: { font: `${j === 0 ? '600' : '400'} 12px 'DM Sans', sans-serif`, color: j === 0 ? 'var(--text-primary)' : 'var(--text-muted)' }
       })),
       savedStyle: `font-heading font-bold text-[9.5px] tracking-[0.05em] p-[4px_8px] rounded-[6px] bg-[var(--color-success)] text-[var(--tf-white)] ${saved === d.key ? 'animate-[tfsaved_2.2s_ease_forwards]' : 'opacity-0 invisible'}`,
-      footStyle: `flex items-center min-h-[20px] mt-[10px] ${(!edits.length && saved !== d.key) ? 'hidden' : ''}`,
+      failureMessage: failed[d.key] || '',
+      failureStyle: `font-heading font-semibold text-[10.5px] leading-[1.45] text-[var(--danger-text)] ${failed[d.key] ? '' : 'hidden'}`,
+      footStyle: `flex items-center gap-[10px] min-h-[20px] mt-[10px] ${(!edits.length && saved !== d.key && !failed[d.key]) ? 'hidden' : ''}`,
       showChoices: editable && d.kind === "tiles",
       tiles: d.kind === "tiles" ? (d.options || []).map(([id, label, sub]) => {
         const isMine = mine === id, isWon = settled && ACTUAL[d.key] === id;

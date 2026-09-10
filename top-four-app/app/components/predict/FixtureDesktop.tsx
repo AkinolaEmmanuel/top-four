@@ -196,6 +196,7 @@ export function FixtureDesktop({
                   <div className={m.outcomeWrapStyle}>
                     <span className={m.chipStyle}>{m.chip}</span>
                     <span className={m.savedStyle}>Saved</span>
+                    <span className={m.failureStyle} role="alert">{m.failureMessage}</span>
                   </div>
 
                 </div>
