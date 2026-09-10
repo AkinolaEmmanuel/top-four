@@ -5,13 +5,22 @@ import { MeMobile } from '../components/me/MeMobile';
 import { MeDesktop } from '../components/me/MeDesktop';
 import { useAuth } from '@/context/auth-context';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
+import { useOwnPointsHistory } from '@/hooks/api/usePoints';
 
 import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
 
 const CLUB: Record<string, string> = { PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f", SS: "#1746a2", FC: "#b7152b", UN: "#0e7a5f", NB: "#7f56d9", WW: "#c8182f" };
 
-// Chart history will come from API in future
-const HISTORY: { label: string; v: number; corrected?: boolean }[] = [];
+function ordinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+}
 
 export default function MePage() {
   const { user, signOut, isLoading: authLoading } = useAuth();
@@ -42,6 +51,34 @@ export default function MePage() {
   const pendingEmail = false;
   const noGoogle = !!user?.signInMethods && !user.signInMethods.includes('google');
 
+  // The points-history endpoint is per-league, but this screen is
+  // account-wide -- show the user's most recently active league's form
+  // rather than nothing at all. Ledger entries carry no explicit "round"
+  // number, so group by calendar day as a reasonable stand-in (fixtures in
+  // the same round cluster on the same day or weekend).
+  const primaryLeague = leaguesData?.items.find(l => l.lifecycleState === 'in_progress' || l.lifecycleState === 'published')
+    || leaguesData?.items[0];
+  const { data: historyPage } = useOwnPointsHistory(primaryLeague?.id || '');
+
+  const HISTORY = (() => {
+    if (!historyPage?.data?.length) return [] as { label: string; v: number; corrected?: boolean }[];
+    const byDay = new Map<string, { v: number; corrected: boolean }>();
+    for (const entry of historyPage.data) {
+      const day = new Date(entry.occurredAt).toISOString().slice(0, 10);
+      const existing = byDay.get(day) || { v: 0, corrected: false };
+      existing.v += entry.delta;
+      if (entry.kind === 'correction') existing.corrected = true;
+      byDay.set(day, existing);
+    }
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-10)
+      .map(([day, { v, corrected }]) => ({
+        label: new Date(day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        v: Math.max(v, 0), corrected
+      }));
+  })();
+
   const max = HISTORY.length > 0 ? Math.max(...HISTORY.map(h => h.v)) : 1;
   // Mobile chart (70px max height)
   const chartMobile = HISTORY.map(h => ({
@@ -61,7 +98,12 @@ export default function MePage() {
     crest: l.name.substring(0, 2).toUpperCase(),
     bg: CLUB[l.name.substring(0, 2).toUpperCase()] || CLUB.PP,
     name: l.name,
-    meta: `${l.ownStanding?.position || '-'} of ${l.competitions?.length ? l.competitions[0].displayName : '?' }`, // Mocking member count
+    // The league-list endpoint's ownStanding carries position/points only --
+    // no member count, and fetching each league's dashboard just for this
+    // subtitle would be an N-request cost for a cosmetic line. Show the real
+    // position on its own rather than pairing it with a fake or expensive
+    // denominator.
+    meta: l.ownStanding?.position ? ordinal(l.ownStanding.position) : (l.competitions?.length ? l.competitions[0].displayName : ''),
     points: String(l.ownStanding?.totalPoints || '-'),
     isLast: i === a.length - 1
   }));
