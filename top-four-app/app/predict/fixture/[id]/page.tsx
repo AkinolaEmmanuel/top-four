@@ -417,11 +417,11 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     const marketLocked = !settled && (locked || marketSlot?.submissionAllowed === false);
     const editable = isReady && !marketLocked && !settled;
 
-    let right, rightStyle;
+    let right, rightStyle, rightColor;
     if (settled) {
-      const tone = out === "hit" ? "var(--prediction-correct)" : "var(--text-muted)";
+      rightColor = out === "hit" ? "var(--prediction-correct)" : "var(--text-muted)";
       right = EARNED[d.key] || "0";
-      rightStyle = `font-heading font-bold text-[17px] tracking-[-0.4px] flex-none tf-num text-[${tone}]`;
+      rightStyle = `font-heading font-bold text-[17px] tracking-[-0.4px] flex-none tf-num`;
     } else if (marketLocked) {
       right = unanswered ? "NO ANSWER" : "LOCKED";
       rightStyle = `font-heading font-bold text-[9.5px] tracking-[0.05em] flex-none ${unanswered ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`;
@@ -436,7 +436,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     }
 
     const m = {
-      ...d, right, rightStyle,
+      ...d, right, rightStyle, rightColor,
       ptsStyle: `font-heading font-semibold text-[10px] text-[var(--text-muted)] flex-none ${settled ? 'hidden' : ''}`,
       blockStyle: `p-[15px_var(--gutter)] border-t border-[var(--surface-border)] ${i === DEFS.length - 1 ? 'border-b' : ''} ${(!settled && !marketLocked && unanswered) ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`,
       cardStyle: `border-top: 1px solid var(--surface-border); ${!editable ? 'opacity: .96;' : ''} ${editable && unanswered ? 'background: var(--accent-surface); box-shadow: inset 3px 0 0 0 var(--color-brand);' : ''}`,
@@ -579,7 +579,8 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       code: l.code, color: l.color, name: l.name, sub, crest: l.code, points: "1 pt × 11",
       subStyle: `text-[10.5px] mt-[3px] ${l.set ? 'text-[var(--text-muted)]' : (settled || locked) ? 'text-[var(--danger-text)]' : 'text-[var(--text-secondary)]'}`,
       right,
-      rightStyle: `${settled ? 'font-heading font-bold text-[17px] tracking-[-0.4px] tf-num' : 'font-heading font-bold text-[9.5px] tracking-[0.05em]'} flex-none text-[${rightTone}]`,
+      rightStyle: `${settled ? 'font-heading font-bold text-[17px] tracking-[-0.4px] tf-num' : 'font-heading font-bold text-[9.5px] tracking-[0.05em]'} flex-none`,
+      rightColor: rightTone,
       rowStyle: `flex items-center gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${i === arr.length - 1 ? 'border-b' : ''} ${(!l.set && !settled && !locked) ? 'bg-[var(--surface-subtle)]' : ''}`,
       answer: settled ? (l.set ? "11 selected" : "Not set — no points") : (l.set ? "11 of 11 selected" : "Not set"),
       answerStyle: l.set ? "font-size: 12.5px; color: var(--text-secondary); margin-top: 5px;" : "font-size: 12.5px; color: var(--text-muted); font-style: italic; margin-top: 5px;",

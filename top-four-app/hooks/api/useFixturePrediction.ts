@@ -10,6 +10,19 @@ import {
   StandardAnswerValue,
 } from '@/lib/api/predictions-fixture';
 
+/**
+ * Availability alone, for screens that need one fixture's completeness without
+ * its predictions, players and results. Shares `useFixtureData`'s query key, so
+ * opening the fixture afterwards reuses this rather than refetching.
+ */
+export function useFixtureAvailability(leagueId: string, fixtureId: string) {
+  return useQuery({
+    queryKey: ['fixture-availability', leagueId, fixtureId],
+    queryFn: () => fetchFixtureAvailability(leagueId, fixtureId),
+    enabled: !!leagueId && !!fixtureId,
+  });
+}
+
 export function useFixtureData(leagueId: string, fixtureId: string) {
   const availabilityQuery = useQuery({
     queryKey: ['fixture-availability', leagueId, fixtureId],

@@ -106,9 +106,9 @@ export function LeagueTableMobile({
                     <div className="tf-kicker text-[var(--text-muted)]">{r.breakLabel}</div>
                     <div className="mt-[8px]">
                       {r.breakdown.map((b: any, j: number) => (
-                        <div key={j} className={b.rowStyle}>
-                          <span className={b.labelStyle}>{b.label}</span>
-                          <span className={`tf-num ${b.valueStyle}`}>{b.value}</span>
+                        <div key={j} className={b.rowStyle} style={b.rowColor}>
+                          <span className={b.labelStyle} style={b.labelColor}>{b.label}</span>
+                          <span className={`tf-num ${b.valueStyle}`} style={b.valueColor}>{b.value}</span>
                         </div>
                       ))}
                     </div>
@@ -148,9 +148,9 @@ export function LeagueTableMobile({
           {selfOpen && (
             <div className="p-[0_var(--gutter)_14px_71px] animate-[tfin_0.16s_ease]">
               {selfBreakdown.map((b: any, j: number) => (
-                <div key={j} className={b.rowStyle}>
-                  <span className={b.labelStyle}>{b.label}</span>
-                  <span className={`tf-num ${b.valueStyle}`}>{b.value}</span>
+                <div key={j} className={b.rowStyle} style={b.rowColor}>
+                  <span className={b.labelStyle} style={b.labelColor}>{b.label}</span>
+                  <span className={`tf-num ${b.valueStyle}`} style={b.valueColor}>{b.value}</span>
                 </div>
               ))}
             </div>

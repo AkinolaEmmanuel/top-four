@@ -109,7 +109,7 @@ export default function AlertsPage() {
       const u = isUnread(n);
       return {
         ...n,
-        dotStyle: `w-[8px] h-[8px] rounded-full flex-none mt-[6px] ${u ? '' : 'border-[1.5px] border-[var(--surface-border-strong)] bg-transparent'}` + (u ? ` bg-[${n.accent}]` : ''),
+        dotStyle: `w-[8px] h-[8px] rounded-full flex-none mt-[6px] ${u ? '' : 'border-[1.5px] border-[var(--surface-border-strong)] bg-transparent'}`,
         titleStyle: `font-heading ${u ? 'font-bold' : 'font-medium'} text-[13.5px] leading-[1.35] tracking-[-0.15px]`,
         rowStyle: `flex gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b border-[var(--surface-border)]' : ''} ${u ? '' : 'opacity-70'}`,
         onOpen: () => {

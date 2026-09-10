@@ -6,6 +6,7 @@ import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
 import { useLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
 import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
+import { useFixtureAvailability } from '@/hooks/api/useFixturePrediction';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
 import { useAuth } from '@/context/auth-context';
 
@@ -40,13 +41,29 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const totalActiveMembers = standingsData?.totalActiveMembers ?? 0;
 
   const completeness = dashboard?.summary.predictionCompleteness;
-  const totalMarkets = completeness?.required ?? 0;
-  const answeredMarkets = completeness?.answered ?? 0;
-  const caught = isReady && totalMarkets > 0 && !!completeness?.complete;
-  const heroProgress = totalMarkets > 0 ? `${answeredMarkets} of ${totalMarkets}` : "—";
+  const caught = isReady && !!completeness && completeness.required > 0 && completeness.complete;
 
   // Next fixture from tasks for hero section
   const nextFixtureTask: any = leagueTasks.find(t => t.kind === 'fixture');
+
+  // The dashboard's completeness counts every market of the whole season — a
+  // four-digit number that says nothing about what is waiting now. The hero
+  // reports the next fixture instead, read from that fixture's own record:
+  // `missingPredictions` drops a market once it locks, so counting slots minus
+  // missing would score a locked, unanswered lineup as answered.
+  const { data: nextFixtureAvailability } = useFixtureAvailability(params.id, nextFixtureTask?.leagueFixtureId ?? '');
+  const nextCompleteness = nextFixtureAvailability?.fixture.predictionCompleteness;
+  const answeredMarkets = nextCompleteness?.answered ?? 0;
+  const totalMarkets = nextCompleteness?.required ?? 0;
+  const heroProgress = totalMarkets > 0 ? `${answeredMarkets} of ${totalMarkets}` : "—";
+
+  // Markets in this league the member has not answered. The prediction-tasks
+  // feed would give the sharper "still open" figure, but it is paginated and
+  // this page reads only the first page, so a count from it would be confidently
+  // wrong. The dashboard's total is unpaginated and true; it is capped for
+  // display because a four-digit badge is wider than the tab it sits on.
+  const unansweredInLeague = completeness?.unanswered ?? 0;
+  const badgeCount = unansweredInLeague > 99 ? "99+" : String(unansweredInLeague);
   const nextDeadlineAt = dashboard?.summary.nextFixtureDeadlineAt || nextFixtureTask?.nextDeadlineAt || nextFixtureTask?.kickoffAt || null;
   const nextDeadline = nextDeadlineAt ? new Date(nextDeadlineAt) : null;
   const timeUntil = nextDeadline ? (() => {
@@ -133,8 +150,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     style: { font: "600 10.5px 'DM Sans',sans-serif", padding: "5px 10px", borderRadius: "6px", background: won ? "rgba(255,255,255,.16)" : "transparent", color: won ? "var(--tf-white)" : "rgba(255,255,255,.45)", border: won ? "none" : "1px dashed rgba(255,255,255,.28)" }
   }));
 
-  const unansweredCount = completeness?.unanswered ?? 0;
-  const unanswered = (isReady && unansweredCount > 0) ? String(unansweredCount) : "";
+  const unanswered = (isReady && unansweredInLeague > 0) ? badgeCount : "";
 
   const openQuestions = (questionsData?.data || []).filter((q: any) => q.phase === 'open');
   const earliestQuestionDeadline = openQuestions.length > 0

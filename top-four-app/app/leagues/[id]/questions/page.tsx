@@ -269,11 +269,16 @@ export default function QuestionsPage() {
       }),
       
       hasBars: !!q.bars,
-      bars: (q.bars || []).map(([label, count, lead]: [string, number, boolean]) => ({
-        label, count: String(count),
-        labelStyle: `text-[11px] w-[58px] flex-none whitespace-nowrap overflow-hidden text-ellipsis ${lead ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`,
-        fillStyle: `w-[${Math.round(count / 128 * 100)}%] h-full rounded-full ${lead ? 'bg-[var(--color-brand)]' : 'bg-[var(--state-locked)]'}`
-      })),
+      // The bars share out everyone who answered, so they are the denominator.
+      bars: (q.bars || []).map(([label, count, lead]: [string, number, boolean]) => {
+        const answered = (q.bars || []).reduce((sum: number, [, c]: [string, number, boolean]) => sum + c, 0);
+        return {
+          label, count: String(count),
+          labelStyle: `text-[11px] w-[58px] flex-none whitespace-nowrap overflow-hidden text-ellipsis ${lead ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`,
+          fillStyle: `h-full rounded-full ${lead ? 'bg-[var(--color-brand)]' : 'bg-[var(--state-locked)]'}`,
+          fillWidth: { width: `${answered > 0 ? Math.round(count / answered * 100) : 0}%` }
+        };
+      }),
       
       hasText: !!q.hasText,
       textValue: textDrafts[q.id] ?? picked ?? '',
@@ -361,11 +366,14 @@ export default function QuestionsPage() {
       }),
 
       hasBars: !!q.bars,
-      bars: (q.bars || []).map(([label, count, lead]: [string, number, boolean]) => ({
-        label, count: String(count),
-        labelStyle: { fontSize: '11px', width: '58px', flex: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: lead ? 'var(--text-primary)' : 'var(--text-secondary)' } as CSSProperties,
-        fillStyle: { width: `${Math.round(count / 128 * 100)}%`, height: '100%', borderRadius: '999px', background: lead ? 'var(--color-brand)' : 'var(--state-locked)' } as CSSProperties
-      })),
+      bars: (q.bars || []).map(([label, count, lead]: [string, number, boolean]) => {
+        const answered = (q.bars || []).reduce((sum: number, [, c]: [string, number, boolean]) => sum + c, 0);
+        return {
+          label, count: String(count),
+          labelStyle: { fontSize: '11px', width: '58px', flex: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: lead ? 'var(--text-primary)' : 'var(--text-secondary)' } as CSSProperties,
+          fillStyle: { width: `${answered > 0 ? Math.round(count / answered * 100) : 0}%`, height: '100%', borderRadius: '999px', background: lead ? 'var(--color-brand)' : 'var(--state-locked)' } as CSSProperties
+        };
+      }),
 
       hasText: !!q.hasText,
       textValue: textDrafts[q.id] ?? picked ?? '',

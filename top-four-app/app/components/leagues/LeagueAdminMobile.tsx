@@ -205,7 +205,7 @@ export function LeagueAdminMobile({
                 {lifecycle.map((l: any, i: number) => (
                   <div key={i} className="flex gap-[12px] items-stretch">
                     <div className="flex flex-col items-center w-[12px] flex-none">
-                      <div className={l.dotStyle}></div>
+                      <div className={l.dotStyle} style={l.dotColor}></div>
                       <div className={l.lineStyle}></div>
                     </div>
                     <div className={l.textWrapStyle}>

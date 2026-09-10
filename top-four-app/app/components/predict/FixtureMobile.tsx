@@ -106,7 +106,7 @@ export function FixtureMobile({
                     <span className="font-heading font-[650] text-[14px] leading-[1.2] tracking-[-0.2px]">{m.name}</span>
                     <span className={m.ptsStyle}>{m.pts}</span>
                     <span className="flex-1"></span>
-                    <span className={m.rightStyle}>{m.right}</span>
+                    <span className={m.rightStyle} style={m.rightColor ? { color: m.rightColor } : undefined}>{m.right}</span>
                   </div>
 
                   {m.showChoices && (
@@ -197,7 +197,7 @@ export function FixtureMobile({
                     <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px]">{l.name}</div>
                     <div className={l.subStyle}>{l.sub}</div>
                   </div>
-                  <span className={l.rightStyle}>{l.right}</span>
+                  <span className={l.rightStyle} style={l.rightColor ? { color: l.rightColor } : undefined}>{l.right}</span>
                 </div>
               ))}
             </section>

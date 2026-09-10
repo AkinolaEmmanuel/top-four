@@ -145,9 +145,14 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     const strong = accent ? "var(--tf-white)" : "var(--text-primary)";
     return realBreakdown(competitionPoints, customQuestionPoints, totalPoints).map(b => ({
       label: b.label, value: fmt(b.value),
-      rowStyle: `flex items-baseline justify-between gap-[10px] py-[5px] ${b.rule ? `mt-[4px] pt-[8px] border-t border-[${accent ? 'rgba(255,255,255,0.18)' : 'var(--surface-border)'}]` : ''}`,
-      labelStyle: `text-[11.5px] ${b.total ? `font-heading font-bold text-[${strong}]` : `text-[${on}]`}`,
-      valueStyle: `font-heading ${b.total ? 'font-bold' : 'font-semibold'} text-[11.5px] text-[${b.total ? strong : on}]`,
+      // Colours vary with the surface behind the row, so they travel as style
+      // values — Tailwind cannot build a class from a runtime colour.
+      rowStyle: `flex items-baseline justify-between gap-[10px] py-[5px] ${b.rule ? 'mt-[4px] pt-[8px] border-t' : ''}`,
+      rowColor: b.rule ? { borderTopColor: accent ? 'rgba(255,255,255,0.18)' : 'var(--surface-border)' } : undefined,
+      labelStyle: `text-[11.5px] ${b.total ? 'font-heading font-bold' : ''}`,
+      labelColor: { color: b.total ? strong : on },
+      valueStyle: `font-heading ${b.total ? 'font-bold' : 'font-semibold'} text-[11.5px]`,
+      valueColor: { color: b.total ? strong : on },
       total: b.total
     }));
   };

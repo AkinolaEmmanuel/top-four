@@ -105,7 +105,7 @@ export function LeagueQuestionsMobile({
                           <div key={k} className="flex items-center gap-[10px]">
                             <span className={b.labelStyle}>{b.label}</span>
                             <div className="flex-1 h-[4px] rounded-full bg-[var(--surface-subtle)] overflow-hidden">
-                              <div className={b.fillStyle}></div>
+                              <div className={b.fillStyle} style={b.fillWidth}></div>
                             </div>
                             <span className="tf-num text-[10px] text-[var(--text-muted)] w-[24px] text-right flex-none">{b.count}</span>
                           </div>
