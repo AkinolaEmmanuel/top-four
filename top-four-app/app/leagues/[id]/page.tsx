@@ -125,8 +125,12 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     style: { font: "600 10.5px 'DM Sans',sans-serif", padding: "5px 10px", borderRadius: "6px", background: won ? "rgba(255,255,255,.16)" : "transparent", color: won ? "var(--tf-white)" : "rgba(255,255,255,.45)", border: won ? "none" : "1px dashed rgba(255,255,255,.28)" }
   }));
 
-  const unansweredCount = completeness?.unanswered ?? 0;
-  const unanswered = (isReady && unansweredCount > 0) ? String(unansweredCount) : "";
+  // completeness.unanswered counts every unanswered market across the whole
+  // season, including fixtures rounds away that are not open yet -- not what
+  // a tab badge should show. The badge is about this league's fixtures list,
+  // so count the fixtures that actually have something open right now.
+  const openFixtureCount = leagueTasks.filter((t: any) => t.kind === 'fixture' && (t.missingPredictions?.length || 0) > 0).length;
+  const unanswered = (isReady && openFixtureCount > 0) ? String(openFixtureCount) : "";
 
   const openQuestions = (questionsData?.data || []).filter((q: any) => q.phase === 'open');
   const earliestQuestionDeadline = openQuestions.length > 0

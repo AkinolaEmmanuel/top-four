@@ -13,8 +13,6 @@ import { useStandings } from '@/hooks/api/usePoints';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 
-const BRAND = "var(--color-brand)";
-
 export default function LeagueAdminPage() {
   const params = useParams() as { id: string };
   const router = useRouter();
@@ -219,7 +217,7 @@ export default function LeagueAdminPage() {
     done: i < currentLifecycleIdx,
     current: i === currentLifecycleIdx,
     future: i > currentLifecycleIdx,
-    dotStyle: `w-[11px] h-[11px] rounded-full flex-none mt-[4px] ${i === currentLifecycleIdx ? `bg-[${BRAND}] shadow-[0_0_0_4px_var(--accent-surface)]` : i < currentLifecycleIdx ? "bg-[var(--color-success)]" : "border-[1.5px] border-[var(--surface-border-strong)]"}`,
+    dotStyle: `w-[11px] h-[11px] rounded-full flex-none mt-[4px] ${i === currentLifecycleIdx ? "bg-[var(--color-brand)] shadow-[0_0_0_4px_var(--accent-surface)]" : i < currentLifecycleIdx ? "bg-[var(--color-success)]" : "border-[1.5px] border-[var(--surface-border-strong)]"}`,
     lineStyle: `flex-1 w-[1.5px] bg-[var(--surface-border)] ${i === LIFECYCLE_STEPS.length - 1 ? 'hidden' : ''}`,
     textWrapStyle: `flex-1 ${i === LIFECYCLE_STEPS.length - 1 ? 'pb-0' : 'pb-[18px]'}`,
     labelStyle: `font-heading font-[650] text-[13.5px] tracking-[-0.2px] ${i > currentLifecycleIdx ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`

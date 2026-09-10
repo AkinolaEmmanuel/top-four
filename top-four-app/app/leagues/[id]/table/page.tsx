@@ -140,13 +140,18 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   });
 
   const breakdownMobile = (competitionPoints: StandingCompetitionPoints[], customQuestionPoints: number, totalPoints: number, accent: boolean) => {
-    const on = accent ? "rgba(255,255,255,.72)" : "var(--text-secondary)";
-    const strong = accent ? "var(--tf-white)" : "var(--text-primary)";
+    // Tailwind generates classes by scanning source text for literal class
+    // strings -- it can never see a class built from an interpolated
+    // variable like `text-[${strong}]`, so both variants have to appear in
+    // the source verbatim and be picked between, not assembled at runtime.
+    const ruleBorderClass = accent ? 'mt-[4px] pt-[8px] border-t border-[rgba(255,255,255,0.18)]' : 'mt-[4px] pt-[8px] border-t border-[var(--surface-border)]';
+    const strongTextClass = accent ? 'text-[var(--tf-white)]' : 'text-[var(--text-primary)]';
+    const mutedTextClass = accent ? 'text-[rgba(255,255,255,0.72)]' : 'text-[var(--text-secondary)]';
     return realBreakdown(competitionPoints, customQuestionPoints, totalPoints).map(b => ({
       label: b.label, value: fmt(b.value),
-      rowStyle: `flex items-baseline justify-between gap-[10px] py-[5px] ${b.rule ? `mt-[4px] pt-[8px] border-t border-[${accent ? 'rgba(255,255,255,0.18)' : 'var(--surface-border)'}]` : ''}`,
-      labelStyle: `text-[11.5px] ${b.total ? `font-heading font-bold text-[${strong}]` : `text-[${on}]`}`,
-      valueStyle: `font-heading ${b.total ? 'font-bold' : 'font-semibold'} text-[11.5px] text-[${b.total ? strong : on}]`,
+      rowStyle: `flex items-baseline justify-between gap-[10px] py-[5px] ${b.rule ? ruleBorderClass : ''}`,
+      labelStyle: `text-[11.5px] ${b.total ? `font-heading font-bold ${strongTextClass}` : mutedTextClass}`,
+      valueStyle: `font-heading ${b.total ? 'font-bold' : 'font-semibold'} text-[11.5px] ${b.total ? strongTextClass : mutedTextClass}`,
       total: b.total
     }));
   };

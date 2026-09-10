@@ -44,6 +44,7 @@ export default function PredictPage() {
         when: isToday ? "today" : "week", // simplified logic
         group: isToday ? "Locking today" : "This week",
         time: `${deadline.getHours()}:${deadline.getMinutes().toString().padStart(2, '0')}`,
+        deadlineAt: deadline,
         id: isQuestion ? (t as any).question.id : (t as any).fixtureId || (t as any).leagueFixtureId,
         leagueId: t.league.id,
         kind: isQuestion ? "question" : "match",
@@ -124,7 +125,20 @@ export default function PredictPage() {
   const total = isReady ? String(markets) : "0";
   const totalColor = isReady ? "var(--nav-text)" : "var(--nav-text-faint)";
   const totalLabel = isReady ? "markets open" : "no predictions to make";
-  const totalSub = isReady ? "across 3 leagues · next locks in 2h 15m" : "";
+
+  const totalSub = useMemo(() => {
+    if (!isReady) return "";
+    const leagueCount = new Set(tasksToUse.map(t => t.leagueId)).size;
+    const leagueWord = `across ${leagueCount} league${leagueCount === 1 ? '' : 's'}`;
+    const soonest = tasksToUse.reduce((min: Date | null, t) => (!min || t.deadlineAt < min ? t.deadlineAt : min), null as Date | null);
+    if (!soonest) return leagueWord;
+    const ms = soonest.getTime() - Date.now();
+    if (ms <= 0) return `${leagueWord} · next locks any moment`;
+    const totalMins = Math.round(ms / 60000);
+    const h = Math.floor(totalMins / 60), m = totalMins % 60;
+    const dur = h > 0 ? `${h}h ${m}m` : `${m}m`;
+    return `${leagueWord} · next locks in ${dur}`;
+  }, [isReady, tasksToUse]);
 
   const uniqueLeagues = useMemo(() => {
     if (!leaguesData) return [];
