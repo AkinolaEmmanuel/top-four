@@ -21,8 +21,6 @@ export function HomeMobile({ state, theme, ...props }: any) {
   const isReady = !isLoading && !isNewUser;
   const urgent = state === 'urgent';
   const caught = state === 'caughtup';
-  
-  const owed = (isReady && !caught) ? "25" : "";
 
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
@@ -30,7 +28,21 @@ export function HomeMobile({ state, theme, ...props }: any) {
         <header className="bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(14px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[16px] flex-none flex items-center justify-between">
           <div className="font-heading font-bold text-[19px] leading-[1] tracking-[-0.7px]">TOPFOUR<span className="text-[var(--nav-accent)]">/</span></div>
           <div className="flex items-center gap-[9px]">
-            {/* Alerts feature temporarily removed pending backend implementation */}
+            <Link
+              href="/alerts"
+              className="relative w-[36px] h-[36px] rounded-full grid place-items-center"
+              aria-label={props.unreadCount > 0 ? `Alerts, ${props.unreadCount} unread` : 'Alerts'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {props.unreadCount > 0 && (
+                <span className="absolute top-[2px] right-[2px] min-w-[14px] h-[14px] px-[3px] rounded-full bg-[var(--color-danger)] text-[var(--tf-white)] grid place-items-center font-heading font-bold text-[8px]">
+                  {props.unreadCount > 9 ? '9+' : props.unreadCount}
+                </span>
+              )}
+            </Link>
             <Link href="/me" className="w-[36px] h-[36px] rounded-full bg-[var(--avatar-surface)] text-[var(--avatar-text)] grid place-items-center font-heading font-bold text-[11.5px]">
               {props.user?.displayName?.substring(0, 2).toUpperCase() || 'U'}
             </Link>

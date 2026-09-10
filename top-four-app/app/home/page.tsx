@@ -6,6 +6,7 @@ import { HomeDesktop } from '../components/home/HomeDesktop';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
 import { useTeamCrestMap } from '@/hooks/api/useCatalogue';
+import { useUnreadNotifications } from '@/hooks/api/useNotifications';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = {
@@ -18,6 +19,7 @@ export default function Home() {
   const { user } = useAuth();
   const { data: tasksData, isLoading: tasksLoading } = usePredictionTasks();
   const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
+  const { data: unreadCount = 0 } = useUnreadNotifications(!!user);
   const fixtureCompetitionIds = (tasksData?.items || [])
     .filter((t: any) => t.kind === 'fixture')
     .map((t: any) => t.competition?.id);
@@ -53,12 +55,13 @@ export default function Home() {
       const awayTeam = crestMap[t.awayTeam.id];
       const homeCode = homeTeam?.code || t.homeTeam.displayName.substring(0, 3).toUpperCase();
       const awayCode = awayTeam?.code || t.awayTeam.displayName.substring(0, 3).toUpperCase();
+      const missingCount = t.missingPredictions?.length || 0;
       return {
         match: `${t.homeTeam.displayName} v ${t.awayTeam.displayName}`,
-        competition: 'Match',
+        competition: t.competition?.displayName || 'Match',
         meta: t.league.name,
         time: new Date(t.nextDeadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        missing: 'Open',
+        missing: missingCount > 0 ? `${missingCount} open` : 'Open',
         homeCode, homeColor: CLUB[homeCode] || '#000', homeLogo: homeTeam?.logoUrl || null,
         awayCode, awayColor: CLUB[awayCode] || '#000', awayLogo: awayTeam?.logoUrl || null,
         href: `/predict/fixture/${t.leagueFixtureId}?leagueId=${t.league.id}`
@@ -118,7 +121,7 @@ export default function Home() {
   const heroSubText = caught ? "and you are ready for it" : "until this one closes";
 
   const props = {
-    user,
+    user, unreadCount,
     theme, setTheme,
     headSub: new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
     headRight: isReady ? (caught ? "Everything answered" : `${taskCount} markets open`) : "",
