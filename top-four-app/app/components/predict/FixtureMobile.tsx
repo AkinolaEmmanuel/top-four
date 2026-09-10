@@ -119,7 +119,7 @@ export function FixtureMobile({
                     <span className={m.rightStyle}>{m.right}</span>
                   </div>
 
-                  {m.showTiles && (
+                  {m.showChoices && (
                     <div className="flex gap-[7px] mt-[11px]">
                       {(m.tiles || []).map((o: any, j: number) => (
                         <div key={j} onClick={o.pick} className={o.style}>

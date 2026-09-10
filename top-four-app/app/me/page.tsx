@@ -46,7 +46,7 @@ export default function MePage() {
   // Mobile chart (70px max height)
   const chartMobile = HISTORY.map(h => ({
     label: h.label, corrected: h.corrected,
-    barStyle: `w-full rounded-t-[4px] bg-[${h.corrected ? 'var(--state-provisional)' : 'var(--color-brand)'}]`,
+    barStyle: `w-full rounded-t-[4px] ${h.corrected ? 'bg-[var(--state-provisional)]' : 'bg-[var(--color-brand)]'}`,
     height: Math.round(h.v / max * 70)
   }));
   // Desktop chart (150px max height, show values)

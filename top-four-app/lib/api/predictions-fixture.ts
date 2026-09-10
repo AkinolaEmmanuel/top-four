@@ -22,6 +22,7 @@ export interface FixtureAvailability {
   leagueFixtureId: string;
   fixtureId: string;
   fixtureState: string;
+  kickoff: { state: string; at: string | null; revisionNumber: number };
   homeTeam: FixtureAvailabilityTeam;
   awayTeam: FixtureAvailabilityTeam;
   hasOpenMarkets: boolean;
@@ -29,6 +30,7 @@ export interface FixtureAvailability {
   marketStateCounts: Record<string, number>;
   predictionCompleteness: { required: number; answered: number; unanswered: number; complete: boolean };
   markets: FixtureMarketAvailability[];
+  serverTime: string;
 }
 
 export interface KickoffBasis {
@@ -210,8 +212,8 @@ export interface FixtureResultsResponse {
 }
 
 export async function fetchFixtureAvailability(leagueId: string, fixtureId: string): Promise<FixtureAvailability> {
-  const response = await apiFetch<{ data: FixtureAvailability }>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`);
-  return response.data;
+  const response = await apiFetch<{ data: FixtureAvailability; serverTime: string }>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`);
+  return { ...response.data, serverTime: response.serverTime };
 }
 
 export async function fetchOwnPredictions(leagueId: string, fixtureId: string): Promise<OwnFixturePredictions> {
