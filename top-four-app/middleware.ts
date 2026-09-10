@@ -13,6 +13,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/verify') ||
     pathname.startsWith('/forgot-password') ||
     pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/confirm-email-change') ||
     pathname.startsWith('/join') ||
     pathname.startsWith('/j/') || // invite landing page
     pathname.match(/\.(png|jpg|jpeg|svg|ico)$/) // static assets

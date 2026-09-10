@@ -7,6 +7,7 @@ export interface UserProfile {
   avatarUrl?: string | null;
   signInMethods?: string[];
   isOperator?: boolean;
+  emailVerified?: boolean;
 }
 
 export async function signUp(input: {
@@ -109,5 +110,40 @@ export async function requestEmailChange(input: { currentPassword?: string; newE
   await apiFetch('/me/email-change/request', {
     method: 'POST',
     body: JSON.stringify({ currentPassword: input.currentPassword, newEmail: input.newEmail }),
+  });
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiFetch('/auth/password-reset/request', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function confirmPasswordReset(input: { token: string; password: string }): Promise<void> {
+  await apiFetch('/auth/password-reset/confirm', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function verifyEmail(token: string): Promise<void> {
+  await apiFetch('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function resendVerificationEmail(email: string): Promise<void> {
+  await apiFetch('/auth/verification-email/resend', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function confirmEmailChange(token: string): Promise<void> {
+  await apiFetch('/auth/email-change/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
   });
 }
