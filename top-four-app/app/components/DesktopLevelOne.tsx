@@ -8,7 +8,14 @@ import { useUnreadNotifications } from '@/hooks/api/useNotifications';
 export function DesktopLevelOne() {
   const pathname = usePathname() || '';
   const { user } = useAuth();
-  const isAuthScreen = pathname === '/' || pathname.startsWith('/sign-up');
+  const isAuthScreen =
+    pathname === '/' ||
+    pathname.startsWith('/sign-in') ||
+    pathname.startsWith('/sign-up') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/verify-email') ||
+    pathname.startsWith('/confirm-email-change');
   const { data: unreadCount = 0 } = useUnreadNotifications(!isAuthScreen && !!user);
 
   if (isAuthScreen) {
