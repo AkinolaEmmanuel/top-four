@@ -1,26 +1,48 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PlayerPickerMobile } from '../../../../components/predict/PlayerPickerMobile';
 import { PlayerPickerDesktop } from '../../../../components/predict/PlayerPickerDesktop';
-import { useFixtureData } from '@/hooks/api/useFixturePrediction';
+import { useFixtureData, useSubmitPrediction } from '@/hooks/api/useFixturePrediction';
+import { useLeague } from '@/hooks/api/useLeagues';
 
 const TINTS = ["var(--ident-1)", "var(--ident-2)", "var(--ident-3)", "var(--ident-4)", "var(--ident-5)", "var(--ident-6)", "var(--ident-7)"];
 
 export default function PlayerPickerPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const leagueId = searchParams?.get('leagueId') || '';
+  const marketParam = searchParams?.get('market') === 'card' ? 'card' : 'scorer';
   const backHref = `/predict/fixture/${params.id}${leagueId ? `?leagueId=${leagueId}` : ''}`;
 
-  const { availability, selectablePlayers, isLoading: dataLoading, isError: dataError } = useFixtureData(leagueId, params.id);
+  const { availability, predictions, selectablePlayers, isLoading: dataLoading, isError: dataError, refetch } = useFixtureData(leagueId, params.id);
+  const { data: league } = useLeague(leagueId);
+  const submitPrediction = useSubmitPrediction(leagueId, params.id);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [mode, setMode] = useState<'scorer' | 'card'>('scorer');
+  const [mode, setMode] = useState<'scorer' | 'card'>(marketParam);
   const [picked, setPicked] = useState<string | null>(null);
   const [side, setSide] = useState<string>('both');
   const [pos, setPos] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const realMarketType = mode === 'scorer' ? 'anytime_goalscorer' : 'player_card';
+  const marketSlot = predictions?.markets.find((m) => m.marketType === realMarketType);
+  const savedPlayerId = (marketSlot?.answer?.value as any)?.playerId as string | undefined;
+
+  const handleSave = () => {
+    const finalPick = picked !== null ? picked : savedPlayerId;
+    if (!finalPick || !leagueId) return;
+    submitPrediction.mutate({
+      marketType: realMarketType,
+      expectedVersion: marketSlot?.version || 0,
+      answer: { playerId: finalPick, snapshotId: selectablePlayers?.snapshot?.snapshotId },
+    }, {
+      onSuccess: () => router.push(backHref),
+      onError: (err: any) => window.alert(err?.message || "Couldn't save that pick — please try again."),
+    });
+  };
 
   const isLoading = dataLoading;
   const isTerminal = dataError;
@@ -59,8 +81,7 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const searching = searchQuery.length > 0;
   const ds = isLoading ? 'loading' : isTerminal ? 'stale' : searching ? 'searching' : 'live';
 
-  const DEFAULT_PICK: Record<string, string | null> = { scorer: null, card: null };
-  const currentPicked = picked !== null ? picked : DEFAULT_PICK[mode];
+  const currentPicked = picked !== null ? picked : (savedPlayerId || null);
   const pickedPlayer = ALL.find(p => p.id === currentPicked) || null;
 
   const currentPos = searching ? "All" : pos;
@@ -148,9 +169,14 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     stale: ["warning", "var(--warn-text)", "This squad list has moved on", "The squad TopFour holds for this match was refreshed while you were looking, so these names are no longer the ones a pick would be checked against. Reloading brings the current list; anything already saved is untouched.", "RELOAD THE SQUAD"]
   }[isTerminal ? 'stale' : "noresults"];
 
+  const rulesetMarkets = league?.ruleset?.markets || [];
+  const marketPoints = (marketType: string) => {
+    const m = rulesetMarkets.find((rm) => rm.marketType === marketType);
+    return m ? `${m.points} ${m.points === 1 ? 'pt' : 'pts'}` : null;
+  };
   const MARKET = {
-    scorer: ["Anytime goalscorer", "4 pts", "Extra time counts. A penalty shootout does not, and an own goal is not a goalscorer. A player who never gets on the pitch is simply wrong."],
-    card: ["Player to be carded", "1 pt", "A yellow, a second yellow and a straight red all count, including in extra time. A card shown to an unused substitute does not."]
+    scorer: ["Anytime goalscorer", marketPoints("anytime_goalscorer") || "5 pts", "Extra time counts. A penalty shootout does not, and an own goal is not a goalscorer. A player who never gets on the pitch is simply wrong."],
+    card: ["Player to be carded", marketPoints("player_card") || "3 pts", "A yellow, a second yellow and a straight red all count, including in extra time. A card shown to an unused substitute does not."]
   }[mode];
 
   const IconMap: Record<string, any> = {
@@ -193,7 +219,7 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
 
   const props = {
     theme, MARKET, CLUB, searching, ds, termIcon, TERM, isTerminal, isReady,
-    isLoading, pickedPlayer, setDataState: () => {}, searchIcon,
+    isLoading, pickedPlayer, onRetry: refetch, searchIcon,
     
     // Mobile specific
     chips: mobileChips,
@@ -212,10 +238,13 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     storedDotStyle: { width: '7px', height: '7px', borderRadius: '999px', background: 'var(--color-success)', flex: 'none' },
     storedLabel: pickedPlayer ? pickedPlayer.name + " stored · you can change it until the lock" : "",
     cancelStyle: { display: 'none' },
-    primaryLabel: "DONE",
+    primaryLabel: submitPrediction.isPending ? "Saving…" : "DONE",
+    primaryAction: pickedPlayer ? handleSave : undefined,
     primaryStyle: { flex: 'none', minWidth: '190px', height: '46px', padding: '0 22px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 12.5px 'DM Sans', sans-serif", letterSpacing: '.02em', background: pickedPlayer ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: pickedPlayer ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: pickedPlayer ? 'pointer' : 'not-allowed' },
     footNote: MARKET[2],
-    leagueName: "League",
+    leagueName: league?.name || "League",
+    homeCode, awayCode, homeName, awayName,
+    searchQuery, onSearchChange: setSearchQuery,
     competitionLabel: `${homeName} v ${awayName}`,
     backHref
   };

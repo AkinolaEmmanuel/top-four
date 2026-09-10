@@ -3,8 +3,10 @@
 import Link from 'next/link';
 
 export function PlayerPickerMobile({
-  theme, MARKET, CLUB, searching, ds, termIcon, TERM, isTerminal, isReady,
-  chips, isLoading, groups, pickedPlayer, setDataState, searchIcon, backHref
+  theme, MARKET, CLUB, searching, termIcon, TERM, isTerminal, isReady,
+  chips, isLoading, groups, pickedPlayer, onRetry, searchIcon, backHref,
+  homeCode, awayCode, homeName, awayName, searchQuery, onSearchChange,
+  primaryLabel, primaryStyle, primaryAction
 }: any) {
   
   return (
@@ -15,9 +17,9 @@ export function PlayerPickerMobile({
           <div className="min-w-0 flex-1">
             <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px]">{MARKET[0]}</div>
             <div className="flex items-center gap-[7px] mt-[5px]">
-              <span className="tf-crest w-[15px] h-[16px] text-[5.5px]" style={{ background: CLUB.ARS }}>ARS</span>
-              <span className="tf-crest w-[15px] h-[16px] text-[5.5px]" style={{ background: CLUB.CHE }}>CHE</span>
-              <span className="text-[10.5px] text-[var(--nav-text-faint)]">Arsenal v Chelsea · locks in 2h 15m</span>
+              <span className="tf-crest w-[15px] h-[16px] text-[5.5px]" style={{ background: CLUB[homeCode] }}>{homeCode}</span>
+              <span className="tf-crest w-[15px] h-[16px] text-[5.5px]" style={{ background: CLUB[awayCode] }}>{awayCode}</span>
+              <span className="text-[10.5px] text-[var(--nav-text-faint)]">{homeName} v {awayName}</span>
             </div>
           </div>
           <div className="tf-num font-heading font-bold text-[15px] text-[var(--nav-accent)] flex-none">{MARKET[1]}</div>
@@ -25,15 +27,15 @@ export function PlayerPickerMobile({
 
         <div className="h-[42px] rounded-[11px] bg-[rgba(255,255,255,0.08)] border border-[var(--nav-border)] flex items-center gap-[9px] px-[12px] mt-[13px]">
           <span className="text-[var(--nav-text-faint)] grid place-items-center">{searchIcon}</span>
-          <input 
+          <input
             type="text"
             placeholder="Search this match’s squads"
-            value={searching || ds === "noresults" ? "rodri" : ""}
-            readOnly
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="flex-1 text-[13px] bg-transparent outline-none border-none text-[var(--nav-text)] placeholder-[var(--nav-text-faint)]"
           />
-          {(searching || ds === "noresults") && (
-            <span onClick={() => setDataState('live')} className="text-[12px] text-[var(--nav-text-quiet)] cursor-pointer">✕</span>
+          {searching && (
+            <span onClick={() => onSearchChange('')} className="text-[12px] text-[var(--nav-text-quiet)] cursor-pointer">✕</span>
           )}
         </div>
       </header>
@@ -67,7 +69,7 @@ export function PlayerPickerMobile({
             <div style={{ color: TERM[1] as string }}>{termIcon}</div>
             <div className="font-heading font-bold text-[20px] leading-[1.2] tracking-[-0.4px] mt-[20px]">{TERM[2]}</div>
             <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[275px]">{TERM[3]}</div>
-            <div onClick={() => setDataState('live')} className="tf-tap mt-[22px] h-[46px] px-[20px] border border-[var(--surface-border-strong)] rounded-[12px] bg-[var(--surface-card)] grid place-items-center font-heading font-bold text-[12px]">{TERM[4]}</div>
+            <div onClick={onRetry} className="tf-tap mt-[22px] h-[46px] px-[20px] border border-[var(--surface-border-strong)] rounded-[12px] bg-[var(--surface-card)] grid place-items-center font-heading font-bold text-[12px]">{TERM[4]}</div>
           </div>
         )}
 
@@ -93,10 +95,15 @@ export function PlayerPickerMobile({
                 ))}
               </div>
             ))}
-            <div className="tf-tap p-[16px] text-center font-heading font-bold text-[11px] tracking-[0.05em] text-[var(--text-link)]">LOAD MORE PLAYERS</div>
           </div>
         )}
       </main>
+
+      {isReady && (
+        <div className="flex-none p-[12px_var(--gutter)_calc(12px+env(safe-area-inset-bottom))] border-t border-[var(--surface-border)] bg-[var(--surface-card)]">
+          <div onClick={() => primaryAction?.()} className="tf-tap h-[46px] rounded-[12px] grid place-items-center font-heading font-bold text-[13px]" style={primaryStyle}>{primaryLabel}</div>
+        </div>
+      )}
 
       <div className="flex-none bg-[var(--surface-card)] border-t border-[var(--surface-border)] p-[12px_var(--gutter)_16px]">
         <div className={`flex items-center gap-[11px] p-[9px_11px] rounded-[12px] ${pickedPlayer ? 'bg-[var(--accent-surface)] border border-[var(--color-brand)]' : 'border border-dashed border-[var(--surface-border-strong)]'}`}>

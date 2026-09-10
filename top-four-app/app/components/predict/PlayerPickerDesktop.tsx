@@ -3,12 +3,12 @@
 import Link from 'next/link';
 
 export function PlayerPickerDesktop({
-  theme, MARKET, CLUB, searching, ds, termIcon, TERM, isTerminal, isReady,
-  chips, isLoading, groups, pickedPlayer, setDataState, searchIcon,
+  theme, MARKET, CLUB, searching, termIcon, TERM, isTerminal, isReady,
+  chips, isLoading, groups, pickedPlayer, searchIcon, onRetry,
   contextTabs, rootNav, ghostRows, sheetTitle, sheetSub, modalWidth, columnTemplate,
   sideChips, posChips, skeletonCols, storedStyle, storedDotStyle, storedLabel,
-  cancelStyle, primaryStyle, primaryLabel, footNote, leagueName, competitionLabel,
-  backHref
+  cancelStyle, primaryStyle, primaryLabel, primaryAction, footNote, leagueName, competitionLabel,
+  searchQuery, onSearchChange, backHref
 }: any) {
   
   return (
@@ -55,15 +55,15 @@ export function PlayerPickerDesktop({
 
               <div className="flex items-center gap-[10px] h-[44px] mt-[15px] px-[14px] border border-[var(--surface-border-strong)] rounded-[11px]">
                 <span className="text-[var(--text-muted)] flex-none">{searchIcon}</span>
-                <input 
+                <input
                   type="text"
                   placeholder="Search this match’s squads"
-                  value={searching || ds === "noresults" ? "rodri" : ""}
-                  readOnly
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
                   className="flex-1 text-[13px] bg-transparent outline-none border-none text-[var(--text-primary)] placeholder-[var(--text-muted)]"
                 />
-                {(searching || ds === "noresults") && (
-                  <span onClick={() => setDataState('live')} className="text-[12px] text-[var(--text-muted)] cursor-pointer">✕</span>
+                {searching && (
+                  <span onClick={() => onSearchChange('')} className="text-[12px] text-[var(--text-muted)] cursor-pointer">✕</span>
                 )}
               </div>
 
@@ -99,7 +99,7 @@ export function PlayerPickerDesktop({
                   <div style={{ color: TERM[1] as string }}>{termIcon}</div>
                   <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.3px] mt-[18px]">{TERM[2]}</div>
                   <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[480px]">{TERM[3]}</div>
-                  <div onClick={() => setDataState('live')} className="mt-[22px] px-[20px] h-[44px] border border-[var(--surface-border-strong)] rounded-[12px] grid place-items-center font-heading font-bold text-[12px] cursor-pointer">{TERM[4]}</div>
+                  <div onClick={onRetry} className="mt-[22px] px-[20px] h-[44px] border border-[var(--surface-border-strong)] rounded-[12px] grid place-items-center font-heading font-bold text-[12px] cursor-pointer">{TERM[4]}</div>
                 </div>
               )}
 
@@ -137,7 +137,7 @@ export function PlayerPickerDesktop({
                   <span>{storedLabel}</span>
                 </div>
                 <Link href={backHref || "/predict"} style={cancelStyle}>Cancel</Link>
-                <Link href={backHref || "/predict"} style={primaryStyle}>{primaryLabel}</Link>
+                <div onClick={() => primaryAction?.()} style={primaryStyle}>{primaryLabel}</div>
               </div>
               <div className="text-[11px] leading-[1.55] text-[var(--text-muted)] mt-[12px]">{footNote}</div>
             </div>
