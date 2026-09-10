@@ -8,6 +8,19 @@
 :root {
   --font-dm-sans: 'DM Sans', sans-serif;
   --font-sora: 'Sora', sans-serif;
+
+  /* Compat aliases: these six names are referenced across the app (mainly
+     the auth screens) but were never defined anywhere in fig-tokens.css, so
+     var() resolved to nothing and the declaration using it fell back to
+     inherited/currentColor. fig-tokens.css is a pristine design-system
+     export and shouldn't gain invented names, so the aliases live here
+     instead, pointed at the nearest real semantic token. */
+  --border-base: var(--surface-border);
+  --text-tertiary: var(--text-muted);
+  --surface-layer-1: var(--surface-card);
+  --surface-card-hover: var(--surface-subtle);
+  --nav-muted: var(--nav-text-faint);
+  --color-brand-rgb: 69, 188, 235; /* --color-brand, i.e. --tf-blue-400, as an r,g,b triplet for rgba() */
 }
 
 body {
@@ -66,6 +79,44 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 @keyframes tfpulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
+}
+
+/* tfin/tfup/tfsheet/tfmodal/tfsaved were referenced throughout the app
+   (animate-[tfin_...] etc.) but only tfpulse was ever actually defined --
+   every other one was inert, including tfsaved, the save-confirmation
+   receipt. */
+@keyframes tfin {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tfup {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tfsheet {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tfmodal {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tfsaved {
+  0% { opacity: 0; transform: scale(0.9); }
+  10%, 80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Fix autofill styles without breaking Tailwind borders/focus rings */

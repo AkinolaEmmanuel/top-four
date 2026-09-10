@@ -5,6 +5,7 @@ import Link from 'next/link';
 export function LeagueMobile({
   theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
   heroTone, heroData, pct, rivals, RESULT, nailed, rBreakdown, unanswered,
+  rivalKicker, gapNumber, gapLabel, gapNote,
   IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel, heroCtaHref
 }: any) {
 
@@ -88,7 +89,7 @@ export function LeagueMobile({
             {/* RIVALRY */}
             <section className="mt-[22px]">
               <div className="flex items-baseline justify-between p-[0_var(--gutter)_10px]">
-                <span className="tf-kicker text-[var(--text-muted)]">{caught ? "YOU ARE 24TH OF 128" : "YOU ARE CHASING TOBI"}</span>
+                <span className="tf-kicker text-[var(--text-muted)]">{rivalKicker}</span>
                 <Link href={`/leagues/${params.id}/table`} className="tf-tap font-heading font-bold text-[10px] text-[var(--text-link)]">FULL TABLE →</Link>
               </div>
               {rivals.map((r: any, i: number) => (
@@ -99,13 +100,15 @@ export function LeagueMobile({
                   <span className={`tf-num ${r.pointsStyle}`}>{r.points}</span>
                 </div>
               ))}
-              <div className="flex items-end gap-[12px] p-[16px_var(--gutter)_0]">
-                <div className="tf-num font-heading font-bold text-[44px] leading-[0.85] tracking-[-2px] text-[var(--text-primary)]">6</div>
-                <div className="pb-[3px]">
-                  <div className="font-heading font-semibold text-[12.5px]">{caught ? "points behind 23rd" : "points behind Tobi"}</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">{caught ? "and 5 clear of 25th" : "One exact score would do it."}</div>
+              {gapLabel && (
+                <div className="flex items-end gap-[12px] p-[16px_var(--gutter)_0]">
+                  <div className="tf-num font-heading font-bold text-[44px] leading-[0.85] tracking-[-2px] text-[var(--text-primary)]">{gapNumber}</div>
+                  <div className="pb-[3px]">
+                    <div className="font-heading font-semibold text-[12.5px]">{gapLabel}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">{gapNote}</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
 
             {/* PAYOFF */}
@@ -117,9 +120,9 @@ export function LeagueMobile({
                 </div>
 
                 <div className="flex items-center gap-[13px] mt-[14px]">
-                  <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: CLUB.LIV }}>LIV</span>
-                  <span className="tf-num font-heading font-bold text-[34px] leading-[1] tracking-[-1.2px]">2 — 1</span>
-                  <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: CLUB.TOT }}>TOT</span>
+                  <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: CLUB[RESULT.homeCode] || '#666' }}>{RESULT.homeCode || '—'}</span>
+                  <span className="tf-num font-heading font-bold text-[34px] leading-[1] tracking-[-1.2px]">{RESULT.score}</span>
+                  <span className="tf-crest w-[34px] h-[37px] text-[11px]" style={{ background: CLUB[RESULT.awayCode] || '#666' }}>{RESULT.awayCode || '—'}</span>
                   <div className="flex-1 text-right">
                     <div className="tf-num font-heading font-bold text-[26px] tracking-[-0.8px] text-[var(--tf-white)]">{RESULT.pts}</div>
                     <div className="text-[10px] text-[rgba(255,255,255,0.55)] mt-[2px]">this fixture</div>

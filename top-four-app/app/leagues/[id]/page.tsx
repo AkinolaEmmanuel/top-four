@@ -3,14 +3,31 @@
 import { useState, useMemo } from 'react';
 import { LeagueMobile } from '../../components/leagues/LeagueMobile';
 import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
-import { useLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
+import { useLeague, useLeagueDashboard, useLeagueFixtures } from '@/hooks/api/useLeagues';
 import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
+import { useFixtureResults } from '@/hooks/api/useFixturePrediction';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d" };
 const URGENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
+
+// A stable per-member identity colour (1-7), derived from the member's own
+// id rather than their row position -- so the same person keeps the same
+// colour across settlements instead of it changing whenever the table
+// reorders.
+function identityTint(membershipId: string): number {
+  let hash = 0;
+  for (let i = 0; i < membershipId.length; i++) {
+    hash = (hash * 31 + membershipId.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % 7) + 1;
+}
+const MARKET_LABEL: Record<string, string> = {
+  match_result: 'Result', exact_score: 'Score', both_teams_to_score: 'BTTS',
+  total_goals: 'Goals', anytime_goalscorer: 'Scorer', player_card: 'Card', lineup: 'Lineup'
+};
 
 export default function LeagueOverviewPage({ params }: { params: { id: string } }) {
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
@@ -19,7 +36,13 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const { data: dashboard, isLoading: dashboardLoading } = useLeagueDashboard(params.id);
   const { data: tasksData } = usePredictionTasks();
   const { data: questionsData } = useCustomQuestions(params.id);
+  const { data: fixturesData } = useLeagueFixtures(params.id);
   const { user } = useAuth();
+
+  const lastFinishedFixture = (fixturesData?.items || [])
+    .filter((f) => f.status === 'finished')
+    .sort((a, b) => new Date(b.kickoffAt).getTime() - new Date(a.kickoffAt).getTime())[0];
+  const { data: lastFixtureResults } = useFixtureResults(params.id, lastFinishedFixture?.id || '');
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
@@ -69,18 +92,27 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const pct = totalMarkets > 0 ? Math.round((answeredMarkets / totalMarkets) * 100) : 0;
 
   // Derive leaderboard from API standings data — no static fallback
-  const liveRows = standingsData?.entries?.map((item, i) => ({
+  const liveRows = standingsData?.entries?.map((item) => ({
     pos: item.position.toString(),
     name: item.membershipId === ownStanding?.membershipId && user?.displayName ? user.displayName : item.displayName,
     initials: (item.membershipId === ownStanding?.membershipId && user?.displayName ? user.displayName : item.displayName).substring(0, 2).toUpperCase(),
     points: item.totalPoints,
-    tint: `var(--ident-${(i % 7) + 1})`,
+    // Keyed by the member's own stable id, not table position -- a
+    // position-keyed tint changes colour for the same person every time the
+    // table reorders (e.g. after a settlement).
+    tint: `var(--ident-${identityTint(item.membershipId)})`,
     you: item.membershipId === ownStanding?.membershipId
   })) || [];
 
   // Find the user's own points from standings
   const myRow = liveRows.find(r => r.you);
   const MINE = myRow?.points || 0;
+  const rivalAbove = myRow ? liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1) : undefined;
+  const rivalBelow = myRow ? liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) + 1) : undefined;
+  const rivalKicker = standingsLoading ? "LOADING…" : myRow ? `YOU ARE ${myRow.pos}${myRow.pos === '1' ? 'ST' : myRow.pos === '2' ? 'ND' : myRow.pos === '3' ? 'RD' : 'TH'} OF ${liveRows.length}`.toUpperCase() : "NOT RANKED YET";
+  const gapNumber = (!myRow || liveRows.length < 2 || !rivalAbove) ? "—" : String(rivalAbove.points - myRow.points);
+  const gapLabel = (!myRow || liveRows.length < 2 || !rivalAbove) ? "" : `points behind ${rivalAbove.name}`;
+  const gapNote = (!myRow || liveRows.length < 2 || !rivalBelow) ? "" : `and ${myRow.points - rivalBelow.points} clear of ${parseInt(myRow.pos) + 1}${parseInt(myRow.pos) + 1 === 2 ? 'nd' : parseInt(myRow.pos) + 1 === 3 ? 'rd' : 'th'}`;
 
   const desktopRivals = liveRows.map((r, i, a) => {
     const d = r.points - MINE;
@@ -106,12 +138,26 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     pointsStyle: `font-heading font-bold text-[14px] flex-none ${r.you ? 'text-[var(--accent-text-strong)]' : 'text-[var(--text-primary)]'}`
   }));
 
-  // No fixture-results API exists yet to source a real "last result" — show the honest no-data state
-  // rather than fabricated outcomes until that endpoint is available.
-  const RESULT = {
+  const RESULT = lastFinishedFixture ? {
+    kicker: "LAST RESULT",
+    badge: lastFinishedFixture.predictionState === 'won' ? "EXACT SCORE"
+      : lastFinishedFixture.predictionState === 'part' ? "PARTIAL"
+      : lastFinishedFixture.predictionState === 'void' ? "VOID"
+      : lastFinishedFixture.predictionState === 'lost' ? "NO POINTS" : "—",
+    pts: lastFinishedFixture.pointsAwarded !== undefined ? `+${lastFinishedFixture.pointsAwarded}` : "—",
+    summary: `${lastFinishedFixture.homeTeam} v ${lastFinishedFixture.awayTeam}`,
+    homeCode: lastFinishedFixture.homeTeamCode, awayCode: lastFinishedFixture.awayTeamCode,
+    score: lastFinishedFixture.score ? `${lastFinishedFixture.score.home} — ${lastFinishedFixture.score.away}` : "—",
+    breakdown: (lastFixtureResults?.markets || []).map((m) => [
+      MARKET_LABEL[m.marketType] || m.marketType,
+      m.viewerOutcome ? (m.viewerOutcome.pointsDelta > 0 ? `+${m.viewerOutcome.pointsDelta}` : "0") : "",
+      m.viewerOutcome?.outcome === 'correct'
+    ] as [string, string, boolean])
+  } : {
     kicker: "NO RESULTS YET", badge: "—", pts: "—",
     summary: "No settled fixtures yet in this league.",
-    breakdown: [] as any[]
+    homeCode: "", awayCode: "", score: "—",
+    breakdown: [] as [string, string, boolean][]
   };
   const nailed = RESULT.badge === "EXACT SCORE";
 
@@ -186,6 +232,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const propsMobile = {
     theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
     heroTone, heroData, pct, rivals: mobileRivals, RESULT, nailed, rBreakdown: mBreakdown, unanswered,
+    rivalKicker, gapNumber, gapLabel, gapNote,
     IconMap, tabs, heroBg, resultBg: mResultBg,
     leagueName: league?.name,
     memberCount: league?.memberCount,
@@ -213,29 +260,13 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     heroCta: heroData[4],
     heroCtaHref,
     heroFoot: heroData[5],
-    rivalKicker: standingsLoading ? "LOADING…" : myRow ? `YOU ARE ${myRow.pos}${myRow.pos === '1' ? 'ST' : myRow.pos === '2' ? 'ND' : myRow.pos === '3' ? 'RD' : 'TH'} OF ${liveRows.length}`.toUpperCase() : "NOT RANKED YET",
-    rivals: desktopRivals,
-    gapNumber: (() => {
-      if (!myRow || liveRows.length < 2) return "—";
-      const above = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1);
-      return above ? String(above.points - myRow.points) : "—";
-    })(),
-    gapColor: "var(--text-primary)",
-    gapLabel: (() => {
-      if (!myRow || liveRows.length < 2) return "";
-      const above = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1);
-      return above ? `points behind ${above.name}` : "";
-    })(),
-    gapNote: (() => {
-      if (!myRow || liveRows.length < 2) return "";
-      const below = liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) + 1);
-      return below ? `and ${myRow.points - below.points} clear of ${parseInt(myRow.pos) + 1}${parseInt(myRow.pos) + 1 === 2 ? 'nd' : parseInt(myRow.pos) + 1 === 3 ? 'rd' : 'th'}` : "";
-    })(),
+    rivalKicker, rivals: desktopRivals,
+    gapNumber, gapColor: "var(--text-primary)", gapLabel, gapNote,
     resultStyle: dResultStyle, resultKicker: RESULT.kicker, resultKickerColor: "rgba(255,255,255,.62)",
     resultBadgeStyle: { font: "700 9.5px 'DM Sans',sans-serif", letterSpacing: ".09em", padding: "4px 9px", borderRadius: "6px", background: "var(--tf-white)", color: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" },
     resultBadge: RESULT.badge,
-    rHomeCode: "—", rHomeColor: '#666', rAwayCode: "—", rAwayColor: '#666',
-    rScore: "—", rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
+    rHomeCode: RESULT.homeCode || "—", rHomeColor: CLUB[RESULT.homeCode] || '#666', rAwayCode: RESULT.awayCode || "—", rAwayColor: CLUB[RESULT.awayCode] || '#666',
+    rScore: RESULT.score, rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
     rPoints: RESULT.pts, rPointsSub: "this fixture", rSummary: RESULT.summary, rBreakdown: dBreakdown,
     qTitle, qSub,
     skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w })),

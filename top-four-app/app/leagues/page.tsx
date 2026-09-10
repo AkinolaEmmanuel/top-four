@@ -65,9 +65,7 @@ export default function LeaguesPage() {
         cats.playing.push(item);
       }
     });
-    return Object.fromEntries(
-        Object.entries(cats).map(([k, v]) => [k, v.map(rowMap)])
-    );
+    return cats;
   }, [leaguesData]);
 
   const groups = visible.map(([label, key]) => ({
