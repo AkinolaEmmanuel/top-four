@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { HomeMobile } from '../components/home/HomeMobile';
 import { HomeDesktop } from '../components/home/HomeDesktop';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
@@ -24,17 +24,27 @@ export default function Home() {
   const { data: crestMap = {} } = useTeamCrestMap(fixtureCompetitionIds);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isApiLoading = tasksLoading || leaguesLoading;
   const isNewUser = !isApiLoading && leaguesData?.items.length === 0;
   const isLoading = isApiLoading;
   const isReady = !isLoading && !isNewUser;
-  
+
   const taskCount = tasksData?.items.length || 0;
   const caught = isReady && taskCount === 0;
-  const urgent = false; // Will be driven by API deadline proximity in future
 
-  const tone = urgent ? "var(--color-danger)" : caught ? "var(--nav-positive)" : "var(--nav-accent)";
+  // The server's own clock, captured once per fresh response and held fixed
+  // while `now` ticks locally, so a client with a fast/slow clock still
+  // counts down against the deadline the server will actually enforce.
+  const clockOffsetMs = useMemo(() => {
+    if (!tasksData?.serverTime) return 0;
+    return new Date(tasksData.serverTime).getTime() - Date.now();
+  }, [tasksData?.serverTime]);
 
   // Build queue from API tasks only
   const queue = caught ? [] : (tasksData?.items.map((t: any) => {
@@ -92,8 +102,18 @@ export default function Home() {
   const hLogo = isFixture ? (heroHomeTeam?.logoUrl || null) : null;
   const aLogo = isFixture ? (heroAwayTeam?.logoUrl || null) : null;
   const hLeague = nextTask ? nextTask.league.name.toUpperCase() : "YOUR LEAGUES";
-  
-  const heroTime = nextTask ? new Date(isFixture ? nextTask.nextDeadlineAt : nextTask.question.deadlineAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "TBD";
+
+  const nextDeadlineMs = nextTask
+    ? new Date(isFixture ? nextTask.nextDeadlineAt : nextTask.question.deadlineAt).getTime()
+    : null;
+  const secondsRemaining = nextDeadlineMs !== null ? Math.max(0, Math.round((nextDeadlineMs - (now + clockOffsetMs)) / 1000)) : null;
+  const urgent = !caught && secondsRemaining !== null && secondsRemaining > 0 && secondsRemaining <= 900;
+  const tone = urgent ? "var(--color-danger)" : caught ? "var(--nav-positive)" : "var(--nav-accent)";
+
+  const heroTime = secondsRemaining === null ? "TBD" : (() => {
+    const h = Math.floor(secondsRemaining / 3600), m = Math.floor((secondsRemaining % 3600) / 60), s = secondsRemaining % 60;
+    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}:${String(s).padStart(2, '0')}`;
+  })();
   const heroKickerText = caught ? "NEXT KICK-OFF" : "NEXT LOCK";
   const heroSubText = caught ? "and you are ready for it" : "until this one closes";
 

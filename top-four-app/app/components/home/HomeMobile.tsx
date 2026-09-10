@@ -65,7 +65,7 @@ export function HomeMobile({ state, theme, ...props }: any) {
 
           {isReady && (
             <div className="animate-[tfin_0.16s_ease]">
-              <div style={props.heroStyle}>
+              <div style={props.heroStyle} className="px-[var(--gutter)]">
                 <div className="flex items-center gap-[8px]">
                   <span style={props.heroDotStyle}></span>
                   <span className="tf-kicker" style={{ color: props.heroToneColor }}>{props.heroKicker}</span>
