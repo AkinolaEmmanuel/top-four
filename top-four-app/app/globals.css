@@ -8,6 +8,28 @@
 :root {
   --font-dm-sans: 'DM Sans', sans-serif;
   --font-sora: 'Sora', sans-serif;
+
+  /* Compat aliases. These names are referenced across the app — mainly the
+     auth screens — but were never defined anywhere, so `var()` resolved to
+     nothing and each declaration silently fell back to whatever it inherited.
+     fig-tokens.css is a pristine design-system export and must not gain
+     invented names, so the aliases live here, each pointed at the nearest real
+     semantic token. Aliasing a token rather than a literal keeps them correct
+     in both themes. */
+  --border-base: var(--surface-border);
+  --text-tertiary: var(--text-muted);
+  --surface-layer-1: var(--surface-card);
+  --surface-card-hover: var(--surface-subtle);
+
+  /* The one alias that cannot be a var(): rgba() needs bare channels. That
+     makes it the only one frozen per theme, so it is declared per theme —
+     --color-brand is --tf-blue-600 on light and --tf-blue-400 on dark, and a
+     single triplet would tint the wrong blue on one of them. */
+  --color-brand-rgb: 8, 123, 184;
+}
+
+:root[data-theme="dark"], .dark {
+  --color-brand-rgb: 69, 188, 235;
 }
 
 body {
@@ -70,33 +92,52 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 /* The screens reference these by name; without the definitions the elements
    simply appear, and `tfsaved` never fades, so a save receipt would sit on the
-   row until its timer cleared it. */
+   row until its timer cleared it.
+
+   The distances are the design's own, read from the prototypes rather than
+   guessed: every animation here is a short lift with a fade, never a scale and
+   never a full-height slide. `tfin` and `tfup` travel further on mobile than on
+   desktop, so the base values are the mobile ones and the md override below
+   carries the desktop pair. */
 @keyframes tfin {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: none; }
 }
 
 @keyframes tfup {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: none; }
 }
 
 @keyframes tfsheet {
-  from { transform: translateY(100%); }
-  to   { transform: none; }
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes tfmodal {
-  from { opacity: 0; transform: scale(0.97); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
 
 /* Held long enough to read, then released — the row must not keep a stale receipt. */
 @keyframes tfsaved {
-  0%   { opacity: 0; transform: translateY(2px); }
-  8%   { opacity: 1; transform: none; }
-  72%  { opacity: 1; transform: none; }
+  0%   { opacity: 0; transform: translateY(3px); }
+  14%  { opacity: 1; transform: none; }
+  78%  { opacity: 1; transform: none; }
   100% { opacity: 0; transform: none; }
+}
+
+/* Matches the breakpoint the mobile and desktop twins themselves switch at. */
+@media (min-width: 768px) {
+  @keyframes tfin {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes tfup {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
