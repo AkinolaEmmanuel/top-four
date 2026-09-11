@@ -23,6 +23,19 @@ export function useFixtureAvailability(leagueId: string, fixtureId: string) {
   });
 }
 
+/**
+ * One fixture's settled markets on their own, for screens that want a result
+ * without the availability, predictions and squad that `useFixtureData` pulls.
+ * The key is the one `useFixtureData` uses, so the two share a single read.
+ */
+export function useFixtureResults(leagueId: string, fixtureId: string) {
+  return useQuery({
+    queryKey: ['fixture-results', leagueId, fixtureId],
+    queryFn: () => fetchFixtureResults(leagueId, fixtureId),
+    enabled: !!leagueId && !!fixtureId,
+  });
+}
+
 export function useFixtureData(leagueId: string, fixtureId: string) {
   const availabilityQuery = useQuery({
     queryKey: ['fixture-availability', leagueId, fixtureId],

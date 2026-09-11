@@ -3,15 +3,26 @@
 import { useState, useMemo } from 'react';
 import { LeagueMobile } from '../../components/leagues/LeagueMobile';
 import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
-import { useLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
+import { useLeague, useLeagueDashboard, useLeagueFixtures } from '@/hooks/api/useLeagues';
 import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
-import { useFixtureAvailability } from '@/hooks/api/useFixturePrediction';
+import { useFixtureAvailability, useFixtureResults } from '@/hooks/api/useFixturePrediction';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
+import { MARKET_LABELS } from '@/lib/constants/markets';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d" };
 const URGENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
+const IDENTITY_TINTS = 7;
+
+/** A member's palette slot, stable for as long as their membership id is. */
+function identityTint(membershipId: string): number {
+  let hash = 0;
+  for (let i = 0; i < membershipId.length; i++) {
+    hash = (hash * 31 + membershipId.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % IDENTITY_TINTS) + 1;
+}
 
 export default function LeagueOverviewPage({ params }: { params: { id: string } }) {
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
@@ -20,7 +31,17 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const { data: dashboard, isLoading: dashboardLoading } = useLeagueDashboard(params.id);
   const { data: tasksData } = usePredictionTasks();
   const { data: questionsData } = useCustomQuestions(params.id);
+  const { data: fixturesData } = useLeagueFixtures(params.id);
   const { user } = useAuth();
+
+  // The fixtures feed already carries each finished fixture's score and points;
+  // only the per-market breakdown needs its own read.
+  const lastFinishedFixture = useMemo(() => {
+    return (fixturesData?.items ?? [])
+      .filter(f => f.status === 'finished')
+      .sort((a, b) => Date.parse(b.kickoffAt) - Date.parse(a.kickoffAt))[0];
+  }, [fixturesData]);
+  const { data: lastFixtureResults } = useFixtureResults(params.id, lastFinishedFixture?.id ?? '');
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
@@ -91,12 +112,15 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const pct = totalMarkets > 0 ? Math.round((answeredMarkets / totalMarkets) * 100) : 0;
 
   // Derive leaderboard from API standings data — no static fallback
-  const liveRows = standingsData?.entries?.map((item, i) => ({
+  const liveRows = standingsData?.entries?.map((item) => ({
     pos: item.position.toString(),
     name: item.membershipId === ownStanding?.membershipId && user?.displayName ? user.displayName : item.displayName,
     initials: (item.membershipId === ownStanding?.membershipId && user?.displayName ? user.displayName : item.displayName).substring(0, 2).toUpperCase(),
     points: item.totalPoints,
-    tint: `var(--ident-${(i % 7) + 1})`,
+    // Keyed by the member's own id, never their row position: a position-keyed
+    // tint repaints the same person a different colour every time the table
+    // reorders, which is exactly what a settlement does.
+    tint: `var(--ident-${identityTint(item.membershipId)})`,
     you: item.membershipId === ownStanding?.membershipId
   })) || [];
 
@@ -128,15 +152,36 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     pointsStyle: `font-heading font-bold text-[14px] flex-none ${r.you ? 'text-[var(--accent-text-strong)]' : 'text-[var(--text-primary)]'}`
   }));
 
-  // The last-settled-fixture block is not wired yet (finding 26). Until it is,
-  // `hasResult` keeps the solid block — and its scoreline — off the screen
-  // rather than filling it with an invented one.
-  const RESULT = {
+  // The most recently played fixture, and how the member scored on it. Every
+  // field is the server's; `hasResult` still gates the solid block, so a league
+  // with nothing settled shows the quiet empty state rather than an invented
+  // scoreline.
+  const RESULT_BADGE: Record<string, string> = {
+    won: "EXACT SCORE", part: "PARTIAL", void: "VOID", lost: "NO POINTS"
+  };
+
+  const RESULT = lastFinishedFixture ? {
+    hasResult: true,
+    kicker: "LAST RESULT",
+    badge: RESULT_BADGE[lastFinishedFixture.predictionState ?? ''] ?? "—",
+    pts: lastFinishedFixture.pointsAwarded === undefined ? "—" : `+${lastFinishedFixture.pointsAwarded}`,
+    homeCode: lastFinishedFixture.homeTeamCode,
+    awayCode: lastFinishedFixture.awayTeamCode,
+    homeColor: CLUB[lastFinishedFixture.homeTeamCode] || '#666',
+    awayColor: CLUB[lastFinishedFixture.awayTeamCode] || '#666',
+    score: lastFinishedFixture.score ? `${lastFinishedFixture.score.home} — ${lastFinishedFixture.score.away}` : "—",
+    summary: `${lastFinishedFixture.homeTeam} v ${lastFinishedFixture.awayTeam}`,
+    breakdown: (lastFixtureResults?.markets ?? []).map(m => [
+      MARKET_LABELS[m.marketType] ?? m.marketType,
+      m.viewerOutcome ? (m.viewerOutcome.pointsDelta > 0 ? `+${m.viewerOutcome.pointsDelta}` : "0") : "",
+      m.viewerOutcome?.outcome === 'correct'
+    ] as [string, string, boolean])
+  } : {
     hasResult: false,
     kicker: "NO RESULTS YET", badge: "—", pts: "—",
     homeCode: "", awayCode: "", homeColor: "#666", awayColor: "#666", score: "",
     summary: "No settled fixtures yet in this league.",
-    breakdown: [] as any[]
+    breakdown: [] as [string, string, boolean][]
   };
   const nailed = RESULT.badge === "EXACT SCORE";
 
@@ -263,8 +308,9 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     resultStyle: dResultStyle, resultKicker: RESULT.kicker, resultKickerColor: "rgba(255,255,255,.62)",
     resultBadgeStyle: { font: "700 9.5px 'DM Sans',sans-serif", letterSpacing: ".09em", padding: "4px 9px", borderRadius: "6px", background: "var(--tf-white)", color: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" },
     resultBadge: RESULT.badge,
-    rHomeCode: "—", rHomeColor: '#666', rAwayCode: "—", rAwayColor: '#666',
-    rScore: "—", rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
+    rHomeCode: RESULT.homeCode || "—", rHomeColor: RESULT.homeColor,
+    rAwayCode: RESULT.awayCode || "—", rAwayColor: RESULT.awayColor,
+    rScore: RESULT.score || "—", rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
     rPoints: RESULT.pts, rPointsSub: "this fixture", rSummary: RESULT.summary, rBreakdown: dBreakdown,
     qTitle, qSub,
     skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w })),
