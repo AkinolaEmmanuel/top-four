@@ -144,11 +144,13 @@ function SignupForm() {
         </button>
       </form>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
-        <div className="h-px flex-1 bg-[var(--border-base)]" />
-        <span>or</span>
-        <div className="h-px flex-1 bg-[var(--border-base)]" />
-      </div>
+      {!!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+        <div className="my-5 flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
+          <div className="h-px flex-1 bg-[var(--border-base)]" />
+          <span>or</span>
+          <div className="h-px flex-1 bg-[var(--border-base)]" />
+        </div>
+      )}
 
       <GoogleSignInButton redirectTarget={redirectTarget} onError={setError} />
 

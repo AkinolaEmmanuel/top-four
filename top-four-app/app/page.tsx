@@ -62,7 +62,12 @@ function LoginForm() {
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="password" className={labelClasses}>Password</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className={labelClasses}>Password</label>
+            <Link href="/forgot-password" className="text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--color-brand)] hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <div className="relative">
             <input
               id="password"
@@ -101,11 +106,13 @@ function LoginForm() {
         </button>
       </form>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
-        <div className="h-px flex-1 bg-[var(--border-base)]" />
-        <span>or</span>
-        <div className="h-px flex-1 bg-[var(--border-base)]" />
-      </div>
+      {!!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+        <div className="my-5 flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
+          <div className="h-px flex-1 bg-[var(--border-base)]" />
+          <span>or</span>
+          <div className="h-px flex-1 bg-[var(--border-base)]" />
+        </div>
+      )}
 
       <GoogleSignInButton redirectTarget={redirectTarget} onError={setError} />
 

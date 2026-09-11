@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useRequestEmailChange } from '@/hooks/api/useAccount';
+import { useRequestEmailChange, useResendVerificationEmail } from '@/hooks/api/useAccount';
 import { useAuth } from '@/context/auth-context';
 
 export default function EmailPage() {
   const { user } = useAuth();
   const router = useRouter();
   const requestEmailChange = useRequestEmailChange();
-  
+  const resendVerification = useResendVerificationEmail();
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [email, setEmail] = useState(user?.email || '');
   const [error, setError] = useState('');
@@ -51,6 +52,19 @@ export default function EmailPage() {
           <p className="text-[12.5px] text-[var(--text-secondary)] mt-[4px]">
             A confirmation link will be sent to your new address. It must be confirmed within 24 hours.
           </p>
+
+          {user?.emailVerified === false && (
+            <div className="mt-[16px] p-[12px_14px] rounded-[10px] bg-[rgba(234,179,8,0.1)] border border-[var(--state-provisional)] text-[13px] leading-[1.5] flex items-center justify-between gap-[12px] flex-wrap">
+              <span className="text-[var(--text-primary)]">Your current address ({user.email}) hasn&apos;t been verified yet.</span>
+              <button
+                onClick={() => resendVerification.mutate(user.email)}
+                disabled={resendVerification.isPending || resendVerification.isSuccess}
+                className="h-[32px] px-[14px] rounded-[8px] border border-[var(--surface-border-strong)] hover:bg-[var(--surface-subtle)] text-[12px] font-heading font-semibold text-[var(--text-primary)] transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
+              >
+                {resendVerification.isSuccess ? 'Sent' : resendVerification.isPending ? 'Sending…' : 'Resend link'}
+              </button>
+            </div>
+          )}
 
           <div className="mt-[24px] space-y-[18px]">
             <div>
