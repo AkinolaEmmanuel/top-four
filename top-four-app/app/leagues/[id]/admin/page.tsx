@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LeagueAdminMobile } from '../../../components/leagues/LeagueAdminMobile';
-import { LeagueAdminDesktop } from '../../../components/leagues/LeagueAdminDesktop';
+import { LeagueAdminScreen } from '../../../components/leagues/LeagueAdminScreen';
 import {
   useLeague, useLeagueMembers, useJoinRequests, useUpdateMemberRole, useRemoveMember,
   useProcessJoinRequest, useLeagueInvitations, useCreateInvitation, useRevokeInvitation,
@@ -172,10 +171,36 @@ export default function LeagueAdminPage() {
     id: r.id,
     name: 'A member',
     initials: '??',
+    createdAt: r.createdAt || null,
     meta: r.createdAt ? `Requested ${new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Requested recently',
     state: r.state === 'pending' ? 'pending' : r.state === 'approved' ? 'approved' : 'rejected'
   }));
   const displayRequests = dynamicRequests;
+
+  // Both twins used to show a hardcoded summary here regardless of the real
+  // list -- Mobile said "2 PENDING · 1 ALREADY IN" verbatim, Desktop said
+  // "Oldest asked yesterday" -- no matter how many requests actually existed
+  // or when the oldest one really came in.
+  const pendingRequestsForSummary = displayRequests.filter((r: any) => r.state === 'pending');
+  const approvedRequestsCount = displayRequests.filter((r: any) => r.state === 'approved').length;
+  const requestsSummary = `${pendingRequestsForSummary.length} PENDING${approvedRequestsCount > 0 ? ` · ${approvedRequestsCount} ALREADY IN` : ''}`;
+  const oldestPendingAt = pendingRequestsForSummary
+    .map((r: any) => r.createdAt)
+    .filter(Boolean)
+    .sort()[0];
+  const oldestRequestLabel = oldestPendingAt
+    ? `Oldest asked ${new Date(oldestPendingAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+    : 'Nothing waiting';
+
+  const handleApproveAll = () => {
+    if (pendingRequestsForSummary.length === 0) return;
+    const ok = window.confirm(`Approve all ${pendingRequestsForSummary.length} pending request${pendingRequestsForSummary.length === 1 ? '' : 's'}?`);
+    if (!ok) return;
+    pendingRequestsForSummary.forEach((r: any) => {
+      if (r.id) processRequestMutation.mutate({ requestId: r.id, action: 'approve' });
+    });
+    flash(`Approving ${pendingRequestsForSummary.length} request${pendingRequestsForSummary.length === 1 ? '' : 's'}…`);
+  };
 
   const requests = displayRequests.filter(() => !loading).map((r: any, i: number, arr: any[]) => ({
     name: r.name, initials: r.initials, meta: r.meta, pending: r.state === "pending",
@@ -372,15 +397,6 @@ export default function LeagueAdminPage() {
   const onRequests = tab === "requests" && !loading;
   const onLifecycle = tab === "lifecycle" && !loading;
 
-  const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map(it => {
-    const [label, id, badge] = it;
-    return {
-      label, id, badge,
-      badgeStyle: badge ? { marginLeft:'7px', minWidth:'16px', height:'16px', padding:'0 4px', borderRadius:'8px', background:'var(--nav-accent)', color:'var(--nav-on-accent)', display:'inline-grid', placeItems:'center', font:"700 9px 'DM Sans',sans-serif" } : { display:'none' },
-      style: { display:'flex', alignItems:'center', padding:'7px 13px', borderRadius:'9px', font:"600 12.5px 'DM Sans',sans-serif", cursor:'pointer', background: id==="leagues"?'var(--nav-fill)':'transparent', opacity: id==="leagues"?1:0.66 }
-    };
-  });
-
   const tabItem = (label: string, on: boolean, badge: string) => ({
     label, badge: badge||"",
     style: { display:'flex', alignItems:'center', padding:'0 13px', height:'43px', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:'12.5px', cursor:'pointer', borderBottom:`2px solid ${on?'var(--color-brand)':'transparent'}`, color: on?'var(--text-primary)':'var(--text-muted)' },
@@ -441,31 +457,17 @@ export default function LeagueAdminPage() {
     inviteCode: latestInviteCode,
     createInviteAction: handleCreateInvite,
     copyInviteAction: handleCopyInvite,
-    exportMembersAction: handleExportMembers
+    exportMembersAction: handleExportMembers,
+    requestsSummary, oldestRequestLabel, approveAllAction: handleApproveAll,
+    hasPendingRequests: pendingRequestsForSummary.length > 0,
+    contextTabs: [tabItem("Overview",false,""),tabItem("Fixtures",false,""),tabItem("Table",false,""),tabItem("Questions",false,""),tabItem("More",true,"")],
+    heroStyle,
+    heroBig: HERO[0], heroTone: HERO[3], heroLabel: HERO[1], heroSub: HERO[2],
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <LeagueAdminMobile params={params} {...sharedProps} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <LeagueAdminDesktop
-          params={params}
-          rootNav={rootNav}
-          avatarInitials={(user?.displayName || '??').substring(0, 2).toUpperCase()}
-          avatarName={user?.displayName || ''}
-          contextTabs={[tabItem("Overview",false,""),tabItem("Fixtures",false,""),tabItem("Table",false,""),tabItem("Questions",false,""),tabItem("More",true,"")]}
-          heroStyle={heroStyle}
-          heroBig={HERO[0]}
-          heroTone={HERO[3]}
-          heroLabel={HERO[1]}
-          heroSub={HERO[2]}
-          {...sharedProps}
-        />
-      </div>
+      <LeagueAdminScreen params={params} {...sharedProps} />
     </div>
   );
 }
