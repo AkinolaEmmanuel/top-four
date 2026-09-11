@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { LeagueQuestionsScreen } from '../../../components/leagues/LeagueQuestionsScreen';
-import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import { toQuestionCard } from '@/lib/leagues/league-questions';
 import type { Api } from '@/lib/api/types';
@@ -17,28 +19,16 @@ import type { CustomQuestion, OwnCustomAnswerData } from '@/lib/api/custom-quest
 type LeagueRead = Api<'LeagueReadResponseDto'>;
 type Questions = Api<'CustomQuestionPageResponseDto'>;
 
-/**
- * The standings predictor is a plain open-text question; nothing marks it as
- * special. The only reliable signal is the exact wording the preset writes, so
- * this matches on that rather than pretending every league has one.
- */
-function standingsQuestionIn(questions: CustomQuestion[]): CustomQuestion | undefined {
-  return questions.find(q =>
-    (q.phase === 'open' || q.phase === 'scheduled')
-    && q.answerKind === 'open_text'
-    && /Final Table Order/i.test(q.questionText));
-}
-
 export default async function LeagueQuestionsPage({ params }: { params: { id: string } }) {
   const id = params.id;
 
   let league: LeagueRead;
-  let questions: Questions | null;
+  let questions: { items: CustomQuestion[] };
 
   try {
     [league, questions] = await Promise.all([
       serverFetch<LeagueRead>(`/leagues/${id}`),
-      serverFetchOrNull<Questions>(`/leagues/${id}/custom-questions`),
+      serverFetchAllPagesOrEmpty<CustomQuestion, Questions>(`/leagues/${id}/custom-questions`),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/questions`);
@@ -47,23 +37,24 @@ export default async function LeagueQuestionsPage({ params }: { params: { id: st
     throw error;
   }
 
-  const items = questions?.data ?? [];
+  const items = questions.items;
 
   const answers = await Promise.all(items.map(q =>
     serverFetchOrNull<{ data: OwnCustomAnswerData }>(`/leagues/${id}/custom-questions/${q.id}/answer`)
-      .then(r => [q.id, r?.data.answer ?? null] as const)));
+      .then(r => [q.id, { answer: r?.data.answer ?? null, version: r?.data.version ?? 0 }] as const)));
   const byQuestion = new Map(answers);
 
   const role = league.membership?.role;
-  const standings = standingsQuestionIn(items);
 
   return (
     <LeagueQuestionsScreen
       leagueId={id}
       leagueName={league.name}
-      cards={items.map(q => toQuestionCard(q, byQuestion.get(q.id) ?? null))}
+      cards={items.map(q => {
+        const stored = byQuestion.get(q.id);
+        return toQuestionCard(q, stored?.answer ?? null, stored?.version);
+      })}
       canAdmin={role === 'owner' || role === 'admin'}
-      standingsHref={standings ? `/predict/standings?leagueId=${id}&questionId=${standings.id}` : null}
     />
   );
 }

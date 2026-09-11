@@ -97,3 +97,71 @@ export async function serverFetchOrNull<T>(
     throw error;
   }
 }
+
+/**
+ * Follows `nextCursor` until the resource is exhausted.
+ *
+ * Several list endpoints page at twenty, and page one is the *earliest* slice —
+ * so a screen that reads only the first page under-reports badly: a league whose
+ * first twenty fixtures are mostly played looks as though it has two left.
+ *
+ * The envelope keys its rows `data` on some endpoints and `items` on others, so
+ * both are read. `first` is the first page whole, for the fields that live
+ * beside the rows rather than in them — `serverTime`, counts, limits.
+ *
+ * Bounded, because an unbounded follow is a denial of service against our own
+ * API if a cursor ever fails to terminate.
+ */
+type PageEnvelope<T> = { nextCursor: string | null } & ({ data: T[] } | { items: T[] });
+
+function rowsOf<T>(page: PageEnvelope<T>): T[] {
+  return 'data' in page ? page.data : page.items;
+}
+
+export async function serverFetchAllPages<T, P extends PageEnvelope<T> = PageEnvelope<T>>(
+  endpoint: string,
+  options: { revalidate?: number | false; maxPages?: number } = {},
+): Promise<{ items: T[]; truncated: boolean; first: P }> {
+  const maxPages = options.maxPages ?? 10;
+  const separator = endpoint.includes('?') ? '&' : '?';
+
+  // Deliberately the throwing read: a signed-out or forbidden member must reach
+  // the page's own redirect, not be handed an empty list as if they had no work.
+  const first = await serverFetch<P>(endpoint, options);
+  const items: T[] = [...rowsOf(first)];
+  let cursor: string | null = first.nextCursor;
+
+  for (let page = 1; cursor && page < maxPages; page++) {
+    const next: P = await serverFetch<P>(
+      `${endpoint}${separator}cursor=${encodeURIComponent(cursor)}`,
+      options,
+    );
+    items.push(...rowsOf(next));
+    cursor = next.nextCursor;
+  }
+
+  // Never silently: a short list that claims to be the whole list is exactly
+  // the defect this helper exists to fix.
+  if (cursor) console.warn(`[serverFetchAllPages] stopped at ${maxPages} pages, ${endpoint} has more`);
+  return { items, truncated: cursor !== null, first };
+}
+
+/**
+ * The paginated read's tolerant sibling, mirroring `serverFetchOrNull`: an
+ * empty list rather than a throw when the member is signed out or the resource
+ * is not theirs, so one optional panel cannot collapse a whole route.
+ */
+export async function serverFetchAllPagesOrEmpty<T, P extends PageEnvelope<T> = PageEnvelope<T>>(
+  endpoint: string,
+  options: { revalidate?: number | false; maxPages?: number } = {},
+): Promise<{ items: T[]; truncated: boolean; first: P | null }> {
+  try {
+    return await serverFetchAllPages<T, P>(endpoint, options);
+  } catch (error) {
+    if (error instanceof NotAuthenticatedError) return { items: [], truncated: false, first: null };
+    if (error instanceof ApiError && (error.status === 401 || error.status === 403 || error.status === 404)) {
+      return { items: [], truncated: false, first: null };
+    }
+    throw error;
+  }
+}

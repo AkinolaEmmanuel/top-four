@@ -125,7 +125,11 @@ export function toLastResult(
     pointsAwarded: fixture.pointsAwarded ?? null,
     outcome,
     breakdown: (results?.markets ?? []).map(m => ({
-      label: MARKET_LABELS[m.marketType] ?? m.marketType,
+      // Both lineups are one market type, so without the side they render as
+      // two identical chips.
+      label: m.marketType === 'lineup' && m.side
+        ? `${m.side === 'home' ? 'Home' : 'Away'} lineup`
+        : MARKET_LABELS[m.marketType] ?? m.marketType,
       points: m.viewerOutcome ? (m.viewerOutcome.pointsDelta > 0 ? `+${m.viewerOutcome.pointsDelta}` : '0') : '',
       correct: m.viewerOutcome?.outcome === 'correct',
     })),

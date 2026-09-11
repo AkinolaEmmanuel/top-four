@@ -1,8 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 import { LeagueFixturesScreen } from '../../../components/leagues/LeagueFixturesScreen';
-import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
-import { splitFixtures, toFixtureRow } from '@/lib/leagues/league-fixtures';
+import { splitFixtures, toFixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
 import type { Api } from '@/lib/api/types';
 import type { LeagueFixture } from '@/lib/api/leagues';
 import type { FixtureAvailability, FixtureResultsResponse } from '@/lib/api/predictions-fixture';
@@ -13,12 +15,31 @@ import type { FixtureAvailability, FixtureResultsResponse } from '@/lib/api/pred
  * Availability describes every fixture's markets but never their outcome, so a
  * played fixture's score and points come from the results read. That is one
  * batched call for all of them — it used to be one call per finished fixture.
+ *
+ * Availability is paginated, and every page of it is read: the Upcoming and
+ * Results counts are counts of the league, not of the first twenty rows.
  */
 
 type LeagueRead = Api<'LeagueReadResponseDto'>;
 type Dashboard = Api<'LeagueDashboardResponseDto'>;
-type AvailabilityPage = { data: FixtureAvailability[]; nextCursor: string | null };
 type ResultsBatch = Api<'MemberFixtureResultsBatchResponseDto'>;
+
+/**
+ * The largest page the availability endpoint allows. A season across two
+ * competitions is a few hundred fixtures, so this keeps the paginated read to a
+ * handful of round-trips rather than tens of them.
+ */
+const AVAILABILITY_PAGE_SIZE = 100;
+
+/**
+ * Rows rendered per request. The counts above the list are the league's whole
+ * truth, but a season is several hundred fixtures and rendering them all at
+ * once produced a multi-megabyte document; "Show more" widens this window.
+ */
+const ROW_WINDOW = 40;
+
+/** The batch results endpoint accepts fifty ids per call and rejects more. */
+const RESULTS_BATCH_SIZE = 50;
 
 const PLAYED_STATES = ['finished', 'awarded', 'walkover'];
 const VOIDED_STATES = ['postponed', 'cancelled', 'abandoned'];
@@ -51,18 +72,23 @@ function outcomeOf(result: FixtureResultsResponse | undefined): Pick<LeagueFixtu
   };
 }
 
-export default async function LeagueFixturesPage({ params }: { params: { id: string } }) {
+export default async function LeagueFixturesPage({
+  params, searchParams,
+}: {
+  params: { id: string };
+  searchParams: { view?: string; show?: string };
+}) {
   const id = params.id;
 
   let league: LeagueRead;
   let dashboard: Dashboard | null;
-  let availability: AvailabilityPage | null;
+  let availability: { items: FixtureAvailability[]; truncated: boolean };
 
   try {
     [league, dashboard, availability] = await Promise.all([
       serverFetch<LeagueRead>(`/leagues/${id}`),
       serverFetchOrNull<Dashboard>(`/leagues/${id}/dashboard`),
-      serverFetchOrNull<AvailabilityPage>(`/leagues/${id}/fixtures/availability`),
+      serverFetchAllPages<FixtureAvailability>(`/leagues/${id}/fixtures/availability?limit=${AVAILABILITY_PAGE_SIZE}`),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/fixtures`);
@@ -71,7 +97,7 @@ export default async function LeagueFixturesPage({ params }: { params: { id: str
     throw error;
   }
 
-  const base: LeagueFixture[] = (availability?.data ?? []).map(f => ({
+  const base: LeagueFixture[] = availability.items.map(f => ({
     id: f.leagueFixtureId,
     leagueId: id,
     homeTeam: f.homeTeam?.displayName || 'Home',
@@ -87,26 +113,45 @@ export default async function LeagueFixturesPage({ params }: { params: { id: str
   }));
 
   const playedIds = base.filter(f => f.status === 'finished').map(f => f.id);
-  const batch = playedIds.length > 0
-    ? await serverFetchOrNull<ResultsBatch>(
-      `/leagues/${id}/fixtures/results?${playedIds.map(x => `leagueFixtureIds=${encodeURIComponent(x)}`).join('&')}`,
-    )
-    : null;
-  const byFixture = new Map((batch?.data ?? []).map(r => [r.leagueFixtureId, r]));
+  const chunks: string[][] = [];
+  for (let i = 0; i < playedIds.length; i += RESULTS_BATCH_SIZE) {
+    chunks.push(playedIds.slice(i, i + RESULTS_BATCH_SIZE));
+  }
+
+  const batches = await Promise.all(chunks.map(chunk =>
+    serverFetchOrNull<ResultsBatch>(
+      `/leagues/${id}/fixtures/results?${chunk.map(x => `leagueFixtureIds=${encodeURIComponent(x)}`).join('&')}`,
+    )));
+  const byFixture = new Map(batches.flatMap(b => b?.data ?? []).map(r => [r.leagueFixtureId, r]));
 
   const fixtures = base.map(f => ({ ...f, ...outcomeOf(byFixture.get(f.id)) }));
   const split = splitFixtures(fixtures);
   const unanswered = dashboard?.data.summary.predictionCompleteness.unanswered ?? 0;
+
+  // Opens on whichever half has something in it — a league whose fixtures have
+  // all been played should not open on an empty "Upcoming".
+  const view: FixtureView = searchParams.view === 'results' ? 'results'
+    : searchParams.view === 'upcoming' ? 'upcoming'
+      : split.upcoming.length > 0 ? 'upcoming' : 'results';
+
+  const all = view === 'upcoming' ? split.upcoming : split.results;
+  const requested = Number.parseInt(searchParams.show ?? '', 10);
+  const shown = Number.isFinite(requested) && requested > 0
+    ? Math.min(requested, all.length)
+    : Math.min(ROW_WINDOW, all.length);
 
   return (
     <LeagueFixturesScreen
       leagueId={id}
       leagueName={league.name}
       competition={league.competitions[0]?.displayName ?? ''}
-      upcoming={split.upcoming.map(f => toFixtureRow(f, id, 'upcoming'))}
-      results={split.results.map(f => toFixtureRow(f, id, 'results'))}
+      view={view}
+      rows={all.slice(0, shown).map(f => toFixtureRow(f, id, view))}
       counts={{ upcoming: split.upcoming.length, results: split.results.length }}
       unansweredBadge={unanswered > 0 ? (unanswered > 99 ? '99+' : String(unanswered)) : ''}
+      showMoreHref={shown < all.length
+        ? `/leagues/${id}/fixtures?view=${view}&show=${shown + ROW_WINDOW}`
+        : null}
     />
   );
 }

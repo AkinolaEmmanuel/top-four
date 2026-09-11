@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { LeagueTabs } from './LeagueTabs';
+import { pluralise } from '@/lib/format';
 import type { LastResult, LeagueOverviewPhase, RivalGap, StandingRow, NextFixture } from '@/lib/leagues/league-overview';
 
 /**
@@ -80,7 +81,7 @@ export function LeagueOverviewScreen({
           <div className="min-w-0 flex-1 md:flex md:items-baseline md:gap-[10px] md:pb-[11px]">
             <div className="font-heading font-[650] md:font-bold text-[16px] md:text-[14.5px] leading-[1.1] tracking-[-0.3px] truncate md:text-[var(--text-primary)]">{leagueName}</div>
             <div className="text-[10.5px] md:text-[11px] text-[var(--nav-text-faint)] md:text-[var(--text-muted)] mt-[4px] md:mt-0">
-              {[memberCount !== null ? `${memberCount} members` : null, lifecycleLabel].filter(Boolean).join(' · ')}
+              {[memberCount !== null ? pluralise(memberCount, 'member') : null, lifecycleLabel].filter(Boolean).join(' · ')}
             </div>
           </div>
         </div>

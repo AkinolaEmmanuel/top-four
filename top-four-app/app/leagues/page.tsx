@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { LeaguesScreen } from '../components/leagues/LeaguesScreen';
-import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import {
+  serverFetch, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
 import type { Api } from '@/lib/api/types';
 import { ApiError } from '@/lib/api/fetcher';
 import { runningLeagueCount } from '@/lib/leagues/league-list';
@@ -24,7 +26,7 @@ export default async function LeaguesPage() {
     // member yet — so it is a separate read, folded into the same sections.
     [data, pending] = await Promise.all([
       serverFetch<LeaguesPageData>('/leagues'),
-      serverFetchOrNull<Api<'OwnPendingJoinRequestPageDto'>>('/me/join-requests').then(r => r?.data ?? []),
+      serverFetchAllPagesOrEmpty<OwnPendingJoinRequest>('/me/join-requests').then(r => r.items),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect('/?redirect=/leagues');

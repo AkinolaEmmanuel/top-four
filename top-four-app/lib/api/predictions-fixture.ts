@@ -75,13 +75,39 @@ export interface SelectablePlayersResponse {
   players: SelectablePlayer[];
 }
 
+/**
+ * What copying actually reports back.
+ *
+ * Hand-written because the route documents a description but no response type,
+ * so the generated schema carries `content: never` for it. Kept matching the
+ * server's own `CopyReport`: the previous shape here invented a `targets` array
+ * the server has never sent, which went unnoticed only because the screen threw
+ * the response away.
+ */
+export const COPY_OUTCOMES = [
+  'copied', 'replaced', 'unchanged', 'locked', 'not_enabled', 'league_closed',
+  'changed_elsewhere', 'no_longer_member', 'snapshot_unavailable',
+  'player_unavailable', 'line_differs',
+] as const;
+export type CopyOutcome = (typeof COPY_OUTCOMES)[number];
+
+export interface CopiedAnswer {
+  /** The market, or `lineup_home` / `lineup_away`. */
+  answer: string;
+  outcome: CopyOutcome;
+}
+
+export interface CopyLeagueReport {
+  leagueId: string;
+  leagueName: string;
+  answers: CopiedAnswer[];
+}
+
 export interface CopyPredictionsResponse {
-  targets: Array<{
-    leagueId: string;
-    leagueName: string;
-    outcome: string;
-    note?: string;
-  }>;
+  copied: number;
+  leagues: CopyLeagueReport[];
+  /** True when the member is in more leagues than one request will copy into. */
+  truncated: boolean;
 }
 
 export type MemberMarketResult = Api<'MemberMarketResultDto'>;
@@ -122,10 +148,13 @@ export async function submitLineupPrediction(leagueId: string, fixtureId: string
 }
 
 export async function copyFixturePredictions(leagueId: string, fixtureId: string): Promise<CopyPredictionsResponse> {
-  return apiFetch<CopyPredictionsResponse>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/copy`, {
-    method: 'POST',
-    body: JSON.stringify({})
-  });
+  // The route takes no body and no target list: it copies into every other
+  // league the member is actively in that includes this match.
+  const response = await apiFetch<{ data: CopyPredictionsResponse }>(
+    `/leagues/${leagueId}/fixtures/${fixtureId}/predictions/copy`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+  return response.data;
 }
 
 export async function fetchFixtureResults(leagueId: string, fixtureId: string): Promise<FixtureResultsResponse> {

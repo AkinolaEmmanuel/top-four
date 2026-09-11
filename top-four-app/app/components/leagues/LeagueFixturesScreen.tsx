@@ -1,6 +1,3 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { LeagueTabs } from './LeagueTabs';
@@ -10,7 +7,9 @@ import { groupByDay, stateLabel, type FixtureCounts, type FixtureRow, type Fixtu
  * The league fixtures list — one component for both platforms.
  *
  * Two views on the same data: what is coming, and what has been played. The
- * switch between them is the only thing this holds locally.
+ * switch lives in the URL rather than in local state, so a season's worth of
+ * rows never has to be shipped to the browser just to let a tab toggle: only
+ * the view being looked at is rendered, a window at a time.
  */
 
 const CLUB_TINTS: Record<string, string> = {
@@ -72,21 +71,19 @@ function Row({ row, view }: { row: FixtureRow; view: FixtureView }) {
 }
 
 export function LeagueFixturesScreen({
-  leagueId, leagueName, competition, upcoming, results, counts, unansweredBadge,
+  leagueId, leagueName, competition, view, rows, counts, unansweredBadge, showMoreHref,
 }: {
   leagueId: string;
   leagueName: string;
   competition: string;
-  upcoming: FixtureRow[];
-  results: FixtureRow[];
+  view: FixtureView;
+  /** The active view only, already windowed. */
+  rows: FixtureRow[];
   counts: FixtureCounts;
   unansweredBadge: string;
+  /** Null once the window covers the whole view. */
+  showMoreHref: string | null;
 }) {
-  // Opens on whichever half has something in it — a league whose fixtures have
-  // all been played should not open on an empty "Upcoming".
-  const [view, setView] = useState<FixtureView>(counts.upcoming > 0 ? 'upcoming' : 'results');
-
-  const rows = view === 'upcoming' ? upcoming : results;
   const days = groupByDay(rows);
 
   return (
@@ -111,19 +108,19 @@ export function LeagueFixturesScreen({
             {([['upcoming', 'Upcoming', counts.upcoming], ['results', 'Results', counts.results]] as const).map(([id, label, count]) => {
               const on = view === id;
               return (
-                <button
+                <Link
                   key={id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => setView(id)}
-                  className="flex items-center h-[34px] px-[14px] rounded-full cursor-pointer whitespace-nowrap font-heading font-semibold text-[12px]"
+                  href={`/leagues/${leagueId}/fixtures?view=${id}`}
+                  aria-current={on ? 'page' : undefined}
+                  scroll={false}
+                  className="tf-tap flex items-center h-[34px] px-[14px] rounded-full cursor-pointer whitespace-nowrap font-heading font-semibold text-[12px]"
                   style={on
                     ? { background: 'var(--text-primary)', color: 'var(--surface-canvas)' }
                     : { border: '1px solid var(--surface-border-strong)', color: 'var(--text-secondary)' }}
                 >
                   {label}
                   <span className="ml-[7px] tf-num" style={{ opacity: on ? 0.7 : 0.55 }}>{count}</span>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -148,6 +145,21 @@ export function LeagueFixturesScreen({
                 {day.rows.map(row => <Row key={row.id} row={row} view={view} />)}
               </section>
             ))
+          )}
+
+          {showMoreHref && (
+            <div className="px-[var(--gutter)] md:px-0 pt-[18px]">
+              <Link
+                href={showMoreHref}
+                scroll={false}
+                className="tf-tap flex items-center justify-center h-[44px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]"
+              >
+                Show more
+                <span className="ml-[7px] tf-num opacity-60">
+                  {rows.length} of {view === 'upcoming' ? counts.upcoming : counts.results}
+                </span>
+              </Link>
+            </div>
           )}
 
           <p className="p-[20px_var(--gutter)_26px] md:px-0 text-[11px] leading-[1.6] text-[var(--text-muted)]">

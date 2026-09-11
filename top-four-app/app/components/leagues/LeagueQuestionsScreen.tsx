@@ -100,12 +100,11 @@ function Card({ card, onAnswer, pending, canResolve, onResolve, onVoid }: {
   );
 }
 
-export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin, standingsHref }: {
+export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }: {
   leagueId: string;
   leagueName: string;
   cards: QuestionCard[];
   canAdmin: boolean;
-  standingsHref: string | null;
 }) {
   const router = useRouter();
   const [view, setView] = useState<View>('list');
@@ -123,11 +122,13 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin, s
   const owing = open.filter(c => !c.answered);
   const unclaimed = owing.reduce((n, c) => n + c.points, 0);
   const committed = open.filter(c => c.answered).reduce((n, c) => n + c.points, 0);
+  // A league with no questions is not a league that has answered them all.
+  const none = cards.length === 0;
 
   const answer = (card: QuestionCard, raw: string) => {
     setFailed(null);
     submitAnswer.mutate(
-      { questionId: card.id, expectedVersion: 0, answer: toAnswerValue(card.answerKind, raw) },
+      { questionId: card.id, expectedVersion: card.answerVersion, answer: toAnswerValue(card.answerKind, raw) },
       {
         onSuccess: () => router.refresh(),
         onError: () => setFailed('That answer did not save — nothing was stored.'),
@@ -174,17 +175,22 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin, s
           </div>
 
           <div className="flex items-end gap-[10px] mt-[16px]">
-            <span className="tf-num font-heading font-bold text-[38px] leading-[0.9] tracking-[-1.6px]" style={{ color: owing.length === 0 ? 'var(--nav-positive)' : 'var(--nav-warning)' }}>
-              {owing.length === 0 ? committed : unclaimed}
+            <span
+              className="tf-num font-heading font-bold text-[38px] leading-[0.9] tracking-[-1.6px]"
+              style={{ color: none ? 'var(--nav-text-faint)' : owing.length === 0 ? 'var(--nav-positive)' : 'var(--nav-warning)' }}
+            >
+              {none ? 0 : owing.length === 0 ? committed : unclaimed}
             </span>
             <div className="pb-[4px] text-[11.5px] leading-[1.35] text-[var(--nav-text-faint)]">
-              {owing.length === 0 ? 'points already committed' : 'points still unclaimed'}
+              {none ? 'points on offer' : owing.length === 0 ? 'points already committed' : 'points still unclaimed'}
             </div>
           </div>
           <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[8px]">
-            {owing.length === 0
-              ? 'Every open question is answered. You can change any of them until its deadline.'
-              : `${pluralise(owing.length, 'question')} unanswered. Questions score onto the same table as fixtures.`}
+            {none
+              ? 'No questions have been written for this league yet.'
+              : owing.length === 0
+                ? 'Every open question is answered. You can change any of them until its deadline.'
+                : `${pluralise(owing.length, 'question')} unanswered. Questions score onto the same table as fixtures.`}
           </div>
         </div>
       </header>
@@ -193,16 +199,6 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin, s
 
       <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
         <div className="md:max-w-[900px] md:mx-auto md:px-[24px]">
-
-          {standingsHref && (
-            <Link href={standingsHref} className="flex items-center gap-[12px] m-[16px_var(--gutter)_0] md:mx-0 p-[14px] rounded-[12px] border border-[var(--surface-border)]">
-              <div className="flex-1 min-w-0">
-                <div className="font-heading font-semibold text-[13px]">Predict the final table</div>
-                <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">Drag the clubs into the order you expect</div>
-              </div>
-              <span className="font-heading font-bold text-[10px] text-[var(--text-link)] flex-none">OPEN →</span>
-            </Link>
-          )}
 
           {view === 'create' && canAdmin && (
             <CreateQuestion

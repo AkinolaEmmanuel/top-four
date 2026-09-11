@@ -120,3 +120,6 @@ export function summaryLine(entries: PredictEntry[], nowMs: number): string {
 
   return `across ${parts.join(' · ')}`;
 }
+
+/** The filter sentinel meaning "every league", kept out of the id space. */
+export const ALL_LEAGUES = '__all__';

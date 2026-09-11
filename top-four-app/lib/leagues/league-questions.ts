@@ -35,6 +35,12 @@ export interface QuestionCard {
   canAnswer: boolean;
   /** The member's stored answer, as the raw id the choices compare against. */
   answered: string | undefined;
+  /**
+   * The version a new answer must be submitted against. The API rejects a
+   * mismatch, so a changed answer sent against 0 is refused as a conflict —
+   * which is what "you can change it until the deadline" used to hit.
+   */
+  answerVersion: number;
 }
 
 const GROUP_FOR: Record<string, QuestionGroup> = {
@@ -83,6 +89,7 @@ function choicesFor(question: CustomQuestion): QuestionChoice[] {
 export function toQuestionCard(
   question: CustomQuestion,
   storedAnswer: CustomAnswerValue | null | undefined,
+  answerVersion: number | null | undefined,
 ): QuestionCard {
   const phase = (question.phase as QuestionPhase) ?? 'closed';
   const deadline = new Date(question.deadlineAt);
@@ -102,6 +109,7 @@ export function toQuestionCard(
     deadlineLabel: `closes ${deadline.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`,
     canAnswer: phase === 'open',
     answered: answerToChoiceId(question.answerKind, storedAnswer),
+    answerVersion: answerVersion ?? 0,
   };
 }
 

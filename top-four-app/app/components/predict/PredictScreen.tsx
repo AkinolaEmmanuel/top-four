@@ -1,9 +1,6 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
 import { MobileNav } from '../MobileNav';
-import { toPredictGroups, type PredictEntry } from '@/lib/predict/predict-queue';
+import { toPredictGroups, ALL_LEAGUES, type PredictEntry } from '@/lib/predict/predict-queue';
 
 /**
  * The to-do list — one component for both platforms.
@@ -19,7 +16,6 @@ const CLUB_TINTS: Record<string, string> = {
 };
 const tintFor = (code: string) => CLUB_TINTS[code] || '#4b5563';
 
-const ALL = '__all__';
 
 function Marks({ entry }: { entry: PredictEntry }) {
   if (entry.kind === 'custom_question') {
@@ -58,24 +54,26 @@ function TaskRow({ entry, isLast }: { entry: PredictEntry; isLast: boolean }) {
   );
 }
 
-export function PredictScreen({ entries, openMarkets, summary, hasLeagues }: {
+export function PredictScreen({
+  entries, leagues, league, totalEntries, openMarkets, summary, hasLeagues, showMoreHref,
+}: {
+  /** The selected league's entries, already windowed. */
   entries: PredictEntry[];
+  /** Every league with open work, for the filter row. */
+  leagues: { id: string; name: string }[];
+  /** The selected filter — the sentinel when unfiltered. */
+  league: string;
+  /** Everything open in the current filter, which is what the counts say. */
+  totalEntries: number;
   openMarkets: number;
   summary: string;
   hasLeagues: boolean;
+  /** Null once the window covers the whole filter. */
+  showMoreHref: string | null;
 }) {
-  const [league, setLeague] = useState<string>(ALL);
+  const groups = toPredictGroups(entries);
 
-  const leagues = Array.from(
-    new Map(entries.map(e => [e.leagueId, e.leagueName])).entries(),
-  ).map(([id, name]) => ({ id, name }));
-
-  // Applies to both layouts, and matches on the league's id rather than a name
-  // prefix — two leagues can share the start of a name.
-  const visible = league === ALL ? entries : entries.filter(e => e.leagueId === league);
-  const groups = toPredictGroups(visible);
-
-  if (!hasLeagues || entries.length === 0) {
+  if (!hasLeagues || totalEntries === 0) {
     const noLeagues = !hasLeagues;
     return (
       <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
@@ -124,21 +122,21 @@ export function PredictScreen({ entries, openMarkets, summary, hasLeagues }: {
 
           {leagues.length > 1 && (
             <div className="tf-scroll flex gap-[6px] p-[12px_var(--gutter)] md:px-0 md:mb-[18px] overflow-x-auto border-b border-[var(--surface-border)] md:border-b-0">
-              {[{ id: ALL, name: 'All' }, ...leagues].map(option => {
+              {[{ id: ALL_LEAGUES, name: 'All' }, ...leagues].map(option => {
                 const on = league === option.id;
                 return (
-                  <button
+                  <Link
                     key={option.id}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => setLeague(option.id)}
-                    className="flex items-center h-[32px] px-[13px] rounded-full cursor-pointer whitespace-nowrap flex-none font-heading font-semibold text-[11.5px]"
+                    href={option.id === ALL_LEAGUES ? '/predict' : `/predict?league=${option.id}`}
+                    aria-current={on ? 'page' : undefined}
+                    scroll={false}
+                    className="tf-tap flex items-center h-[32px] px-[13px] rounded-full cursor-pointer whitespace-nowrap flex-none font-heading font-semibold text-[11.5px]"
                     style={on
                       ? { background: 'var(--color-brand)', color: 'var(--color-on-brand)' }
                       : { border: '1px solid var(--surface-border-strong)', color: 'var(--text-secondary)' }}
                   >
                     {option.name}
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -161,6 +159,19 @@ export function PredictScreen({ entries, openMarkets, summary, hasLeagues }: {
                 ))}
               </section>
             ))
+          )}
+
+          {showMoreHref && (
+            <div className="px-[var(--gutter)] md:px-0 pt-[18px]">
+              <Link
+                href={showMoreHref}
+                scroll={false}
+                className="tf-tap flex items-center justify-center h-[44px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]"
+              >
+                Show more
+                <span className="ml-[7px] tf-num opacity-60">{entries.length} of {totalEntries}</span>
+              </Link>
+            </div>
           )}
 
           <div className="h-[26px]" />

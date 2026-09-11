@@ -40,7 +40,9 @@ export default async function PlayerPickerPage({ params, searchParams }: {
     [availability, predictions, players, ruleset, leagues] = await Promise.all([
       serverFetch<Availability>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`),
       serverFetchOrNull<Predictions>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/me`),
-      serverFetchOrNull<Players>(`/leagues/${leagueId}/fixtures/${fixtureId}/selectable-players`),
+      // The squad list pages; both squads fit inside the endpoint's maximum, so
+      // one call is complete rather than the default page's first fifty.
+      serverFetchOrNull<Players>(`/leagues/${leagueId}/fixtures/${fixtureId}/selectable-players?limit=200`),
       serverFetchOrNull<{ ruleset?: Api<'LeagueRulesetResponseDto'> }>(`/leagues/${leagueId}`),
       serverFetchOrNull<LeaguesPage>('/leagues'),
     ]);

@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { LeagueAdminScreen } from '../../../components/leagues/LeagueAdminScreen';
-import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import {
   toAdminActions, toAdminInvites, toAdminMembers, toAdminRequests, toLifecycleSteps,
@@ -39,10 +41,12 @@ export default async function LeagueAdminPage({ params }: { params: { id: string
   const canManage = role === 'owner' || role === 'admin';
   if (!canManage) redirect(`/leagues/${id}`);
 
+  // Every page of each list: an admin managing a league must see all of its
+  // members, invitations and requests, not the oldest twenty of each.
   const [members, invites, requests, standings, me] = await Promise.all([
-    serverFetchOrNull<Members>(`/leagues/${id}/members?state=active`),
-    serverFetchOrNull<Invites>(`/leagues/${id}/invitations`),
-    serverFetchOrNull<Requests>(`/leagues/${id}/join-requests`),
+    serverFetchAllPagesOrEmpty<Members['data'][number], Members>(`/leagues/${id}/members?state=active`),
+    serverFetchAllPagesOrEmpty<Invites['data'][number], Invites>(`/leagues/${id}/invitations`),
+    serverFetchAllPagesOrEmpty<Requests['data'][number], Requests>(`/leagues/${id}/join-requests`),
     serverFetchOrNull<Standings>(`/leagues/${id}/standings?page=1&pageSize=50`),
     serverFetchOrNull<Me>('/auth/me'),
   ]);
@@ -55,12 +59,12 @@ export default async function LeagueAdminPage({ params }: { params: { id: string
       version={league.version}
       isOwner={role === 'owner'}
       canManage={canManage}
-      members={toAdminMembers(members?.data ?? [], standings?.data.entries ?? [], me?.user.id)}
-      invites={toAdminInvites(invites?.data ?? [])}
-      requests={toAdminRequests(requests?.data ?? [])}
+      members={toAdminMembers(members.items, standings?.data.entries ?? [], me?.user.id)}
+      invites={toAdminInvites(invites.items)}
+      requests={toAdminRequests(requests.items)}
       lifecycle={toLifecycleSteps(league.lifecycleState)}
       actions={toAdminActions(league.lifecycleState, role === 'owner')}
-      memberCount={league.memberCount ?? members?.data.length ?? 0}
+      memberCount={league.memberCount ?? members.items.length}
     />
   );
 }

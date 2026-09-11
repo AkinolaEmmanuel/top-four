@@ -129,19 +129,22 @@ function LeagueRow({ entry }: { entry: HomeLeagueEntry }) {
 }
 
 export function HomeScreen({
-  displayName, unreadCount, todayLabel, queue, leagues, next, serverTime,
+  displayName, unreadCount, todayLabel, queue, queueCount, leagues, next, serverTime,
 }: {
   displayName: string;
   unreadCount: number;
   todayLabel: string;
+  /** Only the rows this screen shows — the rest of the queue lives on Predict. */
   queue: HomeQueueEntry[];
+  /** Everything owed across every league, which is what the counts say. */
+  queueCount: number;
   leagues: HomeLeagueEntry[];
   /** The soonest task, which the hero is about. Null when nothing is open. */
   next: HomeQueueEntry | null;
   serverTime: string;
 }) {
   const remaining = useServerCountdown(next?.deadlineAt ?? null, serverTime);
-  const caught = queue.length === 0;
+  const caught = queueCount === 0;
   const urgent = remaining !== null && remaining > 0 && remaining <= URGENT_WITHIN_SECONDS;
   const isNewUser = leagues.length === 0;
 
@@ -201,7 +204,7 @@ export function HomeScreen({
           <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">Today</span>
           <span className="text-[11px] text-[var(--text-muted)]">{todayLabel}</span>
           <span className="ml-auto tf-num text-[11px] text-[var(--text-muted)]">
-            {caught ? 'Everything answered' : `${queue.length} waiting on you`}
+            {caught ? 'Everything answered' : `${queueCount} waiting on you`}
           </span>
         </div>
       </div>
@@ -270,8 +273,8 @@ export function HomeScreen({
           <section className="p-[24px_var(--gutter)] md:p-0">
             <div className="flex items-baseline justify-between mb-[12px]">
               <span className="tf-kicker">{caught ? 'Nothing else owed' : 'Also waiting on you'}</span>
-              {queue.length > 5 && (
-                <Link href="/predict" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {queue.length} →</Link>
+              {queueCount > queue.length && (
+                <Link href="/predict" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {queueCount} →</Link>
               )}
             </div>
 
@@ -281,7 +284,7 @@ export function HomeScreen({
               </p>
             ) : (
               <div className="flex flex-col">
-                {queue.slice(0, 5).map(entry => <QueueRow key={`${entry.kind}-${entry.id}`} entry={entry} />)}
+                {queue.map(entry => <QueueRow key={`${entry.kind}-${entry.id}`} entry={entry} />)}
               </div>
             )}
           </section>
