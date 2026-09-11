@@ -53,9 +53,32 @@ export interface LeaguesPage {
   nextCursor: string | null;
 }
 
-export async function fetchMyLeagues(cursor?: string): Promise<LeaguesPage> {
+async function fetchMyLeaguesPage(cursor?: string): Promise<LeaguesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   return apiFetch<LeaguesPage>(`/leagues${query}`);
+}
+
+// The list endpoint is cursor-paginated at 20 per page -- the same 20 that
+// caps *unfinished* leagues, but archived/cancelled/completed ones don't
+// count against that limit, so an account active for a while can easily
+// have more than 20 leagues total. Every consumer (Leagues page, Me page)
+// expects the complete set to group and count client-side, so follow every
+// page here rather than silently handing back only the first 20.
+export async function fetchMyLeagues(): Promise<LeaguesPage> {
+  const first = await fetchMyLeaguesPage();
+  const items = [...first.items];
+  let cursor = first.nextCursor;
+  while (cursor) {
+    const page = await fetchMyLeaguesPage(cursor);
+    items.push(...page.items);
+    cursor = page.nextCursor;
+  }
+  return {
+    items,
+    unfinishedLeagueCount: first.unfinishedLeagueCount,
+    unfinishedLeagueLimit: first.unfinishedLeagueLimit,
+    nextCursor: null,
+  };
 }
 
 // The single-league read (unlike the leagues list) carries no embedded

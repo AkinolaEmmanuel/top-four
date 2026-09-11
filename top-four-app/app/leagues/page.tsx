@@ -23,7 +23,6 @@ export default function LeaguesPage() {
   const isLoading = leaguesLoading || state === "loading";
   const isEmpty = (leaguesData && leaguesData.items.length === 0) || state === "empty";
   const isReady = !isLoading && !isEmpty;
-  const atCapacity = state === "capacity";
   const hasFilters = isReady;
 
   const SECTIONS = [["Playing", "playing"], ["Draft", "draft"], ["Waiting on approval", "pending"], ["Past", "past"]];
@@ -82,13 +81,15 @@ export default function LeaguesPage() {
     Past: String(n.past)
   };
 
-  const used = n.playing + n.draft;
+  const used = leaguesData?.unfinishedLeagueCount ?? (n.playing + n.draft);
+  const limit = leaguesData?.unfinishedLeagueLimit ?? 20;
   const filters = ["All", "Playing", "Draft", "Pending", "Past"].map(f => {
     const on = filter === f;
     return { label: f, count: counts[f], pick: () => setFilter(f), on };
   });
 
-  const capacityLabel = atCapacity ? "20 of 20 places used" : used === 0 ? "No leagues joined" : `${used} of 20 places used`;
+  const atCapacity = used >= limit;
+  const capacityLabel = used === 0 ? "No leagues joined" : `${used} of ${limit} places used`;
   const skeletons = [{ w: "62%" }, { w: "48%" }, { w: "71%" }, { w: "55%" }, { w: "66%" }];
 
   const IconMap: Record<string, any> = {
