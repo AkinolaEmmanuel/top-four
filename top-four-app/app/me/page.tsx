@@ -72,13 +72,13 @@ export default function MePage() {
   const max = HISTORY.length > 0 ? Math.max(...HISTORY.map(h => h.v)) : 1;
   // Mobile chart (70px max height)
   const chartMobile = HISTORY.map(h => ({
-    label: h.label, corrected: h.corrected,
+    label: h.label, corrected: !!h.corrected,
     barStyle: `w-full rounded-t-[4px] ${h.corrected ? 'bg-[var(--state-provisional)]' : 'bg-[var(--color-brand)]'}`,
     height: Math.round(h.v / max * 70)
   }));
   // Desktop chart (150px max height, show values)
   const chartDesktop = HISTORY.map(h => ({
-    label: h.label, corrected: h.corrected, value: String(h.v),
+    label: h.label, corrected: !!h.corrected, value: String(h.v),
     barStyle: `w-full rounded-t-[5px] ${h.corrected ? 'bg-[var(--state-provisional)]' : 'bg-[var(--color-brand)]'}`,
     barHeight: Math.round(h.v / max * 110)
   }));

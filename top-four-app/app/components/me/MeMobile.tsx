@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import type { MeMobileProps } from './me-props';
 
 export function MeMobile({
   theme, isLoading, prefs, setPrefs, chart, leagues, groups, IconMap, tabs, totalPoints, leagueCount, ...props
-}: any) {
+}: MeMobileProps) {
   const isReady = !isLoading;
 
   return (

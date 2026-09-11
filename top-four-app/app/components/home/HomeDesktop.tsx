@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { HomeProps } from './home-props';
 import Image from 'next/image';
 
 function Crest({ logo, code, color, size, fontSize }: { logo?: string | null; code: string; color: string; size: number; fontSize: number }) {
@@ -14,11 +15,10 @@ function Crest({ logo, code, color, size, fontSize }: { logo?: string | null; co
   return <span className="tf-crest flex-none" style={{ background: color, width: size, height: Math.round(size * 1.06), fontSize }}>{code}</span>;
 }
 
-export function HomeDesktop({ state, theme, ...props }: any) {
+export function HomeDesktop({ state, theme, ...props }: HomeProps) {
   const isLoading = state === 'loading';
   const isNewUser = state === 'newuser';
   const isReady = !isLoading && !isNewUser;
-  const urgent = state === 'urgent';
   const caught = state === 'caughtup';
 
   return (

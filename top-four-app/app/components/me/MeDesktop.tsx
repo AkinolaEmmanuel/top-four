@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import type { MeDesktopProps } from './me-props';
 
 export function MeDesktop({
   theme, isLoading, prefs, setPrefs, chart, leagues, rootNav, accountRows,
   emailPrefs, emailUnverified, noGoogle, user, totalPoints, leagueCount, ...props
-}: any) {
+}: MeDesktopProps) {
   const isReady = !isLoading;
 
   const hasCorrection = chart.some((c: any) => c.corrected);
@@ -18,7 +19,7 @@ export function MeDesktop({
       <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[20px] px-[24px] h-[54px]">
         <div className="flex items-center gap-[10px] pb-[11px]">
           <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">Your account</span>
-          <span className="text-[11px] text-[var(--text-muted)]">{props.user?.displayName || 'Your Name'} · verified</span>
+          <span className="text-[11px] text-[var(--text-muted)]">{user?.displayName || 'Your Name'} · {emailUnverified ? 'not yet verified' : 'verified'}</span>
         </div>
       </div>
 

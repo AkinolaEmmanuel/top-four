@@ -8,6 +8,7 @@ import { useMyLeagues } from '@/hooks/api/useLeagues';
 import { useTeamCrestMap } from '@/hooks/api/useCatalogue';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
 import { ordinal } from '@/lib/format';
+import type { HomeState } from '../components/home/home-props';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = {
@@ -123,7 +124,7 @@ export default function Home() {
 
   const props = {
     user, unreadCount,
-    theme, setTheme,
+    theme,
     headSub: new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
     headRight: isReady ? (caught ? "Everything answered" : `${taskCount} markets open`) : "",
     
@@ -191,12 +192,7 @@ export default function Home() {
     leagues: leagues,
     leagueCount: String(leagues.length),
 
-    // State props for component compatibility
-    isLoading,
-    isNewUser,
-    isReady,
-    state: isLoading ? 'loading' : isNewUser ? 'newuser' : caught ? 'caughtup' : 'live',
-    setState: () => {}, // No-op, no dev tools
+    state: (isLoading ? 'loading' : isNewUser ? 'newuser' : caught ? 'caughtup' : 'live') as HomeState,
   };
 
   return (
