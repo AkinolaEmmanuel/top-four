@@ -12,7 +12,7 @@ export function LeagueQuestionsMobile({
   resolveSpellings, addResolveSpelling, removeResolveSpelling,
   canSettleNow, settleLabel,
   match, resolveNotesList, SHEET, toast, settleAction, voidAction,
-  presets, applyPreset, leagueName
+  presets, applyPreset, leagueName, earliestOpenDeadline
 }: any) {
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
@@ -34,7 +34,9 @@ export function LeagueQuestionsMobile({
             <div className="pb-[5px] min-w-0">
               <div className="text-[11.5px] leading-[1.35]">{allIn ? "points already committed" : "points still unclaimed"}</div>
               <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[3px]">
-                {allIn ? "Every open question is answered. You can change them until Saturday." : `${owing}${owing === 1 ? ' question unanswered' : ' questions unanswered'} · earliest closes Sat 18:00`}
+                {allIn
+                  ? `Every open question is answered. You can change them${earliestOpenDeadline ? ` until ${earliestOpenDeadline}` : ''}.`
+                  : `${owing}${owing === 1 ? ' question unanswered' : ' questions unanswered'}${earliestOpenDeadline ? ` · earliest closes ${earliestOpenDeadline}` : ''}`}
               </div>
             </div>
           </div>

@@ -18,6 +18,11 @@ const GROUPS = [
   ["done", "ALREADY SETTLED"]
 ];
 
+function formatDeadline(iso?: string): string {
+  if (!iso) return 'the deadline';
+  return new Date(iso).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 const TYPES = [
   ["yesno", "Yes / No", "Two options, fixed. The simplest thing to settle."],
   ["choice", "Choice", "You write the options. Members pick exactly one."],
@@ -112,7 +117,8 @@ export default function QuestionsPage() {
       choices,
       options,
       hasText: q.answerKind === 'open_text',
-      criteria: q.resolutionCriteria
+      criteria: q.resolutionCriteria,
+      deadlineAt: q.deadlineAt
     };
   });
 
@@ -187,7 +193,7 @@ export default function QuestionsPage() {
     const existing = ownAnswersMap[q.id];
     const expectedVersion = existing?.version || 0;
     submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, draft) }, {
-      onSuccess: () => flash("Answer saved · you can change it until the deadline"),
+      onSuccess: () => flash(`Answer saved · you can change it until ${formatDeadline(q.deadlineAt)}`),
       onError: () => { setAnswers(s => revertAnswer(s, q.id, previous)); flash("Couldn't save that answer — try again"); }
     });
   };
@@ -242,7 +248,7 @@ export default function QuestionsPage() {
           const existing = ownAnswersMap[q.id];
           const expectedVersion = existing?.version || 0;
           submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-            onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+            onSuccess: () => flash(`Answer saved · you can change it until ${formatDeadline(q.deadlineAt)}`),
             onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
           });
         }
@@ -261,7 +267,7 @@ export default function QuestionsPage() {
             const existing = ownAnswersMap[q.id];
             const expectedVersion = existing?.version || 0;
             submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-              onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+              onSuccess: () => flash(`Answer saved · you can change it until ${formatDeadline(q.deadlineAt)}`),
               onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
             });
           }
@@ -324,7 +330,7 @@ export default function QuestionsPage() {
           const existing = ownAnswersMap[q.id];
           const expectedVersion = existing?.version || 0;
           submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-            onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+            onSuccess: () => flash(`Answer saved · you can change it until ${formatDeadline(q.deadlineAt)}`),
             onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
           });
         }
@@ -353,7 +359,7 @@ export default function QuestionsPage() {
             const existing = ownAnswersMap[q.id];
             const expectedVersion = existing?.version || 0;
             submitAnswer.mutate({ questionId: q.id, expectedVersion, answer: buildAnswerPayload(q.answerKind, id) }, {
-              onSuccess: () => flash("Answer saved · you can change it until Sat 18:00"),
+              onSuccess: () => flash(`Answer saved · you can change it until ${formatDeadline(q.deadlineAt)}`),
               onError: () => { setAnswers(s => revertAnswer(s, q.id, picked)); flash("Couldn't save that answer — try again"); }
             });
           }
@@ -399,6 +405,8 @@ export default function QuestionsPage() {
   const allIn = owing === 0;
   const stake = openQs.filter(q => !answers[q.id]).reduce((n, q) => n + parseInt(q.pts || "0", 10), 0);
   const committed = openQs.reduce((n, q) => n + parseInt(q.pts || "0", 10), 0);
+  const openDeadlines = openQs.filter(q => q.deadlineAt).map(q => q.deadlineAt as string).sort();
+  const earliestOpenDeadline = openDeadlines[0];
   
   const openItemsDesktop = openQs.map((q, i, a) => buildDesktop(q, i, a, false));
   const pastGroupsDesktop = [
@@ -664,17 +672,18 @@ export default function QuestionsPage() {
     canSettleNow, settleLabel: settleLabelText,
     match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve, voidAction: handleVoid,
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
-    leagueName: league?.name
+    leagueName: league?.name,
+    earliestOpenDeadline: earliestOpenDeadline ? formatDeadline(earliestOpenDeadline) : ''
   };
   
   const propsDesktop = {
     theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "", showContext: true,
-    contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, "6"), tabItem("Table", false, ""), tabItem("Questions", true, questionBadge), tabItem("More", false, "")],
+    contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, ""), tabItem("Table", false, ""), tabItem("Questions", true, questionBadge), tabItem("More", false, "")],
     onList, onEmpty, onCreate, onResolve, setSheet, SHEET, standingsHref,
     heroStyle: { padding: '24px 0 26px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' },
     heroTone: allIn ? "var(--nav-positive)" : "var(--nav-warning)",
     heroKicker: allIn ? "NOTHING OWED" : "RIDING ON YOUR ANSWERS",
-    heroNum: allIn ? "25" : String(stake),
+    heroNum: allIn ? String(committed) : String(stake),
     heroSub: allIn ? "points already committed" : "points still unclaimed",
     heroNote: allIn ? "Every open question is answered. You can change any of them until the deadline — the points only settle when somebody resolves the question." : `${owing} ${stakeLabel}. Questions score onto the same table as fixtures, so leaving one is the same as leaving a market blank.`,
     newBtnStyle: { flex: 'none', height: '40px', padding: '0 18px', borderRadius: '11px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 12.5px 'DM Sans',sans-serif", background: 'var(--nav-accent)', color: 'var(--nav-on-accent)' },
