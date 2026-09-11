@@ -1,5 +1,18 @@
 import { apiFetch } from './fetcher';
+import type { Api } from './types';
 
+/**
+ * Partly generated, deliberately.
+ *
+ * Where the API publishes a real schema, the type below is the server's. Where
+ * its DTO declares the payload as a bare object — `markets`, the teams, and the
+ * whole of `/predictions/me` — the document carries no shape at all, and the
+ * generated type is `Record<string, never>`. Adopting that would delete the
+ * type safety this screen depends on, so those shapes stay hand-written and are
+ * marked UNTYPED UPSTREAM with the field the backend needs to describe.
+ */
+
+/** UNTYPED UPSTREAM: `AvailabilityFixtureDto.homeTeam` is a bare object. */
 export interface FixtureAvailabilityTeam {
   id: string;
   displayName: string;
@@ -8,6 +21,7 @@ export interface FixtureAvailabilityTeam {
   logoUrl: string | null;
 }
 
+/** UNTYPED UPSTREAM: `AvailabilityFixtureDto.markets` generates as `Record<string, never>[]`. */
 export interface FixtureMarketAvailability {
   marketType: string;
   enabled: boolean;
@@ -28,7 +42,7 @@ export interface FixtureAvailability {
   hasOpenMarkets: boolean;
   nextDeadlineAt: string | null;
   marketStateCounts: Record<string, number>;
-  predictionCompleteness: { required: number; answered: number; unanswered: number; complete: boolean };
+  predictionCompleteness: Api<'AvailabilityPredictionCompletenessDto'>;
   markets: FixtureMarketAvailability[];
 }
 
@@ -143,6 +157,7 @@ export interface OwnLineups {
   bothAnswered: boolean;
 }
 
+/** UNTYPED UPSTREAM: `MemberFixturePredictionsResponseDto.data` is a bare object. */
 export interface OwnFixturePredictions {
   leagueFixtureId: string;
   fixtureId: string;
@@ -176,14 +191,7 @@ export interface LineupSubmission {
   answer: StoredLineupAnswer;
 }
 
-export interface SelectablePlayer {
-  playerId: string;
-  teamId: string;
-  displayName: string;
-  shirtNumber: number | null;
-  position: string | null;
-  side: 'home' | 'away';
-}
+export type SelectablePlayer = Api<'SelectablePlayerDto'>;
 
 export interface SelectablePlayersResponse {
   snapshot: SnapshotRef | null;
@@ -199,26 +207,9 @@ export interface CopyPredictionsResponse {
   }>;
 }
 
-export interface MemberMarketResult {
-  settlementId: string | null;
-  marketType: string;
-  side: 'home' | 'away' | null;
-  state: string;
-  reasonCode: string;
-  status: string | null;
-  version: number | null;
-  decidedAt: string | null;
-  finalizedAt: string | null;
-  resolvedAnswer: Record<string, unknown> | null;
-  viewerOutcome: { outcome: 'correct' | 'incorrect' | 'void'; correctStarters: number | null; pointsDelta: number; predictionRevisionId: string } | null;
-}
+export type MemberMarketResult = Api<'MemberMarketResultDto'>;
 
-export interface FixtureResultsResponse {
-  leagueFixtureId: string;
-  fixtureId: string;
-  correctionUpdating: boolean;
-  markets: MemberMarketResult[];
-}
+export type FixtureResultsResponse = Api<'MemberFixtureResultsDataDto'>;
 
 export async function fetchFixtureAvailability(leagueId: string, fixtureId: string): Promise<FixtureAvailabilitySnapshot> {
   const response = await apiFetch<{ data: FixtureAvailability; serverTime: string }>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`);
