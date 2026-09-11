@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import type { PredictProps } from './predict-props';
 
-export function PredictDesktop({ state, theme, ...props }: any) {
+export function PredictDesktop({ state, theme, ...props }: PredictProps) {
   const st = state;
   const isLoading = st === "loading", isTerminal = st === "empty" || st === "error" || st === "noLeagues";
   const ready = !isLoading && !isTerminal;

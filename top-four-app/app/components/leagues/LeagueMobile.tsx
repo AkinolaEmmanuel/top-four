@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueOverviewMobileProps } from './league-overview-props';
 
 export function LeagueMobile({
   theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
@@ -8,7 +9,7 @@ export function LeagueMobile({
   IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel, heroCtaHref,
   homeCode, homeName, homeColor, awayCode, awayName, awayColor, kickoff,
   rivalKicker, gapNumber, gapLabel, gapNote
-}: any) {
+}: LeagueOverviewMobileProps) {
 
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>

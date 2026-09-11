@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import type { PredictProps } from './predict-props';
 import { MobileNav } from '../MobileNav';
 
-export function PredictMobile({ state, theme, ...props }: any) {
+export function PredictMobile({ state, theme, ...props }: PredictProps) {
   const st = state;
   const isLoading = st === "loading", isClear = st === "empty", isError = st === "error", isNoLeagues = st === "noLeagues";
   const isReady = !isLoading && !isClear && !isError && !isNoLeagues;

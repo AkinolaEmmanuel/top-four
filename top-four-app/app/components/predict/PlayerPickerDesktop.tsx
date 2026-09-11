@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { PlayerPickerDesktopProps } from './player-picker-props';
 
 export function PlayerPickerDesktop({
   theme, MARKET, CLUB, searching, termIcon, TERM, isTerminal, isReady,
@@ -9,7 +10,7 @@ export function PlayerPickerDesktop({
   sideChips, posChips, skeletonCols, storedStyle, storedDotStyle, storedLabel,
   cancelStyle, primaryStyle, primaryLabel, primaryAction, footNote, leagueName, competitionLabel,
   searchQuery, onSearchChange, backHref
-}: any) {
+}: PlayerPickerDesktopProps) {
   
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>

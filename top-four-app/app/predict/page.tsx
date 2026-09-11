@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { PredictMobile } from '../components/predict/PredictMobile';
 import { PredictDesktop } from '../components/predict/PredictDesktop';
+import type { ReactNode } from 'react';
+import type { PredictState } from '../components/predict/predict-props';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
 
@@ -19,7 +21,8 @@ export default function PredictPage() {
   const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [state, setState] = useState<'live' | 'empty' | 'loading' | 'error'>('live');
+  // Includes 'noLeagues' because `computedState` below can produce it.
+  const [state, setState] = useState<PredictState>('live');
   const [filter, setFilter] = useState("All");
 
   const isLoading = tasksLoading || leaguesLoading || state === "loading";
@@ -157,7 +160,9 @@ export default function PredictPage() {
     style: { padding: '8px 13px', borderRadius: '999px', cursor: 'pointer', font: "600 11.5px 'DM Sans', sans-serif", whiteSpace: 'nowrap' as any, background: filter === f ? 'var(--color-brand)' : 'transparent', color: filter === f ? 'var(--color-on-brand)' : 'var(--text-secondary)', border: filter === f ? '1px solid transparent' : '1px solid var(--surface-border-strong)' }
   }));
 
-  const TERM = {
+  // [icon, colour, title, body, action label] — annotated as a tuple so each
+  // position keeps its own type instead of widening to `string | Element`.
+  const TERM: readonly [ReactNode, string, string, string, string] = ({
     noLeagues: [
       <svg key="0" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M12 3 21 8.5v7L12 21l-9-5.5v-7L12 3Z" /></svg>,
       "var(--text-primary)", "No predictions to make", "Join a league first to start predicting.", "JOIN A LEAGUE"
@@ -170,9 +175,9 @@ export default function PredictPage() {
       <svg key="2" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M12 3 2.8 20h18.4L12 3Z" /><path d="M12 9v4.5M12 17h.01" /></svg>,
       "var(--warn-text)", "Your to-do list didn't load", "Check your connection and try again. Deadlines run on our clock — nothing locked while you couldn't see it.", "RETRY"
     ]
-  }[isError ? "error" : noLeagues ? "noLeagues" : "empty"];
+  } as const)[isError ? "error" : noLeagues ? "noLeagues" : "empty"];
 
-  const computedState = isLoading ? "loading" : isError ? "error" : noLeagues ? "noLeagues" : isClear ? "empty" : "live";
+  const computedState: PredictState = isLoading ? "loading" : isError ? "error" : noLeagues ? "noLeagues" : isClear ? "empty" : "live";
 
   const props = {
     state: computedState, setState, theme,
@@ -190,8 +195,12 @@ export default function PredictPage() {
     heroSub: "markets still unanswered",
     heroCtaStyle: { flex: 'none', height: '42px', padding: '0 20px', borderRadius: '11px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 12.5px 'DM Sans', sans-serif", background: 'var(--nav-accent)', color: 'var(--nav-on-accent)' },
     heroCtaHref: tasksToUse[0]?.href || '/leagues',
-    urgentText: "",
-    urgentSub: "",
+    // The block beside the count names the task the CTA will open. Both were
+    // empty strings, so the desktop hero drew a blank gap there.
+    urgentText: tasksToUse[0]?.title || "",
+    urgentSub: tasksToUse[0]
+      ? `${tasksToUse[0].league} · locks at ${tasksToUse[0].time}`
+      : "",
 
     todoSub: `${openCount} markets open`,
     desktopGroups, leagueFilters,

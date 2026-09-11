@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { LeagueMobile } from '../../components/leagues/LeagueMobile';
 import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
 import { useLeague, useLeagueDashboard, useLeagueFixtures } from '@/hooks/api/useLeagues';
@@ -10,6 +11,7 @@ import { useFixtureAvailability, useFixtureResults } from '@/hooks/api/useFixtur
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
 import { MARKET_LABELS } from '@/lib/constants/markets';
 import { ordinal } from '@/lib/format';
+import type { LeagueOverviewState } from '../../components/leagues/league-overview-props';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d" };
@@ -96,7 +98,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
   })() : '—';
   const urgent = isReady && !caught && !!nextDeadline && (nextDeadline.getTime() - Date.now()) <= URGENT_THRESHOLD_MS;
-  const st = urgent ? 'urgent' : caught ? 'caughtup' : 'live';
+  const st: LeagueOverviewState = urgent ? 'urgent' : caught ? 'caughtup' : 'live';
 
   const heroTone = urgent ? "var(--color-danger)" : caught ? "var(--nav-positive)" : "var(--nav-accent)";
 
@@ -290,7 +292,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
 
   const propsDesktop = {
     theme, rootNav, contextTabs, isLoading, isTerminal, isReady, params,
-    heroStyle: { position: 'relative', overflow: 'hidden', color: 'var(--nav-text)', padding: '24px 0 28px', borderBottom: '1px solid rgba(255,255,255,.1)', background: heroBg },
+    heroStyle: { position: 'relative', overflow: 'hidden', color: 'var(--nav-text)', padding: '24px 0 28px', borderBottom: '1px solid rgba(255,255,255,.1)', background: heroBg } satisfies CSSProperties,
     heroDotStyle: { width: '7px', height: '7px', borderRadius: '999px', flex: 'none', background: heroTone, animation: urgent ? 'tfpulse 1.4s ease-in-out infinite' : 'none' },
     heroKicker: heroData[0], heroKickerColor: heroTone,
     heroClock: heroData[1], heroClockSub: heroData[2],

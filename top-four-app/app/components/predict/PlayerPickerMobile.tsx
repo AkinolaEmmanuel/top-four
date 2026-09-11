@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import type { PlayerPickerMobileProps } from './player-picker-props';
 
 export function PlayerPickerMobile({
   theme, MARKET, CLUB, searching, termIcon, TERM, isTerminal, isReady,
   chips, isLoading, groups, pickedPlayer, onRetry, searchIcon, backHref,
   homeCode, awayCode, homeName, awayName, searchQuery, onSearchChange,
   primaryLabel, primaryStyle, primaryAction
-}: any) {
+}: PlayerPickerMobileProps) {
   
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>

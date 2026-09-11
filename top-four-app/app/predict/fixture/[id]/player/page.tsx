@@ -105,7 +105,6 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const ALL = homePlayers.concat(awayPlayers);
 
   const searching = searchQuery.length > 0;
-  const ds = isLoading ? 'loading' : isTerminal ? 'stale' : searching ? 'searching' : 'live';
 
   const currentPicked = picked !== null ? picked : (savedPlayerId || null);
   const pickedPlayer = ALL.find(p => p.id === currentPicked) || null;
@@ -190,10 +189,10 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const rawDGroups = side === homeCode ? [dHome] : side === awayCode ? [dAway] : [dHome, dAway];
   const desktopGroups = rawDGroups.map((g, i) => ({ ...g, colStyle: { minWidth: 0, borderRight: (i === 0 && rawDGroups.length > 1) ? '1px solid var(--surface-border)' : 'none' } }));
 
-  const TERM = {
+  const TERM = ({
     noresults: ["empty", "var(--text-muted)", "No player matches that", "Nobody in either squad matches your search. Search filters the squads TopFour holds for this match — it cannot add a player to them.", "CLEAR THE SEARCH"],
     stale: ["warning", "var(--warn-text)", "This squad list has moved on", "The squad TopFour holds for this match was refreshed while you were looking, so these names are no longer the ones a pick would be checked against. Reloading brings the current list; anything already saved is untouched.", "RELOAD THE SQUAD"]
-  }[isTerminal ? 'stale' : "noresults"];
+  } as const)[isTerminal ? 'stale' : "noresults"];
 
   // Priced from the league's own frozen ruleset. An unknown price shows nothing
   // rather than a guess — the fixture screen quotes the same number, and the
@@ -204,10 +203,10 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     if (!m || !m.enabled) return "";
     return `${m.points} ${m.points === 1 ? 'pt' : 'pts'}`;
   };
-  const MARKET = {
+  const MARKET = ({
     scorer: ["Anytime goalscorer", marketPoints("anytime_goalscorer"), "Extra time counts. A penalty shootout does not, and an own goal is not a goalscorer. A player who never gets on the pitch is simply wrong."],
     card: ["Player to be carded", marketPoints("player_card"), "A yellow, a second yellow and a straight red all count, including in extra time. A card shown to an unused substitute does not."]
-  }[mode];
+  } as const)[mode];
 
   const IconMap: Record<string, any> = {
     search: (size: number) => (
@@ -248,12 +247,11 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const skeletonCols = [0, 1].map(() => ({ rows: [{ w: "62%" }, { w: "48%" }, { w: "71%" }, { w: "55%" }, { w: "66%" }, { w: "44%" }, { w: "58%" }] }));
 
   const props = {
-    theme, MARKET, CLUB, searching, ds, termIcon, TERM, isTerminal, isReady,
+    theme, MARKET, CLUB, searching, termIcon, TERM, isTerminal, isReady,
     isLoading, pickedPlayer, onRetry: refetch, searchIcon,
-    
+
     // Mobile specific
     chips: mobileChips,
-    mobileGroups,
 
     // Desktop specific
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", true), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)],
@@ -263,7 +261,6 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     sheetSub: MARKET[0] + " · one player from either squad.",
     modalWidth: "880px",
     columnTemplate: "minmax(0,1fr) minmax(0,1fr)",
-    desktopGroups,
     storedStyle: (saveError || pickedPlayer)
       ? { display: 'flex', alignItems: 'center', gap: '8px', font: "600 12px 'DM Sans', sans-serif", color: saveError ? 'var(--danger-text)' : 'var(--success-text)' }
       : { display: 'none' },

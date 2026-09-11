@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueOverviewDesktopProps } from './league-overview-props';
 
 export function LeagueDesktop({
   theme, rootNav, contextTabs, isLoading, isTerminal, isReady,
@@ -11,7 +12,7 @@ export function LeagueDesktop({
   resultStyle, resultKicker, resultKickerColor, resultBadgeStyle, resultBadge,
   rHomeCode, rHomeColor, rAwayCode, rAwayColor, rScore, rPointsStyle, rPoints, rPointsSub, rSummary, rBreakdown,
   qTitle, qSub, skeletonRows, params, leagueName, memberCount, heroCtaHref
-}: any) {
+}: LeagueOverviewDesktopProps) {
 
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>
