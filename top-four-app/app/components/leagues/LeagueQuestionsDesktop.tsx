@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueQuestionsDesktopProps } from './league-questions-props';
 
 export function LeagueQuestionsDesktop({
   theme, rootNav, avatarInitials, avatarName, showContext, contextTabs,
@@ -16,7 +17,7 @@ export function LeagueQuestionsDesktop({
   resolveSpellings, addResolveSpelling, removeResolveSpelling,
   settleStyle, settleLabel, settleAction, voidAction, resolveNotesList, toast, toastStyle,
   presets, applyPreset, leagueName, memberCount, params
-}: any) {
+}: LeagueQuestionsDesktopProps) {
 
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>

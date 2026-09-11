@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueQuestionsMobileProps } from './league-questions-props';
 
 export function LeagueQuestionsMobile({
   theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
@@ -13,7 +14,7 @@ export function LeagueQuestionsMobile({
   canSettleNow, settleLabel,
   match, resolveNotesList, SHEET, toast, settleAction, voidAction,
   presets, applyPreset, leagueName
-}: any) {
+}: LeagueQuestionsMobileProps) {
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
       <header className="bg-[var(--nav-surface)] text-[var(--nav-text)] p-[8px_var(--gutter)_16px] flex-none">

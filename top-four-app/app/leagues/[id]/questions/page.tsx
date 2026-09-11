@@ -11,6 +11,7 @@ import type { CustomAnswerValue } from '@/lib/api/custom-questions';
 import { useAuth } from '@/context/auth-context';
 import { useParams } from 'next/navigation';
 import { STANDINGS_QUESTION_PRESETS, QuestionPreset } from '@/lib/constants/question-presets';
+import type { QuestionSheet } from '../../../components/leagues/league-questions-props';
 
 
 const GROUPS = [
@@ -623,7 +624,7 @@ export default function QuestionsPage() {
   const match = resolveIsText ? textMatchCount : (outcome ? (disclosedCountsByRawId[outcome] || 0) : 0);
   const questionPoints = targetQForResolve?.pts ?? "0";
   const settleQuestionName = targetQForResolve?.title || "this question";
-  const SHEET = sheet === "void"
+  const SHEET: QuestionSheet = sheet === "void"
     ? ["Void this question?", "Nobody scores. Use it when the question can no longer be answered fairly. Members are told why.", [["Members answered", String(totalDisclosed)], ["Awards reversed", "0"]], "Void now", true]
     : sheet === "settle"
     ? [`Settle "${settleQuestionName}"?`, "Members are notified either way.", [["Members gaining points", String(match)], ["Members gaining nothing", String(Math.max(0, totalDisclosed - match))], ["Points each", String(questionPoints)]], "Settle now", false]
@@ -665,7 +666,7 @@ export default function QuestionsPage() {
     theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
     groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve, standingsHref,
     qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
-    qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
+    qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, publishAction: handlePublish,
     qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
     publishLabel: publishLabelText, publishNote: publishNoteText,
     resolveTitle, resolveSubtitle, outcomes: outcomesMobile, resolveIsText, resolveText, setResolveText,
@@ -683,7 +684,8 @@ export default function QuestionsPage() {
     heroStyle: { padding: '24px 0 26px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' },
     heroTone: allIn ? "var(--nav-positive)" : "var(--nav-warning)",
     heroKicker: allIn ? "NOTHING OWED" : "RIDING ON YOUR ANSWERS",
-    heroNum: allIn ? "25" : String(stake),
+    // Was a hardcoded "25" for every league; `committed` is the member's real total.
+    heroNum: String(allIn ? committed : stake),
     heroSub: allIn ? "points already committed" : "points still unclaimed",
     heroNote: allIn ? "Every open question is answered. You can change any of them until the deadline — the points only settle when somebody resolves the question." : `${owing} ${stakeLabel}. Questions score onto the same table as fixtures, so leaving one is the same as leaving a market blank.`,
     newBtnStyle: { flex: 'none', height: '40px', padding: '0 18px', borderRadius: '11px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 12.5px 'DM Sans',sans-serif", background: 'var(--nav-accent)', color: 'var(--nav-on-accent)' },
@@ -693,14 +695,13 @@ export default function QuestionsPage() {
     qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
     canPublish, publishStyle: { marginTop: '22px', height: '48px', borderRadius: '13px', display: 'grid', placeItems: 'center', cursor: canPublish ? 'pointer' : 'default', font: "700 13.5px 'DM Sans',sans-serif", background: canPublish ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canPublish ? 'var(--color-on-brand)' : 'var(--text-muted)' },
     publishLabel: publishLabelText,
-    publishNoteStyle: { fontSize: '10.5px', lineHeight: 1.55, color: 'var(--text-muted)', marginTop: '10px', textAlign: 'center' },
+    publishNoteStyle: { fontSize: '10.5px', lineHeight: 1.55, color: 'var(--text-muted)', marginTop: '10px', textAlign: 'center' } satisfies CSSProperties,
     publishNote: publishNoteText,
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     publishAction: handlePublish,
     previewText: qText || "Your question will read here", previewPoints: String(qPoints),
     outcomes: outcomesDesktop, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
     resolveSpellings, addResolveSpelling, removeResolveSpelling,
-    match,
     settleStyle: { marginTop: '24px', height: '48px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 13.5px 'DM Sans',sans-serif", background: canSettleNow ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canSettleNow ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: canSettleNow ? 'pointer' : 'not-allowed' },
     settleLabel: settleLabelText,
     settleAction: handleResolve, voidAction: handleVoid,
