@@ -37,7 +37,8 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
 
   const realMarketType = mode === 'scorer' ? 'anytime_goalscorer' : 'player_card';
   const marketSlot = predictions?.markets.find((m) => m.marketType === realMarketType);
-  const savedPlayerId = (marketSlot?.answer?.value as any)?.playerId as string | undefined;
+  const savedValue = marketSlot?.answer?.value;
+  const savedPlayerId = savedValue && 'playerId' in savedValue ? savedValue.playerId : undefined;
 
   // A rejected pick must not send the member back to the fixture as though it
   // saved. The failure is named in place, on the same footer line that
@@ -45,11 +46,20 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const handleSave = () => {
     const finalPick = picked !== null ? picked : savedPlayerId;
     if (!finalPick || !leagueId) return;
+    // A pick is checked against the squad snapshot it was made from, so the
+    // server rejects one without it. Say so rather than posting an incomplete
+    // answer and reporting the refusal as a generic failure.
+    const snapshotId = selectablePlayers?.snapshot?.snapshotId;
+    if (!snapshotId) {
+      setSaveError('The squad list is still loading — try again in a moment.');
+      return;
+    }
+
     setSaveError(null);
     submitPrediction.mutate({
       marketType: realMarketType,
       expectedVersion: marketSlot?.version || 0,
-      answer: { playerId: finalPick, snapshotId: selectablePlayers?.snapshot?.snapshotId },
+      answer: { playerId: finalPick, snapshotId },
     }, {
       onSuccess: () => router.push(backHref),
       onError: (error) => setSaveError(

@@ -6,10 +6,13 @@
  * Run against a local API:  npm run api:types
  * Point elsewhere with:     API_SPEC_URL=https://… npm run api:types
  *
- * UPSTREAM_PATCHES exists only because the published document currently fails
- * to resolve. Each entry names the defect and the fix that retires it, and the
- * script FAILS if a patch is no longer needed — so a fixed backend forces the
- * patch to be deleted instead of quietly outliving its purpose.
+ * UPSTREAM_PATCHES is empty, and should stay that way. It is the escape hatch
+ * for a published document that cannot be consumed as-is: each entry names the
+ * defect and the backend fix that retires it, and the script FAILS once a patch
+ * is no longer needed, so a fixed backend forces the patch out rather than
+ * letting it quietly outlive its purpose. It has already done that once — the
+ * unresolvable `SelectablePlayerDto` ref and the unmapped prediction-task
+ * discriminator were both fixed upstream, and this list emptied itself.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -20,46 +23,7 @@ const SPEC_URL = process.env.API_SPEC_URL ?? 'http://localhost:3000/v1/docs-yaml
 const OUT = 'lib/api/generated/schema.d.ts';
 const TMP = 'node_modules/.cache/topfour-openapi.yaml';
 
-const UPSTREAM_PATCHES = [
-  {
-    // `SelectablePlayersResponseDto` hand-writes `$ref: SelectablePlayerDto`,
-    // but that class is never passed to a decorator as `type:`, so Nest's
-    // Swagger plugin never registers it and the document cannot be resolved.
-    // Backend fix: `@ApiExtraModels(SelectablePlayerDto)` on the controller.
-    id: 'missing-SelectablePlayerDto',
-    appliesWhen: spec => !/^ {4}SelectablePlayerDto:$/m.test(spec),
-    apply: spec =>
-      spec.replace(
-        '    SelectablePlayersResponseDto:',
-        `    SelectablePlayerDto:
-      type: object
-      properties:
-        side: { type: string, enum: [home, away] }
-        teamId: { type: string, format: uuid }
-        playerId: { type: string, format: uuid }
-        displayName: { type: string }
-        position: { type: string, nullable: true }
-        shirtNumber: { type: number, nullable: true }
-      required: [side, teamId, playerId, displayName, position, shirtNumber]
-    SelectablePlayersResponseDto:`,
-      ),
-  },
-  {
-    // The prediction-task union declares `discriminator: { propertyName: kind }`
-    // with no `mapping`. OpenAPI then implies schema *names* as the values, so a
-    // generated client narrows on "FixturePredictionTaskDto" while the wire
-    // actually carries "fixture". The member DTOs already say so in their own
-    // `enum`; only the mapping is absent.
-    // Backend fix: add `mapping` beside `propertyName` in PredictionTaskPageDto.
-    id: 'unmapped-prediction-task-discriminator',
-    appliesWhen: spec => /discriminator:\s*\n\s*propertyName: kind\s*\n(?!\s*mapping:)/.test(spec),
-    apply: spec =>
-      spec.replace(
-        /(discriminator:\s*\n(\s*)propertyName: kind\s*\n)/,
-        `$1$2mapping:\n$2  fixture: '#/components/schemas/FixturePredictionTaskDto'\n$2  custom_question: '#/components/schemas/CustomQuestionPredictionTaskDto'\n`,
-      ),
-  },
-];
+const UPSTREAM_PATCHES = [];
 
 const response = await fetch(SPEC_URL);
 if (!response.ok) {

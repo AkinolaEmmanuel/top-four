@@ -203,28 +203,19 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     const initial: Record<string, any> = {};
     for (const slot of predictions.markets) {
       if (!slot.answer) continue;
+      // The stored value is a union of the per-market shapes, so each branch
+      // narrows on the field it needs rather than trusting `marketType` to
+      // imply it. A market whose answer does not carry the expected shape is
+      // left unhydrated instead of writing `undefined` into the form.
       const v = slot.answer.value;
-      switch (slot.marketType) {
-        case 'match_result':
-          initial.match_result = v.outcome;
-          break;
-        case 'exact_score':
-          if (typeof v.homeGoals === 'number' && typeof v.awayGoals === 'number') {
-            initial.exact_score = [v.homeGoals, v.awayGoals];
-            initial.score = [v.homeGoals, v.awayGoals];
-          }
-          break;
-        case 'both_teams_to_score':
-          initial.both_teams_to_score = v.bothScore ? 'yes' : 'no';
-          break;
-        case 'total_goals':
-          initial.total_goals = v.selection;
-          break;
-        case 'anytime_goalscorer':
-        case 'player_card':
-          initial[slot.marketType] = v.playerId;
-          break;
+      if ('outcome' in v) initial.match_result = v.outcome;
+      else if ('homeGoals' in v) {
+        initial.exact_score = [v.homeGoals, v.awayGoals];
+        initial.score = [v.homeGoals, v.awayGoals];
       }
+      else if ('bothScore' in v) initial.both_teams_to_score = v.bothScore ? 'yes' : 'no';
+      else if ('selection' in v) initial.total_goals = v.selection;
+      else if ('playerId' in v) initial[slot.marketType] = v.playerId;
     }
     if (predictions.lineups.home) initial.home_lineup = predictions.lineups.home.answer.value.playerIds;
     if (predictions.lineups.away) initial.away_lineup = predictions.lineups.away.answer.value.playerIds;

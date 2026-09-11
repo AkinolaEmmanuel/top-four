@@ -2088,6 +2088,49 @@ export interface components {
             /** @enum {string} */
             state: "active" | "former";
         };
+        LeagueLockResponseDto: {
+            /** @enum {string} */
+            kind: "at_kickoff" | "minutes_5" | "minutes_15" | "minutes_30" | "minutes_60" | "minutes_120" | "custom";
+            offsetMinutes: number;
+        };
+        RoundBoundaryDto: {
+            /** Format: uuid */
+            stageId: string;
+            /** Format: uuid */
+            roundId: string;
+        };
+        LeagueScopeResponseDto: {
+            /** Format: uuid */
+            supportedCompetitionId: string;
+            /** Format: uuid */
+            seasonId: string;
+            /** @enum {string} */
+            kind: "full_season" | "single_round" | "round_range";
+            firstRound: components["schemas"]["RoundBoundaryDto"] | null;
+            lastRound: components["schemas"]["RoundBoundaryDto"] | null;
+        };
+        LeagueRulesetResponseDto: {
+            /** Format: uuid */
+            id: string;
+            state: string;
+            revision: number;
+            /** @enum {string} */
+            lateJoinPolicy: "close_when_in_progress" | "allow";
+            totalGoalsLine: number;
+            standardLock: components["schemas"]["LeagueLockResponseDto"];
+            competitionScopes: components["schemas"]["LeagueScopeResponseDto"][];
+            markets: components["schemas"]["MarketConfigurationDto"][];
+            tiebreakers: ("match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card" | "lineup")[];
+        };
+        LeagueScoringMarketDto: {
+            /** @enum {string} */
+            marketType: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card" | "lineup";
+            maximumPoints: number;
+        };
+        LeagueScoringDto: {
+            markets: components["schemas"]["LeagueScoringMarketDto"][];
+            maximumPointsPerMatch: number;
+        };
         LeagueResponseDto: {
             /** Format: uuid */
             id: string;
@@ -2099,12 +2142,8 @@ export interface components {
             membership: components["schemas"]["LeagueViewerMembershipResponseDto"];
             invitationSettings: components["schemas"]["InvitationSettingsDto"];
             version: number;
-            ruleset: {
-                [key: string]: unknown;
-            };
-            scoring: {
-                [key: string]: unknown;
-            };
+            ruleset: components["schemas"]["LeagueRulesetResponseDto"];
+            scoring: components["schemas"]["LeagueScoringDto"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2122,6 +2161,8 @@ export interface components {
             standingVersion: number;
         };
         LeagueListItemResponseDto: {
+            /** @description Active members, including the owner. */
+            memberCount: number;
             /** Format: uuid */
             id: string;
             name: string;
@@ -2162,16 +2203,15 @@ export interface components {
             membership: components["schemas"]["LeagueViewerMembershipResponseDto"];
             invitationSettings: components["schemas"]["InvitationSettingsDto"];
             version: number;
-            ruleset: {
-                [key: string]: unknown;
-            };
-            scoring: {
-                [key: string]: unknown;
-            };
+            ruleset: components["schemas"]["LeagueRulesetResponseDto"];
+            scoring: components["schemas"]["LeagueScoringDto"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Active members, including the owner. */
+            memberCount: number;
+            competitions: components["schemas"]["LeagueCompetitionSummaryResponseDto"][];
             publication: components["schemas"]["LeaguePublicationSummaryResponseDto"] | null;
         };
         DashboardMarketStatesDto: {
@@ -2524,11 +2564,76 @@ export interface components {
             data: components["schemas"]["PointsHistoryItemDto"][];
             nextCursor: string | null;
         };
+        PredictionKickoffDto: {
+            /** @enum {string} */
+            state: "confirmed" | "unconfirmed";
+            /** Format: date-time */
+            at: string | null;
+            revisionNumber: number;
+        };
+        AvailabilityCompetitionDto: {
+            /** Format: uuid */
+            supportedCompetitionId: string;
+            slug: string;
+            displayName: string;
+        };
+        AvailabilitySeasonDto: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+        };
+        AvailabilityStageDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        AvailabilityRoundDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sortOrder: number;
+        };
+        AvailabilityGroupDto: {
+            /** Format: uuid */
+            supportedCompetitionId: string;
+            roundId: string | null;
+        };
+        AvailabilityTeamDto: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            shortName: string | null;
+            code: string | null;
+            logoUrl: string | null;
+        };
         AvailabilityPredictionCompletenessDto: {
             required: number;
             answered: number;
             unanswered: number;
             complete: boolean;
+        };
+        AvailabilityOwnPredictionDto: {
+            answered: boolean;
+            version: number | null;
+        };
+        AvailabilityOwnLineupsDto: {
+            home: components["schemas"]["AvailabilityOwnPredictionDto"];
+            away: components["schemas"]["AvailabilityOwnPredictionDto"];
+        };
+        AvailabilityMarketDto: {
+            /** @enum {string} */
+            marketType: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card" | "lineup";
+            enabled: boolean;
+            /** @enum {string} */
+            state: "configured" | "unavailable" | "syncing" | "open" | "locked" | "pending_data" | "pending_review" | "settled" | "void";
+            reasonCode: string;
+            submissionAllowed: boolean;
+            replacementAllowed: boolean;
+            /** Format: date-time */
+            deadlineAt: string | null;
+            snapshotId: string | null;
+            snapshotVersion: number | null;
+            ownPrediction: components["schemas"]["AvailabilityOwnPredictionDto"] | components["schemas"]["AvailabilityOwnLineupsDto"];
         };
         AvailabilityFixtureDto: {
             /** Format: uuid */
@@ -2536,33 +2641,14 @@ export interface components {
             /** Format: uuid */
             fixtureId: string;
             fixtureState: string;
-            kickoff?: {
-                state: string;
-                /** Format: date-time */
-                at: string | null;
-                revisionNumber: number;
-            };
-            competition: {
-                [key: string]: unknown;
-            };
-            season: {
-                [key: string]: unknown;
-            };
-            stage: {
-                [key: string]: unknown;
-            } | null;
-            round: {
-                [key: string]: unknown;
-            } | null;
-            group: {
-                [key: string]: unknown;
-            };
-            homeTeam: {
-                [key: string]: unknown;
-            };
-            awayTeam: {
-                [key: string]: unknown;
-            };
+            kickoff: components["schemas"]["PredictionKickoffDto"];
+            competition: components["schemas"]["AvailabilityCompetitionDto"];
+            season: components["schemas"]["AvailabilitySeasonDto"];
+            stage: components["schemas"]["AvailabilityStageDto"] | null;
+            round: components["schemas"]["AvailabilityRoundDto"] | null;
+            group: components["schemas"]["AvailabilityGroupDto"];
+            homeTeam: components["schemas"]["AvailabilityTeamDto"];
+            awayTeam: components["schemas"]["AvailabilityTeamDto"];
             hasOpenMarkets: boolean;
             /** Format: date-time */
             nextDeadlineAt: string | null;
@@ -2570,7 +2656,7 @@ export interface components {
                 [key: string]: number;
             };
             predictionCompleteness: components["schemas"]["AvailabilityPredictionCompletenessDto"];
-            markets: Record<string, never>[];
+            markets: components["schemas"]["AvailabilityMarketDto"][];
         };
         AvailabilityPageResponseDto: {
             data: components["schemas"]["AvailabilityFixtureDto"][];
@@ -2583,6 +2669,24 @@ export interface components {
             /** Format: date-time */
             serverTime: string;
         };
+        SelectableSnapshotDto: {
+            /** Format: uuid */
+            snapshotId: string;
+            version: number | null;
+            kickoffRevisionNumber: number | null;
+            /** Format: date-time */
+            createdAt: string | null;
+            /** Format: date-time */
+            refreshClosesAt: string | null;
+            /** Format: date-time */
+            frozenAt: string | null;
+            lifecycle: string | null;
+            currentForKickoff: boolean;
+            usableForNewAnswers: boolean;
+            /** @enum {string} */
+            freshness: "fresh" | "stale" | "unknown";
+            refreshing: boolean;
+        };
         SelectablePlayerDto: {
             /** @enum {string} */
             side: "home" | "away";
@@ -2594,19 +2698,18 @@ export interface components {
             position: string | null;
             shirtNumber: number | null;
         };
+        SelectablePlayersDataDto: {
+            /** Format: uuid */
+            leagueFixtureId: string;
+            /** Format: uuid */
+            fixtureId: string;
+            availabilityState: string;
+            reasonCode: string;
+            snapshot: components["schemas"]["SelectableSnapshotDto"] | null;
+            players: components["schemas"]["SelectablePlayerDto"][];
+        };
         SelectablePlayersResponseDto: {
-            data?: {
-                /** Format: uuid */
-                leagueFixtureId: string;
-                /** Format: uuid */
-                fixtureId: string;
-                availabilityState: string;
-                reasonCode: string;
-                snapshot: {
-                    [key: string]: unknown;
-                } | null;
-                players: components["schemas"]["SelectablePlayerDto"][];
-            };
+            data: components["schemas"]["SelectablePlayersDataDto"];
             /** Format: date-time */
             serverTime: string;
             nextCursor: string | null;
@@ -2615,28 +2718,44 @@ export interface components {
             expectedVersion: number;
             answer: Record<string, never>;
         };
+        PredictionSnapshotDto: {
+            /** Format: uuid */
+            snapshotId: string;
+            version: number | null;
+        };
         PredictionAnswerResponseDto: {
             value: {
-                [key: string]: unknown;
+                /** @enum {string} */
+                outcome: "home" | "draw" | "away";
+            } | {
+                homeGoals: number;
+                awayGoals: number;
+            } | {
+                bothScore: boolean;
+            } | {
+                /** @enum {string} */
+                selection: "over" | "under";
+            } | {
+                /** Format: uuid */
+                playerId: string;
+                /** Format: uuid */
+                snapshotId: string;
             };
+            snapshot: components["schemas"]["PredictionSnapshotDto"] | null;
+            /** Format: date-time */
+            submittedAt: string;
             rulesetRevision: number;
             /** Format: date-time */
             deadlineAt: string;
-            kickoff: {
-                [key: string]: unknown;
-            };
-            snapshot: {
-                [key: string]: unknown;
-            } | null;
-            /** Format: date-time */
-            submittedAt: string;
+            kickoff: components["schemas"]["PredictionKickoffDto"];
         };
         PredictionSubmissionDataDto: {
             /** Format: uuid */
             leagueFixtureId: string;
             /** Format: uuid */
             membershipId: string;
-            marketType: string;
+            /** @enum {string} */
+            marketType: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card";
             /** Format: uuid */
             predictionId: string;
             version: number;
@@ -2651,24 +2770,164 @@ export interface components {
             /** Format: date-time */
             serverTime: string;
         };
+        OwnPredictionMarketDto: {
+            /** @enum {string} */
+            marketType: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card";
+            enabled: boolean;
+            state: string;
+            reasonCode: string;
+            submissionAllowed: boolean;
+            replacementAllowed: boolean;
+            /** Format: date-time */
+            deadlineAt: string | null;
+            snapshot: components["schemas"]["PredictionSnapshotDto"] | null;
+            answered: boolean;
+            predictionId: string | null;
+            version: number | null;
+            /** Format: date-time */
+            createdAt: string | null;
+            /** Format: date-time */
+            updatedAt: string | null;
+            answer: components["schemas"]["PredictionAnswerResponseDto"] | null;
+        };
+        PredictionCompletenessDto: {
+            /** @enum {string} */
+            scope: "standard_markets";
+            enabledMarketCount: number;
+            answeredCount: number;
+            unansweredCount: number;
+            unansweredMarketTypes: ("match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card")[];
+            allEnabledMarketsAnswered: boolean;
+        };
+        LineupValueDto: {
+            /** Format: uuid */
+            snapshotId: string;
+            playerIds: string[];
+        };
+        LineupPlayerResponseDto: {
+            /** Format: uuid */
+            playerId: string;
+            displayName: string;
+            position: string;
+            shirtNumber: number | null;
+        };
+        LineupAnswerResponseDto: {
+            value: components["schemas"]["LineupValueDto"];
+            players: components["schemas"]["LineupPlayerResponseDto"][];
+            rulesetRevision: number;
+            /** Format: date-time */
+            deadlineAt: string;
+            kickoff: components["schemas"]["PredictionKickoffDto"];
+            snapshot: components["schemas"]["PredictionSnapshotDto"];
+            /** Format: date-time */
+            submittedAt: string;
+        };
+        OwnLineupSideDto: {
+            /** Format: uuid */
+            predictionId: string;
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            answer: components["schemas"]["LineupAnswerResponseDto"];
+        };
+        OwnLineupsDto: {
+            enabled: boolean;
+            state: string;
+            reasonCode: string;
+            submissionAllowed: boolean;
+            replacementAllowed: boolean;
+            /** Format: date-time */
+            deadlineAt: string | null;
+            snapshot: components["schemas"]["PredictionSnapshotDto"] | null;
+            home: components["schemas"]["OwnLineupSideDto"] | null;
+            away: components["schemas"]["OwnLineupSideDto"] | null;
+            bothAnswered: boolean;
+        };
+        OwnFixturePredictionsDataDto: {
+            /** Format: uuid */
+            leagueFixtureId: string;
+            /** Format: uuid */
+            fixtureId: string;
+            /** Format: uuid */
+            membershipId: string;
+            rulesetRevision: number;
+            kickoff: components["schemas"]["PredictionKickoffDto"];
+            markets: components["schemas"]["OwnPredictionMarketDto"][];
+            completeness: components["schemas"]["PredictionCompletenessDto"];
+            lineups: components["schemas"]["OwnLineupsDto"];
+        };
         OwnFixturePredictionsResponseDto: {
-            data?: Record<string, never>;
+            data: components["schemas"]["OwnFixturePredictionsDataDto"];
             /** Format: date-time */
             serverTime: string;
         };
+        PredictionRevisionDto: {
+            /** Format: uuid */
+            revisionId: string;
+            version: number;
+            previousRevisionId: string | null;
+            answer: components["schemas"]["PredictionAnswerResponseDto"];
+        };
+        PredictionHistoryDataDto: {
+            /** @enum {string} */
+            marketType: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card";
+            predictionId: string | null;
+            revisions: components["schemas"]["PredictionRevisionDto"][];
+        };
         PredictionHistoryResponseDto: {
-            data?: {
-                marketType: string;
-                /** Format: uuid */
-                predictionId: string | null;
-                revisions: Record<string, never>[];
-            };
+            data: components["schemas"]["PredictionHistoryDataDto"];
             /** Format: date-time */
             serverTime: string;
             nextCursor: string | null;
         };
+        MemberPredictionAnswerDto: {
+            value: {
+                /** @enum {string} */
+                outcome: "home" | "draw" | "away";
+            } | {
+                homeGoals: number;
+                awayGoals: number;
+            } | {
+                bothScore: boolean;
+            } | {
+                /** @enum {string} */
+                selection: "over" | "under";
+            } | {
+                /** Format: uuid */
+                playerId: string;
+                /** Format: uuid */
+                snapshotId: string;
+            };
+            snapshot: components["schemas"]["PredictionSnapshotDto"] | null;
+            /** Format: date-time */
+            submittedAt: string;
+        };
+        MemberPredictionMarketDto: {
+            /** @enum {string} */
+            marketType: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card";
+            enabled: boolean;
+            answered: boolean;
+            answer: components["schemas"]["MemberPredictionAnswerDto"] | null;
+        };
+        MemberLineupsDto: {
+            enabled: boolean;
+            home: components["schemas"]["LineupAnswerResponseDto"] | null;
+            away: components["schemas"]["LineupAnswerResponseDto"] | null;
+            bothAnswered: boolean;
+        };
+        MemberFixturePredictionsDataDto: {
+            /** Format: uuid */
+            leagueFixtureId: string;
+            /** Format: uuid */
+            membershipId: string;
+            markets: components["schemas"]["MemberPredictionMarketDto"][];
+            completeness: components["schemas"]["PredictionCompletenessDto"];
+            lineups: components["schemas"]["MemberLineupsDto"];
+        };
         MemberFixturePredictionsResponseDto: {
-            data?: Record<string, never>;
+            data: components["schemas"]["MemberFixturePredictionsDataDto"];
             /** Format: date-time */
             serverTime: string;
         };
@@ -2676,19 +2935,42 @@ export interface components {
             expectedVersion: number;
             answer: Record<string, never>;
         };
+        LineupSubmissionDataDto: {
+            /** Format: uuid */
+            leagueFixtureId: string;
+            /** Format: uuid */
+            membershipId: string;
+            /** @enum {string} */
+            side: "home" | "away";
+            /** Format: uuid */
+            predictionId: string;
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            answer: components["schemas"]["LineupAnswerResponseDto"];
+        };
         LineupSubmissionResponseDto: {
-            data?: Record<string, never>;
+            data: components["schemas"]["LineupSubmissionDataDto"];
             /** Format: date-time */
             serverTime: string;
         };
+        LineupRevisionDto: {
+            /** Format: uuid */
+            revisionId: string;
+            version: number;
+            previousRevisionId: string | null;
+            answer: components["schemas"]["LineupAnswerResponseDto"];
+        };
+        LineupHistoryDataDto: {
+            /** @enum {string} */
+            side: "home" | "away";
+            predictionId: string | null;
+            revisions: components["schemas"]["LineupRevisionDto"][];
+        };
         LineupHistoryResponseDto: {
-            data?: {
-                /** @enum {string} */
-                side: "home" | "away";
-                /** Format: uuid */
-                predictionId: string | null;
-                revisions: Record<string, never>[];
-            };
+            data: components["schemas"]["LineupHistoryDataDto"];
             /** Format: date-time */
             serverTime: string;
             nextCursor: string | null;
@@ -2744,6 +3026,8 @@ export interface components {
             displayName: string;
         };
         PredictionTaskTeamDto: {
+            code: string | null;
+            logoUrl: string | null;
             /** Format: uuid */
             id: string;
             displayName: string;

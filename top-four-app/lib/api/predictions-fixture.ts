@@ -2,49 +2,19 @@ import { apiFetch } from './fetcher';
 import type { Api } from './types';
 
 /**
- * Partly generated, deliberately.
+ * The server's own types throughout. The shapes this file used to hand-write —
+ * the teams, the per-market availability, and the whole of `/predictions/me` —
+ * were declared as bare objects upstream and generated as `Record<string,
+ * never>`; the API now describes all of them, so the guesses are gone.
  *
- * Where the API publishes a real schema, the type below is the server's. Where
- * its DTO declares the payload as a bare object — `markets`, the teams, and the
- * whole of `/predictions/me` — the document carries no shape at all, and the
- * generated type is `Record<string, never>`. Adopting that would delete the
- * type safety this screen depends on, so those shapes stay hand-written and are
- * marked UNTYPED UPSTREAM with the field the backend needs to describe.
+ * Adopting them narrowed two things the hand-written versions had wrong:
+ * `code` and `shortName` are nullable, and `marketType`/`state` are enums
+ * rather than open strings.
  */
 
-/** UNTYPED UPSTREAM: `AvailabilityFixtureDto.homeTeam` is a bare object. */
-export interface FixtureAvailabilityTeam {
-  id: string;
-  displayName: string;
-  shortName: string;
-  code: string;
-  logoUrl: string | null;
-}
-
-/** UNTYPED UPSTREAM: `AvailabilityFixtureDto.markets` generates as `Record<string, never>[]`. */
-export interface FixtureMarketAvailability {
-  marketType: string;
-  enabled: boolean;
-  state: string;
-  reasonCode: string;
-  submissionAllowed: boolean;
-  replacementAllowed: boolean;
-  deadlineAt: string | null;
-}
-
-export interface FixtureAvailability {
-  leagueFixtureId: string;
-  fixtureId: string;
-  fixtureState: string;
-  kickoff: KickoffBasis;
-  homeTeam: FixtureAvailabilityTeam;
-  awayTeam: FixtureAvailabilityTeam;
-  hasOpenMarkets: boolean;
-  nextDeadlineAt: string | null;
-  marketStateCounts: Record<string, number>;
-  predictionCompleteness: Api<'AvailabilityPredictionCompletenessDto'>;
-  markets: FixtureMarketAvailability[];
-}
+export type FixtureAvailabilityTeam = Api<'AvailabilityTeamDto'>;
+export type FixtureMarketAvailability = Api<'AvailabilityMarketDto'>;
+export type FixtureAvailability = Api<'AvailabilityFixtureDto'>;
 
 /**
  * `serverTime` travels with the fixture because every deadline on the screen is
@@ -56,118 +26,25 @@ export interface FixtureAvailabilitySnapshot {
   serverTime: string;
 }
 
-export interface KickoffBasis {
-  state: string;
-  at: string | null;
-  revisionNumber: number;
-}
+export type KickoffBasis = Api<'PredictionKickoffDto'>;
+export type SnapshotRef = Api<'PredictionSnapshotDto'>;
 
-export interface SnapshotRef {
-  snapshotId: string;
-  version: number;
-}
+/**
+ * The stored answer's value, as a union of the per-market shapes rather than
+ * one interface of optional fields — so reading `homeGoals` off a match_result
+ * answer is now a type error instead of `undefined` at runtime.
+ */
+export type StandardAnswerValue = Api<'PredictionAnswerResponseDto'>['value'];
 
-// The real per-market answer value. Only the fields relevant to `marketType`
-// are present; callers narrow on marketType before reading fields.
-export interface StandardAnswerValue {
-  outcome?: 'home' | 'draw' | 'away';
-  homeGoals?: number;
-  awayGoals?: number;
-  bothScore?: boolean;
-  selection?: 'over' | 'under';
-  playerId?: string;
-  snapshotId?: string;
-}
-
-export interface StoredStandardAnswer {
-  value: StandardAnswerValue;
-  rulesetRevision: number;
-  deadlineAt: string;
-  kickoff: KickoffBasis;
-  snapshot: SnapshotRef | null;
-  submittedAt: string;
-}
-
-export interface PredictionMarketSlot {
-  marketType: 'match_result' | 'exact_score' | 'both_teams_to_score' | 'total_goals' | 'anytime_goalscorer' | 'player_card';
-  enabled: boolean;
-  state: string;
-  reasonCode: string;
-  submissionAllowed: boolean;
-  replacementAllowed: boolean;
-  deadlineAt: string | null;
-  snapshot: SnapshotRef | null;
-  answered: boolean;
-  predictionId: string | null;
-  version: number | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-  answer: StoredStandardAnswer | null;
-}
-
-export interface PredictionCompleteness {
-  scope: string;
-  enabledMarketCount: number;
-  answeredCount: number;
-  unansweredCount: number;
-  unansweredMarketTypes: string[];
-  allEnabledMarketsAnswered: boolean;
-}
-
-export interface LineupAnswerValue {
-  playerIds: string[];
-  snapshotId: string;
-}
-
-export interface LineupPlayerView {
-  playerId: string;
-  displayName: string;
-  position: string;
-  shirtNumber: number | null;
-}
-
-export interface StoredLineupAnswer {
-  value: LineupAnswerValue;
-  players: LineupPlayerView[];
-  rulesetRevision: number;
-  deadlineAt: string;
-  kickoff: KickoffBasis;
-  snapshot: SnapshotRef;
-  submittedAt: string;
-}
-
-export interface OwnLineupSide {
-  predictionId: string;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-  answer: StoredLineupAnswer;
-}
-
-export interface OwnLineups {
-  enabled: boolean;
-  state: string;
-  reasonCode: string;
-  submissionAllowed: boolean;
-  replacementAllowed: boolean;
-  deadlineAt: string | null;
-  snapshot: SnapshotRef | null;
-  home: OwnLineupSide | null;
-  away: OwnLineupSide | null;
-  bothAnswered: boolean;
-}
-
-/** UNTYPED UPSTREAM: `MemberFixturePredictionsResponseDto.data` is a bare object. */
-export interface OwnFixturePredictions {
-  leagueFixtureId: string;
-  fixtureId: string;
-  membershipId: string;
-  rulesetRevision: number;
-  kickoff: KickoffBasis;
-  markets: PredictionMarketSlot[];
-  completeness: PredictionCompleteness;
-  lineups: OwnLineups;
-}
+export type StoredStandardAnswer = Api<'PredictionAnswerResponseDto'>;
+export type PredictionMarketSlot = Api<'OwnPredictionMarketDto'>;
+export type PredictionCompleteness = Api<'PredictionCompletenessDto'>;
+export type LineupAnswerValue = Api<'LineupValueDto'>;
+export type LineupPlayerView = Api<'LineupPlayerResponseDto'>;
+export type StoredLineupAnswer = Api<'LineupAnswerResponseDto'>;
+export type OwnLineupSide = Api<'OwnLineupSideDto'>;
+export type OwnLineups = Api<'OwnLineupsDto'>;
+export type OwnFixturePredictions = Api<'OwnFixturePredictionsDataDto'>;
 
 export interface PredictionSubmission {
   leagueFixtureId: string;
