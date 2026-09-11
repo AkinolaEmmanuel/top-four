@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { FixtureProps } from './fixture-props';
 import Image from 'next/image';
 
 function Crest({ logo, code, color }: { logo?: string | null; code: string; color: string }) {
@@ -20,8 +21,9 @@ export function FixtureMobile({
   carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
   leagueName, competitionLabel, fixtureId, leagueId,
   hName, aName, hCode, aCode, hLogo, aLogo, scoreline, bannerRight,
-  totalSlots, lineupDeadlineLabel, stakeLabel, canCopy, copySub, copyExplainer
-}: any) {
+  totalSlots, lineupDeadlineLabel, stakeLabel, canCopy, copySub, copyExplainer,
+  onCopyExecute
+}: FixtureProps) {
 
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB[hCode] || '#666'} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB[aCode] || '#666'} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
 
@@ -252,7 +254,7 @@ export function FixtureMobile({
                     </div>
                     <div className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] mt-[9px]">Only markets you have answered travel. Anything still blank here stays blank there.</div>
 
-                    <div onClick={() => { if (chosen) setCopy('done'); }} className={`mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
+                    <div onClick={() => { if (chosen) onCopyExecute(); }} className={`mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
                       {chosen ? `Copy into ${chosen} ${chosen === 1 ? 'league' : 'leagues'}` : "Pick a league"}
                     </div>
                     <div onClick={() => setCopy(null)} className="tf-tap mt-[8px] h-[44px] grid place-items-center font-heading font-bold text-[12px] text-[var(--text-secondary)]">Not now</div>

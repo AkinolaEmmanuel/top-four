@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueAdminDesktopProps } from './league-admin-props';
 
 export function LeagueAdminDesktop({
   theme, rootNav, avatarInitials, avatarName, contextTabs,
@@ -13,17 +14,17 @@ export function LeagueAdminDesktop({
   leagueName, leagueAbbr, params,
   inviteCode, createInviteAction, copyInviteAction, exportMembersAction,
   memberCount, inviteCount, pendingCount
-}: any) {
+}: LeagueAdminDesktopProps) {
 
   const segStyle = (on: boolean) =>
     `flex items-center gap-[7px] h-[38px] px-[16px] rounded-[8px] cursor-pointer font-heading font-bold text-[12px] ${on ? 'bg-[var(--surface-card)] text-[var(--text-primary)] border border-[var(--surface-border-strong)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`;
 
-  const tabDefs = [
+  const tabDefs = ([
     { id: "members", label: "Members", count: String(memberCount ?? '') },
     { id: "invites", label: "Invites", count: String(inviteCount ?? '') },
     { id: "requests", label: "Requests", count: String(pendingCount ?? '') },
     { id: "lifecycle", label: "Lifecycle", count: "" }
-  ].map(t => {
+  ] as const).map(t => {
     const on = tab === t.id;
     return {
       label: t.label, count: t.count, style: segStyle(on),

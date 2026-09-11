@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueAdminMobileProps } from './league-admin-props';
 
 export function LeagueAdminMobile({
   theme, params, tab, setTab, setSheet, setWho, setRole,
@@ -10,18 +11,18 @@ export function LeagueAdminMobile({
   sheetSpec, roles, toast,
   leagueName, inviteCode, createInviteAction, copyInviteAction,
   memberCount, inviteCount, pendingCount, heroRole, hasMoreMembers
-}: any) {
+}: LeagueAdminMobileProps) {
 
 
   const segStyle = (on: boolean) =>
     `box-border flex-1 min-w-[88px] flex items-center justify-center gap-[6px] h-[38px] rounded-t-[9px] cursor-pointer font-heading font-bold text-[11px] ${on ? 'bg-[var(--surface-canvas)] text-[var(--text-primary)] border border-b-0 border-[var(--surface-border-strong)] pb-[1px]' : 'text-[var(--nav-text-faint)]'}`;
 
-  const tabDefs = [
+  const tabDefs = ([
     { id: "members", label: "Members", count: String(memberCount ?? '') },
     { id: "invites", label: "Invites", count: String(inviteCount ?? '') },
     { id: "requests", label: "Requests", count: String(pendingCount ?? '') },
     { id: "lifecycle", label: "Lifecycle", count: "" }
-  ].map(t => {
+  ] as const).map(t => {
     const on = tab === t.id;
     return {
       label: t.label, count: t.count, style: segStyle(on),

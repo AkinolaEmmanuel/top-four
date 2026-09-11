@@ -9,6 +9,7 @@ import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopy
 import { useMyLeagues, useLeagueRuleset } from '@/hooks/api/useLeagues';
 import type { RulesetMarketType } from '@/lib/api/leagues';
 import { STANDARD_MARKET_TYPES } from '@/lib/constants/markets';
+import type { FixtureProps } from '../../../components/predict/fixture-props';
 import { ApiError } from '@/lib/api/fetcher';
 
 const CLUB: Record<string, string> = {
@@ -709,7 +710,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     copyPrimary: chosen ? `Copy into ${chosen} ${chosen === 1 ? 'league' : 'leagues'}` : "Pick a league",
     copyPrimaryStyle: `mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`,
     onCopyExecute: handleExecuteCopy
-  };
+  } satisfies FixtureProps;
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">

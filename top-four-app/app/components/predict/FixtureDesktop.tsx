@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { FixtureProps } from './fixture-props';
 import Image from 'next/image';
 
 function Crest({ logo, code, color, size, textSize }: { logo?: string | null; code: string; color: string; size: number; textSize: number }) {
@@ -23,8 +24,8 @@ export function FixtureDesktop({
   marketsDone, lineupsDone, pointsLabel, pointsValue, pointsHeroColor,
   marketsHint, footNote, canCopy, copySub,
   copyPrimary, copyPrimaryStyle, leagueName, competitionLabel,
-  hName, aName, hCode, aCode, hLogo, aLogo
-}: any) {
+  hName, aName, hCode, aCode, hLogo, aLogo, onCopyExecute
+}: FixtureProps) {
   
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
@@ -263,7 +264,7 @@ export function FixtureDesktop({
                       <span key={i} className={c.style}>{c.label}</span>
                     ))}
                   </div>
-                  <div className={copyPrimaryStyle} onClick={() => { if(chosen) setCopy('done'); }}>{copyPrimary}</div>
+                  <div className={copyPrimaryStyle} onClick={() => { if (chosen) onCopyExecute(); }}>{copyPrimary}</div>
                   <div className="text-[11px] text-[var(--text-muted)] leading-[1.55] mt-[11px]">Copying replaces whatever is already there. A market the target league doesn't run, or runs on a different line, is skipped rather than guessed.</div>
                 </div>
               </div>

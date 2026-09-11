@@ -12,6 +12,7 @@ import {
 import { useStandings } from '@/hooks/api/usePoints';
 import { useParams, useRouter } from 'next/navigation';
 import { ordinal } from '@/lib/format';
+import type { LeagueAdminSharedProps } from '../../../components/leagues/league-admin-props';
 import { useAuth } from '@/context/auth-context';
 
 export default function LeagueAdminPage() {
@@ -438,7 +439,7 @@ export default function LeagueAdminPage() {
     createInviteAction: handleCreateInvite,
     copyInviteAction: handleCopyInvite,
     exportMembersAction: handleExportMembers
-  };
+  } satisfies LeagueAdminSharedProps;
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
