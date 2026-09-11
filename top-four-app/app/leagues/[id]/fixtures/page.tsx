@@ -2,10 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { LeagueFixturesMobile } from '../../../components/leagues/LeagueFixturesMobile';
-import { LeagueFixturesDesktop } from '../../../components/leagues/LeagueFixturesDesktop';
+import { LeagueFixturesScreen } from '../../../components/leagues/LeagueFixturesScreen';
 import { useLeagueFixturesInfinite, useLeague } from '@/hooks/api/useLeagues';
-import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d", MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a" };
 
@@ -18,7 +16,6 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     fetchNextPage, hasNextPage, isFetchingNextPage,
   } = useLeagueFixturesInfinite(params.id);
   const { data: league } = useLeague(params.id);
-  const { user } = useAuth();
   // The app is dark-only (see app/layout.tsx); this was dead state with no
   // real toggle anywhere.
   const theme = 'dark';
@@ -69,10 +66,6 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     }))
   }] : [];
 
-  const GRID = results
-    ? "grid grid-cols-[104px_minmax(0,1fr)_78px_minmax(0,330px)_68px_84px] gap-[16px] items-center"
-    : "grid grid-cols-[104px_minmax(0,1fr)_78px_minmax(0,330px)_88px_84px] gap-[16px] items-center";
-
   const src = results ? RESULTS : UPCOMING;
   
   // Mobile filtering logic
@@ -105,6 +98,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
   })).filter(g => g.rows.length > 0);
 
   // Desktop filtering logic
+  const desktopRowGridStyle = { display: 'grid' as const, gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center' as const };
   const groupsDesktop = src.map(g => ({
     label: g.group, note: g.note,
     rows: g.rows.filter(r => {
@@ -129,10 +123,10 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
         rightStyle: { textAlign: 'right', font: results ? "700 14px 'DM Sans',sans-serif" : "600 12px 'DM Sans',sans-serif", color: results ? (r.right === "0" || r.right === "—" ? "var(--text-muted)" : "var(--success-text)") : (r.urgent ? "var(--accent-text-strong)" : "var(--text-secondary)") },
         action: r.action,
         actionStyle: { textAlign: 'right', font: "700 10px 'DM Sans',sans-serif", letterSpacing: '.05em', color: 'var(--text-link)', cursor: 'pointer' },
-        rowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', background: r.urgent ? 'var(--accent-surface)' : 'transparent', boxShadow: r.urgent ? 'inset 3px 0 0 0 var(--color-brand)' : 'none', cursor: 'pointer' },
+        rowStyle: { ...desktopRowGridStyle, padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', background: r.urgent ? 'var(--accent-surface)' : 'transparent', boxShadow: r.urgent ? 'inset 3px 0 0 0 var(--color-brand)' : 'none', cursor: 'pointer' },
         onClick: () => router.push(`/predict/fixture/${r.id}?leagueId=${params.id}`)
       };
-    }).map(r => ({ ...r, rowStyle: { ...r.rowStyle, ...Object.fromEntries(GRID.split(' ').filter(c => c.startsWith('grid') || c.startsWith('gap') || c.startsWith('items')).map(c => [c, true])) } }))
+    })
   })).filter(g => g.rows.length > 0);
 
 
@@ -230,21 +224,15 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     )
   };
 
+  // Was hardcoded to a literal "2" regardless of how many fixtures actually
+  // need an answer -- Desktop's equivalent context-tab badge already used
+  // the real unansweredUpcomingCount, computed above.
   const tabs = [
     { label: "OVERVIEW", ic: "overview", on: false, b: "" },
-    { label: "FIXTURES", ic: "ball", on: true, b: showList && !results ? "2" : "" },
+    { label: "FIXTURES", ic: "ball", on: true, b: showList && !results && unansweredUpcomingCount > 0 ? String(unansweredUpcomingCount) : "" },
     { label: "TABLE", ic: "table", on: false, b: "" },
     { label: "MORE", ic: "more", on: false, b: "" }
   ];
-
-  const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map((it) => {
-    const label = it[0], id = it[1], badge = it[2];
-    return {
-      label, id, badge,
-      badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--nav-accent)', color: 'var(--nav-on-accent)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' },
-      style: { display: 'flex', alignItems: 'center', padding: '7px 13px', borderRadius: '9px', font: "600 12.5px 'DM Sans',sans-serif", cursor: 'pointer', background: id === "leagues" ? 'var(--nav-fill)' : 'transparent', opacity: id === "leagues" ? 1 : 0.66 } 
-    };
-  });
 
   const tabItem = (label: string, on: boolean, badge: string) => ({
     label, badge: badge || "",
@@ -252,53 +240,29 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--color-danger)', color: 'var(--color-on-brand)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' }
   });
 
-  const propsMobile = {
+  const props = {
     theme, params, st, isLoading, isEmpty, showList, results,
     headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
-    segments: segmentsMobile, filters: filtersMobile, groups: groupsMobile,
-    IconMap, tabs,
-    leagueName: league?.name,
-    memberCount: league?.memberCount
-  };
+    leagueName: league?.name, memberCount: league?.memberCount,
 
-  const propsDesktop = {
-    theme, rootNav, avatarInitials: (user?.displayName || '??').substring(0, 2).toUpperCase(), avatarName: user?.displayName || '', showContext: true,
+    // Mobile-specific
+    segmentsMobile, filtersMobile, groupsMobile, IconMap, tabs,
+
+    // Desktop-specific
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", true, unansweredUpcomingCount > 0 ? String(unansweredUpcomingCount) : ""), tabItem("Table", false, ""), tabItem("Questions", false, ""), tabItem("More", false, "")],
-    headSub, segments: segmentsDesktop, showFilters: showList && !results, filters: filtersDesktop,
-    isLoading, skeletons: [{ w: "260px" }, { w: "210px" }, { w: "280px" }, { w: "190px" }, { w: "250px" }, { w: "220px" }],
+    segmentsDesktop, showFilters: showList && !results, filtersDesktop,
+    skeletons: [{ w: "260px" }, { w: "210px" }, { w: "280px" }, { w: "190px" }, { w: "250px" }, { w: "220px" }],
     chipSkeletons: ["58px", "96px", "72px", "78px"].map(w => ({ w })),
-    skeletonRowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center' },
-    headRowStyle: { display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center', padding: '10px 4px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--surface-canvas)', borderBottom: '1px solid var(--surface-border-strong)' },
-    isEmpty, emptyTitle, emptyBody, showList, groups: groupsDesktop, loadMore, showLoadMore, loadMoreAction, footNote,
+    skeletonRowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', ...desktopRowGridStyle },
+    headRowStyle: { ...desktopRowGridStyle, padding: '10px 4px', position: 'sticky' as const, top: 0, zIndex: 1, background: 'var(--surface-canvas)', borderBottom: '1px solid var(--surface-border-strong)' },
+    groupsDesktop,
     footNoteStyle: { marginTop: '26px', paddingTop: '18px', borderTop: '1px solid var(--surface-border)', fontSize: '11.5px', lineHeight: 1.6, color: 'var(--text-muted)', maxWidth: '78ch' },
     colMid: results ? "Score" : "Kick-off", colNote: results ? "What landed" : "Your answers", colRight: results ? "Points" : "Locks in",
-    leagueName: league?.name,
-    memberCount: league?.memberCount,
-    params
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      
-
-
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <LeagueFixturesMobile {...propsMobile} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        {/* We need to use rowStyle mapping for desktop layout specifically to use grid */}
-        {(() => {
-          const deskGroups = groupsDesktop.map(g => ({
-            ...g,
-            rows: g.rows.map((r: any) => ({
-              ...r,
-              rowStyle: { ...r.rowStyle, display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center' }
-            }))
-          }));
-          return <LeagueFixturesDesktop {...propsDesktop} groups={deskGroups} />;
-        })()}
-      </div>
+      <LeagueFixturesScreen {...props} />
     </div>
   );
 }
