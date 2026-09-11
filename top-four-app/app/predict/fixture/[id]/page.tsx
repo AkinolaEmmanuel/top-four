@@ -537,6 +537,13 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       (m as any).search = editable ? "SEARCH ALL PLAYERS →" : (unanswered ? (settled ? "You did not answer this one" : "Not answered — no points from this one") : "");
       (m as any).searchStyle = `mt-[9px] font-heading font-bold text-[9.5px] tracking-[0.05em] ${editable ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)]'} ${(m as any).search ? '' : 'hidden'}`;
       (m as any).searchLabel = editable ? "Search all players →" : "";
+      // The picker serves both player markets, so it has to be told which one
+      // launched it — without `market` it always opened in goalscorer mode,
+      // even from the card row. Absent when the market is closed, which is what
+      // keeps both twins from rendering a link at all.
+      (m as any).searchHref = editable
+        ? `/predict/fixture/${fixtureId}/player?leagueId=${leagueId}&market=${d.key === 'player_card' ? 'card' : 'scorer'}`
+        : "";
     }
 
     if (d.key === "exact_score" || d.key === "score") {
@@ -571,12 +578,19 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     { code: hCode, color: CLUB[hCode] || '#666', name: `${hName} lineup`, set: !!answers.home_lineup, side: 'home' as const },
     { code: aCode, color: CLUB[aCode] || '#666', name: `${aName} lineup`, set: !!answers.away_lineup, side: 'away' as const }
   ].map((l, i, arr) => {
+    // Priced from the league's frozen ruleset like every other market, and
+    // scored from what the server actually awarded — a set lineup used to read
+    // a flat "+11" however many starters it got right.
+    const perStarter = marketPoints('lineup');
+    const lineupPrice = perStarter === null ? "" : `${pointsLabel(perStarter)} × 11`;
+    const earned = EARNED[`${l.side}_lineup`];
+
     let sub, right, rightTone;
-    if (settled) { sub = l.set ? "Lineup settled" : "Not set — no points from this one"; right = l.set ? "+11" : "0"; rightTone = l.set ? "var(--prediction-correct)" : "var(--text-muted)"; }
+    if (settled) { sub = l.set ? "Lineup settled" : "Not set — no points from this one"; right = l.set ? (earned ?? "0") : "0"; rightTone = l.set ? "var(--prediction-correct)" : "var(--text-muted)"; }
     else if (locked) { sub = l.set ? "11 named · locked" : "Not set — this one closed"; right = l.set ? "VIEW" : "MISSED"; rightTone = l.set ? "var(--text-muted)" : "var(--danger-text)"; }
     else { sub = l.set ? "11 named · you can still change it" : "Nothing named yet"; right = l.set ? "EDIT →" : "PICK →"; rightTone = l.set ? "var(--text-link)" : "var(--accent-text-strong)"; }
     return {
-      code: l.code, color: l.color, name: l.name, sub, crest: l.code, points: "1 pt × 11",
+      code: l.code, color: l.color, name: l.name, sub, crest: l.code, points: lineupPrice,
       subStyle: `text-[10.5px] mt-[3px] ${l.set ? 'text-[var(--text-muted)]' : (settled || locked) ? 'text-[var(--danger-text)]' : 'text-[var(--text-secondary)]'}`,
       right,
       rightStyle: `${settled ? 'font-heading font-bold text-[17px] tracking-[-0.4px] tf-num' : 'font-heading font-bold text-[9.5px] tracking-[0.05em]'} flex-none`,
