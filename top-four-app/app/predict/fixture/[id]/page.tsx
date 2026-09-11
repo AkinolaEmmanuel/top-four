@@ -565,7 +565,15 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       league: l.name,
       note: `Same match · all markets`,
       flag: "",
-      muted: l.lifecycleState === 'archived' || l.lifecycleState === 'cancelled'
+      // Verified live against the real endpoint: a cancelled or archived
+      // league is still attempted (and reported per-market, typically as
+      // "league_closed") since the copy targets every league you actively
+      // *belong to*, historical ones included -- the backend's own copy
+      // service explicitly copies into "closed historical leagues" too. A
+      // draft is the one case truly never attempted, since it has no real
+      // membership or published fixtures yet -- only that dims here, so the
+      // pre-copy count matches what the backend actually attempts.
+      muted: l.lifecycleState === 'draft'
     }));
   }, [leaguesData, leagueId]);
 
