@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { FixtureMobile } from '../../../components/predict/FixtureMobile';
 import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
-import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
+import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions, useMarketHistory } from '@/hooks/api/useFixturePrediction';
 import { useMyLeagues, useLeague } from '@/hooks/api/useLeagues';
 
 const CLUB: Record<string, string> = {
@@ -131,7 +131,43 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       }
     }
   }
+  // Fetched only for the currently-expanded market's history panel, not
+  // eagerly for every market -- `history` already tracks which key (if any)
+  // is open. Each market's edit *count* still needs to be known before the
+  // panel is ever opened (to show "EDITED n" at all), but that comes for
+  // free from the market's own version number below, with no extra request.
+  const marketHistoryQuery = useMarketHistory(leagueId, fixtureId, history);
+  const answerLabel = (marketType: string, value: any): string => {
+    switch (marketType) {
+      case 'match_result':
+        if (value?.outcome === 'home') return hName;
+        if (value?.outcome === 'away') return aName;
+        return 'Draw';
+      case 'exact_score':
+        return typeof value?.homeGoals === 'number' && typeof value?.awayGoals === 'number'
+          ? `${value.homeGoals}–${value.awayGoals}` : '—';
+      case 'both_teams_to_score':
+        return value?.bothScore ? 'Yes' : 'No';
+      case 'total_goals':
+        return value?.selection === 'over' ? `Over ${totalGoalsLine}` : `Under ${totalGoalsLine}`;
+      case 'anytime_goalscorer':
+      case 'player_card': {
+        const list = marketType === 'anytime_goalscorer' ? scorerPlayers : cardPlayers;
+        const found = (list as any[]).find((p) => p[0] === value?.playerId);
+        return found ? found[1] : 'Unknown player';
+      }
+      default:
+        return '—';
+    }
+  };
+  const formatWhen = (iso: string) => new Date(iso).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const EDITS: Record<string, string[][]> = {};
+  if (history && marketHistoryQuery.data?.marketType === history) {
+    EDITS[history] = marketHistoryQuery.data.revisions.map((r) => [
+      answerLabel(marketHistoryQuery.data!.marketType, r.answer.value),
+      formatWhen(r.answer.submittedAt),
+    ]);
+  }
   const totalPointsEarned = (results?.markets || []).reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0);
 
   const isLoading = dataLoading;
@@ -317,7 +353,6 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const markets = DEFS.filter((d) => d.enabled).map((d, i, arr) => {
     const mine = a[d.key];
     const out = OUTCOME[d.key];
-    const edits = EDITS[d.key] || [];
     const histOpen = history === d.key;
     const unanswered = mine === null || mine === undefined;
 
@@ -329,6 +364,13 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     // per-market data anyway. Each market's own submissionAllowed/state from
     // predictions.markets is the actual source of truth.
     const marketSlot = predictions?.markets.find(ms => ms.marketType === d.key);
+    // version 1 is the first submission, so version-1 is the edit count --
+    // known synchronously from data already on the page, with no need to
+    // fetch every market's full history just to show how many times it
+    // changed. The full list of past values (edits below) is fetched lazily,
+    // only once this specific market's panel is opened.
+    const editCount = Math.max(0, (marketSlot?.version || (unanswered ? 0 : 1)) - 1);
+    const edits = (histOpen ? EDITS[d.key] : undefined) || [];
     const marketLocked = !settled && (locked || marketSlot?.submissionAllowed === false);
     const editable = isReady && !marketLocked && !settled;
 
@@ -354,11 +396,11 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
       ptsStyle: `font-heading font-semibold text-[10px] text-[var(--text-muted)] flex-none ${settled ? 'hidden' : ''}`,
       blockStyle: `p-[15px_var(--gutter)] border-t border-[var(--surface-border)] ${i === arr.length - 1 ? 'border-b' : ''} ${(!settled && !marketLocked && unanswered) ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`,
       cardStyle: `border-top: 1px solid var(--surface-border); ${!editable ? 'opacity: .96;' : ''} ${editable && unanswered ? 'background: var(--accent-surface); box-shadow: inset 3px 0 0 0 var(--color-brand);' : ''}`,
-      historyLink: edits.length ? (histOpen ? "HIDE EDITS" : `EDITED ${edits.length}×`) : "Never changed",
-      historyStyle: edits.length ? `font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer` : "hidden",
+      historyLink: editCount ? (histOpen ? "HIDE EDITS" : `EDITED ${editCount}×`) : "Never changed",
+      historyStyle: editCount ? `font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer` : "hidden",
       toggleHistory: () => setHistory(histOpen ? null : d.key),
-      historyLinkStyle: `flex-none font-heading font-semibold text-[10.5px] ${edits.length ? 'color-[var(--text-link)] cursor-pointer' : 'text-[var(--text-muted)]'}`,
-      showHistory: histOpen && edits.length > 0,
+      historyLinkStyle: `flex-none font-heading font-semibold text-[10.5px] ${editCount ? 'color-[var(--text-link)] cursor-pointer' : 'text-[var(--text-muted)]'}`,
+      showHistory: histOpen && editCount > 0,
       histories: edits.map((e, j) => ({
         value: e[0], when: e[1],
         dotStyle: `w-[6px] h-[6px] rounded-full flex-none ${j === 0 ? 'bg-[var(--color-brand)]' : 'bg-[var(--surface-border-strong)]'}`,
@@ -370,7 +412,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
         valueStyle: { font: `${j === 0 ? '600' : '400'} 12px 'DM Sans', sans-serif`, color: j === 0 ? 'var(--text-primary)' : 'var(--text-muted)' }
       })),
       savedStyle: `font-heading font-bold text-[9.5px] tracking-[0.05em] p-[4px_8px] rounded-[6px] bg-[var(--color-success)] text-[var(--tf-white)] ${saved === d.key ? 'animate-[tfsaved_2.2s_ease_forwards]' : 'opacity-0 invisible'}`,
-      footStyle: `flex items-center min-h-[20px] mt-[10px] ${(!edits.length && saved !== d.key) ? 'hidden' : ''}`,
+      footStyle: `flex items-center min-h-[20px] mt-[10px] ${(!editCount && saved !== d.key) ? 'hidden' : ''}`,
       showChoices: editable && d.kind === "tiles",
       tiles: d.kind === "tiles" ? (d.options || []).map(([id, label, sub]) => {
         const isMine = mine === id, isWon = settled && ACTUAL[d.key] === id;

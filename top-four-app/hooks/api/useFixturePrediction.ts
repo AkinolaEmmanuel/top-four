@@ -4,6 +4,7 @@ import {
   fetchOwnPredictions,
   fetchSelectablePlayers,
   fetchFixtureResults,
+  fetchPredictionHistory,
   submitPrediction,
   submitLineupPrediction,
   copyFixturePredictions,
@@ -15,6 +16,16 @@ export function useFixtureResults(leagueId: string, fixtureId: string) {
     queryKey: ['fixture-results', leagueId, fixtureId],
     queryFn: () => fetchFixtureResults(leagueId, fixtureId),
     enabled: !!leagueId && !!fixtureId,
+  });
+}
+
+// marketType is null while no market's history panel is open -- fetched
+// lazily on expand rather than once per market up front.
+export function useMarketHistory(leagueId: string, fixtureId: string, marketType: string | null) {
+  return useQuery({
+    queryKey: ['fixture-predictions', leagueId, fixtureId, 'history', marketType],
+    queryFn: () => fetchPredictionHistory(leagueId, fixtureId, marketType as string),
+    enabled: !!leagueId && !!fixtureId && !!marketType,
   });
 }
 

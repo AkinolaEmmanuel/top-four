@@ -255,3 +255,24 @@ export async function fetchFixtureResults(leagueId: string, fixtureId: string): 
   const response = await apiFetch<{ data: FixtureResultsResponse }>(`/leagues/${leagueId}/fixtures/${fixtureId}/results`);
   return response.data;
 }
+
+export interface PredictionRevision {
+  revisionId: string;
+  version: number;
+  previousRevisionId: string | null;
+  answer: StoredStandardAnswer;
+}
+
+export interface PredictionHistoryResponse {
+  marketType: string;
+  predictionId: string | null;
+  revisions: PredictionRevision[];
+}
+
+// Standard markets only (match_result, exact_score, both_teams_to_score,
+// total_goals, anytime_goalscorer, player_card) -- lineup keeps its own
+// atomic submission model with no per-revision history endpoint.
+export async function fetchPredictionHistory(leagueId: string, fixtureId: string, marketType: string): Promise<PredictionHistoryResponse> {
+  const response = await apiFetch<{ data: PredictionHistoryResponse }>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/me/history?marketType=${encodeURIComponent(marketType)}`);
+  return response.data;
+}
