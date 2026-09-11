@@ -59,7 +59,9 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     });
   };
 
-  const [theme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
   const [screen] = useState<'rules' | 'settings' | 'participant'>('rules');
 
   const isLoading = leagueLoading;

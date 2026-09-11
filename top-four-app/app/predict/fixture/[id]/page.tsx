@@ -102,7 +102,10 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     { key: "away_lineup", name: `${aName} Starting XI`, pts: `${marketPoints("lineup") || "1 pt"} each`, enabled: marketEnabled("lineup"), kind: "lineup", side: "away", players: awayLineupRoster }
   ], [hName, aName, scorerPlayers, cardPlayers, homeLineupRoster, awayLineupRoster, rulesetMarkets, totalGoalsLine]);
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [history, setHistory] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);

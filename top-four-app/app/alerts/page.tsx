@@ -51,7 +51,11 @@ function timeAgo(iso: string): string {
 
 export default function AlertsPage() {
   const [view, setView] = useState<'list' | 'prefs'>('list');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx) -- there was never a way to
+  // reach 'light' from anywhere, so this was dead state pretending to be a
+  // live setting.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [filter, setFilter] = useState<string>('All');
 
   const { data: prefsData, isLoading: prefsLoading } = useNotificationPreferences();

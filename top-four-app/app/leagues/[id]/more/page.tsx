@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LeagueMoreMobile } from '../../../components/leagues/LeagueMoreMobile';
 import { LeagueMoreDesktop } from '../../../components/leagues/LeagueMoreDesktop';
@@ -17,7 +16,9 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
   const { data: dashboard } = useLeagueDashboard(params.id);
   const leaveMutation = useLeaveLeague(params.id);
 
-  const [theme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
 
   const role = league?.membership?.role || 'participant';
   const owner = role === "owner";

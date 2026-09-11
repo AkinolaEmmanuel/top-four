@@ -19,7 +19,9 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   const { data: standingsData, isLoading: standingsLoading } = useStandings(params.id, page + 1, pageSize);
   const { data: ownStanding } = useOwnStanding(params.id);
 
-  const [theme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [selfOpen, setSelfOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

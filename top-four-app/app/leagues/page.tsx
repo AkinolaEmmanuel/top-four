@@ -17,7 +17,10 @@ export default function LeaguesPage() {
   const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
 
   const [state, setState] = useState<'live' | 'capacity' | 'loading' | 'empty'>('live');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [filter, setFilter] = useState('All');
 
   const isLoading = leaguesLoading || state === "loading";

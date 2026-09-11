@@ -50,7 +50,13 @@ export default function LeagueSetupPage() {
   const publishLeague = usePublishLeague();
   const publishingRef = useRef(false); // double-tap guard
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere -- its initial value here didn't even match the
+  // 'dark' every other screen used, though it was harmless either way since
+  // the actual dark-mode CSS variables cascade from <html class="dark">
+  // regardless of this element's own class list.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [step, setStep] = useState('1');
   const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
   const [createdLeagueName, setCreatedLeagueName] = useState<string>('');

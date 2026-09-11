@@ -28,7 +28,10 @@ export default function MePage() {
   const { data: prefData } = useNotificationPreferences();
   const { mutate: updatePref } = useUpdateNotificationPreferences();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
 
   const prefs = {
     reminders: prefData?.roundReminder ?? true,
