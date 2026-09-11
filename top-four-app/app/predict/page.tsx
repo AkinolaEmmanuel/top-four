@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PredictMobile } from '../components/predict/PredictMobile';
 import { PredictDesktop } from '../components/predict/PredictDesktop';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
@@ -28,21 +28,65 @@ export default function PredictPage() {
   const isReady = !isLoading && !isClear && !isError;
   const noLeagues = leaguesData && leaguesData.items.length === 0;
 
+  // The task list's own deadlines are real, but "today/this week/later" and
+  // "urgent" were computed by comparing calendar dates with the client's own
+  // clock -- a deadline at 11:59pm today read as urgent while one at 12:01am
+  // tomorrow (a minute later) didn't, and every deadline more than one
+  // calendar day out fell into "week" since "later" was never actually
+  // reachable. Bucketing is now purely by real time remaining, corrected for
+  // client clock skew the same way the Home and Fixture Predict countdowns
+  // are: a fixed offset from the list's own serverTime, plus a ticking clock
+  // so "This week" -> "Later" transitions happen live instead of only on refetch.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+  const clockOffsetMs = useMemo(() => {
+    if (!tasksData?.serverTime) return 0;
+    return new Date(tasksData.serverTime).getTime() - Date.now();
+  }, [tasksData?.serverTime]);
+  const correctedNow = now + clockOffsetMs;
+
+  const leagueRulesetById = useMemo(() => {
+    const map = new Map<string, any>();
+    (leaguesData?.items || []).forEach(l => map.set(l.id, l.ruleset));
+    return map;
+  }, [leaguesData]);
+
   const liveTasks = useMemo(() => {
     if (!tasksData) return null;
     return tasksData.items.map(t => {
       const isQuestion = t.kind === 'custom_question';
       const deadline = new Date(isQuestion ? (t as any).question.deadlineAt : (t as any).nextDeadlineAt);
-      const isToday = new Date().toDateString() === deadline.toDateString();
+      const hoursRemaining = (deadline.getTime() - correctedNow) / 3_600_000;
+      const when = hoursRemaining < 24 ? "today" : hoursRemaining < 24 * 7 ? "week" : "later";
 
       const homeCode = isQuestion ? "" : (t as any).homeTeam?.displayName.substring(0,3).toUpperCase() || "TBA";
       const awayCode = isQuestion ? "" : (t as any).awayTeam?.displayName.substring(0,3).toUpperCase() || "TBA";
       const title = isQuestion ? (t as any).question.questionText : `${(t as any).homeTeam?.displayName} vs ${(t as any).awayTeam?.displayName}`;
       const missingCount = isQuestion ? 1 : (t as any).missingPredictions?.length || 0;
 
+      // The task-list endpoint only reports what's still missing, not a
+      // total enabled-market count -- fetching each fixture's own
+      // completeness (available via GET .../predictions/me) here would mean
+      // one extra request per task just to render a summary list. The
+      // league's ruleset (already loaded for this page) gives a real
+      // enabled-market count instead: every standard market counts once,
+      // lineup counts as two (home + away are answered independently).
+      let total = 1;
+      if (!isQuestion) {
+        const ruleset = leagueRulesetById.get(t.league.id);
+        const markets: any[] = ruleset?.markets || [];
+        const standardCount = markets.filter(m => m.enabled && m.marketType !== 'lineup').length;
+        const lineupEnabled = markets.some(m => m.marketType === 'lineup' && m.enabled);
+        total = standardCount + (lineupEnabled ? 2 : 0) || missingCount || 1;
+      }
+      const done = Math.max(0, total - missingCount);
+
       return {
-        when: isToday ? "today" : "week", // simplified logic
-        group: isToday ? "Locking today" : "This week",
+        when,
+        group: when === "today" ? "Locking today" : when === "week" ? "This week" : "Later",
         time: `${deadline.getHours()}:${deadline.getMinutes().toString().padStart(2, '0')}`,
         deadlineAt: deadline,
         id: isQuestion ? (t as any).question.id : (t as any).fixtureId || (t as any).leagueFixtureId,
@@ -52,16 +96,16 @@ export default function PredictPage() {
         away: awayCode,
         title,
         league: t.league.name,
-        urgent: isToday,
+        urgent: when === "today",
         missing: `${missingCount} missing`,
-        done: 0, // Need prediction progress from API
-        total: missingCount,
+        done,
+        total,
         href: isQuestion
           ? `/leagues/${t.league.id}/questions`
           : `/predict/fixture/${(t as any).leagueFixtureId || (t as any).fixtureId}?leagueId=${t.league.id}`
       };
     });
-  }, [tasksData]);
+  }, [tasksData, leagueRulesetById, correctedNow]);
 
   const tasksToUse = liveTasks || [];
 
@@ -132,13 +176,13 @@ export default function PredictPage() {
     const leagueWord = `across ${leagueCount} league${leagueCount === 1 ? '' : 's'}`;
     const soonest = tasksToUse.reduce((min: Date | null, t) => (!min || t.deadlineAt < min ? t.deadlineAt : min), null as Date | null);
     if (!soonest) return leagueWord;
-    const ms = soonest.getTime() - Date.now();
+    const ms = soonest.getTime() - correctedNow;
     if (ms <= 0) return `${leagueWord} · next locks any moment`;
     const totalMins = Math.round(ms / 60000);
     const h = Math.floor(totalMins / 60), m = totalMins % 60;
     const dur = h > 0 ? `${h}h ${m}m` : `${m}m`;
     return `${leagueWord} · next locks in ${dur}`;
-  }, [isReady, tasksToUse]);
+  }, [isReady, tasksToUse, correctedNow]);
 
   const uniqueLeagues = useMemo(() => {
     if (!leaguesData) return [];
