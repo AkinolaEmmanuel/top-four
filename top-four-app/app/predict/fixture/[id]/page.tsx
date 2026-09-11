@@ -597,19 +597,23 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     toggle: () => {}
   }));
 
+  // Reuses answerLabel (built for the edit-history panel above) so a market
+  // reads the same way here as everywhere else on this page -- this chip
+  // list used to fall through to the raw internal value ("home", "yes",
+  // "over") for match_result/both_teams_to_score/total_goals instead of a
+  // real label, since it only special-cased scores and player picks.
   const carryLabels = MARKET_KEYS.map(k => {
     const val = a[k];
-    if (!val) return null;
+    if (val === null || val === undefined) return null;
     if (k === "exact_score" || k === "score") {
-      return Array.isArray(val) ? `${val[0]}–${val[1]}` : `${val.homeGoals}–${val.awayGoals}`;
+      const [homeGoals, awayGoals] = Array.isArray(val) ? val : [val.homeGoals, val.awayGoals];
+      return answerLabel('exact_score', { homeGoals, awayGoals });
     }
-    if (k === "anytime_goalscorer" || k === "player_card") {
-      const roster = k === "anytime_goalscorer" ? scorerPlayers : cardPlayers;
-      const player = (roster as any[]).find(([id]) => id === val);
-      return player ? player[1] : null;
-    }
-    if (typeof val === 'string') return val;
-    return k;
+    if (k === "match_result") return answerLabel('match_result', { outcome: val });
+    if (k === "both_teams_to_score") return answerLabel('both_teams_to_score', { bothScore: val === 'yes' });
+    if (k === "total_goals") return answerLabel('total_goals', { selection: val });
+    if (k === "anytime_goalscorer" || k === "player_card") return answerLabel(k, { playerId: val });
+    return null;
   }).filter(Boolean);
 
   const carrying = carryLabels.map(l => ({
