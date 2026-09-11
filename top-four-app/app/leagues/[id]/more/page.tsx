@@ -1,14 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LeagueMoreMobile } from '../../../components/leagues/LeagueMoreMobile';
-import { LeagueMoreDesktop } from '../../../components/leagues/LeagueMoreDesktop';
+import { LeagueMoreScreen } from '../../../components/leagues/LeagueMoreScreen';
 import { useLeague, useJoinRequests, useLeaveLeague } from '@/hooks/api/useLeagues';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
-import { useAuth } from '@/context/auth-context';
 
 export default function LeagueMorePage({ params }: { params: { id: string } }) {
-  const { user } = useAuth();
   const router = useRouter();
   const { data: league } = useLeague(params.id);
   const { data: requestsData } = useJoinRequests(params.id);
@@ -151,50 +148,30 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
     { label: "MORE", ic: "more", on: true, b: "" }
   ];
 
-  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map((it) => {
-    const label = it[0], id = it[1], badge = it[2];
-    return {
-      label, id, badge,
-      badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--nav-accent)', color: 'var(--nav-on-accent)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' },
-      style: { display: 'flex', alignItems: 'center', padding: '7px 13px', borderRadius: '9px', font: "600 12.5px 'DM Sans',sans-serif", cursor: 'pointer', background: id === "leagues" ? 'var(--nav-fill)' : 'transparent', opacity: id === "leagues" ? 1 : 0.66 } 
-    };
-  });
-
   const tabItem = (label: string, on: boolean, badge: string) => ({
     label, badge: badge || "",
     style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' },
     badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--color-danger)', color: 'var(--color-on-brand)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' }
   });
 
-  const propsMobile = {
-    theme, params, owner, admin, runs, done,
-    groups: groupsMobile, roleLabel, lifecycleLabel, footNote, IconMap, tabs,
-    leagueName
-  };
+  const props = {
+    theme, params, done, leagueName, roleLabel, lifecycleLabel, footNote,
 
-  const propsDesktop = {
-    theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "", showContext: true,
+    // Mobile-specific
+    groupsMobile, IconMap, tabs,
+
+    // Desktop-specific
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, ""), tabItem("Table", false, ""), tabItem("Questions", false, openQuestionsCount > 0 ? String(openQuestionsCount) : ""), tabItem("More", true, "")],
     headSub: runs ? "Everything the tabs do not carry, plus what you can change" : "Everything the tabs do not carry",
-    roleLabel,
     roleChipStyle: { font: "700 9.5px 'DM Sans',sans-serif", letterSpacing: '.09em', padding: '5px 10px', borderRadius: '6px', flex: 'none', background: 'var(--surface-subtle)', color: 'var(--text-secondary)' },
-    lifecycleLabel,
     lifecycleStyle: { font: "600 9.5px 'DM Sans',sans-serif", letterSpacing: '.07em', padding: '3px 9px', borderRadius: '999px', background: done ? 'var(--surface-subtle)' : 'var(--accent-surface)', color: done ? 'var(--text-muted)' : 'var(--accent-text-strong)' },
     mainGroups: groupsDesktop, endLabel: owner ? "ENDING IT" : "LEAVING", endRows: (owner ? ENDING_OWNER : ENDING_MEMBER).map(mkDesktop),
-    footNote,
-    leagueName,
     memberCount,
-    params
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <LeagueMoreMobile {...propsMobile} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <LeagueMoreDesktop {...propsDesktop} />
-      </div>
+      <LeagueMoreScreen {...props} />
     </div>
   );
 }
