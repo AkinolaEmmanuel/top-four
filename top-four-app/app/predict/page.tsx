@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { PredictMobile } from '../components/predict/PredictMobile';
-import { PredictDesktop } from '../components/predict/PredictDesktop';
+import { PredictScreen } from '../components/predict/PredictScreen';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
 
@@ -15,7 +14,7 @@ const GROUPS = [
 ];
 
 export default function PredictPage() {
-  const { data: tasksData, isLoading: tasksLoading, isError: tasksError } = usePredictionTasks();
+  const { data: tasksData, isLoading: tasksLoading, isError: tasksError, refetch: refetchTasks } = usePredictionTasks();
   const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
 
   // The app is dark-only (see app/layout.tsx); this was dead state with no
@@ -197,18 +196,25 @@ export default function PredictPage() {
     style: { padding: '8px 13px', borderRadius: '999px', cursor: 'pointer', font: "600 11.5px 'DM Sans', sans-serif", whiteSpace: 'nowrap' as any, background: filter === f ? 'var(--color-brand)' : 'transparent', color: filter === f ? 'var(--color-on-brand)' : 'var(--text-secondary)', border: filter === f ? '1px solid transparent' : '1px solid var(--surface-border-strong)' }
   }));
 
+  // Each terminal state's action used to point at the same `retry` function
+  // regardless of what its own label promised -- "JOIN A LEAGUE" and "VIEW
+  // YOUR LEAGUES" both just reset an unrelated dev-toggle variable with no
+  // effect on anything real, so clicking either did nothing at all. Only
+  // "RETRY" actually matched retry semantics. Give each state the action it
+  // actually describes: the two non-error states navigate, the error state
+  // really retries the failed query.
   const TERM = {
     noLeagues: [
       <svg key="0" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M12 3 21 8.5v7L12 21l-9-5.5v-7L12 3Z" /></svg>,
-      "var(--text-primary)", "No predictions to make", "Join a league first to start predicting.", "JOIN A LEAGUE"
+      "var(--text-primary)", "No predictions to make", "Join a league first to start predicting.", "JOIN A LEAGUE", "/leagues/join"
     ],
     empty: [
       <svg key="1" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><circle cx="12" cy="12" r="8.5" /><path d="m8.4 12.3 2.6 2.6 4.6-5.2" /></svg>,
-      "var(--success-text)", "Nothing needs you", "Every market in every league is answered. We'll badge this tab the moment something opens.", "VIEW YOUR LEAGUES"
+      "var(--success-text)", "Nothing needs you", "Every market in every league is answered. We'll badge this tab the moment something opens.", "VIEW YOUR LEAGUES", "/leagues"
     ],
     error: [
       <svg key="2" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M12 3 2.8 20h18.4L12 3Z" /><path d="M12 9v4.5M12 17h.01" /></svg>,
-      "var(--warn-text)", "Your to-do list didn't load", "Check your connection and try again. Deadlines run on our clock — nothing locked while you couldn't see it.", "RETRY"
+      "var(--warn-text)", "Your to-do list didn't load", "Check your connection and try again. Deadlines run on our clock — nothing locked while you couldn't see it.", "RETRY", null
     ]
   }[isError ? "error" : noLeagues ? "noLeagues" : "empty"];
 
@@ -237,20 +243,14 @@ export default function PredictPage() {
     desktopGroups, leagueFilters,
     skeletons: [{ w: "62%" }, { w: "48%" }, { w: "71%" }, { w: "55%" }, { w: "66%" }, { w: "44%" }],
 
-    termIcon: TERM[0], termIconColor: TERM[1], termTitle: TERM[2], termBody: TERM[3], termAction: TERM[4],
+    termIcon: TERM[0], termIconColor: TERM[1], termTitle: TERM[2], termBody: TERM[3], termAction: TERM[4], termActionHref: TERM[5],
     termActionStyle: { marginTop: '24px', padding: '0 22px', height: '48px', borderRadius: '13px', border: '1px solid var(--surface-border-strong)', background: 'var(--surface-card)', display: 'grid', placeItems: 'center', font: "700 12.5px 'DM Sans', sans-serif", cursor: 'pointer' },
-    retry: () => setState('live')
+    retry: () => { setState('live'); refetchTasks(); }
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <PredictMobile {...props} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <PredictDesktop {...props} />
-      </div>
+      <PredictScreen {...props} />
     </div>
   );
 }
