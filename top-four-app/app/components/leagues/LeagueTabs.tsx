@@ -13,7 +13,8 @@ import type { ReactElement } from 'react';
  * league screen, cannot be missing from one of them.
  */
 
-type TabId = 'overview' | 'fixtures' | 'table' | 'questions' | 'more';
+/** Four tabs, as the design's league bar has. Questions is reached via More. */
+type TabId = 'overview' | 'fixtures' | 'table' | 'more';
 
 const ICONS: Record<TabId, ReactElement> = {
   overview: (
@@ -25,9 +26,6 @@ const ICONS: Record<TabId, ReactElement> = {
   table: (
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 19V11M12 19V5M19 19V8" /></svg>
   ),
-  questions: (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M9.8 9.4a2.3 2.3 0 1 1 3 2.2v1.2M12 16.2h.01" /></svg>
-  ),
   more: (
     <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" strokeWidth="0"><path d="M5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>
   ),
@@ -37,22 +35,19 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: 'overview', label: 'Overview' },
   { id: 'fixtures', label: 'Fixtures' },
   { id: 'table', label: 'Table' },
-  { id: 'questions', label: 'Questions' },
   { id: 'more', label: 'More' },
 ];
 
 const hrefFor = (leagueId: string, id: TabId) =>
   id === 'overview' ? `/leagues/${leagueId}` : `/leagues/${leagueId}/${id}`;
 
-export function LeagueTabs({ leagueId, active, badge, questionBadge }: {
+export function LeagueTabs({ leagueId, active, badge }: {
   leagueId: string;
   active: TabId;
   /** Unanswered markets, shown on Fixtures. Empty string hides it. */
   badge?: string;
-  /** Open questions, shown on Questions. Empty string hides it. */
-  questionBadge?: string;
 }) {
-  const badgeFor = (id: TabId) => (id === 'fixtures' ? badge : id === 'questions' ? questionBadge : '');
+  const badgeFor = (id: TabId) => (id === 'fixtures' ? badge : '');
 
   return (
     <>
@@ -80,7 +75,7 @@ export function LeagueTabs({ leagueId, active, badge, questionBadge }: {
       </nav>
 
       {/* Phones: the bottom bar, which replaces the root nav inside a league. */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-card)] border-t border-[var(--surface-border)] grid grid-cols-5 pt-[7px] px-[4px] pb-[calc(8px+env(safe-area-inset-bottom))] min-h-[66px]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-card)] border-t border-[var(--surface-border)] grid grid-cols-4 pt-[7px] px-[4px] pb-[calc(8px+env(safe-area-inset-bottom))] min-h-[66px]">
         {TABS.map(tab => {
           const on = tab.id === active;
           const count = badgeFor(tab.id);

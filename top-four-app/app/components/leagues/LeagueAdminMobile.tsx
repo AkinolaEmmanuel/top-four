@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LeagueTabs } from './LeagueTabs';
 import type { LeagueAdminMobileProps } from './league-admin-props';
 
 export function LeagueAdminMobile({
@@ -58,7 +59,7 @@ export function LeagueAdminMobile({
         </div>
       </header>
 
-      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)] pb-[86px]">
 
         {loading && (
           <div>
@@ -304,6 +305,9 @@ export function LeagueAdminMobile({
           <span>{toast}</span>
         </div>
       )}
+      {/* The league bar. This screen had none at all, so tapping a tab
+          from here left no way back into the league. */}
+      <div className="md:hidden"><LeagueTabs leagueId={params.id} active="more" /></div>
     </div>
   );
 }

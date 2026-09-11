@@ -1,4 +1,4 @@
-import type { CSSProperties, Dispatch, ReactElement, SetStateAction } from 'react';
+import type { CSSProperties, Dispatch, SetStateAction } from 'react';
 import type { QuestionPreset } from '@/lib/constants/question-presets';
 
 /**
@@ -109,8 +109,6 @@ export interface LeagueQuestionsMobileProps extends LeagueQuestionsSharedProps {
   view: QuestionsView;
   admin: boolean;
   groups: QuestionGroup[];
-  IconMap: Record<string, () => ReactElement>;
-  tabs: Array<{ label: string; ic: string; on: boolean }>;
 }
 
 export interface LeagueQuestionsDesktopProps extends LeagueQuestionsSharedProps {

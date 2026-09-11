@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LeagueTabs } from './LeagueTabs';
 import type { LeagueRulesMobileProps } from './league-rules-props';
 
 export function LeagueRulesMobile({
@@ -41,7 +42,7 @@ export function LeagueRulesMobile({
         )}
       </header>
 
-      <main className="tf-scroll flex-1 overflow-auto pb-[26px]">
+      <main className="tf-scroll flex-1 overflow-auto pb-[26px] pb-[86px]">
         {isLoading && (
           <div className="p-[22px_var(--gutter)] flex flex-col gap-[26px]">
             {[{ w: "72%" }, { w: "58%" }, { w: "66%" }, { w: "49%" }, { w: "70%" }].map((s, i) => (
@@ -114,6 +115,9 @@ export function LeagueRulesMobile({
           </div>
         )}
       </main>
+      {/* The league bar. This screen had none at all, so tapping a tab
+          from here left no way back into the league. */}
+      <div className="md:hidden"><LeagueTabs leagueId={params.id} active="more" /></div>
     </div>
   );
 }

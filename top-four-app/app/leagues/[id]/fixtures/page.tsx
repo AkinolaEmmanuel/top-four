@@ -197,39 +197,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     ? "A voided market scores nothing for everyone, not only for you. Provisional results become final once review closes."
     : "Lineups lock two hours before kick-off, everything else at the whistle. A fixture can be part-locked, which is why a row can be open and closed at once.";
 
-  const IconMap: Record<string, any> = {
-    overview: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z" />
-        <path d="M9.5 20v-6h5v6" />
-      </svg>
-    ),
-    ball: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <circle cx="12" cy="12" r="8" />
-        <path d="m12 8 3.4 2.5-1.3 4h-4.2l-1.3-4L12 8Z" />
-      </svg>
-    ),
-    table: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <path d="M5 19V11M12 19V5M19 19V8" />
-      </svg>
-    ),
-    more: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" strokeWidth="0" style={{ display: 'block' }}>
-        <path d="M5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
-      </svg>
-    )
-  };
-
-  const tabs = [
-    { label: "OVERVIEW", ic: "overview", on: false, b: "" },
-    { label: "FIXTURES", ic: "ball", on: true, b: showList && !results ? "2" : "" },
-    { label: "TABLE", ic: "table", on: false, b: "" },
-    { label: "MORE", ic: "more", on: false, b: "" }
-  ];
-
-  const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map((it) => {
+      const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map((it) => {
     const label = it[0], id = it[1], badge = it[2];
     return {
       label, id, badge,
@@ -248,7 +216,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     theme, params, st, isLoading, isEmpty, showList, results,
     headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
     segments: segmentsMobile, filters: filtersMobile, groups: groupsMobile,
-    IconMap, tabs
+
   };
 
   const propsDesktop = {

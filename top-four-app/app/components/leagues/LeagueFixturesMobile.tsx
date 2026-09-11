@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LeagueTabs } from './LeagueTabs';
 import type { LeagueFixturesMobileProps } from './league-fixtures-props';
 import Image from 'next/image';
 
@@ -18,8 +19,7 @@ function Crest({ logo, code, color }: { logo?: string | null; code: string; colo
 export function LeagueFixturesMobile({
   theme, params, st, isLoading, isEmpty, showList, results,
   headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
-  segments, filters, groups,
-  IconMap, tabs
+  segments, filters, groups
 }: LeagueFixturesMobileProps) {
 
   return (
@@ -49,7 +49,7 @@ export function LeagueFixturesMobile({
         </div>
       )}
 
-      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)] pb-[86px]">
 
         {isLoading && (
           <div>
@@ -112,23 +112,8 @@ export function LeagueFixturesMobile({
 
       </main>
 
-      <nav className="flex-none bg-[var(--surface-card)] border-t border-[var(--surface-border)] grid grid-cols-4 p-[7px_7px_8px] min-h-[66px]">
-        {tabs.map((t: any, i: number) => {
-          const RenderIcon = IconMap[t.ic];
-          const route = t.label === 'OVERVIEW' ? `/leagues/${params.id}` : `/leagues/${params.id}/${t.label.toLowerCase()}`;
-          return (
-            <Link href={route} key={i} className="relative flex flex-col items-center justify-center font-heading font-semibold text-[9px] leading-[1]" style={{ color: t.on ? 'var(--color-brand)' : 'var(--text-muted)' }}>
-              <div className="w-[19px] h-[19px] grid place-items-center"><RenderIcon /></div>
-              <span className="mt-[6px] tracking-[0.01em]">{t.label}</span>
-              {t.b && (
-                <span className="absolute top-[2px] left-[calc(50%+6px)] min-w-[15px] h-[15px] px-[3px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[8px]">
-                  {t.b}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* The shared league bar — it used to be copy-pasted here. */}
+      <div className="md:hidden"><LeagueTabs leagueId={params.id} active="fixtures" /></div>
     </div>
   );
 }

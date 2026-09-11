@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { LeagueTabs } from './LeagueTabs';
 import type { LeagueQuestionsMobileProps } from './league-questions-props';
 
 export function LeagueQuestionsMobile({
   theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
-  groups, IconMap, tabs, onList, onEmpty, onCreate, onResolve, standingsHref,
+  groups, onList, onEmpty, onCreate, onResolve, standingsHref,
   qText, setQText, types, TYPE, qType, optionsList, setQOptions,
   qPoints, pointOptions, qCriteria, setQCriteria, canPublish, publishAction,
   qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel, publishLabel: publishActionLabel, publishNote: publishActionNote,
@@ -42,7 +43,7 @@ export function LeagueQuestionsMobile({
         )}
       </header>
 
-      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)] pb-[86px]">
         {onList && standingsHref && (
           <div className="p-[14px_var(--gutter)_0]">
             <Link
@@ -342,18 +343,8 @@ export function LeagueQuestionsMobile({
 
       </main>
 
-      <nav className="flex-none bg-[var(--surface-card)] border-t border-[var(--surface-border)] grid grid-cols-4 p-[7px_7px_8px] min-h-[66px]">
-        {tabs.map((t: any, i: number) => {
-          const RenderIcon = IconMap[t.ic];
-          const route = t.label === 'OVERVIEW' ? `/leagues/${params.id}` : `/leagues/${params.id}/${t.label.toLowerCase()}`;
-          return (
-            <Link href={route} key={i} className="flex flex-col items-center justify-center font-heading font-semibold text-[9px] leading-[1]" style={{ color: t.on ? 'var(--color-brand)' : 'var(--text-muted)' }}>
-              <div className="w-[19px] h-[19px] grid place-items-center"><RenderIcon /></div>
-              <span className="mt-[6px] tracking-[0.01em]">{t.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* The shared league bar — it used to be copy-pasted here. */}
+      <div className="md:hidden"><LeagueTabs leagueId={params.id} active="more" /></div>
 
       {SHEET && (
         <div className="absolute inset-0 z-[5] bg-[var(--scrim)] flex items-end p-[14px]">

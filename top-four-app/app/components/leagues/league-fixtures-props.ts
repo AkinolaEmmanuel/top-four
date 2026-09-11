@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { CSSProperties } from 'react';
 
 /**
  * The contract between the league fixtures page and its two twins.
@@ -56,8 +56,6 @@ export interface LeagueFixturesMobileProps extends LeagueFixturesSharedProps {
   st: string;
   /** True when the screen is showing settled results rather than upcoming. */
   results: boolean;
-  IconMap: Record<string, () => ReactElement>;
-  tabs: Array<{ label: string; ic: string; on: boolean }>;
 }
 
 export interface LeagueFixturesDesktopProps extends LeagueFixturesSharedProps {

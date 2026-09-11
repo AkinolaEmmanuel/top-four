@@ -630,20 +630,7 @@ export default function QuestionsPage() {
     ? [`Settle "${settleQuestionName}"?`, "Members are notified either way.", [["Members gaining points", String(match)], ["Members gaining nothing", String(Math.max(0, totalDisclosed - match))], ["Points each", String(questionPoints)]], "Settle now", false]
     : null;
 
-  const IconMap: Record<string, any> = {
-    overview: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z" /><path d="M9.5 20v-6h5v6" /></svg>,
-    ball: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><circle cx="12" cy="12" r="8" /><path d="m12 8 3.4 2.5-1.3 4h-4.2l-1.3-4L12 8Z" /></svg>,
-    table: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M5 19V11M12 19V5M19 19V8" /></svg>,
-    more: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" strokeWidth="0" style={{ display: 'block' }}><path d="M5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" /></svg>
-  };
-
-  const tabs = [
-    { label: "OVERVIEW", ic: "overview", on: false },
-    { label: "FIXTURES", ic: "ball", on: false },
-    { label: "TABLE", ic: "table", on: false },
-    { label: "MORE", ic: "more", on: true }
-  ];
-  
+      
   const questionBadge = (onEmpty || allIn) ? "" : String(owing);
   const stakeLabel = allIn ? "all answered" : (owing === 1 ? "question unanswered" : "questions unanswered");
 
@@ -664,7 +651,7 @@ export default function QuestionsPage() {
   
   const propsMobile = {
     theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
-    groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve, standingsHref,
+    groups: groupsMobile,  onList, onEmpty, onCreate, onResolve, standingsHref,
     qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
     qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, publishAction: handlePublish,
     qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,

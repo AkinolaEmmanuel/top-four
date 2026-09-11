@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { LeagueTabs } from './LeagueTabs';
 import type { LeagueTableMobileProps } from './league-table-props';
 
 export function LeagueTableMobile({
@@ -52,7 +53,7 @@ export function LeagueTableMobile({
         <span className="tf-kicker flex-none text-[var(--text-muted)]">PTS</span>
       </div>
 
-      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]" ref={listRef}>
+      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)] pb-[86px]" ref={listRef}>
         {isLoading && (
           <div>
             {[{ w: "62%" }, { w: "48%" }, { w: "71%" }, { w: "55%" }, { w: "66%" }, { w: "44%" }, { w: "58%" }, { w: "69%" }, { w: "51%" }].map((s, i) => (
@@ -164,6 +165,9 @@ export function LeagueTableMobile({
         <span className="tf-num text-[11px] text-[var(--text-muted)]">{range[0]}–{range[1]} of {totalMembers}</span>
         <div onClick={nextPage} className={nextStyle}>Next ›</div>
       </div>
+      {/* The league bar. This screen had none at all, so tapping a tab
+          from here left no way back into the league. */}
+      <div className="md:hidden"><LeagueTabs leagueId={params.id} active="table" /></div>
     </div>
   );
 }

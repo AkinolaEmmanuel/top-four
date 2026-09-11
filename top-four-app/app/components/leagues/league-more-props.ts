@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { CSSProperties } from 'react';
 
 /**
  * The contract between the league "More" page and its two twins.
@@ -48,8 +48,6 @@ export interface LeagueMoreMobileProps extends LeagueMoreSharedProps {
   runs: boolean;
   done: boolean;
   groups: MoreGroup[];
-  IconMap: Record<string, () => ReactElement>;
-  tabs: Array<{ label: string; ic: string; on: boolean }>;
 }
 
 export interface LeagueMoreDesktopProps extends LeagueMoreSharedProps {

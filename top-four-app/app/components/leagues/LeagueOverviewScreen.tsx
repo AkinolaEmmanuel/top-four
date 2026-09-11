@@ -86,7 +86,7 @@ export function LeagueOverviewScreen({
         </div>
       </header>
 
-      <LeagueTabs leagueId={leagueId} active="overview" badge={unansweredBadge} questionBadge={openQuestions > 0 ? String(openQuestions) : ''} />
+      <LeagueTabs leagueId={leagueId} active="overview" badge={unansweredBadge} />
 
       <main className="tf-scroll flex-1 overflow-auto">
 
