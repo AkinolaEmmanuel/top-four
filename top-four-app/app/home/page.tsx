@@ -5,7 +5,6 @@ import { HomeMobile } from '../components/home/HomeMobile';
 import { HomeDesktop } from '../components/home/HomeDesktop';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
-import { useTeamCrestMap } from '@/hooks/api/useCatalogue';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
 import { useAuth } from '@/context/auth-context';
 
@@ -20,10 +19,6 @@ export default function Home() {
   const { data: tasksData, isLoading: tasksLoading } = usePredictionTasks();
   const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
   const { data: unreadCount = 0 } = useUnreadNotifications(!!user);
-  const fixtureCompetitionIds = (tasksData?.items || [])
-    .filter((t: any) => t.kind === 'fixture')
-    .map((t: any) => t.competition?.id);
-  const { data: crestMap = {} } = useTeamCrestMap(fixtureCompetitionIds);
 
   // The app is dark-only (see app/layout.tsx); this was dead state with no
   // real toggle anywhere.
@@ -54,10 +49,8 @@ export default function Home() {
   // Build queue from API tasks only
   const queue = caught ? [] : (tasksData?.items.map((t: any) => {
     if (t.kind === 'fixture') {
-      const homeTeam = crestMap[t.homeTeam.id];
-      const awayTeam = crestMap[t.awayTeam.id];
-      const homeCode = homeTeam?.code || t.homeTeam.displayName.substring(0, 3).toUpperCase();
-      const awayCode = awayTeam?.code || t.awayTeam.displayName.substring(0, 3).toUpperCase();
+      const homeCode = t.homeTeam.code || t.homeTeam.displayName.substring(0, 3).toUpperCase();
+      const awayCode = t.awayTeam.code || t.awayTeam.displayName.substring(0, 3).toUpperCase();
       const missingCount = t.missingPredictions?.length || 0;
       return {
         match: `${t.homeTeam.displayName} v ${t.awayTeam.displayName}`,
@@ -65,8 +58,8 @@ export default function Home() {
         meta: t.league.name,
         time: new Date(t.nextDeadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         missing: missingCount > 0 ? `${missingCount} open` : 'Open',
-        homeCode, homeColor: CLUB[homeCode] || '#000', homeLogo: homeTeam?.logoUrl || null,
-        awayCode, awayColor: CLUB[awayCode] || '#000', awayLogo: awayTeam?.logoUrl || null,
+        homeCode, homeColor: CLUB[homeCode] || '#000', homeLogo: t.homeTeam.logoUrl || null,
+        awayCode, awayColor: CLUB[awayCode] || '#000', awayLogo: t.awayTeam.logoUrl || null,
         href: `/predict/fixture/${t.leagueFixtureId}?leagueId=${t.league.id}`
       };
     }
@@ -97,16 +90,14 @@ export default function Home() {
   const isFixture = nextTask?.kind === 'fixture';
   const isQuestion = nextTask?.kind === 'custom_question';
 
-  const heroHomeTeam = isFixture ? crestMap[nextTask.homeTeam.id] : null;
-  const heroAwayTeam = isFixture ? crestMap[nextTask.awayTeam.id] : null;
-  const hCode = isQuestion ? 'Q' : (isFixture ? (heroHomeTeam?.code || nextTask.homeTeam.displayName.substring(0, 3).toUpperCase()) : "TBD");
-  const aCode = isQuestion ? 'A' : (isFixture ? (heroAwayTeam?.code || nextTask.awayTeam.displayName.substring(0, 3).toUpperCase()) : "TBD");
+  const hCode = isQuestion ? 'Q' : (isFixture ? (nextTask.homeTeam.code || nextTask.homeTeam.displayName.substring(0, 3).toUpperCase()) : "TBD");
+  const aCode = isQuestion ? 'A' : (isFixture ? (nextTask.awayTeam.code || nextTask.awayTeam.displayName.substring(0, 3).toUpperCase()) : "TBD");
   const hName = isQuestion ? 'Question' : (isFixture ? nextTask.homeTeam.displayName : "To Be Decided");
   const aName = isQuestion ? 'Answer' : (isFixture ? nextTask.awayTeam.displayName : "To Be Decided");
   const hColor = isQuestion ? '#333' : (CLUB[hCode] || '#666');
   const aColor = isQuestion ? '#555' : (CLUB[aCode] || '#666');
-  const hLogo = isFixture ? (heroHomeTeam?.logoUrl || null) : null;
-  const aLogo = isFixture ? (heroAwayTeam?.logoUrl || null) : null;
+  const hLogo = isFixture ? (nextTask.homeTeam.logoUrl || null) : null;
+  const aLogo = isFixture ? (nextTask.awayTeam.logoUrl || null) : null;
   const hLeague = nextTask ? nextTask.league.name.toUpperCase() : "YOUR LEAGUES";
 
   const nextDeadlineMs = nextTask
