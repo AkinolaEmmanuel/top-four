@@ -1,209 +1,78 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { HomeScreen } from '../components/home/HomeScreen';
+import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import { ApiError } from '@/lib/api/fetcher';
+import { competitionIdsIn, toHomeLeague, toQueueEntry } from '@/lib/home/home-data';
+import type { Api } from '@/lib/api/types';
+import type { LeaguesPage } from '@/lib/api/leagues';
+import type { CatalogueSeason, CatalogueTeam } from '@/lib/api/catalogue';
 
-import { useState, useEffect, useMemo } from 'react';
-import { HomeMobile } from '../components/home/HomeMobile';
-import { HomeDesktop } from '../components/home/HomeDesktop';
-import { usePredictionTasks } from '@/hooks/api/usePredictions';
-import { useMyLeagues } from '@/hooks/api/useLeagues';
-import { useTeamCrestMap } from '@/hooks/api/useCatalogue';
-import { useUnreadNotifications } from '@/hooks/api/useNotifications';
-import { ordinal } from '@/lib/format';
-import type { HomeState } from '../components/home/home-props';
-import { useAuth } from '@/context/auth-context';
+/**
+ * Home, fetched on the server.
+ *
+ * The four reads below are independent, so they run together rather than as the
+ * waterfall of hooks this screen used to be. Only the countdown needs the
+ * client, and it gets `serverTime` from the tasks response to measure against.
+ */
 
-const CLUB: Record<string, string> = {
-  ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d",
-  MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a",
-  PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f"
-};
+type TaskPage = Api<'PredictionTaskPageDto'>;
 
-export default function Home() {
-  const { user } = useAuth();
-  const { data: tasksData, isLoading: tasksLoading } = usePredictionTasks();
-  const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
-  const { data: unreadCount = 0 } = useUnreadNotifications(!!user);
-  const fixtureCompetitionIds = (tasksData?.items || [])
-    .filter((t: any) => t.kind === 'fixture')
-    .map((t: any) => t.competition?.id);
-  const { data: crestMap = {} } = useTeamCrestMap(fixtureCompetitionIds);
+/**
+ * Recovers team crests the prediction-tasks feed does not carry, by walking each
+ * competition to its current season's squad. Cached for an hour: a squad list
+ * changes on the scale of a transfer window, not a page view.
+ *
+ * This whole function disappears when `PredictionTaskTeamDto` gains `code` and
+ * `logoUrl`, which the backend has already fixed on its `dev` branch.
+ */
+async function crestsFor(competitionIds: string[]): Promise<Record<string, CatalogueTeam>> {
+  const lists = await Promise.all(competitionIds.map(async id => {
+    const seasons = await serverFetchOrNull<CatalogueSeason[]>(
+      `/football/catalogue/competitions/${id}/seasons`, { revalidate: 3600 },
+    );
+    const season = seasons?.find(s => s.selectableForNewLeague) ?? seasons?.[0];
+    if (!season) return [];
+    return (await serverFetchOrNull<CatalogueTeam[]>(
+      `/football/catalogue/seasons/${season.id}/teams`, { revalidate: 3600 },
+    )) ?? [];
+  }));
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const byId: Record<string, CatalogueTeam> = {};
+  for (const team of lists.flat()) byId[team.id] = team;
+  return byId;
+}
 
-  const isApiLoading = tasksLoading || leaguesLoading;
-  const isNewUser = !isApiLoading && leaguesData?.items.length === 0;
-  const isLoading = isApiLoading;
-  const isReady = !isLoading && !isNewUser;
+export default async function HomePage() {
+  let tasks: TaskPage;
+  let leagues: LeaguesPage;
+  let unread: Api<'NotificationUnreadCountResponseDto'> | null;
+  let me: Api<'CurrentAuthenticationResponseDto'> | null;
 
-  const taskCount = tasksData?.items.length || 0;
-  const caught = isReady && taskCount === 0;
+  try {
+    [tasks, leagues, unread, me] = await Promise.all([
+      serverFetch<TaskPage>('/me/prediction-tasks'),
+      serverFetch<LeaguesPage>('/leagues'),
+      serverFetchOrNull<Api<'NotificationUnreadCountResponseDto'>>('/notifications/unread-count'),
+      serverFetchOrNull<Api<'CurrentAuthenticationResponseDto'>>('/auth/me'),
+    ]);
+  } catch (error) {
+    if (error instanceof NotAuthenticatedError) redirect('/?redirect=/home');
+    if (error instanceof ApiError && error.status === 401) redirect('/?redirect=/home');
+    throw error;
+  }
 
-  // The server's own clock, captured once per fresh response and held fixed
-  // while `now` ticks locally, so a client with a fast/slow clock still
-  // counts down against the deadline the server will actually enforce.
-  const clockOffsetMs = useMemo(() => {
-    if (!tasksData?.serverTime) return 0;
-    return new Date(tasksData.serverTime).getTime() - Date.now();
-  }, [tasksData?.serverTime]);
-
-  // Build queue from API tasks only
-  const queue = caught ? [] : (tasksData?.items.map((t: any) => {
-    if (t.kind === 'fixture') {
-      const homeTeam = crestMap[t.homeTeam.id];
-      const awayTeam = crestMap[t.awayTeam.id];
-      const homeCode = homeTeam?.code || t.homeTeam.displayName.substring(0, 3).toUpperCase();
-      const awayCode = awayTeam?.code || t.awayTeam.displayName.substring(0, 3).toUpperCase();
-      const missingCount = t.missingPredictions?.length || 0;
-      return {
-        match: `${t.homeTeam.displayName} v ${t.awayTeam.displayName}`,
-        competition: t.competition?.displayName || 'Match',
-        meta: t.league.name,
-        time: new Date(t.nextDeadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        missing: missingCount > 0 ? `${missingCount} open` : 'Open',
-        homeCode, homeColor: CLUB[homeCode] || '#000', homeLogo: homeTeam?.logoUrl || null,
-        awayCode, awayColor: CLUB[awayCode] || '#000', awayLogo: awayTeam?.logoUrl || null,
-        href: `/predict/fixture/${t.leagueFixtureId}?leagueId=${t.league.id}`
-      };
-    }
-    return {
-      match: t.question?.questionText || "Question",
-      competition: "Custom Question",
-      meta: t.league.name,
-      time: new Date(t.question?.deadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      missing: 'Open',
-      homeCode: 'Q', homeColor: '#333', homeLogo: null, awayCode: 'A', awayColor: '#555', awayLogo: null,
-      href: `/leagues/${t.league.id}/questions`
-    };
-  }) || []);
-
-  // Build leagues from API only
-  const leagues = leaguesData?.items.map(l => ({
-    id: l.id,
-    crest: l.name.substring(0, 2).toUpperCase(),
-    crestBg: CLUB[l.name.substring(0, 2).toUpperCase()] || CLUB.PP,
-    name: l.name,
-    meta: `${l.competitions.length > 0 ? l.competitions[0].displayName : 'League'}`,
-    position: l.ownStanding ? ordinal(l.ownStanding.position) : "-",
-    points: l.ownStanding ? `${l.ownStanding.totalPoints} pts` : "-"
-  })) || [];
-
-  // Next task for hero section
-  const nextTask: any = tasksData?.items[0];
-  const isFixture = nextTask?.kind === 'fixture';
-  const isQuestion = nextTask?.kind === 'custom_question';
-
-  const heroHomeTeam = isFixture ? crestMap[nextTask.homeTeam.id] : null;
-  const heroAwayTeam = isFixture ? crestMap[nextTask.awayTeam.id] : null;
-  const hCode = isQuestion ? 'Q' : (isFixture ? (heroHomeTeam?.code || nextTask.homeTeam.displayName.substring(0, 3).toUpperCase()) : "TBD");
-  const aCode = isQuestion ? 'A' : (isFixture ? (heroAwayTeam?.code || nextTask.awayTeam.displayName.substring(0, 3).toUpperCase()) : "TBD");
-  const hName = isQuestion ? 'Question' : (isFixture ? nextTask.homeTeam.displayName : "To Be Decided");
-  const aName = isQuestion ? 'Answer' : (isFixture ? nextTask.awayTeam.displayName : "To Be Decided");
-  const hColor = isQuestion ? '#333' : (CLUB[hCode] || '#666');
-  const aColor = isQuestion ? '#555' : (CLUB[aCode] || '#666');
-  const hLogo = isFixture ? (heroHomeTeam?.logoUrl || null) : null;
-  const aLogo = isFixture ? (heroAwayTeam?.logoUrl || null) : null;
-  const hLeague = nextTask ? nextTask.league.name.toUpperCase() : "YOUR LEAGUES";
-
-  const nextDeadlineMs = nextTask
-    ? new Date(isFixture ? nextTask.nextDeadlineAt : nextTask.question.deadlineAt).getTime()
-    : null;
-  const secondsRemaining = nextDeadlineMs !== null ? Math.max(0, Math.round((nextDeadlineMs - (now + clockOffsetMs)) / 1000)) : null;
-  const urgent = !caught && secondsRemaining !== null && secondsRemaining > 0 && secondsRemaining <= 900;
-  const tone = urgent ? "var(--color-danger)" : caught ? "var(--nav-positive)" : "var(--nav-accent)";
-
-  const heroTime = secondsRemaining === null ? "TBD" : (() => {
-    const h = Math.floor(secondsRemaining / 3600), m = Math.floor((secondsRemaining % 3600) / 60), s = secondsRemaining % 60;
-    return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}:${String(s).padStart(2, '0')}`;
-  })();
-  const heroKickerText = caught ? "NEXT KICK-OFF" : "NEXT LOCK";
-  const heroSubText = caught ? "and you are ready for it" : "until this one closes";
-
-  const props = {
-    user, unreadCount,
-    theme,
-    headSub: new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
-    headRight: isReady ? (caught ? "Everything answered" : `${taskCount} markets open`) : "",
-    
-    heroStyle: {
-      position: 'relative' as any,
-      overflow: 'hidden',
-      color: 'var(--nav-text)',
-      padding: '30px 0 34px',
-      borderBottom: '1px solid rgba(255,255,255,.1)',
-      background: `linear-gradient(103deg, color-mix(in srgb, ${hColor} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${aColor} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`
-    },
-    heroDotStyle: {
-      width: '7px', height: '7px', borderRadius: '999px', flex: 'none', background: tone,
-      animation: urgent ? 'tfpulse 1.4s ease-in-out infinite' : 'none'
-    },
-    heroKicker: heroKickerText,
-    heroToneColor: tone,
-    heroLeague: hLeague,
-    heroClock: heroTime,
-    heroClockSub: heroSubText,
-    heroClockColor: urgent ? "var(--color-danger)" : "var(--nav-text)",
-    homeCode: hCode, homeName: hName, homeColor: hColor, homeLogo: hLogo,
-    awayCode: aCode, awayName: aName, awayColor: aColor, awayLogo: aLogo,
-    kickoff: nextTask ? "UPCOMING" : "NO FIXTURES",
-    heroBarStyle: {
-      width: caught ? '100%' : '50%',
-      height: '100%',
-      borderRadius: '999px',
-      background: caught ? "var(--nav-positive)" : "var(--nav-accent)"
-    },
-    heroProgress: caught ? "Finished" : "Open",
-    heroCta: caught ? "Review your answers" : "Predict now",
-    heroCtaStyle: {
-      flex: 'none',
-      height: '48px',
-      minWidth: '188px',
-      padding: '0 26px',
-      borderRadius: '12px',
-      display: 'grid',
-      placeItems: 'center',
-      cursor: 'pointer',
-      font: "700 14px 'DM Sans', sans-serif",
-      letterSpacing: '-.1px',
-      border: caught ? '1px solid var(--nav-border)' : 'none',
-      color: caught ? 'var(--nav-text)' : 'var(--nav-on-accent)',
-      background: caught ? 'transparent' : 'var(--nav-accent)'
-    },
-
-    queueKicker: caught ? "Nothing else owed" : "Also waiting on you",
-    queueLink: caught ? "" : (taskCount > 5 ? `SEE ALL ${taskCount} →` : ""),
-    queue: queue,
-    queueClear: caught,
-    
-    // Weekend card — hidden when no real data
-    weekendStyle: {
-      borderRadius: '14px',
-      padding: '20px',
-      background: 'var(--tf-green-800)',
-      display: leagues.length > 0 ? 'block' : 'none'
-    },
-    weekendBadge: `${leagues.length} LEAGUE${leagues.length !== 1 ? 'S' : ''}`,
-    weekendPoints: "-",
-    weekendRows: [],
-
-    leagues: leagues,
-    leagueCount: String(leagues.length),
-
-    state: (isLoading ? 'loading' : isNewUser ? 'newuser' : caught ? 'caughtup' : 'live') as HomeState,
-  };
+  const crests = await crestsFor(competitionIdsIn(tasks.items));
+  const queue = tasks.items.map(task => toQueueEntry(task, crests));
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)]">
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <HomeMobile {...props} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <HomeDesktop {...props} />
-      </div>
-    </div>
+    <HomeScreen
+      displayName={me?.user.displayName ?? ''}
+      unreadCount={unread?.data?.unread ?? 0}
+      todayLabel={new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+      queue={queue}
+      leagues={leagues.items.map(toHomeLeague)}
+      next={queue[0] ?? null}
+      serverTime={tasks.serverTime}
+    />
   );
 }
