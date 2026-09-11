@@ -7,6 +7,7 @@ import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
 import { useTeamCrestMap } from '@/hooks/api/useCatalogue';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
+import { ordinal } from '@/lib/format';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = {
@@ -85,8 +86,8 @@ export default function Home() {
     crestBg: CLUB[l.name.substring(0, 2).toUpperCase()] || CLUB.PP,
     name: l.name,
     meta: `${l.competitions.length > 0 ? l.competitions[0].displayName : 'League'}`,
-    position: l.ownStanding ? `${l.ownStanding.rank}th` : "-",
-    points: l.ownStanding ? `${l.ownStanding.points} pts` : "-"
+    position: l.ownStanding ? ordinal(l.ownStanding.position) : "-",
+    points: l.ownStanding ? `${l.ownStanding.totalPoints} pts` : "-"
   })) || [];
 
   // Next task for hero section

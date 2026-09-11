@@ -1,89 +1,69 @@
 import { apiFetch } from './fetcher';
+import type { Api } from './types';
 import { fetchFixtureResults } from './predictions-fixture';
 import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
 
-export interface LeagueRulesetMarket {
-  marketType: string;
-  enabled: boolean;
-  points: number;
-}
+export type LeagueRulesetMarket = Api<'MarketConfigurationDto'>;
+/** Every market a ruleset can price — the six standard ones plus `lineup`. */
+export type RulesetMarketType = LeagueRulesetMarket['marketType'];
+export type LeagueRuleset = Api<'LeagueRulesetResponseDto'>;
+export type LeagueCompetitionScope = Api<'LeagueScopeResponseDto'>;
 
-export interface LeagueRuleset {
-  state: string;
-  revision: number;
-  lateJoinPolicy: 'allow' | 'close_at_start';
-  totalGoalsLine: number;
-  standardLock: { kind: string; offsetMinutes: number };
-  markets: LeagueRulesetMarket[];
-  tiebreakers: string[];
-}
+/**
+ * A competition scope with its names resolved for display. The scope itself
+ * (season, kind, round bounds) is the league's own; `displayName`/`slug` come
+ * from the league read, and `seasonLabel` from the season catalogue.
+ */
+export type LeagueCompetition = LeagueCompetitionScope & {
+  displayName: string;
+  seasonLabel: string;
+  slug: string;
+};
 
-export interface League {
-  id: string;
-  name: string;
-  description: string;
-  lifecycleState: 'draft' | 'published' | 'in_progress' | 'completed' | 'archived' | 'cancelled';
-  membership: {
-    role: 'owner' | 'admin' | 'participant';
-    state: 'active' | 'former';
-  };
-  version: number;
-  competitions: {
-    supportedCompetitionId: string;
-    seasonId: string;
-    kind: string;
-    firstRound: number | null;
-    lastRound: number | null;
-    displayName: string;
-    seasonLabel: string;
-    slug: string;
-  }[];
-  ruleset?: LeagueRuleset;
-  ownStanding?: any;
-  memberCount?: number;
-  invitationSettings?: any;
-  createdAt: string;
-  updatedAt: string;
-}
+/**
+ * The single-league read. The list endpoint returns a genuinely different and
+ * narrower shape — see `LeagueListItem` — so the two are no longer one type
+ * with everything optional.
+ */
+export type League = Omit<Api<'LeagueReadResponseDto'>, 'competitions'> & {
+  competitions: LeagueCompetition[];
+};
 
-export interface LeaguesPage {
-  items: League[];
-  unfinishedLeagueCount: number;
-  unfinishedLeagueLimit: number;
-  nextCursor: string | null;
-}
+export type LeagueListItem = Api<'LeagueListItemResponseDto'>;
+export type LeaguesPage = Api<'LeagueListResponseDto'>;
 
 export async function fetchMyLeagues(cursor?: string): Promise<LeaguesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   return apiFetch<LeaguesPage>(`/leagues${query}`);
 }
 
-// The single-league read (unlike the leagues list) carries no embedded
-// competition names — only `ruleset.competitionScopes`, which is IDs only.
-// Join against the (small, cached) catalogue to give every consumer a real
-// `competitions[].displayName` instead of silently-undefined data.
+/**
+ * The league, with each competition scope carrying the names the screens show.
+ *
+ * The read now names its own competitions, so the only thing still missing is
+ * the season label. When the server omits `competitions` — an API older than
+ * that change — the catalogue is consulted instead, which is what this used to
+ * do for every field. Drop that branch once no such server is deployed.
+ */
 export async function fetchLeagueDetails(id: string): Promise<League> {
-  const [league, catalogue] = await Promise.all([
-    apiFetch<any>(`/leagues/${id}`),
-    fetchCatalogueCompetitions().catch(() => []),
-  ]);
-  const scopes: Array<{ supportedCompetitionId: string; seasonId: string; kind: string; firstRound: number | null; lastRound: number | null }> =
-    league.ruleset?.competitionScopes || [];
+  const league = await apiFetch<Api<'LeagueReadResponseDto'>>(`/leagues/${id}`);
+  const scopes = league.ruleset?.competitionScopes ?? [];
+  const named = league.competitions ?? [];
+
+  const catalogue = named.length > 0 ? [] : await fetchCatalogueCompetitions().catch(() => []);
+
   const competitions = await Promise.all(scopes.map(async (scope) => {
-    const match = catalogue.find((c) => c.id === scope.supportedCompetitionId);
+    const fromServer = named.find(c => c.supportedCompetitionId === scope.supportedCompetitionId);
+    const fromCatalogue = catalogue.find(c => c.id === scope.supportedCompetitionId);
     const seasons = await fetchCompetitionSeasons(scope.supportedCompetitionId).catch(() => []);
-    const season = seasons.find((s) => s.id === scope.seasonId);
     return {
-      supportedCompetitionId: scope.supportedCompetitionId,
-      seasonId: scope.seasonId,
-      kind: scope.kind,
-      firstRound: scope.firstRound,
-      lastRound: scope.lastRound,
-      displayName: match?.displayName || 'Competition',
-      seasonLabel: season?.label || '',
-      slug: match?.slug || '',
+      ...scope,
+      displayName: fromServer?.displayName || fromCatalogue?.displayName || 'Competition',
+      slug: fromServer?.slug || fromCatalogue?.slug || '',
+      seasonLabel: seasons.find(s => s.id === scope.seasonId)?.label || '',
     };
   }));
+
   return { ...league, competitions };
 }
 
@@ -252,30 +232,30 @@ export async function consumeInvitationIntent(): Promise<InvitationConsumeOutcom
   return response.data;
 }
 
-export async function fetchLeagueMembers(leagueId: string, state: 'active' | 'former' | 'all' = 'active'): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/members?state=${state}`);
+export async function fetchLeagueMembers(leagueId: string, state: 'active' | 'former' | 'all' = 'active'): Promise<Api<'MembershipPageResponseDto'>> {
+  return apiFetch<Api<'MembershipPageResponseDto'>>(`/leagues/${leagueId}/members?state=${state}`);
 }
 
-export async function fetchJoinRequests(leagueId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/join-requests`);
+export async function fetchJoinRequests(leagueId: string): Promise<Api<'JoinRequestPageResponseDto'>> {
+  return apiFetch<Api<'JoinRequestPageResponseDto'>>(`/leagues/${leagueId}/join-requests`);
 }
 
-export async function updateMemberRole(leagueId: string, membershipId: string, newRole: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/members/${membershipId}/role`, {
+export async function updateMemberRole(leagueId: string, membershipId: string, newRole: string): Promise<Api<'MembershipEnvelopeDto'>> {
+  return apiFetch<Api<'MembershipEnvelopeDto'>>(`/leagues/${leagueId}/members/${membershipId}/role`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ role: newRole }),
   });
 }
 
-export async function removeMember(leagueId: string, membershipId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/members/${membershipId}`, {
+export async function removeMember(leagueId: string, membershipId: string): Promise<void> {
+  await apiFetch<void>(`/leagues/${leagueId}/members/${membershipId}`, {
     method: 'DELETE',
   });
 }
 
-export async function processJoinRequest(leagueId: string, requestId: string, action: 'approve' | 'reject'): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/join-requests/${requestId}/${action}`, {
+export async function processJoinRequest(leagueId: string, requestId: string, action: 'approve' | 'reject'): Promise<Api<'JoinRequestEnvelopeDto'>> {
+  return apiFetch<Api<'JoinRequestEnvelopeDto'>>(`/leagues/${leagueId}/join-requests/${requestId}/${action}`, {
     method: 'POST',
   });
 }
@@ -286,59 +266,65 @@ export async function cancelJoinRequest(leagueId: string, requestId: string): Pr
   });
 }
 
-export async function createInvitation(leagueId: string, useLimit: number = 100): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/invitations`, {
+export async function createInvitation(leagueId: string, useLimit: number = 100): Promise<Api<'InvitationCreatedEnvelopeDto'>> {
+  return apiFetch<Api<'InvitationCreatedEnvelopeDto'>>(`/leagues/${leagueId}/invitations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ useLimit }),
   });
 }
 
-export async function fetchLeagueInvitations(leagueId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/invitations`);
+export async function fetchLeagueInvitations(leagueId: string): Promise<Api<'InvitationPageResponseDto'>> {
+  return apiFetch<Api<'InvitationPageResponseDto'>>(`/leagues/${leagueId}/invitations`);
 }
 
-export async function publishLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/publication`, {
+/**
+ * The lifecycle transitions. Each declares a 200 upstream but publishes no
+ * schema for its body, so there is no server type to adopt; callers treat these
+ * as commands and refetch the league afterwards. Give them a real return type
+ * once the API describes one.
+ */
+export async function publishLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<unknown> {
+  return apiFetch<unknown>(`/leagues/${leagueId}/publication`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ expectedVersion })
   });
 }
 
-export async function deleteLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}?expectedVersion=${expectedVersion}`, {
+export async function deleteLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<void> {
+  await apiFetch<void>(`/leagues/${leagueId}?expectedVersion=${expectedVersion}`, {
     method: 'DELETE',
     headers: { 'Idempotency-Key': idempotencyKey }
   });
 }
 
-export async function cloneLeague(leagueId: string, idempotencyKey: string, payload: { name: string; description?: string; }): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/clone`, {
+export async function cloneLeague(leagueId: string, idempotencyKey: string, payload: { name: string; description?: string; }): Promise<Api<'LeagueResponseDto'>> {
+  return apiFetch<Api<'LeagueResponseDto'>>(`/leagues/${leagueId}/clone`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
 }
 
-export async function archiveLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/archival`, {
+export async function archiveLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<unknown> {
+  return apiFetch<unknown>(`/leagues/${leagueId}/archival`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ expectedVersion })
   });
 }
 
-export async function cancelLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/cancellation`, {
+export async function cancelLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<unknown> {
+  return apiFetch<unknown>(`/leagues/${leagueId}/cancellation`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ expectedVersion })
   });
 }
 
-export async function revokeInvitation(leagueId: string, invitationId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/invitations/${invitationId}/revoke`, {
+export async function revokeInvitation(leagueId: string, invitationId: string): Promise<Api<'InvitationResponseDto'>> {
+  return apiFetch<Api<'InvitationResponseDto'>>(`/leagues/${leagueId}/invitations/${invitationId}/revoke`, {
     method: 'POST',
   });
 }
@@ -353,16 +339,16 @@ export interface UpdateLeaguePayload {
   };
 }
 
-export async function updateLeague(leagueId: string, payload: UpdateLeaguePayload): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}`, {
+export async function updateLeague(leagueId: string, payload: UpdateLeaguePayload): Promise<Api<'LeagueResponseDto'>> {
+  return apiFetch<Api<'LeagueResponseDto'>>(`/leagues/${leagueId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 }
 
-export async function transferOwnership(leagueId: string, targetMembershipId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/ownership-transfer`, {
+export async function transferOwnership(leagueId: string, targetMembershipId: string): Promise<Api<'OwnershipTransferResponseDto'>> {
+  return apiFetch<Api<'OwnershipTransferResponseDto'>>(`/leagues/${leagueId}/ownership-transfer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ targetMembershipId }),

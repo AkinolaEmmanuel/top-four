@@ -9,6 +9,7 @@ import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useFixtureAvailability, useFixtureResults } from '@/hooks/api/useFixturePrediction';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
 import { MARKET_LABELS } from '@/lib/constants/markets';
+import { ordinal } from '@/lib/format';
 import { useAuth } from '@/context/auth-context';
 
 const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d" };
@@ -266,7 +267,6 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
 
   const memberAbove = myRow ? liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) - 1) : undefined;
   const memberBelow = myRow ? liveRows.find(r => parseInt(r.pos) === parseInt(myRow.pos) + 1) : undefined;
-  const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
 
   // Counts the whole league, not the page of standings currently loaded.
   const rivalKicker = standingsLoading ? "LOADING…"

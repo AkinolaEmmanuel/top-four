@@ -104,13 +104,17 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const enabledMarkets = rulesetMarkets.filter(m => m.enabled);
   const maxPoints = enabledMarkets.reduce((a, m) => a + m.points * (MARKET_INFO[m.marketType]?.perPlayer ? 22 : 1), 0);
 
-  // Competitions from real league
+  // A scope's round bounds are {stageId, roundId} pairs, not round numbers, so
+  // they cannot be printed as "Rounds 5–12" without resolving names from the
+  // season's stages. Until that read exists, the scope is described by its kind
+  // rather than interpolating the ids, which rendered "[object Object]".
+  const scopeLabel = (kind: string) =>
+    kind === 'full_season' ? "Full season"
+      : kind === 'single_round' ? "One round"
+        : "Part of the season";
+
   const compsFromLeague = league?.competitions?.length
-    ? league.competitions.map(c => frozen(
-        c.displayName,
-        c.kind === 'full_season' ? "Full season" : (c.firstRound && c.lastRound ? `Rounds ${c.firstRound}–${c.lastRound}` : "Partial season"),
-        c.seasonLabel
-      ))
+    ? league.competitions.map(c => frozen(c.displayName, scopeLabel(c.kind), c.seasonLabel))
     : [];
 
   const lockMinutes = league?.ruleset?.standardLock?.offsetMinutes ?? 5;
@@ -124,7 +128,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     { label: "Timing and joining", hasIntro: false, intro: "", lines: [
       frozen("Standard lock", `${lockMinutes} minutes before`, "Applies to every market except the lineups"),
       frozen("Lineup lock", "2 hours before", "Fixed by TopFour — the standard lock never applies to it"),
-      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_at_start' ? "Closes when the league starts" : "Permitted", "A late member starts on zero and cannot answer locked matches")
+      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_when_in_progress' ? "Closes when the league starts" : "Permitted", "A late member starts on zero and cannot answer locked matches")
     ]},
     { label: "Tiebreakers", hasIntro: true, intro: "Applied in order when totals are equal. Members who tie on all of them share a position.", lines: rulesetTiebreakers.map((t, i) => frozen(`${i + 1} · ${TIEBREAK_LABELS[t] || t}`, "")) }
   ];
@@ -150,7 +154,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
       frozen("Competitions", `${league?.competitions?.length || 0} selected`),
       frozen("Markets and points", `${enabledMarkets.length} enabled · ${maxPoints} max`),
       frozen("Standard lock", `${lockMinutes} minutes before`),
-      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_at_start' ? "Closes when the league starts" : "Permitted"),
+      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_when_in_progress' ? "Closes when the league starts" : "Permitted"),
       frozen("Tiebreakers", `${rulesetTiebreakers.length} in order`)
     ]}
   ];
@@ -230,7 +234,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const COMPS = league?.competitions?.map(c => ({
     abbr: c.displayName.substring(0, 3).toUpperCase(),
     name: c.displayName,
-    scope: [c.kind === 'full_season' ? "Whole season" : (c.firstRound && c.lastRound ? `Rounds ${c.firstRound}–${c.lastRound}` : "Partial season"), c.seasonLabel].filter(Boolean).join(' · ')
+    scope: [scopeLabel(c.kind), c.seasonLabel].filter(Boolean).join(' · ')
   })) || [];
 
   const enabled = MARKETS.filter(m => !m.off);

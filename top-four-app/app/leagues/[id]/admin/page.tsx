@@ -11,6 +11,7 @@ import {
 } from '@/hooks/api/useLeagues';
 import { useStandings } from '@/hooks/api/usePoints';
 import { useParams, useRouter } from 'next/navigation';
+import { ordinal } from '@/lib/format';
 import { useAuth } from '@/context/auth-context';
 
 export default function LeagueAdminPage() {
@@ -82,12 +83,6 @@ export default function LeagueAdminPage() {
   // Derived data
   const leagueName = league?.name || '';
   const leagueAbbr = leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG';
-
-  const ordinal = (n: number) => {
-    const s = ["th", "st", "nd", "rd"];
-    const v = n % 100;
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
-  };
 
   const dynamicMembers = (membersData?.data || []).map((m: any) => {
     const standing = standingsByMembershipId[m.id];
@@ -347,7 +342,9 @@ export default function LeagueAdminPage() {
     };
   });
 
-  const memberCount = membersData?.data?.length || membersData?.total || displayMembers.filter((m: any) => !m.left).length;
+  // The league's own count is the whole league; the members read is one page of
+  // it, so it is only a fallback. `total` was never a field on either.
+  const memberCount = league?.memberCount ?? membersData?.data?.length ?? displayMembers.filter((m: any) => !m.left).length;
   const pendingCount = displayRequests.filter((r: any) => r.state === 'pending').length;
   const inviteCount = dynamicInvites.filter((iv: any) => iv.state === 'active').length;
 

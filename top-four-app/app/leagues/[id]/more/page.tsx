@@ -29,11 +29,9 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
   const leagueName = league?.name || 'League';
 
   const openQuestionsCount = questionsPage?.data?.filter(q => q.phase === 'open').length || 0;
-  const pendingRequestsCount = Array.isArray(requestsData)
-    ? requestsData.filter((r: any) => r.state === 'pending').length
-    : Array.isArray(requestsData?.items)
-    ? requestsData.items.filter((r: any) => r.state === 'pending').length
-    : 0;
+  // The join-requests page is `{ data, nextCursor }`. This used to look for
+  // `items`, found nothing, and reported zero pending requests for every league.
+  const pendingRequestsCount = (requestsData?.data ?? []).filter(r => r.state === 'pending').length;
 
   const THIS_LEAGUE = [
     {

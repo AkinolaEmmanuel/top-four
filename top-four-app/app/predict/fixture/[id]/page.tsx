@@ -7,6 +7,8 @@ import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
 import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { useMyLeagues, useLeagueRuleset } from '@/hooks/api/useLeagues';
+import type { RulesetMarketType } from '@/lib/api/leagues';
+import { STANDARD_MARKET_TYPES } from '@/lib/constants/markets';
 import { ApiError } from '@/lib/api/fetcher';
 
 const CLUB: Record<string, string> = {
@@ -94,11 +96,11 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   // the league disabled is not drawn at all, and the over/under tiles carry the
   // league's own goals line — answering a different question from the one that
   // will be scored is worse than showing nothing.
-  const STANDARD_MARKETS = useMemo(() => ['match_result', 'exact_score', 'both_teams_to_score', 'total_goals', 'anytime_goalscorer', 'player_card'], []);
+  const STANDARD_MARKETS = STANDARD_MARKET_TYPES;
 
   const marketPoints = useMemo(() => {
-    const byType = new Map((ruleset?.markets ?? []).map(m => [m.marketType, m]));
-    return (marketType: string) => {
+    const byType = new Map((ruleset?.markets ?? []).map(m => [m.marketType, m] as const));
+    return (marketType: RulesetMarketType) => {
       const entry = byType.get(marketType);
       return entry?.enabled ? entry.points : null;
     };
@@ -632,7 +634,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const carryLabels = MARKET_KEYS.map(k => {
     const val = a[k];
     if (!val) return null;
-    if (k === "exact_score" || k === "score") {
+    if (k === "exact_score") {
       return Array.isArray(val) ? `${val[0]}–${val[1]}` : `${val.homeGoals}–${val.awayGoals}`;
     }
     if (k === "anytime_goalscorer" || k === "player_card") {
