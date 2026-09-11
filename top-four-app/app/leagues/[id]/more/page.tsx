@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { LeagueMoreMobile } from '../../../components/leagues/LeagueMoreMobile';
 import { LeagueMoreDesktop } from '../../../components/leagues/LeagueMoreDesktop';
-import { useLeague, useJoinRequests, useLeaveLeague, useLeagueDashboard } from '@/hooks/api/useLeagues';
+import { useLeague, useJoinRequests, useLeaveLeague } from '@/hooks/api/useLeagues';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
 import { useAuth } from '@/context/auth-context';
 
@@ -13,7 +13,6 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
   const { data: league } = useLeague(params.id);
   const { data: requestsData } = useJoinRequests(params.id);
   const { data: questionsPage } = useCustomQuestions(params.id);
-  const { data: dashboard } = useLeagueDashboard(params.id);
   const leaveMutation = useLeaveLeague(params.id);
 
   // The app is dark-only (see app/layout.tsx); this was dead state with no
@@ -26,7 +25,7 @@ export default function LeagueMorePage({ params }: { params: { id: string } }) {
   const runs = owner || admin;
   const done = league?.lifecycleState === 'completed';
 
-  const memberCount = dashboard?.summary?.activeMemberCount ?? league?.memberCount ?? 1;
+  const memberCount = league?.memberCount ?? 1;
   const leagueName = league?.name || 'League';
 
   const openQuestionsCount = questionsPage?.data?.filter(q => q.phase === 'open').length || 0;

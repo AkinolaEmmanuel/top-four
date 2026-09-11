@@ -16,8 +16,8 @@ export interface FixturePredictionTask {
   fixtureId: string;
   kickoffAt: string | null;
   competition: { id: string; slug: string; displayName: string };
-  homeTeam: { id: string; displayName: string };
-  awayTeam: { id: string; displayName: string };
+  homeTeam: { id: string; displayName: string; code: string | null; logoUrl: string | null };
+  awayTeam: { id: string; displayName: string; code: string | null; logoUrl: string | null };
   nextDeadlineAt: string | null;
   missingPredictions: MissingPredictionTask[];
 }

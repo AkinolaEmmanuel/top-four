@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LeagueRulesMobile } from '../../../components/leagues/LeagueRulesMobile';
 import { LeagueRulesDesktop } from '../../../components/leagues/LeagueRulesDesktop';
-import { useLeague, useLeagueDashboard, useUpdateLeague } from '@/hooks/api/useLeagues';
+import { useLeague, useUpdateLeague } from '@/hooks/api/useLeagues';
 import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
 import { useAuth } from '@/context/auth-context';
 
@@ -12,7 +12,6 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const { user } = useAuth();
   const router = useRouter();
   const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
-  const { data: dashboard } = useLeagueDashboard(params.id);
   const updateLeagueMutation = useUpdateLeague(params.id);
   const { data: notifPrefs } = useNotificationPreferences();
   const updateNotifPrefs = useUpdateNotificationPreferences();
@@ -131,7 +130,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     { label: "Tiebreakers", hasIntro: true, intro: "Applied in order when totals are equal. Members who tie on all of them share a position.", lines: rulesetTiebreakers.map((t, i) => frozen(`${i + 1} · ${TIEBREAK_LABELS[t] || t}`, "")) }
   ];
 
-  const memberCount = dashboard?.summary?.activeMemberCount ?? league?.memberCount ?? 1;
+  const memberCount = league?.memberCount ?? 1;
 
   const OWNER = [
     { label: "League", hasIntro: true, intro: "These stay editable for the life of the league.", lines: [
