@@ -1,6 +1,6 @@
 import { apiFetch } from './fetcher';
 import type { Api } from './types';
-import { fetchFixtureResults } from './predictions-fixture';
+import { fetchFixtureResults, type FixtureAvailability } from './predictions-fixture';
 import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
 
 export type LeagueRulesetMarket = Api<'MarketConfigurationDto'>;
@@ -109,7 +109,7 @@ function mapFixtureStatus(fixtureState: string): LeagueFixture['status'] {
 
 export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Promise<LeagueFixturesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-  const response = await apiFetch<{ data: any[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
+  const response = await apiFetch<{ data: FixtureAvailability[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
   const items: LeagueFixture[] = await Promise.all(response.data.map(async (f) => {
     const status = mapFixtureStatus(f.fixtureState);
     const base: LeagueFixture = {
@@ -361,39 +361,18 @@ export async function leaveLeague(leagueId: string): Promise<void> {
   });
 }
 
+/**
+ * Only `summary` is described upstream. UNTYPED UPSTREAM: the dashboard's
+ * `league`, `competitionScopes` and `ownStanding` are declared as bare objects,
+ * so they generate as open records. The first two are the league's own shapes,
+ * already typed in this file; `ownStanding` is the same payload the standings
+ * endpoint returns, so it borrows that DTO rather than being guessed again.
+ */
 export interface LeagueDashboard {
   league: League;
-  competitionScopes: any[];
-  summary: {
-    activeMemberCount: number;
-    fixtureCount: number;
-    enabledMarketCount: number;
-    marketStates: {
-      open: number;
-      locked: number;
-      pendingData: number;
-      pendingReview: number;
-      settled: number;
-      void: number;
-    };
-    predictionCompleteness: {
-      required: number;
-      answered: number;
-      unanswered: number;
-      complete: boolean;
-    };
-    nextFixtureDeadlineAt: string | null;
-  };
-  ownStanding: {
-    standingVersion: number;
-    position: number;
-    membershipId: string;
-    totalPoints: number;
-    counters: Record<string, unknown>;
-    competitionPoints: any[];
-    marketPoints: any[];
-    customQuestionPoints: any;
-  } | null;
+  competitionScopes: LeagueCompetitionScope[];
+  summary: Api<'LeagueDashboardSummaryDto'>;
+  ownStanding: Api<'OwnStandingDataDto'> | null;
 }
 
 export async function fetchLeagueDashboard(leagueId: string): Promise<LeagueDashboard> {

@@ -192,7 +192,7 @@ export function StandingsPickerDesktop({
 
   const selectedComp = competitions?.find((c) => c.id === selectedCompId) || competitions?.[0];
   const compName = selectedComp?.displayName || 'League';
-  const isCup = selectedComp?.kind === 'tournament' || selectedComp?.kind === 'cup' || selectedComp?.slug?.includes('champions');
+  const isCup = selectedComp?.kind === 'cup' || selectedComp?.slug?.includes('champions');
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface-canvas)] font-['Sora',sans-serif] text-[var(--text-primary)] overflow-y-auto">

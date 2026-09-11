@@ -1,29 +1,27 @@
 import { apiFetch } from './fetcher';
+import type { Api } from './types';
 
-export interface CatalogueCompetition {
-  id: string;
-  displayName: string;
-  slug: string;
-  kind: string;
-  countryCode?: string;
-  logoUrl?: string;
-}
+/**
+ * The football catalogue: competitions, their seasons, and a season's squads.
+ *
+ * UNTYPED UPSTREAM: these DTOs declare their nullable strings with
+ * `@ApiProperty({ nullable: true })` and no `type: String`, so the document
+ * carries no type and the generated field is `Record<string, never> | null` —
+ * a type that permits no value at all. The overlays below restore the string
+ * the wire actually carries; delete each one as the backend adds `type: String`.
+ */
 
-export interface CatalogueSeason {
-  id: string;
-  label: string;
-  startDate: string;
-  endDate: string;
-  selectableForNewLeague?: boolean;
-}
+export type CatalogueCompetition = Omit<Api<'CatalogueCompetitionDto'>, 'logoUrl'> & {
+  logoUrl: string | null;
+};
 
-export interface CatalogueTeam {
-  id: string;
-  displayName: string;
-  shortName?: string | null;
-  code?: string | null;
-  logoUrl?: string | null;
-}
+export type CatalogueSeason = Api<'CatalogueSeasonDto'>;
+
+export type CatalogueTeam = Omit<Api<'CatalogueTeamDto'>, 'shortName' | 'code' | 'logoUrl'> & {
+  shortName: string | null;
+  code: string | null;
+  logoUrl: string | null;
+};
 
 export async function fetchCatalogueCompetitions(): Promise<CatalogueCompetition[]> {
   return apiFetch<CatalogueCompetition[]>('/football/catalogue/competitions');

@@ -1,5 +1,15 @@
 import { apiFetch, generateIdempotencyKey } from './fetcher';
 
+/**
+ * UNTYPED UPSTREAM — the whole file, deliberately.
+ *
+ * All 27 `/platform/*` operations declare their success responses without a
+ * schema, so the OpenAPI document describes no shape for any of them and there
+ * is nothing to generate. Every type below is therefore hand-written from the
+ * observed payload, and the mutations return `unknown` rather than a guess.
+ * Replace these with `Api<...>` as the backend describes each endpoint.
+ */
+
 // ---- Settlement review (also covers "late corrections") ----
 
 export interface SettlementReviewItem {

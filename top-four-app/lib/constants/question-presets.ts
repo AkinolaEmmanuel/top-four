@@ -17,10 +17,11 @@ export interface QuestionPreset {
  */
 export function generateCompetitionQuestionPresets(
   competition?: CatalogueCompetition | null,
-  teams: CatalogueTeam[] = []
+  // Only the names are used, so callers need not build whole catalogue teams.
+  teams: ReadonlyArray<Pick<CatalogueTeam, 'displayName'>> = []
 ): QuestionPreset[] {
   const compName = competition?.displayName || 'League';
-  const isCup = competition?.kind === 'tournament' || competition?.kind === 'cup' || competition?.slug?.includes('champions') || competition?.slug?.includes('cup');
+  const isCup = competition?.kind === 'cup' || competition?.slug?.includes('champions') || competition?.slug?.includes('cup');
   const teamNames = teams.map((t) => t.displayName);
 
   if (isCup) {
@@ -129,7 +130,7 @@ export function generateCompetitionQuestionPresets(
 }
 
 export function getStandingsQuestionPresets(teams: string[] = []): QuestionPreset[] {
-  return generateCompetitionQuestionPresets(null, teams.map(name => ({ id: name, displayName: name })));
+  return generateCompetitionQuestionPresets(null, teams.map(displayName => ({ displayName })));
 }
 
 export const STANDINGS_QUESTION_PRESETS = getStandingsQuestionPresets();
