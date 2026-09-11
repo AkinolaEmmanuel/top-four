@@ -454,7 +454,7 @@ export default function LeagueAdminPage() {
           rootNav={rootNav}
           avatarInitials={(user?.displayName || '??').substring(0, 2).toUpperCase()}
           avatarName={user?.displayName || ''}
-          contextTabs={[tabItem("Overview",false,""),tabItem("Fixtures",false,"6"),tabItem("Table",false,""),tabItem("Questions",false,"2"),tabItem("More",true,"")]}
+          contextTabs={[tabItem("Overview",false,""),tabItem("Fixtures",false,""),tabItem("Table",false,""),tabItem("Questions",false,""),tabItem("More",true,"")]}
           heroStyle={heroStyle}
           heroBig={HERO[0]}
           heroTone={HERO[3]}

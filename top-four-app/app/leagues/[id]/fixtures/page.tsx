@@ -156,6 +156,12 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     countStyle: { fontVariantNumeric: 'tabular-nums', opacity: 0.55, fontWeight: 600 }
   }));
 
+  // The context-tab badge (not the in-page filter counts below, which are
+  // scoped to whichever of Upcoming/Results is active) always reflects
+  // unanswered upcoming fixtures -- the same "needs your attention" signal
+  // the Overview screen's own Fixtures tab badge already uses correctly.
+  const unansweredUpcomingCount = upcomingFixtures.filter(f => f.predictionState === 'open' || !f.predictionState).length;
+
   const dynamicCounts = useMemo(() => {
     const all = results ? pastFixtures : upcomingFixtures;
     return {
@@ -254,7 +260,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
 
   const propsDesktop = {
     theme, rootNav, avatarInitials: (user?.displayName || '??').substring(0, 2).toUpperCase(), avatarName: user?.displayName || '', showContext: true,
-    contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", true, showList && !results ? "2" : ""), tabItem("Table", false, ""), tabItem("Questions", false, ""), tabItem("More", false, "")],
+    contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", true, unansweredUpcomingCount > 0 ? String(unansweredUpcomingCount) : ""), tabItem("Table", false, ""), tabItem("Questions", false, ""), tabItem("More", false, "")],
     headSub, segments: segmentsDesktop, showFilters: showList && !results, filters: filtersDesktop,
     isLoading, skeletons: [{ w: "260px" }, { w: "210px" }, { w: "280px" }, { w: "190px" }, { w: "250px" }, { w: "220px" }],
     chipSkeletons: ["58px", "96px", "72px", "78px"].map(w => ({ w })),
