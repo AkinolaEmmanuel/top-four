@@ -243,7 +243,18 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     leagueName: league?.name,
     memberCount: league?.memberCount,
     lifecycleLabel: league?.lifecycleState?.replace('_', ' '),
-    heroCtaHref
+    heroCtaHref,
+    // The hero's upcoming-fixture identity was computed for Desktop only
+    // (below) and never passed here, so Mobile permanently hardcoded
+    // "Arsenal v Chelsea, SAT 15:00" regardless of the league's real next
+    // fixture.
+    homeCode: nextFixtureTask ? nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase() : "—",
+    homeName: nextFixtureTask ? nextFixtureTask.homeTeam.displayName : "—",
+    homeColor: nextFixtureTask ? (CLUB[nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
+    awayCode: nextFixtureTask ? nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase() : "—",
+    awayName: nextFixtureTask ? nextFixtureTask.awayTeam.displayName : "—",
+    awayColor: nextFixtureTask ? (CLUB[nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
+    kickoff: nextDeadline ? nextDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"
   };
 
   const propsDesktop = {

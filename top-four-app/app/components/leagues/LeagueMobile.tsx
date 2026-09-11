@@ -6,7 +6,8 @@ export function LeagueMobile({
   theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
   heroTone, heroData, pct, rivals, RESULT, nailed, rBreakdown, unanswered,
   rivalKicker, gapNumber, gapLabel, gapNote,
-  IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel, heroCtaHref
+  IconMap, tabs, heroBg, resultBg, leagueName, memberCount, lifecycleLabel, heroCtaHref,
+  homeCode, homeName, homeColor, awayCode, awayName, awayColor, kickoff
 }: any) {
 
   return (
@@ -62,13 +63,13 @@ export function LeagueMobile({
 
                 <div className="flex items-center gap-[14px] mt-[20px]">
                   <div className="flex-1 flex items-center gap-[9px] min-w-0">
-                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: CLUB.ARS }}>ARS</span>
-                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">Arsenal</span>
+                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: homeColor }}>{homeCode}</span>
+                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{homeName}</span>
                   </div>
-                  <span className="font-heading font-semibold text-[10px] text-[var(--nav-text-faint)] flex-none">SAT 15:00</span>
+                  <span className="font-heading font-semibold text-[10px] text-[var(--nav-text-faint)] flex-none">{kickoff}</span>
                   <div className="flex-1 flex items-center gap-[9px] justify-end min-w-0">
-                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis text-right">Chelsea</span>
-                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: CLUB.CHE }}>CHE</span>
+                    <span className="font-heading font-[650] text-[15px] leading-[1.15] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis text-right">{awayName}</span>
+                    <span className="tf-crest w-[40px] h-[43px] text-[11px]" style={{ background: awayColor }}>{awayCode}</span>
                   </div>
                 </div>
 
