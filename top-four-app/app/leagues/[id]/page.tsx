@@ -3,7 +3,9 @@
 import { useState, useMemo } from 'react';
 import { LeagueMobile } from '../../components/leagues/LeagueMobile';
 import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
-import { useLeague, useLeagueDashboard, useLeagueFixtures } from '@/hooks/api/useLeagues';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useLeague, useLeagueDashboard, useLeagueFixtures, usePublishLeague, useDeleteLeague } from '@/hooks/api/useLeagues';
 import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useCustomQuestions } from '@/hooks/api/useCustomQuestions';
@@ -38,6 +40,10 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
   const { data: questionsData } = useCustomQuestions(params.id);
   const { data: fixturesData } = useLeagueFixtures(params.id);
   const { user } = useAuth();
+  const router = useRouter();
+  const publishLeague = usePublishLeague();
+  const deleteLeague = useDeleteLeague();
+  const [draftActionError, setDraftActionError] = useState<string | null>(null);
 
   const lastFinishedFixture = (fixturesData?.items || [])
     .filter((f) => f.status === 'finished')
@@ -274,9 +280,66 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     memberCount: league?.memberCount
   };
 
+  // A league that was created but never successfully published (most often
+  // because the setup wizard's final publish step failed after the league
+  // itself had already been created) has no fixtures, standings, or members
+  // beyond the owner -- the normal Overview/Fixtures/Table screens have
+  // nothing real to show. It was previously reachable only from the Leagues
+  // list's "Draft" section, which linked here and rendered that empty shell
+  // with no way back into publishing or removing it.
+  if (isReady && league?.lifecycleState === 'draft') {
+    const handlePublish = () => {
+      setDraftActionError(null);
+      publishLeague.mutate(
+        { leagueId: params.id, idempotencyKey: crypto.randomUUID(), expectedVersion: league.version },
+        { onError: () => setDraftActionError('Publishing failed. The competition\'s fixtures may not be available yet -- try again shortly.') },
+      );
+    };
+    const handleDelete = () => {
+      setDraftActionError(null);
+      deleteLeague.mutate(
+        { leagueId: params.id, idempotencyKey: crypto.randomUUID(), expectedVersion: league.version },
+        {
+          onSuccess: () => router.push('/leagues'),
+          onError: () => setDraftActionError('Could not delete this draft. Try again.'),
+        },
+      );
+    };
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] px-6 text-center bg-[var(--surface-canvas)] text-[var(--text-primary)]">
+        <div className="font-heading font-bold text-[19px] tracking-[-0.3px]">{league.name} hasn't been published yet</div>
+        <p className="text-[13px] text-[var(--text-secondary)] mt-[8px] max-w-[360px] leading-[1.5]">
+          This league was created but never went live -- nobody can join or predict on it until it's published.
+        </p>
+        {draftActionError && (
+          <p className="text-[12.5px] text-[var(--danger-text)] mt-[14px] max-w-[360px]">{draftActionError}</p>
+        )}
+        <div className="flex items-center gap-[10px] mt-[22px]">
+          <button
+            onClick={handlePublish}
+            disabled={publishLeague.isPending || deleteLeague.isPending}
+            className="h-[42px] px-[20px] rounded-[11px] bg-[var(--color-brand)] hover:bg-[var(--color-brand)]/90 text-white font-heading font-bold text-[13px] transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {publishLeague.isPending ? 'Publishing…' : 'Publish now'}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={publishLeague.isPending || deleteLeague.isPending}
+            className="h-[42px] px-[20px] rounded-[11px] border border-[var(--surface-border-strong)] hover:bg-[var(--surface-subtle)] font-heading font-semibold text-[13px] text-[var(--danger-text)] transition-colors disabled:opacity-50"
+          >
+            {deleteLeague.isPending ? 'Deleting…' : 'Delete draft'}
+          </button>
+        </div>
+        <Link href="/leagues" className="text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] mt-[18px] underline">
+          Back to leagues
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      
+
 
 
       <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
