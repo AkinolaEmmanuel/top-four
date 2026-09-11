@@ -57,7 +57,7 @@ export default function AlertsPage() {
   const { data: prefsData, isLoading: prefsLoading } = useNotificationPreferences();
   const { data: unreadData } = useUnreadNotifications();
   const updatePrefsMutation = useUpdateNotificationPreferences();
-  const { data: notificationsData, isLoading: notificationsLoading } = useNotifications();
+  const { data: notificationsData, isLoading: notificationsLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useNotifications();
   const { data: leaguesData } = useMyLeagues();
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
@@ -109,7 +109,11 @@ export default function AlertsPage() {
       const u = isUnread(n);
       return {
         ...n,
-        dotStyle: `w-[8px] h-[8px] rounded-full flex-none mt-[6px] ${u ? '' : 'border-[1.5px] border-[var(--surface-border-strong)] bg-transparent'}` + (u ? ` bg-[${n.accent}]` : ''),
+        // The unread accent color is applied via the inline `style` below
+        // (n.accent is a CSS custom property, not a static value Tailwind's
+        // JIT scanner could ever see at build time from an interpolated
+        // class string) -- this class only needs to handle the read state.
+        dotStyle: `w-[8px] h-[8px] rounded-full flex-none mt-[6px] ${u ? '' : 'border-[1.5px] border-[var(--surface-border-strong)] bg-transparent'}`,
         titleStyle: `font-heading ${u ? 'font-bold' : 'font-medium'} text-[13.5px] leading-[1.35] tracking-[-0.15px]`,
         rowStyle: `flex gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b border-[var(--surface-border)]' : ''} ${u ? '' : 'opacity-70'}`,
         onOpen: () => {
@@ -234,6 +238,17 @@ export default function AlertsPage() {
                   ))}
                 </section>
               ))}
+              {hasNextPage && (
+                <div className="p-[16px_24px] border-t border-[var(--surface-border)] flex justify-center">
+                  <button
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="h-[38px] px-[18px] rounded-[10px] border border-[var(--surface-border-strong)] hover:bg-[var(--surface-subtle)] font-heading font-semibold text-[12px] text-[var(--text-secondary)] transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isFetchingNextPage ? 'Loading…' : 'Load older alerts'}
+                  </button>
+                </div>
+              )}
               <div className="p-[20px_24px] text-[11.5px] leading-[1.55] text-[var(--text-muted)]">
                 Alerts are personal. You are told when your own total moves, never when somebody else&apos;s does.
               </div>
