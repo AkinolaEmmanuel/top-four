@@ -128,6 +128,7 @@ export default function LeagueSetupPage() {
   const [off, setOff] = useState<Record<string, boolean>>({ card: true });
   const [line, setLine] = useState("2.5");
   const [lock, setLock] = useState("5m");
+  const [customLockMinutes, setCustomLockMinutes] = useState(90);
   const [lateJoin, setLateJoin] = useState("open");
   const [approval, setApproval] = useState(true);
   const [tieOrder, setTieOrder] = useState(["score", "lineup", "scorer", "result"]);
@@ -260,7 +261,7 @@ export default function LeagueSetupPage() {
 
   const compSummary = selectedComps.map(c => c.abbr + " " + c.short).join(" · ");
   const lockRow = LOCKS.find(l => l.id === lock) || LOCKS[0];
-  const lockValue = lockRow.label === "Custom" ? "90 min before kick-off" : lockRow.label === "Kick-off" ? "At kick-off" : lockRow.label + " before kick-off";
+  const lockValue = lockRow.label === "Custom" ? `${customLockMinutes} min before kick-off` : lockRow.label === "Kick-off" ? "At kick-off" : lockRow.label + " before kick-off";
 
   const editable = [
     { label: "League name", value: name || "New league" },
@@ -585,6 +586,25 @@ export default function LeagueSetupPage() {
                     </div>
                   ))}
                 </div>
+                {lock === 'custom' && (
+                  <div className="flex items-center gap-[10px] p-[12px_var(--gutter)] border-b border-[var(--surface-border)]">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={10080}
+                      step={1}
+                      value={customLockMinutes}
+                      onChange={(e) => {
+                        const raw = parseInt(e.target.value, 10);
+                        const clamped = Number.isFinite(raw) ? Math.min(10080, Math.max(0, raw)) : 0;
+                        setCustomLockMinutes(clamped);
+                      }}
+                      className="w-[90px] h-[38px] px-[12px] rounded-[8px] border border-[var(--surface-border-strong)] bg-[var(--surface-canvas)] text-[13px] font-heading font-bold text-[var(--text-primary)] outline-none focus:border-[var(--color-brand)]"
+                    />
+                    <span className="text-[11.5px] text-[var(--text-secondary)]">minutes before kick-off (0–10,080)</span>
+                  </div>
+                )}
                 <div className="p-[0_var(--gutter)_14px] text-[11.5px] leading-[1.55] text-[var(--text-secondary)] border-b border-[var(--surface-border)]">{lockRow.note}</div>
                 <div className="p-[11px_var(--gutter)_0] text-[10.5px] leading-[1.55] text-[var(--text-muted)]">Lineups ignore this and always lock two hours out, which is why a fixture can be open and closed at the same time.</div>
               </section>
@@ -873,7 +893,9 @@ export default function LeagueSetupPage() {
                         points: pts(m)
                       })),
                       tiebreakers: tieOrder.map(id => MARKET_MAP[id]).filter(Boolean),
-                      standardLock: { kind: LOCK_MAP[lock] || 'minutes_5' }
+                      standardLock: lock === 'custom'
+                        ? { kind: 'custom', offsetMinutes: customLockMinutes }
+                        : { kind: LOCK_MAP[lock] || 'minutes_5' }
                     }
                   };
                   setPublishError(null);
