@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { HomeMobile } from '../components/home/HomeMobile';
-import { HomeDesktop } from '../components/home/HomeDesktop';
+import { HomeScreen } from '../components/home/HomeScreen';
 import { usePredictionTasks } from '@/hooks/api/usePredictions';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
@@ -13,6 +12,17 @@ const CLUB: Record<string, string> = {
   MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a",
   PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f"
 };
+
+function ordinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+}
 
 export default function Home() {
   const { user } = useAuth();
@@ -75,14 +85,18 @@ export default function Home() {
   }) || []);
 
   // Build leagues from API only
+  // ownStanding carries `position`/`totalPoints`, not `rank`/`points` -- the
+  // wrong field names here were silently `undefined` (this field is typed
+  // `any`, so nothing caught it), so every league on this screen showed a
+  // literal "-" position and "- pts" regardless of real standing.
   const leagues = leaguesData?.items.map(l => ({
     id: l.id,
     crest: l.name.substring(0, 2).toUpperCase(),
     crestBg: CLUB[l.name.substring(0, 2).toUpperCase()] || CLUB.PP,
     name: l.name,
     meta: `${l.competitions.length > 0 ? l.competitions[0].displayName : 'League'}`,
-    position: l.ownStanding ? `${l.ownStanding.rank}th` : "-",
-    points: l.ownStanding ? `${l.ownStanding.points} pts` : "-"
+    position: l.ownStanding ? ordinal(l.ownStanding.position) : "-",
+    points: l.ownStanding ? `${l.ownStanding.totalPoints} pts` : "-"
   })) || [];
 
   // Next task for hero section
@@ -194,13 +208,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)]">
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <HomeMobile {...props} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <HomeDesktop {...props} />
-      </div>
+      <HomeScreen {...props} />
     </div>
   );
 }
