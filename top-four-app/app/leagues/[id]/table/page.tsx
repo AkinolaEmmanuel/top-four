@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { LeagueTableMobile } from '../../../components/leagues/LeagueTableMobile';
 import { LeagueTableDesktop } from '../../../components/leagues/LeagueTableDesktop';
 import { useLeague } from '@/hooks/api/useLeagues';
 import { tiebreakerOrder } from '@/lib/constants/markets';
+import { pluralise } from '@/lib/format';
+import type { TableState, TableRowMobile, TableRowDesktop, LeagueTableMobileProps, LeagueTableDesktopProps } from '../../../components/leagues/league-table-props';
 import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { useAuth } from '@/context/auth-context';
 import { StandingCompetitionPoints, StandingEntry } from '@/lib/api/points';
@@ -24,7 +27,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   const [selfOpen, setSelfOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const listRef = useRef<HTMLElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const meRef = useRef<HTMLDivElement>(null);
 
   const isLoading = leagueLoading || standingsLoading;
@@ -116,10 +119,13 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
       return `${diff} ${diff === 1 ? 'point' : 'points'} behind ${rowAbove.name} in ${rowAbove.pos}${rowAbove.pos === 1 ? 'st' : rowAbove.pos === 2 ? 'nd' : rowAbove.pos === 3 ? 'rd' : 'th'}`;
     }
     if (myRow && myRow.pos === 1) return `Leading by ${rowBelow ? myPointsNumber - rowBelow.points : 0} points`;
-    return `${totalMembers} members`;
+    return pluralise(totalMembers, 'member');
   })();
 
-  const rowsDesktop = pageRows.map((m: any, i: number) => {
+  // One phase for both twins, named once so they cannot disagree.
+  const st: TableState = isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live';
+
+  const rowsDesktop: TableRowDesktop[] = pageRows.map((m: any, i: number) => {
     const isOpen = openIdx === i;
     return {
       ref: m.self ? meRef : null,
@@ -130,7 +136,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
       roleDotStyle: { display: "none" },
       caption: m.tie ? "shared " + m.pos + (m.pos === 2 ? "nd" : m.pos === 3 ? "rd" : "th") : "",
       captionStyle: { fontSize: "11px", color: "var(--text-muted)", flexShrink: 0, display: m.tie ? "block" : "none" },
-      caretStyle: { width: "20px", flexShrink: 0, textAlign: "center", fontSize: "13px", color: "var(--text-muted)", transition: "transform .15s", transform: isOpen ? "rotate(180deg)" : "none" },
+      caretStyle: { width: "20px", flexShrink: 0, textAlign: "center", fontSize: "13px", color: "var(--text-muted)", transition: "transform .15s", transform: isOpen ? "rotate(180deg)" : "none" } satisfies CSSProperties,
       wrapStyle: { display: "flex", flexDirection: "column", borderBottom: "1px solid var(--surface-border)", background: m.self ? "var(--accent-surface)" : isOpen ? "var(--surface-subtle)" : "transparent", boxShadow: m.self ? "inset 3px 0 0 0 var(--color-brand)" : "none" },
       open: isOpen,
       roleLine: "Share of leader",
@@ -157,7 +163,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     }));
   };
 
-  const rowsMobile = pageRows.map((m: any, i: number) => {
+  const rowsMobile: TableRowMobile[] = pageRows.map((m: any, i: number) => {
     const open = openIdx === i;
     return {
       ref: m.self ? meRef : null,
@@ -181,7 +187,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   });
 
   const winner = allRows.find(r => r.pos === 1);
-  const winnerLine = winner ? `${fmt(winner.points)} points · ${totalMembers} members · predictions are now history` : '';
+  const winnerLine = winner ? `${fmt(winner.points)} points · ${pluralise(totalMembers, 'member')} · predictions are now history` : '';
 
   const hasStanding = !isEmpty;
   const selfOnPage = !isEmpty && !isLoading && myPosNumber !== null && myPosNumber >= range[0] && myPosNumber <= range[1];
@@ -225,15 +231,15 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
   });
 
   const desktopNeighbours = isFinal
-    ? [{ delta: "", deltaStyle: { display: 'none' }, text: `of ${totalMembers} members · the league is over` }]
+    ? [{ delta: "", deltaStyle: { display: 'none' }, text: `of ${pluralise(totalMembers, 'member')} · the league is over` }]
     : [
         ...(rowAbove ? [{ delta: "−" + (rowAbove.points - myPointsNumber), deltaStyle: { font: "700 13px 'DM Sans',sans-serif", minWidth: "32px", color: "var(--nav-text)" }, text: `behind ${rowAbove.name} in ${rowAbove.pos}${rowAbove.pos === 1 ? 'st' : rowAbove.pos === 2 ? 'nd' : rowAbove.pos === 3 ? 'rd' : 'th'}` }] : []),
         ...(rowBelow ? [{ delta: "+" + (myPointsNumber - rowBelow.points), deltaStyle: { font: "700 13px 'DM Sans',sans-serif", minWidth: "32px", color: "var(--nav-text)" }, text: `clear of ${rowBelow.name} in ${rowBelow.pos}${rowBelow.pos === 1 ? 'st' : rowBelow.pos === 2 ? 'nd' : rowBelow.pos === 3 ? 'rd' : 'th'}` }] : [])
       ];
 
   const propsMobile = {
-    theme, params, st: isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live', isLoading, isEmpty, isFinal, showRows,
-    headSub: isFinal ? `${totalMembers} members · final` : `${totalMembers} members · updated live`,
+    theme, params, st, isLoading, isEmpty, isFinal, showRows,
+    headSub: `${pluralise(totalMembers, 'member')} · ${isFinal ? 'final' : 'updated live'}`,
     myPos, myPosLabel: myPosLabel.toLowerCase(),
     myGap, myName, myInitials, myPoints: myPointsFmt,
     refreshing, hasStanding, totalMembers,
@@ -248,17 +254,17 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
 
   const propsDesktop = {
     theme, rootNav, contextTabs: [tabItem("Overview", false), tabItem("Fixtures", false), tabItem("Table", true), tabItem("Questions", false), tabItem("More", false)],
-    params, st: isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live', isLoading, isEmpty, isFinal, showRows,
+    params, st, isLoading, isEmpty, isFinal, showRows,
     heroStyle: { flex: 'none', color: 'var(--nav-text)', padding: '26px 0 30px', borderBottom: '1px solid rgba(255,255,255,.1)', background: "linear-gradient(102deg, transparent 46%, color-mix(in srgb, var(--color-brand) 24%, transparent) 100%), var(--nav-surface)" },
     myPos, myPosLabel, myPoints,
-    neighbours: desktopNeighbours.length > 0 ? desktopNeighbours : [{ delta: "", deltaStyle: { display: 'none' }, text: `${totalMembers} members` }],
+    neighbours: desktopNeighbours.length > 0 ? desktopNeighbours : [{ delta: "", deltaStyle: { display: 'none' }, text: pluralise(totalMembers, 'member') }],
     pageLabel: totalMembers > 0 ? `${range[0]}–${range[1]} of ${totalMembers}` : "0 members",
     refreshing, refresh: () => setRefreshing(false), nudge: () => setRefreshing(true), isReady: !isLoading && !isEmpty,
-    listRef, cols: [...competitionColumns.map(c => ({ label: c.label })), { label: "Custom" }].map(c => ({ label: c.label, style: { width: "92px", flexShrink: 0, textAlign: "right", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } })),
+    listRef, cols: [...competitionColumns.map(c => ({ label: c.label })), { label: "Custom" }].map(c => ({ label: c.label, style: { width: "92px", flexShrink: 0, textAlign: "right", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } satisfies CSSProperties })),
     legend: [{ label: "Owner", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-owner)" } }, { label: "Admin", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-admin)" } }],
     skeletons: ["62%", "48%", "71%", "55%", "66%", "44%", "58%", "69%", "51%", "64%"].map(w => ({ nameStyle: { height: "11px", borderRadius: "99px", background: "var(--surface-subtle)", maxWidth: w }, cells: ["38px", "34px", "26px", "26px"].map(cw => ({ width: cw, height: "11px", borderRadius: "99px", background: "var(--surface-subtle)" })) })),
     rows: rowsDesktop,
-    tiebreakers: tiebreakerOrder(league?.ruleset?.tiebreakers ?? []).map((label, i) => ({ n: String(i + 1), label, style: { flex: 1, display: "flex", flexDirection: "column", gap: "6px", padding: "0 16px", borderLeft: i ? "1px solid var(--surface-border)" : "none", paddingLeft: i ? "16px" : 0 } })),
+    tiebreakers: tiebreakerOrder(league?.ruleset?.tiebreakers ?? []).map((label, i) => ({ n: String(i + 1), label, style: { flex: 1, display: "flex", flexDirection: "column", gap: "6px", padding: "0 16px", borderLeft: i ? "1px solid var(--surface-border)" : "none", paddingLeft: i ? "16px" : 0 } satisfies CSSProperties })),
     showTies: !isEmpty && !isLoading,
     hasStanding, selfPos: isEmpty ? "—" : myPosNumber ? String(myPosNumber) : "—", selfMove: isEmpty ? "no points yet" : isFinal ? "final position" : "live position",
     myName, myInitials, selfPoints: myPointsFmt,

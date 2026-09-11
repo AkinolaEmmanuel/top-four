@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueTableDesktopProps } from './league-table-props';
 
 export function LeagueTableDesktop({
   theme, rootNav, contextTabs, params, st, isLoading, isEmpty, isFinal, showRows,
@@ -10,7 +11,7 @@ export function LeagueTableDesktop({
   hasStanding, selfPos, selfMove, selfCells, prevPage, nextPage,
   prevStyle, nextStyle, prevLabel, nextLabel, jumpToMe, leagueName, memberCount,
   myName, myInitials, selfPoints, winnerName, winnerLine, totalMembers
-}: any) {
+}: LeagueTableDesktopProps) {
 
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>

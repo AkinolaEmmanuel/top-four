@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueTableMobileProps } from './league-table-props';
 
 export function LeagueTableMobile({
   theme, params, st, isLoading, isEmpty, isFinal, showRows,
@@ -9,7 +10,7 @@ export function LeagueTableMobile({
   page, PAGES, range, prevStyle, nextStyle, prevPage, nextPage,
   selfOpen, setSelfOpen, setRefreshing, leagueName, myName, myInitials, myPoints,
   winnerName, winnerLine, totalMembers, jumpToMe, tiebreakers
-}: any) {
+}: LeagueTableMobileProps) {
 
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
