@@ -1,4 +1,4 @@
-import type { LeagueListItem } from '@/lib/api/leagues';
+import type { LeagueListItem, OwnPendingJoinRequest } from '@/lib/api/leagues';
 import { ordinal, pluralise } from '@/lib/format';
 
 /**
@@ -12,7 +12,7 @@ import { ordinal, pluralise } from '@/lib/format';
  * as a boolean flag, so every row took a branch meant for a special case.
  */
 
-export type LeagueSectionKey = 'playing' | 'draft' | 'past';
+export type LeagueSectionKey = 'playing' | 'draft' | 'pending' | 'past';
 
 export interface LeagueListEntry {
   id: string;
@@ -41,17 +41,16 @@ export interface LeagueSection {
 const SECTION_LABELS: Record<LeagueSectionKey, string> = {
   playing: 'Playing',
   draft: 'Draft',
+  pending: 'Waiting on approval',
   past: 'Past',
 };
 
 /*
- * There is deliberately no "Waiting on approval" section. The screen used to
- * have one, populated by `membership.state === 'pending'` behind an `as any` —
- * but a membership is only ever 'active' or 'former', so the branch could never
- * run. A pending request is not a membership, and every join-request endpoint is
- * scoped to a league id the requester does not have yet. Listing them needs a
- * `GET /me/join-requests`; until that exists the section would be permanent
- * scaffolding, so it is gone rather than dead.
+ * A pending request is not a membership — the old screen looked for
+ * `membership.state === 'pending'` behind an `as any`, and a membership is only
+ * ever 'active' or 'former', so that section could never appear. Pending
+ * requests come from `GET /me/join-requests` instead and are folded in by
+ * `toLeagueSections` below.
  */
 
 /** Leagues still running count against the twenty-league limit; finished ones do not. */
@@ -80,10 +79,32 @@ export function toLeagueEntry(league: LeagueListItem): LeagueListEntry {
   };
 }
 
+/** A league the member has asked to join and is still waiting on. */
+export function toPendingEntry(request: OwnPendingJoinRequest): LeagueListEntry {
+  return {
+    id: request.leagueId,
+    name: request.leagueName,
+    crest: request.leagueName.substring(0, 2).toUpperCase(),
+    competitions: '',
+    roleLabel: null,
+    section: 'pending',
+    position: null,
+    points: null,
+    isPast: false,
+    memberCount: 0,
+  };
+}
+
 /** Sections in the order the screen shows them, empty ones dropped. */
-export function toLeagueSections(leagues: LeagueListItem[]): LeagueSection[] {
-  const order: LeagueSectionKey[] = ['playing', 'draft', 'past'];
-  const entries = leagues.map(toLeagueEntry);
+export function toLeagueSections(
+  leagues: LeagueListItem[],
+  pendingRequests: OwnPendingJoinRequest[] = [],
+): LeagueSection[] {
+  const order: LeagueSectionKey[] = ['playing', 'draft', 'pending', 'past'];
+  const entries = [
+    ...leagues.map(toLeagueEntry),
+    ...pendingRequests.filter(r => r.state === 'pending').map(toPendingEntry),
+  ];
   return order
     .map(key => ({ key, label: SECTION_LABELS[key], entries: entries.filter(e => e.section === key) }))
     .filter(section => section.entries.length > 0);

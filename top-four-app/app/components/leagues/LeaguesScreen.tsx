@@ -11,7 +11,7 @@ import {
   type LeagueListEntry,
   type LeagueSection,
 } from '@/lib/leagues/league-list';
-import type { LeagueListItem } from '@/lib/api/leagues';
+import type { LeagueListItem, OwnPendingJoinRequest } from '@/lib/api/leagues';
 
 /**
  * The leagues list — one component for both platforms.
@@ -39,6 +39,7 @@ const crestTint = (crest: string) => CREST_TINTS[crest] || '#0879bf';
 function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean }) {
   const standing = standingLabel(entry);
   const points = pointsLabel(entry);
+  const isPending = entry.section === 'pending';
 
   return (
     <Link
@@ -57,7 +58,7 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
           )}
         </div>
         <div className="text-[10.5px] md:text-[11px] text-[var(--text-muted)] mt-[3px]">
-          {entry.competitions}
+          {isPending ? 'Waiting on an admin to approve you' : entry.competitions}
         </div>
       </div>
 
@@ -70,7 +71,7 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
             <div className="text-[10px] tf-num text-[var(--text-muted)] mt-[3px] md:hidden">{points}</div>
           </>
         ) : (
-          <span className="text-[11.5px] text-[var(--text-muted)]">No standing yet</span>
+          <span className="text-[11.5px] text-[var(--text-muted)]">{isPending ? 'Pending' : 'No standing yet'}</span>
         )}
       </div>
 
@@ -104,20 +105,21 @@ function Section({ section }: { section: LeagueSection }) {
   );
 }
 
-export function LeaguesScreen({ leagues, limit = LEAGUE_LIMIT, used }: {
+export function LeaguesScreen({ leagues, pendingRequests, limit = LEAGUE_LIMIT, used }: {
   leagues: LeagueListItem[];
+  pendingRequests: OwnPendingJoinRequest[];
   limit?: number;
   used: number;
 }) {
   const [filter, setFilter] = useState<string>('All');
 
-  const allSections = toLeagueSections(leagues);
-  const isEmpty = leagues.length === 0;
+  const allSections = toLeagueSections(leagues, pendingRequests);
+  const isEmpty = leagues.length === 0 && pendingRequests.length === 0;
   const atCapacity = used >= limit;
   const sections = filter === 'All' ? allSections : allSections.filter(s => s.label === filter);
 
   const filters = [
-    { label: 'All', count: leagues.length },
+    { label: 'All', count: allSections.reduce((n, sec) => n + sec.entries.length, 0) },
     ...allSections.map(s => ({ label: s.label, count: s.entries.length })),
   ];
 

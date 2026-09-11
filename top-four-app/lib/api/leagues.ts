@@ -1,6 +1,6 @@
 import { apiFetch } from './fetcher';
 import type { Api } from './types';
-import { fetchFixtureResults, type FixtureAvailability } from './predictions-fixture';
+import { fetchFixtureResultsBatch, type FixtureAvailability } from './predictions-fixture';
 import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
 
 export type LeagueRulesetMarket = Api<'MarketConfigurationDto'>;
@@ -77,6 +77,18 @@ export async function fetchLeagueRuleset(leagueId: string): Promise<LeagueRulese
   return league.ruleset ?? null;
 }
 
+export type OwnPendingJoinRequest = Api<'OwnPendingJoinRequestResponseDto'>;
+
+/**
+ * The member's own outstanding join requests, across every league. Every other
+ * join-request endpoint is scoped to a league id a requester does not have yet,
+ * so this is the only way to show them what they are waiting on.
+ */
+export async function fetchOwnJoinRequests(): Promise<OwnPendingJoinRequest[]> {
+  const response = await apiFetch<Api<'OwnPendingJoinRequestPageDto'>>('/me/join-requests');
+  return response.data;
+}
+
 export interface LeagueFixture {
   id: string;
   leagueId: string;
@@ -110,46 +122,57 @@ function mapFixtureStatus(fixtureState: string): LeagueFixture['status'] {
 export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Promise<LeagueFixturesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   const response = await apiFetch<{ data: FixtureAvailability[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
-  const items: LeagueFixture[] = await Promise.all(response.data.map(async (f) => {
-    const status = mapFixtureStatus(f.fixtureState);
-    const base: LeagueFixture = {
-      id: f.leagueFixtureId,
-      leagueId,
-      homeTeam: f.homeTeam?.displayName || 'Home',
-      homeTeamCode: f.homeTeam?.code || 'HOM',
-      homeTeamLogoUrl: f.homeTeam?.logoUrl || null,
-      awayTeam: f.awayTeam?.displayName || 'Away',
-      awayTeamCode: f.awayTeam?.code || 'AWA',
-      awayTeamLogoUrl: f.awayTeam?.logoUrl || null,
-      kickoffAt: f.kickoff?.at || '',
-      status,
-      markets: [],
-      predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
-    };
-    // Availability only carries market *state*, not the resolved outcome — a
-    // finished fixture's score and points come from a separate call per fixture.
-    if (status !== 'finished') return base;
-    try {
-      const results = await fetchFixtureResults(leagueId, f.leagueFixtureId);
-      const exactScoreMarket = results.markets.find((m) => m.marketType === 'exact_score');
-      const resolvedScore = exactScoreMarket?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
-      const settled = results.markets.filter((m) => m.viewerOutcome !== null);
-      const totalPoints = settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0);
-      const anyCorrect = settled.some((m) => m.viewerOutcome?.outcome === 'correct');
-      const allVoid = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'void');
-      const allCorrect = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'correct');
-      return {
-        ...base,
-        score: resolvedScore && typeof resolvedScore.homeGoals === 'number' && typeof resolvedScore.awayGoals === 'number'
-          ? { home: resolvedScore.homeGoals, away: resolvedScore.awayGoals }
-          : undefined,
-        pointsAwarded: settled.length > 0 ? totalPoints : undefined,
-        predictionState: settled.length === 0 ? undefined : allVoid ? 'void' : allCorrect ? 'won' : anyCorrect ? 'part' : 'lost',
-      };
-    } catch {
-      return base;
-    }
+
+  const base: LeagueFixture[] = response.data.map(f => ({
+    id: f.leagueFixtureId,
+    leagueId,
+    homeTeam: f.homeTeam?.displayName || 'Home',
+    homeTeamCode: f.homeTeam?.code || 'HOM',
+    homeTeamLogoUrl: f.homeTeam?.logoUrl || null,
+    awayTeam: f.awayTeam?.displayName || 'Away',
+    awayTeamCode: f.awayTeam?.code || 'AWA',
+    awayTeamLogoUrl: f.awayTeam?.logoUrl || null,
+    kickoffAt: f.kickoff?.at || '',
+    status: mapFixtureStatus(f.fixtureState),
+    markets: [],
+    predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
   }));
+
+  // Availability carries market *state*, never the resolved outcome, so a
+  // finished fixture's score and points need a second read. That used to be one
+  // request per finished fixture; the batch endpoint answers for all of them at
+  // once. A failure here costs the outcomes, not the fixtures.
+  const finishedIds = base.filter(f => f.status === 'finished').map(f => f.id);
+  const results = await fetchFixtureResultsBatch(leagueId, finishedIds).catch(() => []);
+  const byFixture = new Map(results.map(r => [r.leagueFixtureId, r]));
+
+  const items = base.map(fixture => {
+    const result = byFixture.get(fixture.id);
+    if (!result) return fixture;
+
+    const exactScore = result.markets.find(m => m.marketType === 'exact_score');
+    const resolved = exactScore?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
+    const settled = result.markets.filter(m => m.viewerOutcome !== null);
+    const allVoid = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'void');
+    const allCorrect = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'correct');
+    const anyCorrect = settled.some(m => m.viewerOutcome?.outcome === 'correct');
+
+    return {
+      ...fixture,
+      score: typeof resolved?.homeGoals === 'number' && typeof resolved?.awayGoals === 'number'
+        ? { home: resolved.homeGoals, away: resolved.awayGoals }
+        : undefined,
+      pointsAwarded: settled.length > 0
+        ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0)
+        : undefined,
+      predictionState: settled.length === 0 ? undefined
+        : allVoid ? 'void' as const
+          : allCorrect ? 'won' as const
+            : anyCorrect ? 'part' as const
+              : 'lost' as const,
+    };
+  });
+
   return { items, nextCursor: response.nextCursor };
 }
 

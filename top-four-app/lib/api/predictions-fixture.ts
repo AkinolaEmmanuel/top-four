@@ -132,3 +132,16 @@ export async function fetchFixtureResults(leagueId: string, fixtureId: string): 
   const response = await apiFetch<{ data: FixtureResultsResponse }>(`/leagues/${leagueId}/fixtures/${fixtureId}/results`);
   return response.data;
 }
+
+/**
+ * Results for several fixtures in one read. The per-fixture call above is still
+ * right for a single fixture; this exists because the league fixtures list needs
+ * every finished fixture's outcome at once, and used to ask for them one request
+ * at a time.
+ */
+export async function fetchFixtureResultsBatch(leagueId: string, leagueFixtureIds: string[]): Promise<FixtureResultsResponse[]> {
+  if (leagueFixtureIds.length === 0) return [];
+  const query = leagueFixtureIds.map(id => `leagueFixtureIds=${encodeURIComponent(id)}`).join('&');
+  const response = await apiFetch<Api<'MemberFixtureResultsBatchResponseDto'>>(`/leagues/${leagueId}/fixtures/results?${query}`);
+  return response.data;
+}

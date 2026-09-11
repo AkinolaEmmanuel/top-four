@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { LeaguesScreen } from '../components/leagues/LeaguesScreen';
-import { serverFetch, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import type { Api } from '@/lib/api/types';
 import { ApiError } from '@/lib/api/fetcher';
 import { runningLeagueCount } from '@/lib/leagues/league-list';
-import type { LeaguesPage as LeaguesPageData } from '@/lib/api/leagues';
+import type { LeaguesPage as LeaguesPageData, OwnPendingJoinRequest } from '@/lib/api/leagues';
 
 /**
  * A Server Component: the leagues list is read-only, so it is fetched here
@@ -17,8 +18,14 @@ import type { LeaguesPage as LeaguesPageData } from '@/lib/api/leagues';
  */
 export default async function LeaguesPage() {
   let data: LeaguesPageData;
+  let pending: OwnPendingJoinRequest[];
   try {
-    data = await serverFetch<LeaguesPageData>('/leagues');
+    // A pending request lives outside the leagues list — the member is not a
+    // member yet — so it is a separate read, folded into the same sections.
+    [data, pending] = await Promise.all([
+      serverFetch<LeaguesPageData>('/leagues'),
+      serverFetchOrNull<Api<'OwnPendingJoinRequestPageDto'>>('/me/join-requests').then(r => r?.data ?? []),
+    ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect('/?redirect=/leagues');
     if (error instanceof ApiError && error.status === 401) redirect('/?redirect=/leagues');
@@ -28,6 +35,7 @@ export default async function LeaguesPage() {
   return (
     <LeaguesScreen
       leagues={data.items}
+      pendingRequests={pending}
       used={runningLeagueCount(data.items)}
       limit={data.unfinishedLeagueLimit}
     />
