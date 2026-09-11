@@ -17,10 +17,10 @@ function Crest({ logo, code, color }: { logo?: string | null; code: string; colo
 export function FixtureMobile({
   theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone,
   answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
-  carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
+  carryLabels, setCopy, copy, targets, carrying, outcomes, CLUB,
   leagueName, competitionLabel, fixtureId, leagueId,
   hName, aName, hCode, aCode, hLogo, aLogo, scoreline, bannerRight,
-  pointsAtStake, pointsEarned
+  pointsAtStake, pointsEarned, copyPrimary, copyPrimaryStyle, onCopyExecute, copyError, copyPending
 }: any) {
 
   const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${CLUB[hCode] || '#666'} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${CLUB[aCode] || '#666'} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
@@ -217,7 +217,7 @@ export function FixtureMobile({
                 <span className="w-[28px] h-[28px] rounded-[8px] bg-[var(--surface-subtle)] grid place-items-center font-heading font-bold text-[13px] text-[var(--text-muted)] flex-none">⇉</span>
                 <div className="flex-1 min-w-0">
                   <div className="font-heading font-semibold text-[13px]">Answer this match once</div>
-                  <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">3 other leagues include this match · {carryLabels.length} answers ready to carry</div>
+                  <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{targets.length} other {targets.length === 1 ? 'league includes' : 'leagues include'} this match · {carryLabels.length} answers ready to carry</div>
                 </div>
                 <span className="font-heading font-bold text-[10px] text-[var(--text-link)] flex-none">COPY →</span>
               </div>
@@ -262,8 +262,12 @@ export function FixtureMobile({
                     </div>
                     <div className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] mt-[9px]">Only markets you have answered travel. Anything still blank here stays blank there.</div>
 
-                    <div onClick={() => { if (chosen) setCopy('done'); }} className={`mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
-                      {chosen ? `Copy into ${chosen} ${chosen === 1 ? 'league' : 'leagues'}` : "Pick a league"}
+                    {copyError && (
+                      <div className="mt-[14px] p-[10px_14px] rounded-[8px] bg-[rgba(239,68,68,0.1)] border border-[var(--color-danger)] text-[var(--danger-text)] text-[12px]">{copyError}</div>
+                    )}
+
+                    <div onClick={() => { if (!copyPending) onCopyExecute?.(); }} className={copyPrimaryStyle}>
+                      {copyPrimary}
                     </div>
                     <div onClick={() => setCopy(null)} className="tf-tap mt-[8px] h-[44px] grid place-items-center font-heading font-bold text-[12px] text-[var(--text-secondary)]">Not now</div>
                   </div>
@@ -271,7 +275,7 @@ export function FixtureMobile({
 
                 {copy === 'done' && (
                   <div>
-                    <div className="font-heading font-bold text-[20px] leading-[1.15] tracking-[-0.5px]">Copied into 2 of 3 leagues</div>
+                    <div className="font-heading font-bold text-[20px] leading-[1.15] tracking-[-0.5px]">Copied into {outcomes.filter((o: any) => o.icon === '✓').length} of {outcomes.length} leagues</div>
                     <div className="flex flex-col mt-[14px]">
                       {outcomes.map((o: any, i: number) => (
                         <div key={i} className={o.rowStyle}>

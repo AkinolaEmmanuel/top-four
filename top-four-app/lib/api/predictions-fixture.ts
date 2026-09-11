@@ -181,13 +181,30 @@ export interface SelectablePlayersResponse {
   players: SelectablePlayer[];
 }
 
+// Matches the backend's real CopyReport exactly -- the previous shape here
+// (targets: [{leagueId, leagueName, outcome, note}]) never matched what the
+// endpoint actually returns and was never read by anything, since the UI
+// built its "done" screen entirely from local checkbox state instead.
+export type CopyAnswerOutcome =
+  | 'copied' | 'replaced' | 'unchanged' | 'locked' | 'not_enabled'
+  | 'league_closed' | 'changed_elsewhere' | 'no_longer_member'
+  | 'snapshot_unavailable' | 'player_unavailable' | 'line_differs';
+
+export interface CopiedAnswer {
+  answer: string;
+  outcome: CopyAnswerOutcome;
+}
+
+export interface CopyLeagueReport {
+  leagueId: string;
+  leagueName: string;
+  answers: CopiedAnswer[];
+}
+
 export interface CopyPredictionsResponse {
-  targets: Array<{
-    leagueId: string;
-    leagueName: string;
-    outcome: string;
-    note?: string;
-  }>;
+  copied: number;
+  leagues: CopyLeagueReport[];
+  truncated: boolean;
 }
 
 export interface MemberMarketResult {
@@ -244,11 +261,16 @@ export async function submitLineupPrediction(leagueId: string, fixtureId: string
   return response.data;
 }
 
+// Copies into *every* other league the caller actively belongs to that has
+// this same fixture -- the endpoint takes no target list, so there is no
+// way to copy into a chosen subset. Wrapped in `{ data }` like every other
+// endpoint in this file, unlike the previous version of this function.
 export async function copyFixturePredictions(leagueId: string, fixtureId: string): Promise<CopyPredictionsResponse> {
-  return apiFetch<CopyPredictionsResponse>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/copy`, {
+  const response = await apiFetch<{ data: CopyPredictionsResponse }>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/copy`, {
     method: 'POST',
     body: JSON.stringify({})
   });
+  return response.data;
 }
 
 export async function fetchFixtureResults(leagueId: string, fixtureId: string): Promise<FixtureResultsResponse> {

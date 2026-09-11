@@ -17,12 +17,12 @@ function Crest({ logo, code, color, size, textSize }: { logo?: string | null; co
 export function FixtureDesktop({
   theme, isLoading, isReady, settled, locked, urgent, clock, HERO, heroTone,
   answeredTotal, conflict, setResolved, a, setAnswers, markets, lineups,
-  carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
+  carryLabels, setCopy, copy, targets, carrying, outcomes, CLUB,
   contextTabs, heroStyle, homeColor, awayColor, heroKicker, heroDotStyle,
   scoreline, scoreSize, kickoffLine, bannerLabel, bannerText, bannerRight,
   marketsDone, lineupsDone, pointsLabel, pointsValue, pointsHeroColor,
   marketsHint, footNote, canCopy, copySub, showConflict,
-  copyPrimary, copyPrimaryStyle, leagueName, competitionLabel,
+  copyPrimary, copyPrimaryStyle, onCopyExecute, copyError, copyPending, leagueName, competitionLabel,
   hName, aName, hCode, aCode, hLogo, aLogo
 }: any) {
   
@@ -246,7 +246,7 @@ export function FixtureDesktop({
             ))}
           </div>
 
-          {canCopy && (
+          {canCopy && copy !== 'done' && (
             <div className="mt-[30px] pt-[22px] border-t border-[var(--surface-border)]">
               <div className="flex items-baseline justify-between">
                 <span className="font-heading font-bold text-[19px] tracking-[-0.3px]">Answer this match once</span>
@@ -256,7 +256,7 @@ export function FixtureDesktop({
               <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-[26px] mt-[16px] items-start">
                 <div className="flex flex-col gap-[10px]">
                   {targets.map((t: any, i: number) => (
-                    <div key={i} onClick={t.toggle} className={t.cardStyle}>
+                    <div key={i} className={t.cardStyle}>
                       <div className={t.boxStyle}>{t.check}</div>
                       <div className="flex-1 min-w-0">
                         <div className="font-heading font-semibold text-[13.5px]">{t.league}</div>
@@ -274,10 +274,34 @@ export function FixtureDesktop({
                       <span key={i} className={c.style}>{c.label}</span>
                     ))}
                   </div>
-                  <div className={copyPrimaryStyle} onClick={() => { if(chosen) setCopy('done'); }}>{copyPrimary}</div>
+                  {copyError && (
+                    <div className="mt-[11px] p-[9px_12px] rounded-[8px] bg-[rgba(239,68,68,0.1)] border border-[var(--color-danger)] text-[var(--danger-text)] text-[11.5px]">{copyError}</div>
+                  )}
+                  <div className={copyPrimaryStyle} onClick={() => { if (!copyPending) onCopyExecute?.(); }}>{copyPrimary}</div>
                   <div className="text-[11px] text-[var(--text-muted)] leading-[1.55] mt-[11px]">Copying replaces whatever is already there. A market the target league doesn't run, or runs on a different line, is skipped rather than guessed.</div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {canCopy && copy === 'done' && (
+            <div className="mt-[30px] pt-[22px] border-t border-[var(--surface-border)]">
+              <div className="flex items-baseline justify-between">
+                <span className="font-heading font-bold text-[19px] tracking-[-0.3px]">Copied into {outcomes.filter((o: any) => o.icon === '✓').length} of {outcomes.length} leagues</span>
+                <span onClick={() => setCopy(null)} className="text-[11.5px] font-heading font-semibold text-[var(--text-link)] cursor-pointer">Dismiss</span>
+              </div>
+              <div className="flex flex-col mt-[14px] max-w-[480px]">
+                {outcomes.map((o: any, i: number) => (
+                  <div key={i} className={o.rowStyle}>
+                    <span className={o.iconStyle}>{o.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-heading font-[650] text-[13px]">{o.league}</div>
+                      <div className="text-[11.5px] leading-[1.5] text-[var(--text-secondary)] mt-[3px]">{o.note}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-[11px] text-[var(--text-muted)] leading-[1.55] mt-[13px]">Running it again is safe and changes nothing — the same answers land in the same places.</div>
             </div>
           )}
 
