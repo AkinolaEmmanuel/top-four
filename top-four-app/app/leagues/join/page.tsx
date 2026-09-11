@@ -16,7 +16,9 @@ export default function JoinLeaguePage() {
   const { data: myLeaguesData } = useMyLeagues();
   const leaveAnyLeague = useLeaveAnyLeague();
 
-  const [theme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
   const [outcome, setOutcome] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState('');
   const [joinedLeague, setJoinedLeague] = useState<any>(null);

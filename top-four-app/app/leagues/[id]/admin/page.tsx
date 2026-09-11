@@ -55,7 +55,10 @@ export default function LeagueAdminPage() {
   const publishMutation = usePublishLeague();
   const deleteMutation = useDeleteLeague();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [tab, setTab] = useState<'members' | 'invites' | 'requests' | 'lifecycle'>('members');
   const [dataState, setDataState] = useState<'ready' | 'loading' | 'empty'>('ready');
   const [sheet, setSheet] = useState<string | null>(null);

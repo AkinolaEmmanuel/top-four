@@ -124,7 +124,10 @@ export default function QuestionsPage() {
 
   const displayQuestions = dynamicQuestions;
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [view, setView] = useState<'list' | 'empty' | 'create' | 'resolve'>('list');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [textDrafts, setTextDrafts] = useState<Record<string, string>>({});

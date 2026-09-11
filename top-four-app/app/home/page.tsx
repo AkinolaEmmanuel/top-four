@@ -25,7 +25,10 @@ export default function Home() {
     .map((t: any) => t.competition?.id);
   const { data: crestMap = {} } = useTeamCrestMap(fixtureCompetitionIds);
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);

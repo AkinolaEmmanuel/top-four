@@ -19,7 +19,10 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
   } = useLeagueFixturesInfinite(params.id);
   const { data: league } = useLeague(params.id);
   const { user } = useAuth();
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [state, setState] = useState<'upcoming' | 'results' | 'empty' | 'loading'>('upcoming');
   const [filter, setFilter] = useState("All");
 

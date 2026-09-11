@@ -20,7 +20,10 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
   const { data: league } = useLeague(leagueId);
   const submitPrediction = useSubmitPrediction(leagueId, params.id);
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [mode, setMode] = useState<'scorer' | 'card'>(marketParam);
   const [picked, setPicked] = useState<string | null>(null);
   const [side, setSide] = useState<string>('both');

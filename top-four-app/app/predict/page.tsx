@@ -18,7 +18,10 @@ export default function PredictPage() {
   const { data: tasksData, isLoading: tasksLoading, isError: tasksError } = usePredictionTasks();
   const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
   const [state, setState] = useState<'live' | 'empty' | 'loading' | 'error'>('live');
   const [filter, setFilter] = useState("All");
 

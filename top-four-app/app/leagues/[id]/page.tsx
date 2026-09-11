@@ -50,7 +50,10 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     .sort((a, b) => new Date(b.kickoffAt).getTime() - new Date(a.kickoffAt).getTime())[0];
   const { data: lastFixtureResults } = useFixtureResults(params.id, lastFinishedFixture?.id || '');
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const setTheme = () => {};
 
   const isLoading = leagueLoading || standingsLoading || dashboardLoading;
   const isTerminal = !!leagueError;
