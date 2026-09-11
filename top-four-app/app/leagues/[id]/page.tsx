@@ -244,7 +244,10 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     rivalKicker, gapNumber, gapLabel, gapNote,
     IconMap, tabs, heroBg, resultBg: mResultBg,
     leagueName: league?.name,
-    memberCount: league?.memberCount,
+    // The league detail endpoint has no memberCount field at all (verified
+    // against the backend DTO), but the dashboard summary this page already
+    // fetches for other reasons carries a real activeMemberCount for free.
+    memberCount: dashboard?.summary?.activeMemberCount ?? league?.memberCount,
     lifecycleLabel: league?.lifecycleState?.replace('_', ' '),
     heroCtaHref,
     // The hero's upcoming-fixture identity was computed for Desktop only
@@ -291,7 +294,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     qTitle, qSub,
     skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w })),
     leagueName: league?.name,
-    memberCount: league?.memberCount
+    memberCount: dashboard?.summary?.activeMemberCount ?? league?.memberCount
   };
 
   // A league that was created but never successfully published (most often
