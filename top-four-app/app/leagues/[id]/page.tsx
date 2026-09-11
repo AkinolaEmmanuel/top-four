@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { LeagueMobile } from '../../components/leagues/LeagueMobile';
-import { LeagueDesktop } from '../../components/leagues/LeagueDesktop';
+import { LeagueOverview } from '../../components/leagues/LeagueOverview';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLeague, useLeagueDashboard, useLeagueFixtures, usePublishLeague, useDeleteLeague } from '@/hooks/api/useLeagues';
@@ -238,35 +237,11 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     ? `/predict/fixture/${nextFixtureTask.leagueFixtureId || nextFixtureTask.fixtureId}?leagueId=${params.id}`
     : `/predict`;
 
-  const propsMobile = {
-    theme, CLUB, params, st, isLoading, isTerminal, isReady, urgent, caught,
-    heroTone, heroData, pct, rivals: mobileRivals, RESULT, nailed, rBreakdown: mBreakdown, unanswered,
-    rivalKicker, gapNumber, gapLabel, gapNote,
-    IconMap, tabs, heroBg, resultBg: mResultBg,
-    leagueName: league?.name,
-    memberCount: league?.memberCount,
-    lifecycleLabel: league?.lifecycleState?.replace('_', ' '),
-    heroCtaHref,
-    // The hero's upcoming-fixture identity was computed for Desktop only
-    // (below) and never passed here, so Mobile permanently hardcoded
-    // "Arsenal v Chelsea, SAT 15:00" regardless of the league's real next
-    // fixture.
-    homeCode: nextFixtureTask ? nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase() : "—",
-    homeName: nextFixtureTask ? nextFixtureTask.homeTeam.displayName : "—",
-    homeColor: nextFixtureTask ? (CLUB[nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
-    awayCode: nextFixtureTask ? nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase() : "—",
-    awayName: nextFixtureTask ? nextFixtureTask.awayTeam.displayName : "—",
-    awayColor: nextFixtureTask ? (CLUB[nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
-    kickoff: nextDeadline ? nextDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"
-  };
-
-  const propsDesktop = {
-    theme, rootNav, contextTabs, isLoading, isTerminal, isReady, params,
-    heroStyle: { position: 'relative', overflow: 'hidden', color: 'var(--nav-text)', padding: '24px 0 28px', borderBottom: '1px solid rgba(255,255,255,.1)', background: heroBg },
-    heroDotStyle: { width: '7px', height: '7px', borderRadius: '999px', flex: 'none', background: heroTone, animation: urgent ? 'tfpulse 1.4s ease-in-out infinite' : 'none' },
-    heroKicker: heroData[0], heroKickerColor: heroTone,
-    heroClock: heroData[1], heroClockSub: heroData[2],
-    heroClockColor: urgent ? "var(--color-danger)" : "var(--nav-text)",
+  // Fixture identity is computed once and shared by both layouts -- this
+  // used to be duplicated separately in propsMobile and propsDesktop, which
+  // is exactly how Mobile ended up permanently stuck on a hardcoded
+  // "Arsenal v Chelsea" fixture while Desktop showed the real one.
+  const fixtureIdentity = {
     homeCode: nextFixtureTask ? nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase() : "—",
     homeName: nextFixtureTask ? nextFixtureTask.homeTeam.displayName : "—",
     homeColor: nextFixtureTask ? (CLUB[nextFixtureTask.homeTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
@@ -274,24 +249,44 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
     awayName: nextFixtureTask ? nextFixtureTask.awayTeam.displayName : "—",
     awayColor: nextFixtureTask ? (CLUB[nextFixtureTask.awayTeam.displayName.substring(0, 3).toUpperCase()] || '#666') : '#666',
     kickoff: nextDeadline ? nextDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+  };
+
+  const props = {
+    theme, CLUB, params, isLoading, isTerminal, isReady, urgent, caught,
+    heroTone, heroData, pct, RESULT, nailed, unanswered,
+    rivalKicker, gapNumber, gapLabel, gapNote,
+    leagueName: league?.name,
+    memberCount: league?.memberCount,
+    lifecycleLabel: league?.lifecycleState?.replace('_', ' '),
+    heroCtaHref,
+    qTitle, qSub,
+    ...fixtureIdentity,
+
+    // Mobile-specific shapes
+    rivalsMobile: mobileRivals, rBreakdownMobile: mBreakdown, resultBgMobile: mResultBg,
+    IconMap, tabs,
+
+    // Desktop-specific shapes
+    rivalsDesktop: desktopRivals, rBreakdownDesktop: dBreakdown, resultStyleDesktop: dResultStyle,
+    rootNav, contextTabs,
+    skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w })),
+    heroStyle: { position: 'relative', overflow: 'hidden', color: 'var(--nav-text)', padding: '24px 0 28px', borderBottom: '1px solid rgba(255,255,255,.1)', background: heroBg },
+    heroDotStyle: { width: '7px', height: '7px', borderRadius: '999px', flex: 'none', background: heroTone, animation: urgent ? 'tfpulse 1.4s ease-in-out infinite' : 'none' },
+    heroKicker: heroData[0], heroKickerColor: heroTone,
+    heroClock: heroData[1], heroClockSub: heroData[2],
+    heroClockColor: urgent ? "var(--color-danger)" : "var(--nav-text)",
     heroBarStyle: { width: `${pct}%`, height: '100%', borderRadius: '999px', background: caught ? 'var(--nav-positive)' : 'var(--nav-accent)' },
     heroProgress: heroData[3],
     heroCtaStyle: { flex: 'none', height: '48px', minWidth: '186px', padding: '0 26px', borderRadius: '12px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 14px 'DM Sans',sans-serif", letterSpacing: '-.1px', background: caught ? 'transparent' : 'var(--nav-accent)', color: caught ? 'var(--nav-text)' : 'var(--nav-on-accent)', border: caught ? '1px solid var(--nav-border)' : 'none', boxShadow: caught ? 'none' : 'var(--elev-2)' },
     heroCta: heroData[4],
-    heroCtaHref,
     heroFoot: heroData[5],
-    rivalKicker, rivals: desktopRivals,
-    gapNumber, gapColor: "var(--text-primary)", gapLabel, gapNote,
-    resultStyle: dResultStyle, resultKicker: RESULT.kicker, resultKickerColor: "rgba(255,255,255,.62)",
+    gapColor: "var(--text-primary)",
+    resultKicker: RESULT.kicker, resultKickerColor: "rgba(255,255,255,.62)",
     resultBadgeStyle: { font: "700 9.5px 'DM Sans',sans-serif", letterSpacing: ".09em", padding: "4px 9px", borderRadius: "6px", background: "var(--tf-white)", color: nailed ? "var(--tf-green-800)" : "var(--tf-navy-800)" },
     resultBadge: RESULT.badge,
     rHomeCode: RESULT.homeCode || "—", rHomeColor: CLUB[RESULT.homeCode] || '#666', rAwayCode: RESULT.awayCode || "—", rAwayColor: CLUB[RESULT.awayCode] || '#666',
     rScore: RESULT.score, rPointsStyle: { font: "700 28px 'DM Sans',sans-serif", letterSpacing: "-.9px", color: "var(--tf-white)" },
-    rPoints: RESULT.pts, rPointsSub: "this fixture", rSummary: RESULT.summary, rBreakdown: dBreakdown,
-    qTitle, qSub,
-    skeletonRows: ["58%", "44%", "66%", "50%", "61%"].map(w => ({ w })),
-    leagueName: league?.name,
-    memberCount: league?.memberCount
+    rPoints: RESULT.pts, rPointsSub: "this fixture", rSummary: RESULT.summary,
   };
 
   // A league that was created but never successfully published (most often
@@ -353,15 +348,7 @@ export default function LeagueOverviewPage({ params }: { params: { id: string } 
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-
-
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <LeagueMobile {...propsMobile} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <LeagueDesktop {...propsDesktop} />
-      </div>
+      <LeagueOverview {...props} />
     </div>
   );
 }
