@@ -159,6 +159,13 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
       markets: [],
       predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
     };
+    // A postponed/cancelled/abandoned fixture has no result to fetch and never
+    // scores anything -- without this, it fell through to the same
+    // ready/open/undefined logic as an upcoming fixture and showed up in
+    // "Past Fixtures" mislabeled "NO POINTS", implying a graded loss on a
+    // match that never happened.
+    if (status === 'voided') return { ...base, predictionState: 'void' };
+
     // Availability only carries market *state*, not the resolved outcome — a
     // finished fixture's score and points come from a separate call per fixture.
     if (status !== 'finished') return base;
