@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
-import { LeagueTableMobile } from '../../../components/leagues/LeagueTableMobile';
-import { LeagueTableDesktop } from '../../../components/leagues/LeagueTableDesktop';
+import { LeagueTableScreen } from '../../../components/leagues/LeagueTableScreen';
 import { useLeague } from '@/hooks/api/useLeagues';
 import { useStandings, useOwnStanding } from '@/hooks/api/usePoints';
 import { useAuth } from '@/context/auth-context';
@@ -217,15 +216,6 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
     label, style: { padding: '0 13px', height: '43px', display: 'flex', alignItems: 'center', fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
   });
 
-  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map((it) => {
-    const label = it[0], id = it[1], badge = it[2];
-    return {
-      label, id, badge,
-      badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--nav-accent)', color: 'var(--nav-on-accent)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' },
-      style: { display: 'flex', alignItems: 'center', padding: '7px 13px', borderRadius: '9px', font: "600 12.5px 'DM Sans',sans-serif", cursor: 'pointer', background: id === "leagues" ? 'var(--nav-fill)' : 'transparent', opacity: id === "leagues" ? 1 : 0.66 } 
-    };
-  });
-
   const desktopNeighbours = isFinal
     ? [{ delta: "", deltaStyle: { display: 'none' }, text: `of ${membersLabel(totalMembers)} · the league is over` }]
     : [
@@ -233,32 +223,36 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
         ...(rowBelow ? [{ delta: "+" + (myPointsNumber - rowBelow.points), deltaStyle: { font: "700 13px 'DM Sans',sans-serif", minWidth: "32px", color: "var(--nav-text)" }, text: `clear of ${rowBelow.name} in ${rowBelow.pos}${rowBelow.pos === 1 ? 'st' : rowBelow.pos === 2 ? 'nd' : rowBelow.pos === 3 ? 'rd' : 'th'}` }] : [])
       ];
 
-  const propsMobile = {
+  const props = {
     theme, params, st: isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live', isLoading, isEmpty, isFinal, showRows,
     headSub: isFinal ? `${membersLabel(totalMembers)} · final` : `${membersLabel(totalMembers)} · updated live`,
-    myPos, myPosLabel: myPosLabel.toLowerCase(),
-    myGap, myName, myInitials, myPoints: myPointsFmt,
+    myPos, myPosLabelMobile: myPosLabel.toLowerCase(),
+    myGap, myName, myInitials,
+    // Was myPointsFmt (a bare number, no "pts" unit) -- Desktop's equivalent
+    // self-summary already read "47 pts". Same shared value everywhere now.
+    myPoints,
     refreshing, hasStanding, totalMembers,
     winnerName: winner?.name || '', winnerLine,
-    rows: rowsMobile, TINTS, breakdown: breakdownMobile,
+    rowsMobile,
     selfBreakdown: breakdownMobile(myCompetitionPoints, myCustomQuestionPoints, myPointsNumber, true), listRef, jumpToMe,
-    page: p, PAGES: Array.from({ length: totalPages }, (_, i) => [i * pageSize + 1, Math.min((i + 1) * pageSize, totalMembers)]), range, prevStyle: prevStyleMobile, nextStyle: nextStyleMobile, prevPage, nextPage,
+    range, prevStyle: prevStyleMobile, nextStyle: nextStyleMobile, prevPage, nextPage,
     selfOpen, setSelfOpen, setRefreshing,
     leagueName: league?.name
   };
 
-  const propsDesktop = {
-    theme, rootNav, contextTabs: [tabItem("Overview", false), tabItem("Fixtures", false), tabItem("Table", true), tabItem("Questions", false), tabItem("More", false)],
+  const propsFull = {
+    ...props,
+    contextTabs: [tabItem("Overview", false), tabItem("Fixtures", false), tabItem("Table", true), tabItem("Questions", false), tabItem("More", false)],
     params, st: isLoading ? 'loading' : isEmpty ? 'empty' : isFinal ? 'final' : 'live', isLoading, isEmpty, isFinal, showRows,
     heroStyle: { flex: 'none', color: 'var(--nav-text)', padding: '26px 0 30px', borderBottom: '1px solid rgba(255,255,255,.1)', background: "linear-gradient(102deg, transparent 46%, color-mix(in srgb, var(--color-brand) 24%, transparent) 100%), var(--nav-surface)" },
-    myPos, myPosLabel, myPoints,
+    myPos, myPosLabel,
     neighbours: desktopNeighbours.length > 0 ? desktopNeighbours : [{ delta: "", deltaStyle: { display: 'none' }, text: membersLabel(totalMembers) }],
     pageLabel: totalMembers > 0 ? `${range[0]}–${range[1]} of ${totalMembers}` : "0 members",
-    refreshing, refresh: () => setRefreshing(false), nudge: () => setRefreshing(true), isReady: !isLoading && !isEmpty,
+    refreshing, refresh: () => setRefreshing(false),
     listRef, cols: [...competitionColumns.map(c => ({ label: c.label })), { label: "Custom" }].map(c => ({ label: c.label, style: { width: "92px", flexShrink: 0, textAlign: "right", fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" } })),
     legend: [{ label: "Owner", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-owner)" } }, { label: "Admin", dotStyle: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--role-admin)" } }],
     skeletons: ["62%", "48%", "71%", "55%", "66%", "44%", "58%", "69%", "51%", "64%"].map(w => ({ nameStyle: { height: "11px", borderRadius: "99px", background: "var(--surface-subtle)", maxWidth: w }, cells: ["38px", "34px", "26px", "26px"].map(cw => ({ width: cw, height: "11px", borderRadius: "99px", background: "var(--surface-subtle)" })) })),
-    rows: rowsDesktop,
+    rowsDesktop,
     tiebreakers: ["Total points", "Exact scores correct", "Match results correct", "Lineup players correct"].map((label, i) => ({ n: String(i + 1), label, style: { flex: 1, display: "flex", flexDirection: "column", gap: "6px", padding: "0 16px", borderLeft: i ? "1px solid var(--surface-border)" : "none", paddingLeft: i ? "16px" : 0 } })),
     showTies: !isEmpty && !isLoading,
     hasStanding, selfPos: isEmpty ? "—" : myPosNumber ? String(myPosNumber) : "—", selfMove: isEmpty ? "no points yet" : isFinal ? "final position" : "live position",
@@ -274,12 +268,7 @@ export default function LeagueTablePage({ params }: { params: { id: string } }) 
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <LeagueTableMobile {...propsMobile} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <LeagueTableDesktop {...propsDesktop} />
-      </div>
+      <LeagueTableScreen {...propsFull} />
     </div>
   );
 }
