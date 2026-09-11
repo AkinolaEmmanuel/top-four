@@ -7,6 +7,7 @@ import { LeagueQuestionsMobile } from '../../../components/leagues/LeagueQuestio
 import { LeagueQuestionsDesktop } from '../../../components/leagues/LeagueQuestionsDesktop';
 import { useCustomQuestions, useCreateCustomQuestion, useSubmitCustomAnswer, useResolveCustomQuestion, useVoidCustomQuestion, useOwnCustomAnswers, useDisclosedAnswers } from '@/hooks/api/useCustomQuestions';
 import { useLeague } from '@/hooks/api/useLeagues';
+import type { CustomAnswerValue } from '@/lib/api/custom-questions';
 import { useAuth } from '@/context/auth-context';
 import { useParams } from 'next/navigation';
 import { STANDINGS_QUESTION_PRESETS, QuestionPreset } from '@/lib/constants/question-presets';
@@ -72,8 +73,8 @@ export default function QuestionsPage() {
   // Converts the real stored answer ({value}/{option}/{text}) back into the
   // raw UI id these tiles compare against ("yes"/"no", "true"/"false", the
   // option string itself, or the free-text value).
-  const answerToRawId = (answerKind: string, answer: any): string | undefined => {
-    if (!answer || typeof answer !== 'object') return undefined;
+  const answerToRawId = (answerKind: string, answer: CustomAnswerValue | null | undefined): string | undefined => {
+    if (!answer) return undefined;
     if ('value' in answer) {
       const v = !!answer.value;
       if (answerKind === 'true_false') return v ? 'true' : 'false';
@@ -85,7 +86,7 @@ export default function QuestionsPage() {
   };
 
   // Builds the real per-kind wire shape from the raw UI id/text a member picked.
-  const buildAnswerPayload = (answerKind: string, rawValue: string): { value: boolean } | { option: string } | { text: string } => {
+  const buildAnswerPayload = (answerKind: string, rawValue: string): CustomAnswerValue => {
     if (answerKind === 'yes_no') return { value: rawValue === 'yes' };
     if (answerKind === 'true_false') return { value: rawValue === 'true' };
     if (answerKind === 'open_text') return { text: rawValue };
