@@ -7,6 +7,7 @@ import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
 import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions, useMarketHistory } from '@/hooks/api/useFixturePrediction';
 import { useMyLeagues, useLeague } from '@/hooks/api/useLeagues';
+import type { CopyPredictionsResponse, CopyAnswerOutcome } from '@/lib/api/predictions-fixture';
 
 const CLUB: Record<string, string> = {
   ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d",
@@ -106,7 +107,8 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const [saved, setSaved] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'done' | null>(null);
-  const [copyTargets, setCopyTargets] = useState<Record<string, boolean>>({});
+  const [copyResult, setCopyResult] = useState<CopyPredictionsResponse | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [editingLineup, setEditingLineup] = useState<'home' | 'away' | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -567,18 +569,25 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     }));
   }, [leaguesData, leagueId]);
 
-  const targets = otherLeagues.map(t => {
-    const on = !t.muted && !!copyTargets[t.id];
-    return {
-      league: t.league, note: t.note,
-      cardStyle: `flex gap-[12px] items-start p-[13px_14px] md:p-[14px_16px] rounded-[13px] ${on ? 'bg-[var(--accent-surface)] md:bg-[var(--surface-card)] border border-[var(--color-brand)] md:border-[var(--control-ring)] md:border-solid md:border-[var(--color-brand)]' : 'bg-[var(--surface-canvas)] md:bg-[var(--surface-card)] border border-[var(--surface-border)]'} ${t.muted ? 'opacity-55' : 'cursor-pointer'}`,
-      boxStyle: `w-[21px] h-[21px] rounded-[6px] md:rounded-[7px] flex-none mt-[1px] grid place-items-center text-[11px] text-[var(--color-on-brand)] ${on ? 'bg-[var(--color-brand)]' : 'border border-[var(--surface-border-strong)]'}`,
-      check: on ? "✓" : "",
-      hasFlag: !!t.flag, flag: t.flag,
-      flagStyle: `inline-block font-heading font-semibold text-[10px] md:text-[10.5px] p-[3px_9px] rounded-[999px] mt-[7px] bg-[var(--surface-subtle)] text-[var(--text-muted)]`,
-      toggle: () => { if (!t.muted) setCopyTargets(s => ({ ...s, [t.id]: !s[t.id] })); }
-    };
-  });
+  // The backend endpoint (POST .../predictions/copy) takes no target list --
+  // it always copies into *every* other league the caller actively belongs
+  // to that has this fixture, and reports what happened per league. There is
+  // no way to copy into a chosen subset, so this used to be a real bug: the
+  // UI let you individually check/uncheck leagues and the button said
+  // "Copy into N leagues" for whatever N you'd selected, but execution never
+  // read that selection at all -- it just set local "done" state without
+  // ever calling the mutation, so no copy ever actually happened, checked or
+  // not. This is now an informational list (every one of these leagues will
+  // receive the copy) rather than a selection the user believes they control.
+  const targets = otherLeagues.map(t => ({
+    league: t.league, note: t.note,
+    cardStyle: `flex gap-[12px] items-start p-[13px_14px] md:p-[14px_16px] rounded-[13px] bg-[var(--surface-canvas)] md:bg-[var(--surface-card)] border border-[var(--surface-border)] ${t.muted ? 'opacity-55' : ''}`,
+    boxStyle: `w-[21px] h-[21px] rounded-[6px] md:rounded-[7px] flex-none mt-[1px] grid place-items-center text-[11px] text-[var(--color-on-brand)] ${t.muted ? 'border border-[var(--surface-border-strong)]' : 'bg-[var(--color-brand)]'}`,
+    check: t.muted ? "" : "✓",
+    hasFlag: !!t.flag, flag: t.flag,
+    flagStyle: `inline-block font-heading font-semibold text-[10px] md:text-[10.5px] p-[3px_9px] rounded-[999px] mt-[7px] bg-[var(--surface-subtle)] text-[var(--text-muted)]`,
+    toggle: () => {}
+  }));
 
   const carryLabels = MARKET_KEYS.map(k => {
     const val = a[k];
@@ -599,23 +608,43 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     label: l, style: `font-heading font-semibold text-[10.5px] p-[6px_10px] rounded-[7px] md:rounded-[999px] bg-[var(--surface-subtle)] md:bg-[var(--surface-border-strong)] text-[var(--text-secondary)] md:text-[var(--text-primary)]`
   }));
 
-  const chosen = otherLeagues.filter(t => copyTargets[t.id]).length;
+  const activeTargetCount = otherLeagues.filter(t => !t.muted).length;
 
   const handleExecuteCopy = () => {
+    setCopyError(null);
     copyPredictionsMutation.mutate(undefined, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        setCopyResult(data);
         setCopy('done');
-      }
+      },
+      onError: () => setCopyError('Could not copy your picks. Try again.')
     });
   };
 
-  const outcomes = otherLeagues.filter(t => copyTargets[t.id]).map(t => ({
-    league: t.league,
-    note: `All ${carryLabels.length} answers copied.`,
-    icon: "✓",
-    rowStyle: `flex gap-[11px] items-start p-[13px_0] border-t border-[var(--surface-border)]`,
-    iconStyle: `w-[20px] h-[20px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10.5px] mt-[1px] bg-[var(--color-success)] text-[var(--tf-white)]`
-  }));
+  const OUTCOME_LABEL: Record<CopyAnswerOutcome, string> = {
+    copied: 'Copied', replaced: 'Replaced your previous pick', unchanged: 'Already matched',
+    locked: 'Too late — locked', not_enabled: 'Market not enabled there',
+    league_closed: 'League closed', changed_elsewhere: 'Changed elsewhere',
+    no_longer_member: 'No longer a member', snapshot_unavailable: 'Squad data unavailable',
+    player_unavailable: 'Player not available there', line_differs: 'Different goals line there'
+  };
+  const SUCCESS_OUTCOMES = new Set(['copied', 'replaced', 'unchanged']);
+
+  // Built from the real per-league report the mutation returns -- not from
+  // which checkboxes happened to be ticked, since every eligible league is
+  // always included regardless of what was shown as "selected."
+  const outcomes = (copyResult?.leagues || []).map(l => {
+    const ok = l.answers.filter(a => SUCCESS_OUTCOMES.has(a.outcome)).length;
+    const allOk = ok === l.answers.length && l.answers.length > 0;
+    const firstFailure = l.answers.find(a => !SUCCESS_OUTCOMES.has(a.outcome));
+    return {
+      league: l.leagueName,
+      note: allOk ? `All ${l.answers.length} answers copied.` : `${ok} of ${l.answers.length} copied${firstFailure ? ` — ${OUTCOME_LABEL[firstFailure.outcome]}` : ''}.`,
+      icon: allOk ? "✓" : "!",
+      rowStyle: `flex gap-[11px] items-start p-[13px_0] border-t border-[var(--surface-border)]`,
+      iconStyle: `w-[20px] h-[20px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10.5px] mt-[1px] ${allOk ? 'bg-[var(--color-success)] text-[var(--tf-white)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`
+    };
+  });
 
   const tabItem = (label: string, on: boolean) => ({
     label, style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', font: "600 12.5px 'DM Sans', sans-serif", cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
@@ -628,7 +657,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const props = {
     theme, isLoading, isReady, settled, locked, urgent, clock, HERO: heroData, heroTone,
     answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
-    carryLabels, setCopy, copy, targets, carrying, chosen, outcomes, CLUB,
+    carryLabels, setCopy, copy, targets, carrying, outcomes, CLUB,
     leagueName, competitionLabel, fixtureId, leagueId,
     hName, aName, hCode, aCode, hLogo, aLogo,
 
@@ -649,11 +678,13 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     pointsAtStake: totalPointsAtStake, pointsEarned: totalPointsEarned,
     marketsHint: editable ? "Each market saves the moment you pick — there is no fixture-level save." : "Editing closed.",
     footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
-    canCopy: editable && otherLeagues.length > 0,
+    canCopy: editable && activeTargetCount > 0,
     copySub: `${otherLeagues.length} other leagues · ${carryLabels.length} answers ready to carry`,
     showConflict: conflict,
-    copyPrimary: chosen ? `Copy into ${chosen} ${chosen === 1 ? 'league' : 'leagues'}` : "Pick a league",
-    copyPrimaryStyle: `mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${chosen ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`,
+    copyError,
+    copyPending: copyPredictionsMutation.isPending,
+    copyPrimary: copyPredictionsMutation.isPending ? "Copying…" : activeTargetCount > 0 ? `Copy to ${activeTargetCount} ${activeTargetCount === 1 ? 'league' : 'leagues'}` : "No other leagues",
+    copyPrimaryStyle: `mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${activeTargetCount > 0 && !copyPredictionsMutation.isPending ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)] opacity-70'}`,
     onCopyExecute: handleExecuteCopy
   };
 
