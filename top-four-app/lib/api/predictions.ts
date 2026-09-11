@@ -49,7 +49,25 @@ export interface PredictionTaskPage {
   nextCursor: string | null;
 }
 
-export async function fetchPredictionTasks(cursor?: string): Promise<PredictionTaskPage> {
+async function fetchPredictionTasksPage(cursor?: string): Promise<PredictionTaskPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   return apiFetch<PredictionTaskPage>(`/me/prediction-tasks${query}`);
+}
+
+// Paginated at 20 per page, and this used to only ever fetch the first page.
+// This list is a user's actionable to-do (unanswered markets across every
+// unfinished league they're in), not history -- a member in several active
+// leagues each with a few unanswered fixtures over a busy weekend can easily
+// clear 20 items, and anything past that was silently invisible on the
+// Predict tab and the Home page's queue with no sign anything was missing.
+export async function fetchPredictionTasks(): Promise<PredictionTaskPage> {
+  const first = await fetchPredictionTasksPage();
+  const items = [...first.items];
+  let cursor = first.nextCursor;
+  while (cursor) {
+    const page = await fetchPredictionTasksPage(cursor);
+    items.push(...page.items);
+    cursor = page.nextCursor;
+  }
+  return { items, serverTime: first.serverTime, nextCursor: null };
 }
