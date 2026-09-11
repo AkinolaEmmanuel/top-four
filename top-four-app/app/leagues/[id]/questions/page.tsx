@@ -3,11 +3,9 @@
 import { useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import { LeagueQuestionsMobile } from '../../../components/leagues/LeagueQuestionsMobile';
-import { LeagueQuestionsDesktop } from '../../../components/leagues/LeagueQuestionsDesktop';
+import { LeagueQuestionsScreen } from '../../../components/leagues/LeagueQuestionsScreen';
 import { useCustomQuestions, useCreateCustomQuestion, useSubmitCustomAnswer, useResolveCustomQuestion, useVoidCustomQuestion, useOwnCustomAnswers, useDisclosedAnswers } from '@/hooks/api/useCustomQuestions';
 import { useLeague } from '@/hooks/api/useLeagues';
-import { useAuth } from '@/context/auth-context';
 import { useParams } from 'next/navigation';
 import { STANDINGS_QUESTION_PRESETS, QuestionPreset } from '@/lib/constants/question-presets';
 
@@ -44,7 +42,6 @@ function toDatetimeLocalValue(date: Date): string {
 
 export default function QuestionsPage() {
   const params = useParams() as { id: string };
-  const { user } = useAuth();
   const { data: league } = useLeague(params.id);
   const { data: questionsPage, isLoading } = useCustomQuestions(params.id);
   const createQuestion = useCreateCustomQuestion(params.id);
@@ -648,39 +645,30 @@ export default function QuestionsPage() {
   const questionBadge = (onEmpty || allIn) ? "" : String(owing);
   const stakeLabel = allIn ? "all answered" : (owing === 1 ? "question unanswered" : "questions unanswered");
 
-  const rootNav = [["Home","home",""],["Predict","predict","25"],["Leagues","leagues",""]].map((it) => {
-    const label = it[0], id = it[1], badge = it[2];
-    return {
-      label, id, badge,
-      badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--nav-accent)', color: 'var(--nav-on-accent)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' },
-      style: { display: 'flex', alignItems: 'center', padding: '7px 13px', borderRadius: '9px', font: "600 12.5px 'DM Sans',sans-serif", cursor: 'pointer', background: id === "leagues" ? 'var(--nav-fill)' : 'transparent', opacity: id === "leagues" ? 1 : 0.66 } 
-    };
-  });
-
   const tabItem = (label: string, on: boolean, badge: string) => ({
     label, badge: badge || "",
     style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' },
     badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--color-danger)', color: 'var(--color-on-brand)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' }
   });
   
-  const propsMobile = {
+  const props = {
     theme, view, params, setView, setSheet, admin, allIn, committed, stake, owing,
     groups: groupsMobile, IconMap, tabs, onList, onEmpty, onCreate, onResolve, standingsHref,
-    qText, setQText, types: typesMobile, TYPE, qType, optionsList: optionsListMobile, setQOptions,
-    qPoints, pointOptions: pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
+    qText, setQText, typesMobile, TYPE, qType, optionsListMobile, setQOptions,
+    qPoints, pointOptionsMobile, qCriteria, setQCriteria, canPublish, flash, publishAction: handlePublish,
     qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
     publishLabel: publishLabelText, publishNote: publishNoteText,
-    resolveTitle, resolveSubtitle, outcomes: outcomesMobile, resolveIsText, resolveText, setResolveText,
+    resolveTitle, resolveSubtitle, outcomesMobile, resolveIsText, resolveText, setResolveText,
     resolveSpellings, addResolveSpelling, removeResolveSpelling,
     canSettleNow, settleLabel: settleLabelText,
-    match, resolveNotesList: resolveNotesListMobile, SHEET, toast, settleAction: handleResolve, voidAction: handleVoid,
+    match, resolveNotesListMobile, SHEET, toast, settleAction: handleResolve, voidAction: handleVoid,
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     leagueName: league?.name,
     earliestOpenDeadline: earliestOpenDeadline ? formatDeadline(earliestOpenDeadline) : ''
   };
   
-  const propsDesktop = {
-    theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "", showContext: true,
+  const propsFull = {
+    ...props,
     contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", false, ""), tabItem("Table", false, ""), tabItem("Questions", true, questionBadge), tabItem("More", false, "")],
     onList, onEmpty, onCreate, onResolve, setSheet, SHEET, standingsHref,
     heroStyle: { padding: '24px 0 26px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' },
@@ -690,9 +678,9 @@ export default function QuestionsPage() {
     heroSub: allIn ? "points already committed" : "points still unclaimed",
     heroNote: allIn ? "Every open question is answered. You can change any of them until the deadline — the points only settle when somebody resolves the question." : `${owing} ${stakeLabel}. Questions score onto the same table as fixtures, so leaving one is the same as leaving a market blank.`,
     newBtnStyle: { flex: 'none', height: '40px', padding: '0 18px', borderRadius: '11px', display: 'grid', placeItems: 'center', cursor: 'pointer', font: "700 12.5px 'DM Sans',sans-serif", background: 'var(--nav-accent)', color: 'var(--nav-on-accent)' },
-    setView, allIn, stake, committed, owing, openItems: openItemsDesktop, pastGroups: pastGroupsDesktop,
-    qText, setQText, qType, setQType, types: typesDesktop, TYPE, optionsList: optionsListDesktop, setQOptions,
-    qPoints, setQPoints, pointOptions: pointOptionsDesktop, qCriteria, setQCriteria,
+    setView, allIn, stake, committed, owing, openItemsDesktop, pastGroupsDesktop,
+    qText, setQText, qType, setQType, typesDesktop, TYPE, optionsListDesktop, setQOptions,
+    qPoints, setQPoints, pointOptionsDesktop, qCriteria, setQCriteria,
     qDeadline, setQDeadline, qOutcomeAt, setQOutcomeAt, previewDeadlineLabel,
     canPublish, publishStyle: { marginTop: '22px', height: '48px', borderRadius: '13px', display: 'grid', placeItems: 'center', cursor: canPublish ? 'pointer' : 'default', font: "700 13.5px 'DM Sans',sans-serif", background: canPublish ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canPublish ? 'var(--color-on-brand)' : 'var(--text-muted)' },
     publishLabel: publishLabelText,
@@ -701,13 +689,13 @@ export default function QuestionsPage() {
     presets: STANDINGS_QUESTION_PRESETS, applyPreset,
     publishAction: handlePublish,
     previewText: qText || "Your question will read here", previewPoints: String(qPoints),
-    outcomes: outcomesDesktop, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
+    outcomesDesktop, resolveTitle, resolveSubtitle, resolveIsText, resolveText, setResolveText, canSettleNow,
     resolveSpellings, addResolveSpelling, removeResolveSpelling,
     match,
     settleStyle: { marginTop: '24px', height: '48px', borderRadius: '12px', display: 'grid', placeItems: 'center', font: "700 13.5px 'DM Sans',sans-serif", background: canSettleNow ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: canSettleNow ? 'var(--color-on-brand)' : 'var(--text-muted)', cursor: canSettleNow ? 'pointer' : 'not-allowed' },
     settleLabel: settleLabelText,
     settleAction: handleResolve, voidAction: handleVoid,
-    resolveNotesList: resolveNotesListDesktop, toast, toastStyle: {
+    resolveNotesListDesktop, toast, toastStyle: {
       position: 'fixed' as const, bottom: '30px', left: '50%', transform: `translateX(-50%) translateY(${toast ? '0' : '20px'})`,
       opacity: toast ? 1 : 0, transition: 'all .2s cubic-bezier(.1,.9,.2,1)', pointerEvents: 'none' as const, zIndex: 100,
       background: 'var(--nav-surface)', color: 'var(--nav-text)', padding: '0 18px', height: '42px', borderRadius: '21px',
@@ -720,16 +708,7 @@ export default function QuestionsPage() {
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      
-
-
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <LeagueQuestionsMobile {...propsMobile} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <LeagueQuestionsDesktop {...propsDesktop} />
-      </div>
+      <LeagueQuestionsScreen {...propsFull} />
     </div>
   );
 }
