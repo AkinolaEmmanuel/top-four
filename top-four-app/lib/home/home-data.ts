@@ -1,6 +1,5 @@
 import type { Api } from '@/lib/api/types';
 import type { LeagueListItem } from '@/lib/api/leagues';
-import type { CatalogueTeam } from '@/lib/api/catalogue';
 import { ordinal, pluralise } from '@/lib/format';
 
 /**
@@ -14,7 +13,7 @@ import { ordinal, pluralise } from '@/lib/format';
 
 export type PredictionTask = Api<'PredictionTaskPageDto'>['items'][number];
 
-/** Crest identity, which prediction-tasks does not carry — see `resolveCrest`. */
+/** A team as the screen draws it. */
 export interface TeamIdentity {
   code: string;
   name: string;
@@ -45,24 +44,20 @@ export interface HomeLeagueEntry {
 }
 
 /**
- * `prediction-tasks` returns a team's id and display name but neither its code
- * nor its crest, unlike fixture availability. Until the API carries both, the
- * catalogue is walked to recover them; `crests` is that lookup, and a team
- * missing from it falls back to the first three letters of its name.
+ * The feed now carries `code` and `logoUrl` directly. It did not until recently,
+ * which is why this screen used to walk the whole competition catalogue to
+ * recover them; that walk is gone. `code` is still nullable upstream, so the
+ * initials remain as a fallback.
  */
-export function resolveCrest(
-  team: { id: string; displayName: string },
-  crests: Record<string, CatalogueTeam>,
-): TeamIdentity {
-  const known = crests[team.id];
+export function toTeamIdentity(team: { code: string | null; logoUrl: string | null; displayName: string }): TeamIdentity {
   return {
-    code: known?.code || team.displayName.substring(0, 3).toUpperCase(),
+    code: team.code || team.displayName.substring(0, 3).toUpperCase(),
     name: team.displayName,
-    logoUrl: known?.logoUrl ?? null,
+    logoUrl: team.logoUrl,
   };
 }
 
-export function toQueueEntry(task: PredictionTask, crests: Record<string, CatalogueTeam>): HomeQueueEntry {
+export function toQueueEntry(task: PredictionTask): HomeQueueEntry {
   if (task.kind === 'fixture') {
     const open = task.missingPredictions?.length ?? 0;
     return {
@@ -73,8 +68,8 @@ export function toQueueEntry(task: PredictionTask, crests: Record<string, Catalo
       league: task.league.name,
       deadlineAt: task.nextDeadlineAt ?? null,
       openLabel: open > 0 ? pluralise(open, 'market') : 'Open',
-      home: resolveCrest(task.homeTeam, crests),
-      away: resolveCrest(task.awayTeam, crests),
+      home: toTeamIdentity(task.homeTeam),
+      away: toTeamIdentity(task.awayTeam),
       href: `/predict/fixture/${task.leagueFixtureId}?leagueId=${task.league.id}`,
     };
   }
@@ -102,13 +97,4 @@ export function toHomeLeague(league: LeagueListItem): HomeLeagueEntry {
     standing: league.ownStanding ? ordinal(league.ownStanding.position) : null,
     points: league.ownStanding ? pluralise(league.ownStanding.totalPoints, 'pt') : null,
   };
-}
-
-/** The competitions whose squads must be walked to recover the crests above. */
-export function competitionIdsIn(tasks: PredictionTask[]): string[] {
-  const ids = tasks
-    .filter((t): t is Extract<PredictionTask, { kind: 'fixture' }> => t.kind === 'fixture')
-    .map(t => t.competition?.id)
-    .filter((id): id is string => !!id);
-  return Array.from(new Set(ids));
 }
