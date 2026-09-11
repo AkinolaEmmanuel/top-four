@@ -1,0 +1,153 @@
+import type { Api } from '@/lib/api/types';
+import type { FixtureResultsResponse } from '@/lib/api/predictions-fixture';
+import { MARKET_LABELS } from '@/lib/constants/markets';
+import { ordinal } from '@/lib/format';
+
+/**
+ * The league overview's facts, shaped once on the server.
+ *
+ * As elsewhere, no presentation here — the screen decides how an urgent
+ * deadline or a settled fixture should look. This decides only what is true.
+ */
+
+const IDENTITY_TINTS = 7;
+/** Below this the screen calls the next lock urgent. */
+export const URGENT_WITHIN_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * A member's palette slot, keyed by their own id rather than their row
+ * position — a position-keyed tint repaints the same person a different colour
+ * every time the table reorders, which is what a settlement does.
+ */
+export function identityTint(membershipId: string): number {
+  let hash = 0;
+  for (let i = 0; i < membershipId.length; i++) {
+    hash = (hash * 31 + membershipId.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % IDENTITY_TINTS) + 1;
+}
+
+export type LeagueOverviewPhase = 'urgent' | 'caughtup' | 'live';
+
+export interface StandingRow {
+  membershipId: string;
+  position: number;
+  name: string;
+  initials: string;
+  points: number;
+  tint: number;
+  isYou: boolean;
+}
+
+export interface NextFixture {
+  leagueFixtureId: string;
+  homeName: string;
+  homeCode: string;
+  awayName: string;
+  awayCode: string;
+  kickoffAt: string | null;
+  /** Answered and required for this fixture alone, not the whole season. */
+  answered: number;
+  required: number;
+}
+
+export interface LastResult {
+  homeName: string;
+  awayName: string;
+  homeCode: string;
+  awayCode: string;
+  score: string | null;
+  pointsAwarded: number | null;
+  outcome: 'won' | 'part' | 'lost' | 'void' | null;
+  breakdown: Array<{ label: string; points: string; correct: boolean }>;
+}
+
+export interface RivalGap {
+  /** How the member sits in the whole league, not the loaded page of it. */
+  positionLabel: string;
+  /** Null when the member leads, or has no standing yet. */
+  behind: { points: number; name: string } | null;
+  clearOf: { points: number; positionLabel: string } | null;
+}
+
+export function toStandingRows(
+  entries: Api<'StandingEntryDto'>[],
+  ownMembershipId: string | undefined,
+  ownDisplayName: string | undefined,
+): StandingRow[] {
+  return entries.map(entry => {
+    const isYou = entry.membershipId === ownMembershipId;
+    const name = isYou && ownDisplayName ? ownDisplayName : entry.displayName;
+    return {
+      membershipId: entry.membershipId,
+      position: entry.position,
+      name,
+      initials: name.substring(0, 2).toUpperCase(),
+      points: entry.totalPoints,
+      tint: identityTint(entry.membershipId),
+      isYou,
+    };
+  });
+}
+
+export function toRivalGap(rows: StandingRow[], totalMembers: number): RivalGap {
+  const me = rows.find(r => r.isYou);
+  if (!me) return { positionLabel: 'Not ranked yet', behind: null, clearOf: null };
+
+  const above = rows.find(r => r.position === me.position - 1);
+  const below = rows.find(r => r.position === me.position + 1);
+
+  return {
+    positionLabel: `You are ${ordinal(me.position)} of ${totalMembers}`,
+    behind: above ? { points: above.points - me.points, name: above.name } : null,
+    clearOf: below ? { points: me.points - below.points, positionLabel: ordinal(below.position) } : null,
+  };
+}
+
+export function toLastResult(
+  fixture: {
+    homeTeam: string; awayTeam: string; homeTeamCode: string; awayTeamCode: string;
+    score?: { home: number; away: number }; pointsAwarded?: number;
+    predictionState?: string;
+  },
+  results: FixtureResultsResponse | undefined,
+): LastResult {
+  const outcome = fixture.predictionState === 'won' || fixture.predictionState === 'part'
+    || fixture.predictionState === 'lost' || fixture.predictionState === 'void'
+    ? fixture.predictionState : null;
+
+  return {
+    homeName: fixture.homeTeam,
+    awayName: fixture.awayTeam,
+    homeCode: fixture.homeTeamCode,
+    awayCode: fixture.awayTeamCode,
+    score: fixture.score ? `${fixture.score.home} — ${fixture.score.away}` : null,
+    pointsAwarded: fixture.pointsAwarded ?? null,
+    outcome,
+    breakdown: (results?.markets ?? []).map(m => ({
+      label: MARKET_LABELS[m.marketType] ?? m.marketType,
+      points: m.viewerOutcome ? (m.viewerOutcome.pointsDelta > 0 ? `+${m.viewerOutcome.pointsDelta}` : '0') : '',
+      correct: m.viewerOutcome?.outcome === 'correct',
+    })),
+  };
+}
+
+/** Time to the next lock, as the hero says it. */
+export function timeUntil(deadlineAt: string | null, nowMs: number): string {
+  if (!deadlineAt) return '—';
+  const diff = Date.parse(deadlineAt) - nowMs;
+  if (diff <= 0) return '0m';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+}
+
+export function phaseFor(
+  { complete, required }: { complete: boolean; required: number },
+  deadlineAt: string | null,
+  nowMs: number,
+): LeagueOverviewPhase {
+  if (required > 0 && complete) return 'caughtup';
+  if (deadlineAt && Date.parse(deadlineAt) - nowMs <= URGENT_WITHIN_MS) return 'urgent';
+  return 'live';
+}

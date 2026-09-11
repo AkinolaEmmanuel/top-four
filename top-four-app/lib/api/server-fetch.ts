@@ -11,6 +11,10 @@ import { ApiError } from './fetcher';
  *
  * Reads only. Every mutation stays on the client, because the CSRF token the API
  * requires for them is issued to the browser session and held in memory there.
+ *
+ * SERVER ONLY. `cookies()` exists solely in a Server Component, so importing
+ * this from anything marked `'use client'` is a mistake — the build complains,
+ * but not always loudly. Client code wants `apiFetch` from ./fetcher instead.
  */
 
 /** Absolute, because a server-side fetch has no origin to resolve `/api` against. */
