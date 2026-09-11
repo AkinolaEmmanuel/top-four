@@ -2,16 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LeagueRulesMobile } from '../../../components/leagues/LeagueRulesMobile';
-import { LeagueRulesDesktop } from '../../../components/leagues/LeagueRulesDesktop';
+import { LeagueRulesScreen } from '../../../components/leagues/LeagueRulesScreen';
 import { useLeague, useUpdateLeague } from '@/hooks/api/useLeagues';
 import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
-import { useAuth } from '@/context/auth-context';
 
 export default function LeagueRulesPage({ params }: { params: { id: string } }) {
-  const { user } = useAuth();
   const router = useRouter();
-  const { data: league, isLoading: leagueLoading, isError: leagueError } = useLeague(params.id);
+  const { data: league, isLoading: leagueLoading, isError: leagueError, refetch: refetchLeague } = useLeague(params.id);
   const updateLeagueMutation = useUpdateLeague(params.id);
   const { data: notifPrefs } = useNotificationPreferences();
   const updateNotifPrefs = useUpdateNotificationPreferences();
@@ -64,7 +61,14 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const [screen] = useState<'rules' | 'settings' | 'participant'>('rules');
 
   const isLoading = leagueLoading;
-  const isTerminal = leagueError || (!isLoading && !league);
+  // A real fetch error and "loaded fine, but there's no such league" are
+  // different situations with different, already-written copy below -- but
+  // the selector picking between them was `isTerminal ? "error" : "error"`,
+  // so "notfound" was unreachable dead code and a genuinely-missing or
+  // inaccessible league always got the generic "check your connection"
+  // message instead of its own honest explanation.
+  const notFound = !isLoading && !league && !leagueError;
+  const isTerminal = !!leagueError || notFound;
   const isReady = !isLoading && !isTerminal;
 
   const role = league?.membership?.role || 'participant';
@@ -175,7 +179,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
   const TERM = {
     notfound: ["ghost", "var(--text-muted)", "Not found, or no longer available", "This league either does not exist or is not one you can see. TopFour does not say which — that distinction would itself leak who is in which league.", "BACK TO MY LEAGUES"],
     error: ["warning", "var(--warn-text)", "The rules didn't load", "Check your connection and try again. Nothing about the league has changed.", "RETRY"]
-  }[isTerminal ? "error" : "error"];
+  }[notFound ? "notfound" : "error"];
 
   const IconMap: Record<string, any> = {
     lock: (size: number) => (
@@ -273,67 +277,61 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
     { label: "Approval for new members", note: league?.invitationSettings?.joinApprovalRequired ? "Currently on" : "Currently off", onClick: handleToggleApproval }
   ];
 
-  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map((it) => {
-    const label = it[0], id = it[1], badge = it[2];
-    return {
-      label, id, badge,
-      badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--nav-accent)', color: 'var(--nav-on-accent)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' },
-      style: { display: 'flex', alignItems: 'center', padding: '7px 13px', borderRadius: '9px', font: "600 12.5px 'DM Sans',sans-serif", cursor: 'pointer', background: id === "leagues" ? 'var(--nav-fill)' : 'transparent', opacity: id === "leagues" ? 1 : 0.66 } 
-    };
-  });
-
   const tabItem = (label: string, on: boolean) => ({
     label, style: { padding: '0 13px', height: '43px', display: 'flex', alignItems: 'center', fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
   });
 
   const TERM_ICON_DESKTOP = IconMap[TERM[0] as string] ? IconMap[TERM[0] as string](40) : null;
 
-  const propsMobile = {
-    theme, params, isLoading, isTerminal, isReady, isRules, isOwner,
-    ds: isTerminal ? 'error' : isLoading ? 'loading' : 'live',
-    IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
-    showDanger, sections, dangerLines: dangerLinesMobile, footNote, retry: () => {}, dataState: 'live',
-    leagueName
-  };
+  // Real max-points explanation, shared by both layouts. Mobile used to
+  // hardcode a literal "40" for the hero number and a matching hardcoded
+  // breakdown sentence ("2 result + 5 score + 1 both teams + ... + 22
+  // lineup") regardless of the league's actual enabled markets and point
+  // values -- maxPoints/maxNote were computed for Desktop only and never
+  // even passed to Mobile's props.
+  const maxNote = (() => {
+    const flat = enabled.filter(m => !m.perPlayer);
+    const lineup = enabled.find(m => m.perPlayer);
+    const off = MARKETS.filter(m => m.off).map(m => m.name);
+    const parts = [`${flat.length} ${flat.length === 1 ? 'market' : 'markets'} at ${flat.reduce((a, m) => a + m.pts, 0)} points`];
+    if (lineup) parts.push(`plus twenty-two lineup places at ${lineup.pts} each — both elevens`);
+    let note = parts.join(', ') + '.';
+    if (off.length) note += ` ${off.join(', ')} ${off.length === 1 ? 'is' : 'are'} not run here.`;
+    return note;
+  })();
 
-  const propsDesktop = {
-    theme, rootNav, avatarInitials: (user?.displayName || "??").substring(0, 2).toUpperCase(), avatarName: user?.displayName || "",
-    showContext: !isTerminal, roleLine: participant ? "You play in this league" : isOwner ? "You own this league" : "You are an admin",
+  // "RETRY" and "BACK TO MY LEAGUES" both used to be a no-op () => {} on
+  // both platforms regardless of which terminal state was showing.
+  const retryAction = notFound ? () => router.push('/leagues') : () => refetchLeague();
+
+  const props = {
+    theme, params, isLoading, isTerminal, isReady, isRules, isOwner,
+    IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
+    footNote, retry: retryAction,
+    leagueName,
+    maxPoints: String(maxPointsDesktop), maxNote,
+
+    // Mobile-specific
+    sections, showDanger, dangerLinesMobile,
+
+    // Desktop-specific
+    showContext: !isTerminal,
+    roleLine: participant ? "You play in this league" : isOwner ? "You own this league" : "You are an admin",
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", false), tabItem("Table", false), tabItem("Questions", false), tabItem("More", true)],
-    isLoading, skeletons: [{ w: "58%" }, { w: "70%" }, { w: "46%" }, { w: "64%" }],
-    isTerminal, termIcon: TERM_ICON_DESKTOP, termIconColor: TERM[1], termTitle: TERM[2], termBody: TERM[3], termAction: TERM[4],
+    skeletons: [{ w: "58%" }, { w: "70%" }, { w: "46%" }, { w: "64%" }],
+    termIcon: TERM_ICON_DESKTOP, termIconColor: TERM[1], termTitle: TERM[2], termBody: TERM[3], termAction: TERM[4],
     termActionStyle: { marginTop: "24px", padding: "0 22px", height: "48px", borderRadius: "13px", border: "1px solid var(--surface-border-strong)", background: "var(--surface-card)", display: "grid", placeItems: "center", font: "700 12.5px 'DM Sans',sans-serif", cursor: "pointer" },
-    retry: () => {},
-    isReady, showMaxPoints: true,
     heroStyle: { flex: "none", background: "var(--nav-surface)", color: "var(--nav-text)", padding: "24px 0 26px", borderBottom: "1px solid rgba(255,255,255,.1)" },
-    maxPoints: String(maxPointsDesktop), maxNote: (() => {
-      const flat = enabled.filter(m => !m.perPlayer);
-      const lineup = enabled.find(m => m.perPlayer);
-      const off = MARKETS.filter(m => m.off).map(m => m.name);
-      const parts = [`${flat.length} ${flat.length === 1 ? 'market' : 'markets'} at ${flat.reduce((a, m) => a + m.pts, 0)} points`];
-      if (lineup) parts.push(`plus twenty-two lineup places at ${lineup.pts} each — both elevens`);
-      let note = parts.join(', ') + '.';
-      if (off.length) note += ` ${off.join(', ')} ${off.length === 1 ? 'is' : 'are'} not run here.`;
-      return note;
-    })(),
     showFrozenBanner: true, lockIcon: IconMap.lock(16),
-    frozenText: participant ? "These rules were frozen when the league was published. Nobody can change them now, including the owner — you answered under them, so they hold." : "Scoring, tiebreakers and competitions froze at publication. Members answered under them, so they cannot change while the league runs.",
     markets: marketsDesktop, tiebreakers: tiebreakersDesktop,
     comps: COMPS.map(c => ({ abbr: c.abbr, name: c.name, scope: c.scope, abbrStyle: { width: "38px", height: "28px", borderRadius: "8px", flex: "none", display: "grid", placeItems: "center", font: "700 9.5px 'DM Sans',sans-serif", background: "var(--surface-subtle)", color: "var(--text-secondary)" } })),
-    deadlines: deadlinesDesktop, showDanger: isOwner, dangerLines: dangerLinesDesktop,
+    deadlines: deadlinesDesktop, showDangerDesktop: isOwner, dangerLinesDesktop,
     showEditable: isOwner, editable: editableDesktop, showLeave: participant,
-    footNote: participant ? "If a rule here looks wrong, it is still the rule — raise it with an admin rather than expecting a correction. Only a platform re-settlement can move points after the fact, never a league admin." : "Changing anything frozen would mean members had answered under different rules. That is why the only route is completing this league and starting another.",
-    leagueName, params
   };
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <LeagueRulesMobile {...propsMobile} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <LeagueRulesDesktop {...propsDesktop} />
-      </div>
+      <LeagueRulesScreen {...props} />
     </div>
   );
 }
