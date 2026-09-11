@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueMoreMobileProps } from './league-more-props';
 
 export function LeagueMoreMobile({
   theme, params, owner, admin, runs, done,
   groups, roleLabel, lifecycleLabel, footNote, IconMap, tabs, leagueName
-}: any) {
+}: LeagueMoreMobileProps) {
 
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>

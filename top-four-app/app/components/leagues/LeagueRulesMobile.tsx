@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueRulesMobileProps } from './league-rules-props';
 
 export function LeagueRulesMobile({
   theme, params, isLoading, isTerminal, isReady, isRules, isOwner,
   ds, IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
   showDanger, sections, dangerLines, footNote, retry, dataState,
   maxPoints, maxNote
-}: any) {
+}: LeagueRulesMobileProps) {
 
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>

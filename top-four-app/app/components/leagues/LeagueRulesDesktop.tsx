@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueRulesDesktopProps } from './league-rules-props';
 
 export function LeagueRulesDesktop({
   theme, rootNav, avatarInitials, avatarName, showContext, roleLine, contextTabs,
@@ -8,7 +9,7 @@ export function LeagueRulesDesktop({
   isReady, showMaxPoints, heroStyle, maxPoints, maxNote, showFrozenBanner, lockIcon, frozenText,
   markets, tiebreakers, comps, deadlines, showDanger, dangerLines, showEditable, editable, showLeave, footNote,
   leagueName, params
-}: any) {
+}: LeagueRulesDesktopProps) {
 
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>

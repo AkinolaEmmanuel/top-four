@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueMoreDesktopProps } from './league-more-props';
 
 export function LeagueMoreDesktop({
   theme, rootNav, avatarInitials, avatarName, showContext, contextTabs,
   headSub, roleLabel, roleChipStyle, lifecycleLabel, lifecycleStyle,
   mainGroups, endLabel, endRows, footNote, leagueName, memberCount, params
-}: any) {
+}: LeagueMoreDesktopProps) {
 
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>

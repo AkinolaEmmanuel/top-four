@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeaguesMobileProps } from './leagues-props';
 
 export function LeaguesMobile({
   theme, state, filter, filters, groups, isLoading, isEmpty, isReady,
   atCapacity, capacityLabel, skeletons, IconMap, tabs
-}: any) {
+}: LeaguesMobileProps) {
   const hasFilters = isReady;
 
   return (

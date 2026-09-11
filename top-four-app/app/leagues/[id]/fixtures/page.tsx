@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { LeagueFixturesMobile } from '../../../components/leagues/LeagueFixturesMobile';
 import { LeagueFixturesDesktop } from '../../../components/leagues/LeagueFixturesDesktop';
@@ -247,9 +248,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     theme, params, st, isLoading, isEmpty, showList, results,
     headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
     segments: segmentsMobile, filters: filtersMobile, groups: groupsMobile,
-    IconMap, tabs,
-    leagueName: league?.name,
-    memberCount: league?.memberCount
+    IconMap, tabs
   };
 
   const propsDesktop = {
@@ -259,7 +258,7 @@ export default function LeagueFixturesPage({ params }: { params: { id: string } 
     isLoading, skeletons: [{ w: "260px" }, { w: "210px" }, { w: "280px" }, { w: "190px" }, { w: "250px" }, { w: "220px" }],
     chipSkeletons: ["58px", "96px", "72px", "78px"].map(w => ({ w })),
     skeletonRowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center' },
-    headRowStyle: { display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center', padding: '10px 4px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--surface-canvas)', borderBottom: '1px solid var(--surface-border-strong)' },
+    headRowStyle: { display: 'grid', gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center', padding: '10px 4px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--surface-canvas)', borderBottom: '1px solid var(--surface-border-strong)' } satisfies CSSProperties,
     isEmpty, emptyTitle, emptyBody, showList, groups: groupsDesktop, loadMore, showLoadMore, loadMoreAction, footNote,
     footNoteStyle: { marginTop: '26px', paddingTop: '18px', borderTop: '1px solid var(--surface-border)', fontSize: '11.5px', lineHeight: 1.6, color: 'var(--text-muted)', maxWidth: '78ch' },
     colMid: results ? "Score" : "Kick-off", colNote: results ? "What landed" : "Your answers", colRight: results ? "Points" : "Locks in",

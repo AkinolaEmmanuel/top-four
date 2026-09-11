@@ -306,7 +306,7 @@ export default function LeagueRulesPage({ params }: { params: { id: string } }) 
 
   const propsMobile = {
     theme, params, isLoading, isTerminal, isReady, isRules, isOwner,
-    ds: isTerminal ? 'error' : isLoading ? 'loading' : 'live',
+    ds: (isTerminal ? 'error' : isLoading ? 'loading' : 'live') as 'error' | 'loading' | 'live',
     IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
     showDanger, sections, dangerLines: dangerLinesMobile, footNote, retry: () => {}, dataState: 'live',
     maxPoints: String(maxPoints), maxNote,

@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeaguesDesktopProps } from './leagues-props';
 
 export function LeaguesDesktop({
   theme, state, filter, filters, groups, isLoading, isEmpty, isReady,
   atCapacity, capacityLabel, skeletons, rootNav, user
-}: any) {
+}: LeaguesDesktopProps) {
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
 

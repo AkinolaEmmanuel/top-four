@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueFixturesMobileProps } from './league-fixtures-props';
 import Image from 'next/image';
 
 function Crest({ logo, code, color }: { logo?: string | null; code: string; color: string }) {
@@ -19,7 +20,7 @@ export function LeagueFixturesMobile({
   headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
   segments, filters, groups,
   IconMap, tabs
-}: any) {
+}: LeagueFixturesMobileProps) {
 
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>

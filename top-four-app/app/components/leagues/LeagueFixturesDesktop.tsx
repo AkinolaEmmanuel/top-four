@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type { LeagueFixturesDesktopProps } from './league-fixtures-props';
 import Image from 'next/image';
 
 function Crest({ logo, code, color }: { logo?: string | null; code: string; color: string }) {
@@ -19,7 +20,7 @@ export function LeagueFixturesDesktop({
   headSub, segments, showFilters, filters, isLoading, skeletons, chipSkeletons, skeletonRowStyle, headRowStyle,
   isEmpty, emptyTitle, emptyBody, showList, groups, loadMore, showLoadMore, loadMoreAction, footNote, footNoteStyle, colMid, colNote, colRight,
   leagueName, memberCount, params
-}: any) {
+}: LeagueFixturesDesktopProps) {
 
   return (
     <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>
