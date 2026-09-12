@@ -9,6 +9,7 @@ import { TeamCrest } from '../TeamCrest';
 import { tintFor } from '@/lib/crest';
 import { heroGradient } from '@/lib/crest-colour';
 import { useTeamPalettes } from '@/hooks/useTeamPalettes';
+import { ThemeMenu } from '../ThemeMenu';
 import type { HomeLeagueEntry, HomeQueueEntry, TeamIdentity } from '@/lib/home/home-data';
 
 /**
@@ -193,7 +194,7 @@ export function HomeScreen({
       <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
         <div className="flex-1 grid place-items-center p-[var(--gutter)]">
           <div className="flex flex-col items-center text-center max-w-[440px]">
-            <div className="w-[54px] h-[54px] rounded-[15px] bg-[var(--color-brand)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[18px]">T/</div>
+            <div className="w-[54px] h-[54px] rounded-[15px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[18px]">T/</div>
             <h1 className="font-heading font-bold text-[24px] md:text-[30px] leading-[1.12] tracking-[-0.7px] mt-[20px]">Join or create a league to begin</h1>
             <p className="text-[13.5px] md:text-[14px] leading-[1.6] text-[var(--text-secondary)] mt-[10px]">
               You need to join or create a league to start predicting. You can be in up to twenty at once — finished leagues give their place back.
@@ -216,6 +217,9 @@ export function HomeScreen({
       <header className="md:hidden bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(14px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[16px] flex-none flex items-center justify-between">
         <div className="font-heading font-bold text-[19px] leading-[1] tracking-[-0.7px]">TOPFOUR<span className="text-[var(--nav-accent)]">/</span></div>
         <div className="flex items-center gap-[9px]">
+          {/* Beside the bell here too: the phone has no level-one bar, and
+              burying appearance in Me is the thing this was meant to fix. */}
+          <ThemeMenu />
           <Link href="/alerts" className="relative w-[36px] h-[36px] rounded-full grid place-items-center" aria-label={unreadCount > 0 ? `Alerts, ${unreadCount} unread` : 'Alerts'}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />

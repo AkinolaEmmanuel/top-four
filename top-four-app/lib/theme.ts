@@ -12,12 +12,18 @@ export const THEME_STORAGE_KEY = 'tf.theme';
  *
  * Inlined in <head> and run synchronously: a stored dark choice applied after
  * hydration means a white flash on every load.
+ *
+ * Every fallback path lands on the device's own preference, never on a fixed
+ * theme: "system" is the default and blocked site data should not change that.
  */
 export const THEME_INIT_SCRIPT = `(function(){try{
 var c=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';
 var d=c==='dark'||(c==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);
 document.documentElement.dataset.theme=d?'dark':'light';
-}catch(e){document.documentElement.dataset.theme='dark';}})();`;
+}catch(e){
+try{document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+catch(e2){document.documentElement.dataset.theme='light';}
+}})();`;
 
 export function resolveTheme(choice: ThemeChoice): 'light' | 'dark' {
   if (choice !== 'system') return choice;

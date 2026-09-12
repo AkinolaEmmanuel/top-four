@@ -162,7 +162,7 @@ export function LeagueAdminScreen({
               <div className="flex-1 md:flex-none min-w-0">
                 <div className="flex items-center gap-[7px]">
                   <span className="font-heading font-semibold text-[13.5px] truncate">{member.name}</span>
-                  {member.isYou && <span className="font-heading font-bold text-[8.5px] tracking-[0.08em] px-[5px] py-[2px] rounded-[4px] bg-[var(--color-brand)] text-[var(--color-on-brand)] flex-none">YOU</span>}
+                  {member.isYou && <span className="font-heading font-bold text-[8.5px] tracking-[0.08em] px-[5px] py-[2px] rounded-[4px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] flex-none">YOU</span>}
                 </div>
                 {/* The phone stacks role and joined date under the name because
                     it has nowhere else; at width each is its own column. */}

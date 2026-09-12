@@ -132,7 +132,7 @@ export function LeagueOverviewScreen({
               <div key={rival.membershipId} className={`flex items-center gap-[11px] p-[11px_var(--gutter)] md:px-0 border-t border-[var(--surface-border)] ${rival.isYou ? 'bg-[var(--accent-surface)] md:bg-transparent shadow-[inset_3px_0_0_0_var(--color-brand)] md:shadow-none' : ''}`}>
                 <span className="font-heading font-bold text-[11px] w-[20px] tf-num text-[var(--text-muted)]">{rival.position}</span>
                 <span
-                  className={`w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] ${rival.isYou ? 'bg-[var(--color-brand)] text-[var(--color-on-brand)]' : 'text-[var(--text-primary)]'}`}
+                  className={`w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] ${rival.isYou ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)]' : 'text-[var(--text-primary)]'}`}
                   style={rival.isYou ? undefined : { background: `var(--ident-${rival.tint})` }}
                 >
                   {rival.initials}

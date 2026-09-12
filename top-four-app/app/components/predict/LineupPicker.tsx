@@ -211,7 +211,7 @@ export function LineupPicker({
                 onClick={() => changeFormation(f)}
                 className={`h-[32px] px-[12px] rounded-[8px] font-heading font-bold text-[12px] border ${
                   formation === f
-                    ? 'bg-[var(--color-brand)] border-[var(--color-brand)] text-[var(--color-on-brand)]'
+                    ? 'bg-[var(--brand-fill)] border-[var(--brand-fill)] text-[var(--color-on-brand)]'
                     : 'border-[var(--surface-border-strong)] text-[var(--text-secondary)]'
                 }`}
               >

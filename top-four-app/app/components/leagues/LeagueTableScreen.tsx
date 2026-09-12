@@ -166,7 +166,7 @@ export function LeagueTableScreen({
 
                   <span className="flex items-center gap-[10px] min-w-0">
                     <span
-                      className={`w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] ${row.isYou ? 'bg-[var(--color-brand)] text-[var(--color-on-brand)]' : 'text-[var(--text-primary)]'}`}
+                      className={`w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] ${row.isYou ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)]' : 'text-[var(--text-primary)]'}`}
                       style={row.isYou ? undefined : { background: `var(--ident-${row.tint})` }}
                     >
                       {row.initials}

@@ -79,7 +79,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
           For safety we don&apos;t say which. Ask whoever invited you for a fresh link.
         </p>
-        <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
+        <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors">
           Go to my leagues
         </Link>
       </AuthShell>
@@ -92,7 +92,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
           Leagues that have finished don&apos;t count and stay in your history, so finishing or leaving one makes room. Nothing about this invitation is lost -- come back to the link once you have room.
         </p>
-        <Link href="/leagues" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
+        <Link href="/leagues" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors">
           Choose one to leave
         </Link>
       </AuthShell>
@@ -107,7 +107,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
         <button
           type="button"
           onClick={() => { setFailed(null); setStatus('ready'); }}
-          className="inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors"
+          className="inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors"
         >
           Try again
         </button>
@@ -124,7 +124,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
           We&apos;ll tell you the moment somebody decides. Until then you can&apos;t see its fixtures or its table.
         </p>
-        <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
+        <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors">
           Back to my leagues
         </Link>
       </AuthShell>
@@ -136,7 +136,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
       <AuthShell eyebrow="You're in" title={`${preview?.league.name || 'The league'} is yours to play`} subtitle="Fixtures and questions are ready for predictions.">
         <Link
           href={outcome && 'leagueId' in outcome ? `/leagues/${outcome.leagueId}` : '/home'}
-          className="mt-2 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors"
+          className="mt-2 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors"
         >
           Start predicting
         </Link>
@@ -151,7 +151,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
       <div className="space-y-3">
         <Link
           href={signUpHref}
-          className="inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors"
+          className="inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors"
         >
           Create an account and join
         </Link>

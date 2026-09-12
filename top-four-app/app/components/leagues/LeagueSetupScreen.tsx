@@ -253,13 +253,25 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
   ];
 
   return (
-    <div className="flex flex-col flex-1 bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
-      <Breadcrumb trail={[{ label: 'Leagues', href: '/leagues' }, { label: 'New league' }]} />
+    /* `min-h-0` on both this and the container below is load-bearing. A flex
+       item defaults to `min-height:auto`, so it refuses to shrink below its
+       content: this column grew to 1160px inside a 923px viewport, the body
+       clipped the overflow, and `main` was handed a height that already fit —
+       so nothing scrolled and the rounds picker simply could not be reached. */
+    <div className="flex flex-col flex-1 min-h-0 bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+      {/* On the nav band: this screen's own header is dark, so a light trail
+          between the two reads as a white stripe rather than as chrome. */}
+      <Breadcrumb tone="dark" trail={[{ label: 'Leagues', href: '/leagues' }, { label: 'New league' }]} />
 
       {/* App Container */}
-      <div className="flex flex-col flex-1 w-full max-w-[1080px] mx-auto overflow-hidden relative">
+      <div className="flex flex-col flex-1 min-h-0 w-full overflow-hidden relative">
 
-        <header className="flex-none space-y-5 text-[var(--nav-text)] p-[8px_var(--gutter)_14px]">
+        {/* The dark band the header's colours were written for. It carried
+            `--nav-text` — white — with no background behind it, so on the light
+            canvas the whole header read as blank space. Full-bleed with the
+            content capped inside, the same shape Home and Predict use. */}
+        <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)]">
+          <div className="w-full max-w-[1080px] mx-auto space-y-5 p-[8px_var(--gutter)_14px]">
           <div className="flex items-center gap-[11px]">
             <button type="button" onClick={() => { const b = backFor[step]; if (b) { setStep(b); setSheet(null); } }} className={`w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center text-[15px] flex-none text-[var(--nav-text-quiet)] cursor-pointer ${step === '1' || step === 'done' ? 'opacity-35' : ''}`}>
               ‹
@@ -325,13 +337,14 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
               );
             })}
           </div>
+          </div>
         </header>
 
         {/* Three columns at width. A wizard that shows one step at a time is a
             phone's answer to a small screen; on a screen whose output is frozen
             forever at publication, hiding what the earlier steps decided is the
             wrong trade. */}
-        <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)] md:grid md:grid-cols-[220px_minmax(0,1fr)_280px] md:gap-[28px] md:px-[24px] md:pt-[20px] md:items-start">
+        <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)] w-full max-w-[1080px] mx-auto md:grid md:grid-cols-[220px_minmax(0,1fr)_280px] md:gap-[28px] md:px-[24px] md:pt-[20px] md:items-start">
 
           <nav aria-label="Setup steps" className="hidden md:block md:sticky md:top-[20px]">
             {STEP_TRAIL.map(entry => {

@@ -83,7 +83,7 @@ export default function NamePage() {
               <button 
                 onClick={handleSave}
                 disabled={!name.trim() || updateName.isPending}
-                className="h-[46px] px-[24px] rounded-[11px] bg-[var(--color-brand)] hover:bg-[var(--color-brand)]/90 text-white font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)] disabled:opacity-50 transition-all cursor-pointer"
+                className="h-[46px] px-[24px] rounded-[11px] bg-[var(--brand-fill)] hover:bg-[var(--color-brand-hover)] text-white font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)] disabled:opacity-50 transition-all cursor-pointer"
               >
                 {updateName.isPending ? 'Saving...' : 'Save Changes'}
               </button>

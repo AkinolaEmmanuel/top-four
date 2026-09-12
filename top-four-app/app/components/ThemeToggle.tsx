@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { readThemeChoice, applyThemeChoice, resolveTheme, type ThemeChoice } from '@/lib/theme';
+import { useThemeChoice } from '@/hooks/useThemeChoice';
+import type { ThemeChoice } from '@/lib/theme';
 
 const OPTIONS: { id: ThemeChoice; label: string }[] = [
   { id: 'system', label: 'System' },
@@ -10,19 +10,7 @@ const OPTIONS: { id: ThemeChoice; label: string }[] = [
 ];
 
 export function ThemeToggle() {
-  // The stored choice is only readable in the browser, so the first render
-  // matches the server's and the real value arrives on mount.
-  const [choice, setChoice] = useState<ThemeChoice>('system');
-
-  useEffect(() => { setChoice(readThemeChoice()); }, []);
-
-  useEffect(() => {
-    if (choice !== 'system') return;
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const sync = () => { document.documentElement.dataset.theme = resolveTheme('system'); };
-    media.addEventListener('change', sync);
-    return () => media.removeEventListener('change', sync);
-  }, [choice]);
+  const [choice, choose] = useThemeChoice();
 
   return (
     <div className="flex items-center justify-between p-[14px_var(--gutter)] md:px-0 border-t border-[var(--surface-border)]">
@@ -41,7 +29,7 @@ export function ThemeToggle() {
               type="button"
               role="radio"
               aria-checked={on}
-              onClick={() => { setChoice(option.id); applyThemeChoice(option.id); }}
+              onClick={() => choose(option.id)}
               className={`h-[30px] px-[11px] rounded-[8px] font-heading font-semibold text-[11px] transition-colors ${
                 on
                   ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]'

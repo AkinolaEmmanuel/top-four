@@ -16,26 +16,38 @@ export interface Crumb {
   href?: string;
 }
 
-export function Breadcrumb({ trail }: { trail: Crumb[] }) {
+/**
+ * `dark` puts the trail on the nav band instead of the card.
+ *
+ * A screen whose own header is dark — league setup — otherwise gets a white
+ * stripe between two navy ones, and the chrome reads as three bars rather than
+ * one block. The light tone stays the default: everywhere else the breadcrumb
+ * sits above light content and belongs to it.
+ */
+export function Breadcrumb({ trail, tone = 'light' }: { trail: Crumb[]; tone?: 'light' | 'dark' }) {
+  const dark = tone === 'dark';
   return (
     <nav
       aria-label="Breadcrumb"
-      className="hidden md:block flex-none bg-[var(--surface-card)]"
+      className={`hidden md:block flex-none ${dark ? 'bg-[var(--nav-surface)]' : 'bg-[var(--surface-card)]'}`}
     >
       {/* Edge to edge with the same 24px as the bars above and below it. Capped
           at 1080 and centred, the trail started 167px in on a 1365px window
           while the brand mark and the league crest both started at 24 — the
           same mistake level one was making. */}
-      <ol className="px-[24px] h-[38px] flex items-center gap-[7px] text-[11.5px] text-[var(--text-muted)]">
+      <ol className={`px-[24px] h-[38px] flex items-center gap-[7px] text-[11.5px] ${dark ? 'text-[var(--nav-text-faint)]' : 'text-[var(--text-muted)]'}`}>
         {trail.map((crumb, i) => (
           <li key={i} className="flex items-center gap-[7px] min-w-0">
-            {i > 0 && <span aria-hidden="true" className="text-[var(--surface-border-strong)]">/</span>}
+            {i > 0 && <span aria-hidden="true" className={dark ? 'text-[var(--nav-border)]' : 'text-[var(--surface-border-strong)]'}>/</span>}
             {crumb.href ? (
-              <Link href={crumb.href} className="truncate hover:text-[var(--text-link)] transition-colors">
+              <Link
+                href={crumb.href}
+                className={`truncate transition-colors ${dark ? 'text-[var(--nav-text-quiet)] hover:text-[var(--nav-text)]' : 'hover:text-[var(--text-link)]'}`}
+              >
                 {crumb.label}
               </Link>
             ) : (
-              <span className="truncate text-[var(--text-secondary)]" aria-current="page">{crumb.label}</span>
+              <span className={`truncate ${dark ? 'text-[var(--nav-text)]' : 'text-[var(--text-secondary)]'}`} aria-current="page">{crumb.label}</span>
             )}
           </li>
         ))}

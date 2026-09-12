@@ -5,6 +5,7 @@ import { personInitials } from '@/lib/format';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
+import { ThemeMenu } from './ThemeMenu';
 
 export function DesktopLevelOne() {
   const pathname = usePathname() || '';
@@ -60,6 +61,8 @@ export function DesktopLevelOne() {
         </Link>
       </div>
       
+      <ThemeMenu />
+
       <Link
         href="/alerts"
         className={`relative flex items-center justify-center w-[36px] h-[36px] rounded-full flex-none cursor-pointer ${pathname.startsWith('/alerts') ? 'bg-[var(--nav-fill)]' : 'opacity-[0.8] hover:opacity-100'}`}

@@ -58,7 +58,7 @@ function SignupForm() {
         </p>
         <Link
           href={redirectTarget !== '/home' ? `/?redirect=${encodeURIComponent(redirectTarget)}` : '/'}
-          className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors"
+          className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors"
         >
           Go to sign in
         </Link>
@@ -68,7 +68,7 @@ function SignupForm() {
 
   const inputClasses = "flex h-11 w-full rounded-md border border-[var(--border-base)] bg-[var(--surface-canvas)] px-3 py-2 text-sm ring-offset-[var(--surface-canvas)] file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-[var(--text-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-[var(--text-primary)]";
   const labelClasses = "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[var(--text-primary)]";
-  const buttonClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-[var(--surface-canvas)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 h-11 px-8 py-2 w-full font-bold tracking-wide";
+  const buttonClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-[var(--surface-canvas)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] h-11 px-8 py-2 w-full font-bold tracking-wide";
 
   return (
     <AuthShell

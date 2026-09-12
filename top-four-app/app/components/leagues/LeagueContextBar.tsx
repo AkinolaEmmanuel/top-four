@@ -35,7 +35,7 @@ export function LeagueContextBar({
   return (
     <div className="hidden md:flex flex-none items-end gap-[20px] h-[54px] px-[24px] bg-[var(--surface-card)] border-b border-[var(--surface-border)]">
       <div className="flex items-center gap-[10px] pb-[11px] min-w-0">
-        <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[10px] flex-none">
+        <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[10px] flex-none">
           {leagueInitials(leagueName)}
         </span>
         {linkName
