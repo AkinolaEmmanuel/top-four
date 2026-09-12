@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { LeagueColumn } from './LeagueColumn';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLeaveLeague } from '@/hooks/api/useLeagues';
@@ -72,7 +73,7 @@ export function LeagueMoreScreen({ leagueId, leagueName, lifecycleLabel, roleLab
     `flex items-center gap-[13px] p-[13px_var(--gutter)] md:px-[6px] border-t border-[var(--surface-border)] last:border-b w-full text-left ${entry.tone === 'danger' ? 'shadow-[inset_3px_0_0_0_var(--color-danger)]' : ''}`;
 
   return (
-    <>
+    <LeagueColumn className="md:pt-[20px]">
 
 
 
@@ -114,6 +115,6 @@ export function LeagueMoreScreen({ leagueId, leagueName, lifecycleLabel, roleLab
           </div>
 
           <p className="p-[20px_var(--gutter)_26px] md:px-0 text-[11px] leading-[1.6] text-[var(--text-muted)]">{footNote}</p>
-    </>
+    </LeagueColumn>
   );
 }

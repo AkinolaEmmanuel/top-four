@@ -78,11 +78,11 @@ export default async function LeagueLayout({
 
       <LeagueTabs leagueId={id} badge={unansweredBadge} variant="phone" />
 
+      {/* No column here. Each screen puts its own content in one — see
+          LeagueColumn — because a band has to be able to run the full width,
+          and anything the layout wraps is wrapped whether it is content or not. */}
       <main className="tf-scroll flex-1 min-h-0 overflow-auto pb-[86px] md:pb-[26px]">
-        {/* One column for every screen, so a tab switch never reflows the page. */}
-        <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:pt-[20px]">
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );

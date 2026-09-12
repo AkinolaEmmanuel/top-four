@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { LeagueColumn } from './LeagueColumn';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUpdateLeague } from '@/hooks/api/useLeagues';
@@ -136,7 +137,7 @@ export function LeagueRulesScreen({
   };
 
   return (
-    <>
+    <LeagueColumn className="md:pt-[20px]">
 
 
 
@@ -220,6 +221,6 @@ export function LeagueRulesScreen({
           <p className="p-[20px_var(--gutter)_26px] md:px-[6px] text-[11px] leading-[1.6] text-[var(--text-muted)]">
             Changing anything frozen would mean members had answered under different rules. That is why the only route is completing this league and starting another.
           </p>
-    </>
+    </LeagueColumn>
   );
 }

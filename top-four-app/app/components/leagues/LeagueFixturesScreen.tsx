@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LeagueColumn } from './LeagueColumn';
 import { TeamCrest } from '../TeamCrest';
 import { timeUntilLabel } from '@/lib/format';
 import { FIXTURE_FILTERS, type FixtureFilter } from '@/lib/leagues/league-fixtures';
@@ -147,7 +148,7 @@ export function LeagueFixturesScreen({
   const nowMs = Date.now();
 
   return (
-    <>
+    <LeagueColumn className="md:pt-[20px]">
 
 
 
@@ -251,6 +252,6 @@ export function LeagueFixturesScreen({
           <p className="p-[20px_var(--gutter)_26px] md:px-0 text-[11px] leading-[1.6] text-[var(--text-muted)]">
             A fixture stays readable after it settles. Points are provisional until review closes, and a voided market scores nothing for anyone.
           </p>
-    </>
+    </LeagueColumn>
   );
 }

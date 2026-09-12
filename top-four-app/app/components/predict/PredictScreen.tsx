@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { tintFor } from '@/lib/crest';
+import { timeUntilLabel } from '@/lib/format';
 import { MobileNav } from '../MobileNav';
 import { toPredictGroups, ALL_LEAGUES, type PredictEntry } from '@/lib/predict/predict-queue';
 
@@ -47,10 +48,11 @@ function Marks({ entry }: { entry: PredictEntry }) {
    at runtime is one that never exists. */
 const TASK_ROW = 'md:flex md:items-center md:gap-[16px] md:px-[18px] md:py-[15px]';
 
-function TaskRow({ entry, isLast }: { entry: PredictEntry; isLast: boolean }) {
-  const deadline = entry.deadlineAt
-    ? new Date(entry.deadlineAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-    : '—';
+function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolean; nowMs: number }) {
+  /* Time remaining, not a clock. A bare "15:30" in a queue reads as kick-off —
+     the same defect as the Home hero once had. The helper falls back to a day
+     and time past twenty-four hours, which is the design's own behaviour. */
+  const deadline = timeUntilLabel(entry.deadlineAt, nowMs);
 
   return (
     <>
@@ -111,6 +113,8 @@ export function PredictScreen({
   /** Null once the window covers the whole filter. */
   showMoreHref: string | null;
 }) {
+  // One clock for the whole queue, so the rows cannot drift apart.
+  const nowMs = Date.now();
   const groups = toPredictGroups(entries);
 
   if (!hasLeagues || totalEntries === 0) {
@@ -195,7 +199,7 @@ export function PredictScreen({
                   <span className="ml-auto tf-num font-heading font-bold text-[9.5px] md:text-[11.5px] text-[var(--text-muted)]">{group.entries.length}</span>
                 </div>
                 {group.entries.map((entry, i, all) => (
-                  <TaskRow key={`${entry.kind}-${entry.id}`} entry={entry} isLast={i === all.length - 1} />
+                  <TaskRow key={`${entry.kind}-${entry.id}`} entry={entry} nowMs={nowMs} isLast={i === all.length - 1} />
                 ))}
               </section>
             ))

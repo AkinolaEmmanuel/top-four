@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { LeagueColumn } from './LeagueColumn';
 import Link from 'next/link';
 import { toBreakdown, type TablePage, type TableRow } from '@/lib/leagues/league-table';
 
@@ -91,7 +92,7 @@ export function LeagueTableScreen({
     page <= 1 ? `/leagues/${leagueId}/table` : `/leagues/${leagueId}/table?page=${page}`;
 
   return (
-    <>
+    <LeagueColumn className="md:pt-[20px]">
       {/* The member's own standing. It used to live in this screen's header,
           which made the league chrome a different height on this tab than on
           every other; as content it says the same thing without moving the
@@ -214,6 +215,6 @@ export function LeagueTableScreen({
               </ol>
             </section>
           )}
-    </>
+    </LeagueColumn>
   );
 }

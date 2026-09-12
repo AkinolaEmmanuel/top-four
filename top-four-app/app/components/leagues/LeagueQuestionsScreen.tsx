@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { LeagueColumn } from './LeagueColumn';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSubmitCustomAnswer, useCreateCustomQuestion, useResolveCustomQuestion, useVoidCustomQuestion, useWithdrawCustomQuestion } from '@/hooks/api/useCustomQuestions';
@@ -176,7 +177,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
   };
 
   return (
-    <>
+    <LeagueColumn className="md:pt-[20px]">
       {/* The screen's own summary. It used to live in a header this screen drew
           itself; the league chrome moved to the layout and took this with it, so
           it is content now — which is where it belongs, since it is about the
@@ -363,7 +364,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
           </div>
         </div>
       )}
-    </>
+    </LeagueColumn>
   );
 }
 

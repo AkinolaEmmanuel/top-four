@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { LeagueColumn } from './LeagueColumn';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -108,11 +109,11 @@ export function LeagueAdminScreen({
         : id === 'requests' ? requests.filter(r => r.isPending).length : 0;
 
   return (
-    <>
+    <LeagueColumn className="md:pt-[20px]">
 
 
 
-      <div className="tf-scroll flex-none flex gap-[2px] px-[var(--gutter)] md:px-[24px] overflow-x-auto border-b border-[var(--surface-border)] md:max-w-[1080px] md:mx-auto md:w-full">
+      <div className="tf-scroll flex-none flex gap-[2px] px-[var(--gutter)] md:px-0 overflow-x-auto border-b border-[var(--surface-border)]">
         {TABS.map(t => {
           const on = tab === t.id;
           const count = tabCount(t.id);
@@ -426,6 +427,6 @@ export function LeagueAdminScreen({
       )}
 
       {toast && <Toast message={toast} />}
-    </>
+    </LeagueColumn>
   );
 }
