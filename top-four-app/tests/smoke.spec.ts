@@ -70,8 +70,12 @@ test('home shows the queue and its true size', async ({ page }) => {
     .filter({ visible: true });
   await expect(total.first()).toBeVisible();
 
-  // A bare clock time here reads as kickoff; the queue shows time remaining.
-  await expect(page.getByText(/^\d{1,2}:\d{2}$/).first()).toHaveCount(0);
+  // A bare clock time in the queue reads as kickoff; these rows show time
+  // remaining. Scoped to the queue on purpose: the hero's own countdown drops
+  // to mm:ss inside the last hour, which no regex can tell from a wall clock,
+  // so asserting across the whole page fails whenever a deadline gets close.
+  const queue = page.locator('section').filter({ hasText: /Also waiting on you|Nothing else owed/ });
+  await expect(queue.getByText(/^\d{1,2}:\d{2}$/)).toHaveCount(0);
 });
 
 test('leagues lists the member’s leagues', async ({ page }) => {

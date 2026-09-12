@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { LeagueRulesScreen } from '../../../components/leagues/LeagueRulesScreen';
 import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague } from '@/lib/leagues/league-context';
 import {
   lateJoinLabel, lockMinutes, maxPointsNote, maxPointsPerFixture,
   toMarketRules, toTiebreakerLabels, type CompetitionRule,
@@ -27,7 +30,15 @@ const SCOPE_LABELS: Record<string, string> = {
   round_range: 'Part of the season',
 };
 
-export default async function LeagueRulesPage({ params }: { params: { id: string } }) {
+export default function LeagueRulesPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<LeagueContentSkeleton rows={5} />}>
+      <Rules params={params} />
+    </Suspense>
+  );
+}
+
+async function Rules({ params }: { params: { id: string } }) {
   const id = params.id;
 
   let league: LeagueRead;
@@ -35,7 +46,7 @@ export default async function LeagueRulesPage({ params }: { params: { id: string
 
   try {
     [league, preferences] = await Promise.all([
-      serverFetch<LeagueRead>(`/leagues/${id}`),
+      getLeague(id),
       serverFetchOrNull<Preferences>('/me/notification-preferences'),
     ]);
   } catch (error) {

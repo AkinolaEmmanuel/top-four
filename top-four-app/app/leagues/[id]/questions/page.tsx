@@ -1,9 +1,12 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { LeagueQuestionsScreen } from '../../../components/leagues/LeagueQuestionsScreen';
 import {
   serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague } from '@/lib/leagues/league-context';
 import { toQuestionCard } from '@/lib/leagues/league-questions';
 import type { Api } from '@/lib/api/types';
 import type { CustomQuestion, OwnCustomAnswerData } from '@/lib/api/custom-questions';
@@ -19,7 +22,15 @@ import type { CustomQuestion, OwnCustomAnswerData } from '@/lib/api/custom-quest
 type LeagueRead = Api<'LeagueReadResponseDto'>;
 type Questions = Api<'CustomQuestionPageResponseDto'>;
 
-export default async function LeagueQuestionsPage({ params }: { params: { id: string } }) {
+export default function LeagueQuestionsPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<LeagueContentSkeleton rows={4} />}>
+      <Questions params={params} />
+    </Suspense>
+  );
+}
+
+async function Questions({ params }: { params: { id: string } }) {
   const id = params.id;
 
   let league: LeagueRead;
@@ -27,7 +38,7 @@ export default async function LeagueQuestionsPage({ params }: { params: { id: st
 
   try {
     [league, questions] = await Promise.all([
-      serverFetch<LeagueRead>(`/leagues/${id}`),
+      getLeague(id),
       serverFetchAllPagesOrEmpty<CustomQuestion, Questions>(`/leagues/${id}/custom-questions`),
     ]);
   } catch (error) {

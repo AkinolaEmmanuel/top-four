@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { LeagueMoreScreen } from '../../../components/leagues/LeagueMoreScreen';
 import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
 import { toMoreSections, type LeagueRole } from '@/lib/leagues/league-more';
 import type { Api } from '@/lib/api/types';
 
@@ -17,7 +20,15 @@ type Dashboard = Api<'LeagueDashboardResponseDto'>;
 type Questions = Api<'CustomQuestionPageResponseDto'>;
 type JoinRequests = Api<'JoinRequestPageResponseDto'>;
 
-export default async function LeagueMorePage({ params }: { params: { id: string } }) {
+export default function LeagueMorePage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<LeagueContentSkeleton rows={5} />}>
+      <More params={params} />
+    </Suspense>
+  );
+}
+
+async function More({ params }: { params: { id: string } }) {
   const id = params.id;
 
   let league: LeagueRead;
@@ -27,8 +38,8 @@ export default async function LeagueMorePage({ params }: { params: { id: string 
 
   try {
     [league, dashboard, questions, requests] = await Promise.all([
-      serverFetch<LeagueRead>(`/leagues/${id}`),
-      serverFetchOrNull<Dashboard>(`/leagues/${id}/dashboard`),
+      getLeague(id),
+      getLeagueDashboard(id),
       serverFetchOrNull<Questions>(`/leagues/${id}/custom-questions`),
       serverFetchOrNull<JoinRequests>(`/leagues/${id}/join-requests`),
     ]);

@@ -17,10 +17,22 @@ export interface LeagueContext {
   competition: string;
 }
 
+/** The same dashboard read the context already made, shared with the pages. */
+export const getLeagueDashboard = cache(async (leagueId: string) =>
+  serverFetchOrNull<Api<'LeagueDashboardResponseDto'>>(`/leagues/${leagueId}/dashboard`));
+
+/**
+ * The league itself. Every screen under `/leagues/[id]` needs it and the layout
+ * needs it too, so it is read once per request and shared — seven pages were
+ * each issuing their own copy of this alongside the layout's.
+ */
+export const getLeague = cache(async (leagueId: string) =>
+  serverFetch<Api<'LeagueReadResponseDto'>>(`/leagues/${leagueId}`));
+
 export const getLeagueContext = cache(async (leagueId: string): Promise<LeagueContext> => {
   const [league, dashboard] = await Promise.all([
-    serverFetch<Api<'LeagueReadResponseDto'>>(`/leagues/${leagueId}`),
-    serverFetchOrNull<Api<'LeagueDashboardResponseDto'>>(`/leagues/${leagueId}/dashboard`),
+    getLeague(leagueId),
+    getLeagueDashboard(leagueId),
   ]);
 
   const unanswered = dashboard?.data.summary.predictionCompleteness.unanswered ?? 0;
@@ -32,6 +44,3 @@ export const getLeagueContext = cache(async (leagueId: string): Promise<LeagueCo
   };
 });
 
-/** The same dashboard read the context already made, shared with the pages. */
-export const getLeagueDashboard = cache(async (leagueId: string) =>
-  serverFetchOrNull<Api<'LeagueDashboardResponseDto'>>(`/leagues/${leagueId}/dashboard`));

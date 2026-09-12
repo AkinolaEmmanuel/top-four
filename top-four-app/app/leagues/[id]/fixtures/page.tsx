@@ -1,9 +1,12 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { LeagueFixturesScreen } from '../../../components/leagues/LeagueFixturesScreen';
 import {
   serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
 import { splitFixtures, toFixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
 import type { Api } from '@/lib/api/types';
 import type { LeagueFixture } from '@/lib/api/leagues';
@@ -114,7 +117,26 @@ async function readPlayedAndEnough(
   return { items, truncated: cursor !== null };
 }
 
-export default async function LeagueFixturesPage({
+/**
+ * The chrome above this page needs only the league read; the list below needs
+ * availability and then a results batch per played chunk, which is another
+ * second and a half. Behind a boundary, the header and tabs paint as soon as
+ * the league lands instead of waiting for the whole list.
+ */
+export default function LeagueFixturesPage({
+  params, searchParams,
+}: {
+  params: { id: string };
+  searchParams: { view?: string; show?: string };
+}) {
+  return (
+    <Suspense key={`${searchParams.view ?? ''}:${searchParams.show ?? ''}`} fallback={<LeagueContentSkeleton rows={6} />}>
+      <Fixtures params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function Fixtures({
   params, searchParams,
 }: {
   params: { id: string };
@@ -128,8 +150,8 @@ export default async function LeagueFixturesPage({
 
   try {
     [league, dashboard, availability] = await Promise.all([
-      serverFetch<LeagueRead>(`/leagues/${id}`),
-      serverFetchOrNull<Dashboard>(`/leagues/${id}/dashboard`),
+      getLeague(id),
+      getLeagueDashboard(id),
       readPlayedAndEnough(id, requestedRows(searchParams.show)),
     ]);
   } catch (error) {

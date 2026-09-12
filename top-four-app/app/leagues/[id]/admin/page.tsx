@@ -1,9 +1,12 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { LeagueAdminScreen } from '../../../components/leagues/LeagueAdminScreen';
 import {
   serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague } from '@/lib/leagues/league-context';
 import {
   toAdminActions, toAdminInvites, toAdminMembers, toAdminRequests, toLifecycleSteps,
 } from '@/lib/leagues/league-admin';
@@ -24,12 +27,20 @@ type Requests = Api<'JoinRequestPageResponseDto'>;
 type Standings = Api<'StandingsPageResponseDto'>;
 type Me = Api<'CurrentAuthenticationResponseDto'>;
 
-export default async function LeagueAdminPage({ params }: { params: { id: string } }) {
+export default function LeagueAdminPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<LeagueContentSkeleton rows={6} />}>
+      <Admin params={params} />
+    </Suspense>
+  );
+}
+
+async function Admin({ params }: { params: { id: string } }) {
   const id = params.id;
 
   let league: LeagueRead;
   try {
-    league = await serverFetch<LeagueRead>(`/leagues/${id}`);
+    league = await getLeague(id);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/admin`);
     if (error instanceof ApiError && error.status === 401) redirect(`/?redirect=/leagues/${id}/admin`);

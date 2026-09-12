@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { LeagueTableScreen } from '../../../components/leagues/LeagueTableScreen';
 import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague } from '@/lib/leagues/league-context';
 import { PAGE_SIZE, ownStandingLine, toTablePage, toTableRows } from '@/lib/leagues/league-table';
 import { tiebreakerOrder } from '@/lib/constants/markets';
 import { pluralise } from '@/lib/format';
@@ -20,7 +23,18 @@ type Standings = Api<'StandingsPageResponseDto'>;
 type OwnStanding = Api<'OwnStandingResponseDto'>;
 type Me = Api<'CurrentAuthenticationResponseDto'>;
 
-export default async function LeagueTablePage({ params, searchParams }: {
+export default function LeagueTablePage({ params, searchParams }: {
+  params: { id: string };
+  searchParams: { page?: string };
+}) {
+  return (
+    <Suspense key={searchParams.page ?? '1'} fallback={<LeagueContentSkeleton rows={6} />}>
+      <Table params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function Table({ params, searchParams }: {
   params: { id: string };
   searchParams: { page?: string };
 }) {
@@ -35,7 +49,7 @@ export default async function LeagueTablePage({ params, searchParams }: {
 
   try {
     [league, standings, own, me] = await Promise.all([
-      serverFetch<LeagueRead>(`/leagues/${id}`),
+      getLeague(id),
       serverFetchOrNull<Standings>(`/leagues/${id}/standings?page=${page}&pageSize=${PAGE_SIZE}`),
       serverFetchOrNull<OwnStanding>(`/leagues/${id}/standings/me`),
       serverFetchOrNull<Me>('/auth/me'),

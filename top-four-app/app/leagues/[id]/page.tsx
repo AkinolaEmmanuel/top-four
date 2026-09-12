@@ -1,9 +1,12 @@
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { LeagueOverviewScreen } from '../../components/leagues/LeagueOverviewScreen';
 import {
   serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
 import {
   phaseFor, timeUntil, toLastResult, toRivalGap, toStandingRows,
   type LastResult, type NextFixture,
@@ -43,7 +46,15 @@ const AVAILABILITY_PAGE_SIZE = 100;
 /** Likewise for the cross-league task feed. */
 const TASK_PAGE_SIZE = 100;
 
-export default async function LeagueOverviewPage({ params }: { params: { id: string } }) {
+export default function LeagueOverviewPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<LeagueContentSkeleton rows={4} />}>
+      <Overview params={params} />
+    </Suspense>
+  );
+}
+
+async function Overview({ params }: { params: { id: string } }) {
   const id = params.id;
 
   let league: LeagueRead;
@@ -57,8 +68,8 @@ export default async function LeagueOverviewPage({ params }: { params: { id: str
 
   try {
     [league, dashboard, standings, own, tasks, questions, fixtures, me] = await Promise.all([
-      serverFetch<LeagueRead>(`/leagues/${id}`),
-      serverFetchOrNull<Dashboard>(`/leagues/${id}/dashboard`),
+      getLeague(id),
+      getLeagueDashboard(id),
       serverFetchOrNull<Standings>(`/leagues/${id}/standings?page=1&pageSize=50`),
       serverFetchOrNull<OwnStanding>(`/leagues/${id}/standings/me`),
       // One page: this screen only needs the soonest task for this league, and
