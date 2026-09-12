@@ -278,6 +278,23 @@ export async function fetchFixtureResults(leagueId: string, fixtureId: string): 
   return response.data;
 }
 
+// Batch form of fetchFixtureResults -- one request for up to 50 fixtures
+// instead of one request per finished fixture. The backend caps a single
+// call at 50 ids, so a page with more finished fixtures than that is split
+// into multiple batched calls rather than falling back to per-fixture ones.
+export async function fetchFixturesResultsBatch(leagueId: string, fixtureIds: string[]): Promise<FixtureResultsResponse[]> {
+  if (fixtureIds.length === 0) return [];
+  const CHUNK = 50;
+  const results: FixtureResultsResponse[] = [];
+  for (let i = 0; i < fixtureIds.length; i += CHUNK) {
+    const chunk = fixtureIds.slice(i, i + CHUNK);
+    const query = chunk.map((id) => `leagueFixtureIds=${encodeURIComponent(id)}`).join('&');
+    const response = await apiFetch<{ data: FixtureResultsResponse[] }>(`/leagues/${leagueId}/fixtures/results?${query}`);
+    results.push(...response.data);
+  }
+  return results;
+}
+
 export interface PredictionRevision {
   revisionId: string;
   version: number;
