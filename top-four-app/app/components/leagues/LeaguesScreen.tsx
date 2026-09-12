@@ -84,8 +84,15 @@ export function LeaguesScreen({
                     <span className="font-heading font-bold text-[9.5px] leading-[1] tracking-[0.13em] uppercase text-[var(--text-muted)]">{g.label}</span>
                     <span className="font-heading font-bold text-[9.5px] text-[var(--text-muted)] font-tabular-nums">{g.count}</span>
                   </div>
-                  {g.rows.map((r: any, j: number) => (
-                    <Link href={`/leagues/${r.id}`} key={j} className={`tf-tap flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${r.isLast ? 'border-b' : ''}`} style={{ opacity: r.muted ? 0.62 : 1 }}>
+                  {g.rows.map((r: any, j: number) => {
+                    // A pending row has no active membership yet, so it has
+                    // nowhere to link to -- tapping it withdraws the request
+                    // instead of navigating into a league page the caller
+                    // can't actually see.
+                    const RowTag: any = r.pending ? 'div' : Link;
+                    const rowProps = r.pending ? { onClick: r.onWithdraw, role: 'button' } : { href: `/leagues/${r.id}` };
+                    return (
+                    <RowTag {...rowProps} key={j} className={`tf-tap flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${r.isLast ? 'border-b' : ''}`} style={{ opacity: r.muted ? 0.62 : 1 }}>
                       <span className="tf-crest w-[30px] h-[33px]" style={{ background: r.crestBg }}>{r.crest}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-[7px]">
@@ -98,8 +105,9 @@ export function LeaguesScreen({
                         <div className={`font-heading font-bold font-tabular-nums ${r.action ? 'text-[11.5px] text-[var(--text-link)]' : 'text-[15px] text-[var(--text-primary)]'}`}>{r.value}</div>
                         {r.sub && <div className={`font-tabular-nums text-[10px] mt-[3px] ${r.action ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)]'}`}>{r.sub}</div>}
                       </div>
-                    </Link>
-                  ))}
+                    </RowTag>
+                    );
+                  })}
                 </section>
               ))}
               <div className="p-[18px_var(--gutter)_26px] text-[11px] leading-[1.55] text-[var(--text-muted)]">
@@ -194,8 +202,11 @@ export function LeaguesScreen({
                   <span className="tf-kicker text-right">Points</span>
                 </div>
 
-                {g.rows.map((r: any, j: number) => (
-                  <Link href={`/leagues/${r.id}`} key={j} className="grid gap-[14px] items-center p-[13px_16px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors" style={{ gridTemplateColumns: '34px minmax(0,1fr) 140px 90px 80px', opacity: r.muted ? 0.62 : 1 }}>
+                {g.rows.map((r: any, j: number) => {
+                  const RowTag: any = r.pending ? 'div' : Link;
+                  const rowProps = r.pending ? { onClick: r.onWithdraw, role: 'button' } : { href: `/leagues/${r.id}` };
+                  return (
+                  <RowTag {...rowProps} key={j} className="grid gap-[14px] items-center p-[13px_16px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors" style={{ gridTemplateColumns: '34px minmax(0,1fr) 140px 90px 80px', opacity: r.muted ? 0.62 : 1 }}>
                     <span className="tf-crest w-[30px] h-[33px] text-[9px]" style={{ background: r.crestBg }}>{r.crest}</span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-[8px]">
@@ -219,8 +230,9 @@ export function LeaguesScreen({
                     <div className="text-right">
                       {r.sub && !r.action && <span className="text-[12px] text-[var(--text-muted)]">{r.sub}</span>}
                     </div>
-                  </Link>
-                ))}
+                  </RowTag>
+                  );
+                })}
               </section>
             ))}
 
