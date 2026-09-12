@@ -88,7 +88,11 @@ export function toFixtureRow(fixture: LeagueFixture, leagueId: string, view: Fix
       : null,
     note: played ? (fixture.landed ?? null) : (fixture.predictionNote ?? null),
     deadlineAt: fixture.deadlineAt ?? null,
-    href: `/predict/fixture/${fixture.id}?leagueId=${leagueId}`,
+    // A played fixture opens on what the league answered, not on controls that
+    // can no longer be used.
+    href: played
+      ? `/predict/fixture/${fixture.id}/results?leagueId=${leagueId}`
+      : `/predict/fixture/${fixture.id}?leagueId=${leagueId}`,
   };
 }
 

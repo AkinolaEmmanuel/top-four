@@ -5,7 +5,9 @@ import {
   serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { LeagueEndStateScreen, type EndState } from '../../components/leagues/LeagueEndStateScreen';
 import { MARKET_LABELS } from '@/lib/constants/markets';
+import { ordinal } from '@/lib/format';
 import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
 import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
 import {
@@ -177,6 +179,29 @@ async function Overview({ params }: { params: { id: string } }) {
   // Markets in this league the member has not answered. Capped for display
   // because a four-digit badge is wider than the tab it sits on.
   const unanswered = completeness?.unanswered ?? 0;
+
+  /* A league that is over does not get the live Overview: its hero counts down
+     to a lock that will never come and offers a button for markets that closed
+     weeks ago. What changed is what the screen says happened, not what it lets
+     you do — everything stays readable. */
+  const ENDED: Record<string, EndState> = {
+    completed: 'completed', cancelled: 'cancelled', archived: 'archived',
+  };
+  const endState = ENDED[league.lifecycleState];
+  if (endState) {
+    const mine = own?.data;
+    return (
+      <LeagueEndStateScreen
+        leagueId={id}
+        state={endState}
+        ownPosition={mine?.position ? ordinal(mine.position) : null}
+        ownPoints={mine?.totalPoints ?? null}
+        memberCount={dashboard?.data.summary.activeMemberCount ?? league.memberCount}
+        fixtureCount={dashboard?.data.summary.fixtureCount ?? 0}
+        questionCount={questions.items.length}
+      />
+    );
+  }
 
   return (
     <LeagueOverviewScreen

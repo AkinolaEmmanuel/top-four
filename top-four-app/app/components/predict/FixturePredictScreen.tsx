@@ -387,6 +387,14 @@ export function FixturePredictScreen({
           <section className="mt-[20px] md:mt-[26px]">
             <div className="flex items-baseline justify-between px-[var(--gutter)] pb-[12px] md:px-0">
               <span className="tf-kicker text-[var(--text-muted)]">{settled ? 'HOW IT SCORED' : 'MARKETS'}</span>
+              {settled && (
+                <Link
+                  href={`/predict/fixture/${fixtureId}/results?leagueId=${leagueId}`}
+                  className="font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)]"
+                >
+                  SEE EVERYONE&apos;S ANSWERS →
+                </Link>
+              )}
               <span className="tf-num font-heading font-bold text-[10px] text-[var(--text-muted)]">
                 {settled ? `+${pointsEarned} OF ${pointsAtStake}` : `${pointsAtStake} POINTS AT STAKE`}
               </span>
