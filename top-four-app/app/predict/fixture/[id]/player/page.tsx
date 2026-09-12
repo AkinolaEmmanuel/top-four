@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PlayerPickerMobile } from '../../../../components/predict/PlayerPickerMobile';
-import { PlayerPickerDesktop } from '../../../../components/predict/PlayerPickerDesktop';
+import { PlayerPickerScreen } from '../../../../components/predict/PlayerPickerScreen';
 import { useFixtureData, useSubmitPrediction } from '@/hooks/api/useFixturePrediction';
 import { useLeague } from '@/hooks/api/useLeagues';
 
@@ -210,14 +209,6 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     label, style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', font: "600 12.5px 'DM Sans', sans-serif", cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
   });
 
-  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map(function(it){
-    var label=it[0], id=it[1], badge=it[2];
-    return { label: label, badge: badge,
-      badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--nav-accent)', color: 'var(--nav-on-accent)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans', sans-serif" } : { display: 'none' },
-      style: { display: 'flex', alignItems: 'center', padding: '7px 13px', borderRadius: '9px', font: "600 12.5px 'DM Sans', sans-serif", cursor: 'pointer', background: id === 'leagues' ? 'var(--nav-fill)' : 'transparent', opacity: id === 'leagues' ? 1 : 0.66 } 
-    };
-  });
-
   const skeletonCols = [0, 1].map(() => ({ rows: [{ w: "62%" }, { w: "48%" }, { w: "71%" }, { w: "55%" }, { w: "66%" }, { w: "44%" }, { w: "58%" }] }));
 
   const props = {
@@ -226,17 +217,15 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
     
     // Mobile specific
     chips: mobileChips,
-    mobileGroups,
 
     // Desktop specific
     contextTabs: [tabItem("Overview", false), tabItem("Fixtures", true), tabItem("Table", false), tabItem("Questions", false), tabItem("More", false)],
-    rootNav, sideChips, posChips, skeletonCols,
+    leagueId, sideChips, posChips, skeletonCols,
     ghostRows: [{ label: "Match result", value: "—" }, { label: "Exact score", value: "—" }, { label: "Both teams to score", value: "—" }, { label: "Anytime goalscorer", value: "Choose" }],
     sheetTitle: mode === "scorer" ? "Who scores?" : "Who gets booked?",
     sheetSub: MARKET[0] + " · one player from either squad.",
     modalWidth: "880px",
     columnTemplate: "minmax(0,1fr) minmax(0,1fr)",
-    desktopGroups,
     storedStyle: pickedPlayer ? { display: 'flex', alignItems: 'center', gap: '8px', font: "600 12px 'DM Sans', sans-serif", color: 'var(--success-text)' } : { display: 'none' },
     storedDotStyle: { width: '7px', height: '7px', borderRadius: '999px', background: 'var(--color-success)', flex: 'none' },
     storedLabel: pickedPlayer ? pickedPlayer.name + " stored · you can change it until the lock" : "",
@@ -254,12 +243,7 @@ export default function PlayerPickerPage({ params }: { params: { id: string } })
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <PlayerPickerMobile {...props} groups={mobileGroups} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <PlayerPickerDesktop {...props} groups={desktopGroups} />
-      </div>
+      <PlayerPickerScreen {...props} groups={{ mobile: mobileGroups, desktop: desktopGroups }} />
     </div>
   );
 }
