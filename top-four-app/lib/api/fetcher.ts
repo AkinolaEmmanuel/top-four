@@ -35,11 +35,18 @@ export interface ApiProblem {
 export class ApiError extends Error {
   public readonly status: number;
   public readonly problem: ApiProblem | undefined;
+  /**
+   * Seconds from `Retry-After`, when the server sent one. Carried because a
+   * rate limit has to be waited out for exactly that long — guessing an
+   * interval, or retrying in the background, is what the limit exists to stop.
+   */
+  public readonly retryAfterSeconds: number | undefined;
 
-  constructor(status: number, message: string, problem?: unknown) {
+  constructor(status: number, message: string, problem?: unknown, retryAfterSeconds?: number) {
     super(message);
     this.status = status;
     this.problem = isApiProblem(problem) ? problem : undefined;
+    this.retryAfterSeconds = retryAfterSeconds;
     this.name = 'ApiError';
   }
 
@@ -56,6 +63,14 @@ export class ApiError extends Error {
 
 function isApiProblem(value: unknown): value is ApiProblem {
   return typeof value === 'object' && value !== null;
+}
+
+/** `Retry-After` in seconds. The HTTP-date form is not used by this API. */
+function retryAfterFrom(response: Response): number | undefined {
+  const header = response.headers.get('Retry-After');
+  if (!header) return undefined;
+  const seconds = Number.parseInt(header, 10);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined;
 }
 
 let cachedCsrfToken: string | null = null;
@@ -127,7 +142,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
     data = await response.json();
   } catch (err) {
     if (!response.ok) {
-      throw new ApiError(response.status, response.statusText);
+      throw new ApiError(response.status, response.statusText, undefined, retryAfterFrom(response));
     }
     return {} as T;
   }
@@ -139,14 +154,15 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
     if (data?.errors && Array.isArray(data.errors)) {
       const fieldErrors = data.errors.map((e: any) => e.messages?.join(', ')).filter(Boolean);
       if (fieldErrors.length > 0) {
-        errorMessage += ' ' + fieldErrors.join('; ');
+          errorMessage += ' ' + fieldErrors.join('; ');
       }
     }
 
     throw new ApiError(
       response.status,
       errorMessage,
-      data
+      data,
+      retryAfterFrom(response),
     );
   }
 

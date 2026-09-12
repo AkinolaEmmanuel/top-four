@@ -1,12 +1,33 @@
 'use client';
 
-import { Suspense, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from './components/auth/auth-shell';
 import { GoogleSignInButton } from './components/auth/google-sign-in-button';
 import { useAuth } from '@/context/auth-context';
+import { ApiError } from '@/lib/api/fetcher';
+
+/** Seconds left until `until`, ticking down and stopping at zero. */
+function useCountdown(until: number | null): number {
+  const [left, setLeft] = useState(() => remaining(until));
+
+  useEffect(() => {
+    if (until === null) { setLeft(0); return; }
+    setLeft(remaining(until));
+    const timer = setInterval(() => setLeft(remaining(until)), 250);
+    return () => clearInterval(timer);
+  }, [until]);
+
+  return left;
+}
+
+const remaining = (until: number | null) =>
+  until === null ? 0 : Math.max(0, Math.ceil((until - Date.now()) / 1000));
+
+const formatCountdown = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
 function LoginForm() {
   const router = useRouter();
@@ -19,9 +40,15 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Sign-in is paused until this instant after a 429. Held as a timestamp so
+  // the countdown stays honest if the tab is backgrounded and comes back.
+  const [pausedUntil, setPausedUntil] = useState<number | null>(null);
+  const pausedSeconds = useCountdown(pausedUntil);
+  const paused = pausedSeconds > 0;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (paused) return;
     setError(null);
     setIsSubmitting(true);
 
@@ -30,7 +57,14 @@ function LoginForm() {
       // Force a full page reload to ensure middleware gets the freshest cookies
       window.location.href = redirectTarget;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      // A rate limit is waited out for exactly as long as the server said, with
+      // no background retry — that loop is what the limit exists to stop.
+      if (err instanceof ApiError && err.status === 429) {
+        setError(null);
+        setPausedUntil(Date.now() + (err.retryAfterSeconds ?? 60) * 1000);
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -94,15 +128,34 @@ function LoginForm() {
           </div>
         </div>
 
-        {error && (
+        {paused && (
+          <div
+            role="status"
+            className="rounded-xl border border-[var(--surface-border-strong)] bg-[var(--surface-subtle)] px-3.5 py-3 text-xs sm:text-sm"
+          >
+            <p className="font-semibold text-[var(--text-primary)]">Too many attempts</p>
+            <p className="mt-1.5 leading-relaxed text-[var(--text-secondary)]">
+              For your account&apos;s safety, sign-in is paused for a short while. This happens after
+              several failed attempts and clears on its own — nothing is locked permanently.
+            </p>
+            <p className="mt-2 font-bold tracking-wide tabular-nums text-[var(--text-primary)]">
+              TRY AGAIN IN {formatCountdown(pausedSeconds)}
+            </p>
+            <Link href="/forgot-password" className="mt-2 inline-block font-semibold text-[var(--color-brand)] hover:underline">
+              Reset your password instead
+            </Link>
+          </div>
+        )}
+
+        {error && !paused && (
           <p className="rounded-xl bg-red-900/10 border border-red-900/20 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-red-500">
             {error}
           </p>
         )}
 
-        <button type="submit" className={buttonClasses} disabled={isSubmitting}>
+        <button type="submit" className={buttonClasses} disabled={isSubmitting || paused}>
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Sign in
+          {paused ? `Sign in (${formatCountdown(pausedSeconds)})` : 'Sign in'}
         </button>
       </form>
 
