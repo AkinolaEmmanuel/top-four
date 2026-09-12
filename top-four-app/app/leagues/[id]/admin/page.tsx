@@ -133,11 +133,11 @@ export default function LeagueAdminPage() {
     pick: () => setFilter(f)
   }));
 
-  // Real invitations from API. The backend does not carry a custom label per
-  // link, so the created date stands in for one.
+  // Real invitations from API. The backend now carries an optional custom
+  // label per link; fall back to the created date when none was set.
   const dynamicInvites = (invitationsData?.data || []).map((iv: any) => ({
     id: iv.id,
-    label: iv.createdAt ? `Invite · ${new Date(iv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Invite',
+    label: iv.label || (iv.createdAt ? `Invite · ${new Date(iv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Invite'),
     meta: [
       iv.createdAt ? `Created ${new Date(iv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : null,
       iv.usesConsumed != null ? `${iv.usesConsumed} used` : null,
@@ -382,7 +382,7 @@ export default function LeagueAdminPage() {
   const HERO: any = {
     members: [String(memberCount), "members", "in this league", "var(--nav-text)"],
     invites: [String(inviteCount), "invitations active", "", "var(--nav-text)"],
-    requests: [String(pendingCount), "waiting on you", pendingCount > 0 ? "Oldest asked recently" : "All clear", pendingCount > 0 ? "var(--nav-warning)" : "var(--nav-text)"],
+    requests: [String(pendingCount), "waiting on you", pendingCount > 0 ? oldestRequestLabel : "All clear", pendingCount > 0 ? "var(--nav-warning)" : "var(--nav-text)"],
     lifecycle: [lifecycleState === 'in_progress' ? '▶' : lifecycleState === 'completed' ? '✓' : '○', lifecycleState.replace('_', ' '), `Created ${createdDate}`, "var(--nav-text)"]
   }[tab];
 
@@ -406,7 +406,11 @@ export default function LeagueAdminPage() {
   const heroStyle = { padding: '20px 0 22px', background: 'var(--nav-surface)', color: 'var(--nav-text)', borderBottom: '1px solid rgba(255,255,255,.1)' };
 
   const handleCreateInvite = () => {
-    createInviteMutation.mutate(100, {
+    // The backend now accepts an optional label per invitation, so admins
+    // creating more than one link (a WhatsApp group vs. a work Slack, say)
+    // can tell them apart by more than just the creation date.
+    const label = window.prompt('Name this invitation (optional) — e.g. "WhatsApp group" or "Work Slack"') || undefined;
+    createInviteMutation.mutate({ useLimit: 100, label }, {
       onSuccess: (response: any) => {
         const code = response?.data?.joinCode || null;
         setLatestInviteCode(code);
