@@ -53,6 +53,45 @@ export interface LeaguesPage {
   nextCursor: string | null;
 }
 
+export interface OwnPendingJoinRequest {
+  id: string;
+  leagueId: string;
+  leagueName: string;
+  invitationId: string;
+  membershipId: string | null;
+  state: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+  decidedAt: string | null;
+}
+
+interface OwnPendingJoinRequestsPage {
+  data: OwnPendingJoinRequest[];
+  nextCursor: string | null;
+}
+
+async function fetchOwnPendingJoinRequestsPage(cursor?: string): Promise<OwnPendingJoinRequestsPage> {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  return apiFetch<OwnPendingJoinRequestsPage>(`/me/join-requests${query}`);
+}
+
+// The "Waiting on approval" section on the Leagues list used to be
+// permanently empty: GET /leagues only ever returns active memberships, so
+// a pending join request could never appear there no matter what. This
+// endpoint is the real fix -- it lists the caller's own pending requests
+// across every league, by design, independent of active membership.
+export async function fetchOwnPendingJoinRequests(): Promise<OwnPendingJoinRequest[]> {
+  const first = await fetchOwnPendingJoinRequestsPage();
+  const items = [...first.data];
+  let cursor = first.nextCursor;
+  while (cursor) {
+    const page = await fetchOwnPendingJoinRequestsPage(cursor);
+    items.push(...page.data);
+    cursor = page.nextCursor;
+  }
+  return items;
+}
+
 async function fetchMyLeaguesPage(cursor?: string): Promise<LeaguesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   return apiFetch<LeaguesPage>(`/leagues${query}`);
@@ -306,11 +345,11 @@ export async function cancelJoinRequest(leagueId: string, requestId: string): Pr
   });
 }
 
-export async function createInvitation(leagueId: string, useLimit: number = 100): Promise<any> {
+export async function createInvitation(leagueId: string, useLimit: number = 100, label?: string): Promise<any> {
   return apiFetch<any>(`/leagues/${leagueId}/invitations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ useLimit }),
+    body: JSON.stringify({ useLimit, label: label || undefined }),
   });
 }
 

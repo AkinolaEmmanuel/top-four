@@ -552,6 +552,24 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** Rename or clear a private invitation label. */
+        patch: operations["LeagueMembershipController_updateInvitationLabel"];
+        trace?: never;
+    };
+    "/v1/me/join-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the caller’s pending join requests across leagues. */
+        get: operations["LeagueMembershipController_ownPendingRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -1020,6 +1038,23 @@ export interface paths {
          * @description Writes an independent answer in every other league you are actively in that includes the same match. Reports what happened per league; an over/under answer is refused where that league froze a different line. Running it again is safe.
          */
         post: operations["PredictionCopyController_copy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/leagues/{leagueId}/fixtures/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read results for up to 50 fixtures in one league. */
+        get: operations["MemberResultsController_readMany"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2291,11 +2326,13 @@ export interface components {
             invitationSettings?: components["schemas"]["InvitationSettingsDto"];
         };
         CreateInvitationDto: {
+            label?: string | null;
             /** @default 168 */
             expiresInHours: number;
             useLimit?: Record<string, never> | null;
         };
         InvitationCreatedResponseDto: {
+            label: string | null;
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -2314,7 +2351,11 @@ export interface components {
         InvitationCreatedEnvelopeDto: {
             data: components["schemas"]["InvitationCreatedResponseDto"];
         };
+        UpdateInvitationLabelDto: {
+            label: string | null;
+        };
         InvitationMetadataResponseDto: {
+            label: string | null;
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -2328,12 +2369,35 @@ export interface components {
             /** @enum {string} */
             state: "active" | "expired" | "exhausted" | "revoked";
         };
+        InvitationResponseDto: {
+            data: components["schemas"]["InvitationMetadataResponseDto"];
+        };
+        OwnPendingJoinRequestResponseDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            leagueId: string;
+            /** Format: uuid */
+            invitationId: string;
+            /** Format: uuid */
+            membershipId: string | null;
+            /** @enum {string} */
+            state: "pending" | "approved" | "rejected" | "cancelled";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            decidedAt: string | null;
+            leagueName: string;
+        };
+        OwnPendingJoinRequestPageDto: {
+            data: components["schemas"]["OwnPendingJoinRequestResponseDto"][];
+            nextCursor: string | null;
+        };
         InvitationPageResponseDto: {
             data: components["schemas"]["InvitationMetadataResponseDto"][];
             nextCursor: string | null;
-        };
-        InvitationResponseDto: {
-            data: components["schemas"]["InvitationMetadataResponseDto"];
         };
         MembershipResponseDto: {
             /** Format: uuid */
@@ -3010,6 +3074,9 @@ export interface components {
             /** @description True while an official fact correction is still recalculating this fixture. */
             correctionUpdating: boolean;
             markets: components["schemas"]["MemberMarketResultDto"][];
+        };
+        MemberFixtureResultsBatchResponseDto: {
+            data: components["schemas"]["MemberFixtureResultsDataDto"][];
         };
         MemberFixtureResultsResponseDto: {
             data: components["schemas"]["MemberFixtureResultsDataDto"];
@@ -4944,6 +5011,107 @@ export interface operations {
             };
         };
     };
+    LeagueMembershipController_updateInvitationLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leagueId: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInvitationLabelDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponseDto"];
+                };
+            };
+            /** @description VALIDATION_FAILED. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description AUTHENTICATION_REQUIRED. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /**
+             * @description CSRF_VALIDATION_FAILED.
+             *
+             *     CSRF_VALIDATION_FAILED, LEAGUE_OWNER_OR_ADMIN_REQUIRED, or MEMBERSHIP_MANAGEMENT_FORBIDDEN.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description LEAGUE_NOT_FOUND, INVITATION_NOT_FOUND, MEMBERSHIP_NOT_FOUND, or JOIN_REQUEST_NOT_FOUND. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVITATION_NOT_FOUND. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    LeagueMembershipController_ownPendingRequests: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnPendingJoinRequestPageDto"];
+                };
+            };
+            /** @description VALIDATION_FAILED or PAGINATION_CURSOR_INVALID. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description AUTHENTICATION_REQUIRED. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     LeagueMembershipController_revokeInvitation: {
         parameters: {
             query?: never;
@@ -6297,6 +6465,51 @@ export interface operations {
                 content?: never;
             };
             /** @description LEAGUE_NOT_FOUND. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MemberResultsController_readMany: {
+        parameters: {
+            query: {
+                /** @description Repeat leagueFixtureIds for each fixture UUID. */
+                leagueFixtureIds: string[];
+            };
+            header?: never;
+            path: {
+                leagueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberFixtureResultsBatchResponseDto"];
+                };
+            };
+            /** @description VALIDATION_FAILED. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description AUTHENTICATION_REQUIRED. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description LEAGUE_NOT_FOUND or LEAGUE_FIXTURE_NOT_FOUND. */
             404: {
                 headers: {
                     [name: string]: unknown;

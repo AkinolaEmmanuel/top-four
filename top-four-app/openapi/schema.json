@@ -1583,6 +1583,73 @@
       }
     },
     "/v1/leagues/{leagueId}/invitations/{invitationId}": {
+      "patch": {
+        "operationId": "LeagueMembershipController_updateInvitationLabel",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInvitationLabelDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED."
+          },
+          "401": {
+            "description": "AUTHENTICATION_REQUIRED."
+          },
+          "403": {
+            "description": "CSRF_VALIDATION_FAILED.\n\nCSRF_VALIDATION_FAILED, LEAGUE_OWNER_OR_ADMIN_REQUIRED, or MEMBERSHIP_MANAGEMENT_FORBIDDEN."
+          },
+          "404": {
+            "description": "LEAGUE_NOT_FOUND, INVITATION_NOT_FOUND, MEMBERSHIP_NOT_FOUND, or JOIN_REQUEST_NOT_FOUND."
+          },
+          "409": {
+            "description": "INVITATION_NOT_FOUND."
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Rename or clear a private invitation label.",
+        "tags": [
+          "league membership"
+        ]
+      },
       "get": {
         "operationId": "LeagueMembershipController_getInvitation",
         "parameters": [
@@ -1630,6 +1697,59 @@
           }
         ],
         "summary": "Read current invitation metadata.",
+        "tags": [
+          "league membership"
+        ]
+      }
+    },
+    "/v1/me/join-requests": {
+      "get": {
+        "operationId": "LeagueMembershipController_ownPendingRequests",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnPendingJoinRequestPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED or PAGINATION_CURSOR_INVALID."
+          },
+          "401": {
+            "description": "AUTHENTICATION_REQUIRED."
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List the caller’s pending join requests across leagues.",
         "tags": [
           "league membership"
         ]
@@ -3271,6 +3391,65 @@
         "summary": "Copy this match's answers into your other leagues.",
         "tags": [
           "standard predictions"
+        ]
+      }
+    },
+    "/v1/leagues/{leagueId}/fixtures/results": {
+      "get": {
+        "operationId": "MemberResultsController_readMany",
+        "parameters": [
+          {
+            "name": "leagueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "leagueFixtureIds",
+            "required": true,
+            "in": "query",
+            "description": "Repeat leagueFixtureIds for each fixture UUID.",
+            "schema": {
+              "minItems": 1,
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberFixtureResultsBatchResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED."
+          },
+          "401": {
+            "description": "AUTHENTICATION_REQUIRED."
+          },
+          "404": {
+            "description": "LEAGUE_NOT_FOUND or LEAGUE_FIXTURE_NOT_FOUND."
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Read results for up to 50 fixtures in one league.",
+        "tags": [
+          "predictions"
         ]
       }
     },
@@ -7148,6 +7327,11 @@
       "CreateInvitationDto": {
         "type": "object",
         "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          },
           "expiresInHours": {
             "type": "number",
             "minimum": 1,
@@ -7165,6 +7349,10 @@
       "InvitationCreatedResponseDto": {
         "type": "object",
         "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -7205,6 +7393,7 @@
           }
         },
         "required": [
+          "label",
           "id",
           "leagueId",
           "createdAt",
@@ -7227,9 +7416,26 @@
           "data"
         ]
       },
+      "UpdateInvitationLabelDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "label"
+        ]
+      },
       "InvitationMetadataResponseDto": {
         "type": "object",
         "properties": {
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -7264,6 +7470,7 @@
           }
         },
         "required": [
+          "label",
           "id",
           "leagueId",
           "createdAt",
@@ -7271,6 +7478,94 @@
           "useLimit",
           "usesConsumed",
           "state"
+        ]
+      },
+      "InvitationResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InvitationMetadataResponseDto"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "OwnPendingJoinRequestResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "leagueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "membershipId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "cancelled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "leagueName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "leagueId",
+          "invitationId",
+          "membershipId",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "decidedAt",
+          "leagueName"
+        ]
+      },
+      "OwnPendingJoinRequestPageDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnPendingJoinRequestResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "data",
+          "nextCursor"
         ]
       },
       "InvitationPageResponseDto": {
@@ -7290,17 +7585,6 @@
         "required": [
           "data",
           "nextCursor"
-        ]
-      },
-      "InvitationResponseDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/InvitationMetadataResponseDto"
-          }
-        },
-        "required": [
-          "data"
         ]
       },
       "MembershipResponseDto": {
@@ -9850,6 +10134,20 @@
           "fixtureId",
           "correctionUpdating",
           "markets"
+        ]
+      },
+      "MemberFixtureResultsBatchResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberFixtureResultsDataDto"
+            }
+          }
+        },
+        "required": [
+          "data"
         ]
       },
       "MemberFixtureResultsResponseDto": {

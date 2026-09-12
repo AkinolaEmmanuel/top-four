@@ -31,7 +31,9 @@ import {
   LeagueDashboard,
   updateLeague,
   UpdateLeaguePayload,
-  cancelJoinRequest
+  cancelJoinRequest,
+  fetchOwnPendingJoinRequests,
+  OwnPendingJoinRequest,
 } from '@/lib/api/leagues';
 
 export function useMyLeagues() {
@@ -155,15 +157,24 @@ export function useProcessJoinRequest(leagueId: string) {
 }
 
 export function useCancelJoinRequest() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ leagueId, requestId }: { leagueId: string; requestId: string }) => cancelJoinRequest(leagueId, requestId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me', 'join-requests'] }),
+  });
+}
+
+export function useOwnPendingJoinRequests() {
+  return useQuery<OwnPendingJoinRequest[], Error>({
+    queryKey: ['me', 'join-requests'],
+    queryFn: () => fetchOwnPendingJoinRequests(),
   });
 }
 
 export function useCreateInvitation(leagueId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (useLimit: number = 100) => createInvitation(leagueId, useLimit),
+    mutationFn: ({ useLimit = 100, label }: { useLimit?: number; label?: string } = {}) => createInvitation(leagueId, useLimit, label),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'invitations'] }),
   });
 }
