@@ -85,44 +85,54 @@ function requestedRows(show: string | undefined): number {
 }
 
 /**
- * Reads only as far as it has to.
+ * An ISO instant the API will accept.
  *
- * Availability is ordered by kickoff, so every played fixture sits at the front:
- * once a page holds none, the results count is final and everything beyond is
- * still to come. That plus the dashboard's own `fixtureCount` gives both counts
- * exactly, usually from a single page — following all five pages put fourteen
- * seconds of serial requests in front of the screen.
+ * Its `from`/`to` are validated against an explicit-timezone pattern that
+ * rejects the six-digit fractional seconds some clocks produce, so the instant
+ * is trimmed to whole seconds rather than passed straight from `toISOString`.
  */
-async function readPlayedAndEnough(
+function boundary(atMs: number): string {
+  return new Date(atMs).toISOString().replace(/\.\d+Z$/, 'Z');
+}
+
+/**
+ * Reads the two halves of this screen separately, each as its own window.
+ *
+ * Availability now takes a kickoff window, so neither half has to page through
+ * the season to find itself. Before this the screen walked the whole ordered
+ * list from August — about five serial round trips to draw one round.
+ *
+ * The played half is read whole because it is small and because its exact size
+ * is what makes both counts true: everything else in the league is still to
+ * come. The upcoming half is read only when it is the half on screen.
+ *
+ * One caveat worth knowing: the API excludes fixtures whose kickoff is not yet
+ * known from a windowed read, so a fixture awaiting a confirmed time appears in
+ * neither window. The counts come from the dashboard, which counts them.
+ */
+async function readWindow(
   leagueId: string,
-  rowsNeeded: number,
+  from: string | null,
+  to: string | null,
+  maxPages: number,
 ): Promise<{ items: FixtureAvailability[]; truncated: boolean }> {
   const items: FixtureAvailability[] = [];
   let cursor: string | null = null;
 
-  for (let page = 0; page < MAX_PAGES; page++) {
+  for (let page = 0; page < maxPages; page++) {
     const url: string = `/leagues/${leagueId}/fixtures/availability?limit=${AVAILABILITY_PAGE_SIZE}`
+      + (from ? `&from=${encodeURIComponent(from)}` : '')
+      + (to ? `&to=${encodeURIComponent(to)}` : '')
       + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '');
     const response = await serverFetch<{ data: FixtureAvailability[]; nextCursor: string | null }>(url);
     items.push(...response.data);
     cursor = response.nextCursor;
-
-    // The played ones are a prefix, so they have run out as soon as a page
-    // *ends* on one that is not played — not merely when a page contains none.
-    const last = response.data.at(-1);
-    const playedRunOut = !last || !PLAYED_STATES.includes(last.fixtureState);
-    if (!cursor || (playedRunOut && items.length >= rowsNeeded)) break;
+    if (!cursor) break;
   }
 
   return { items, truncated: cursor !== null };
 }
 
-/**
- * The chrome above this page needs only the league read; the list below needs
- * availability and then a results batch per played chunk, which is another
- * second and a half. Behind a boundary, the header and tabs paint as soon as
- * the league lands instead of waiting for the whole list.
- */
 export default function LeagueFixturesPage({
   params, searchParams,
 }: {
@@ -144,15 +154,29 @@ async function Fixtures({
 }) {
   const id = params.id;
 
+  /* Which half to read. "either" means the URL did not say, and the answer
+     depends on what comes back — so the read has to cover both. */
+  const view: FixtureView | 'either' = searchParams.view === 'results' ? 'results'
+    : searchParams.view === 'upcoming' ? 'upcoming' : 'either';
+
+  const now = boundary(Date.now());
+
   let league: LeagueRead;
   let dashboard: Dashboard | null;
-  let availability: { items: FixtureAvailability[]; truncated: boolean };
+  let played: { items: FixtureAvailability[]; truncated: boolean };
+  let upcoming: { items: FixtureAvailability[]; truncated: boolean };
 
   try {
-    [league, dashboard, availability] = await Promise.all([
+    [league, dashboard, played, upcoming] = await Promise.all([
       getLeague(id),
       getLeagueDashboard(id),
-      readPlayedAndEnough(id, requestedRows(searchParams.show)),
+      // Always: small, complete, and the exact size is what makes both counts true.
+      readWindow(id, null, now, MAX_PAGES),
+      // Only when it is the half on screen, and then one page is enough — the
+      // window starts at now and the list is ordered by kickoff.
+      view === 'results'
+        ? Promise.resolve({ items: [], truncated: false })
+        : readWindow(id, now, null, 1),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/fixtures`);
@@ -161,7 +185,7 @@ async function Fixtures({
     throw error;
   }
 
-  const base: LeagueFixture[] = availability.items.map(f => ({
+  const base: LeagueFixture[] = [...played.items, ...upcoming.items].map(f => ({
     id: f.leagueFixtureId,
     leagueId: id,
     homeTeam: f.homeTeam?.displayName || 'Home',
@@ -199,20 +223,20 @@ async function Fixtures({
 
   // Opens on whichever half has something in it — a league whose fixtures have
   // all been played should not open on an empty "Upcoming".
-  const view: FixtureView = searchParams.view === 'results' ? 'results'
-    : searchParams.view === 'upcoming' ? 'upcoming'
-      : split.upcoming.length > 0 ? 'upcoming' : 'results';
+  const shownView: FixtureView = view === 'either'
+    ? (split.upcoming.length > 0 ? 'upcoming' : 'results')
+    : view;
 
   const filter: FixtureFilter = FIXTURE_FILTERS.some(f => f.id === searchParams.filter)
     ? searchParams.filter as FixtureFilter
     : 'all';
 
-  const inView = view === 'upcoming' ? split.upcoming : split.results;
+  const inView = shownView === 'upcoming' ? split.upcoming : split.results;
   // Counted over everything read, not over the window, so a chip's number means
   // the league rather than the slice already on screen.
   const filterCounts = Object.fromEntries(FIXTURE_FILTERS.map(f =>
     [f.id, split.upcoming.filter(x => matchesFilter(x.predictionState, f.id)).length])) as Record<FixtureFilter, number>;
-  const all = view === 'upcoming' ? inView.filter(f => matchesFilter(f.predictionState, filter)) : inView;
+  const all = shownView === 'upcoming' ? inView.filter(f => matchesFilter(f.predictionState, filter)) : inView;
   const requested = Number.parseInt(searchParams.show ?? '', 10);
   const shown = Number.isFinite(requested) && requested > 0
     ? Math.min(requested, all.length)
@@ -223,13 +247,15 @@ async function Fixtures({
       leagueId={id}
       leagueName={league.name}
       competition={league.competitions[0]?.displayName ?? ''}
-      view={view}
+      view={shownView}
       filter={filter}
       filterCounts={filterCounts}
-      rows={all.slice(0, shown).map(f => toFixtureRow(f, id, view))}
+      rows={all.slice(0, shown).map(f => toFixtureRow(f, id, shownView))}
       counts={{
-        // Results are complete because the read stops only once they run out;
-        // everything else in the league is still to come.
+        // Results are exact: that window is read whole. Everything else in the
+        // league is still to come, which is what the dashboard's count minus
+        // them gives — including any fixture whose kickoff is not yet known and
+        // so appears in neither window.
         results: split.results.length,
         upcoming: Math.max(
           split.upcoming.length,
@@ -238,7 +264,7 @@ async function Fixtures({
       }}
       unansweredBadge={unanswered > 0 ? (unanswered > 99 ? '99+' : String(unanswered)) : ''}
       showMoreHref={shown < all.length
-        ? `/leagues/${id}/fixtures?view=${view}&filter=${filter}&show=${shown + ROW_WINDOW}`
+        ? `/leagues/${id}/fixtures?view=${shownView}&filter=${filter}&show=${shown + ROW_WINDOW}`
         : null}
     />
   );

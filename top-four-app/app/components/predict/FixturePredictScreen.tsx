@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { LeagueContextBar } from '../leagues/LeagueContextBar';
 import { LineupPicker } from './LineupPicker';
+import { PlayerPickerPanel } from './PlayerPickerPanel';
+import { MARKET_TYPE, type PickerMarket, type PickerSquad } from '@/lib/predict/player-picker';
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { failureMessage } from '@/lib/api/failure';
 import { lockLabel } from '@/lib/format';
@@ -56,7 +58,7 @@ export function FixturePredictScreen({
   leagueId, fixtureId, leagueName, competition,
   homeName, awayName, homeCode, awayCode, homeLogo, awayLogo,
   kickoffAt, nextDeadlineAt, lineupDeadlineAt, serverTime,
-  phase, markets, initialAnswers, versions, lineupVersions, snapshotId,
+  phase, markets, initialAnswers, versions, lineupVersions, snapshotId, squads,
   pointsAtStake, pointsEarned, otherLeagueCount,
 }: {
   leagueId: string;
@@ -80,6 +82,8 @@ export function FixturePredictScreen({
   versions: Record<string, number>;
   lineupVersions: { home: number; away: number };
   snapshotId: string | null;
+  /** Both squads, so the full picker opens here rather than on its own route. */
+  squads: PickerSquad[];
   pointsAtStake: number;
   pointsEarned: number;
   otherLeagueCount: number;
@@ -91,6 +95,7 @@ export function FixturePredictScreen({
   const [saved, setSaved] = useState<string | null>(null);
   const [failed, setFailed] = useState<Record<string, string>>({});
   const [editingLineup, setEditingLineup] = useState<'home' | 'away' | null>(null);
+  const [pickingPlayers, setPickingPlayers] = useState<PickerMarket | null>(null);
   const [copyView, setCopyView] = useState<'closed' | 'confirm' | 'done'>('closed');
   const [copyReport, setCopyReport] = useState<CopyLeagueSummary[] | null>(null);
   const [now, setNow] = useState(() => Date.parse(serverTime));
@@ -465,12 +470,13 @@ export function FixturePredictScreen({
                             onPick={id => answerMarket(market, id)}
                           />
                           {canAnswer && (
-                            <Link
-                              href={`/predict/fixture/${fixtureId}/player?leagueId=${leagueId}&market=${market.marketType === 'player_card' ? 'card' : 'scorer'}`}
+                            <button
+                              type="button"
+                              onClick={() => setPickingPlayers(market.marketType === 'player_card' ? 'card' : 'scorer')}
                               className="inline-block mt-[9px] font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-link)]"
                             >
                               SEARCH ALL PLAYERS →
-                            </Link>
+                            </button>
                           )}
                         </div>
                       )}
@@ -562,7 +568,11 @@ export function FixturePredictScreen({
                     <button
                       key={market.key}
                       type="button"
-                      disabled={!editable || !market.open}
+                      /* Openable after the lock too. A closed lineup still has
+                         something to say — what was stored, and once the XI is
+                         confirmed, which of the eleven actually started. Only a
+                         market with nothing behind it is inert. */
+                      disabled={!market.side || (!market.open && !isSet && !settled)}
                       onClick={() => market.side && setEditingLineup(market.side)}
                       className={`tf-tap w-full text-left flex items-center gap-[12px] p-[14px_var(--gutter)] md:px-[14px] md:rounded-[13px] md:border border-t border-[var(--surface-border)] ${index === lineupMarkets.length - 1 ? 'border-b md:border' : ''} ${(!isSet && editable && market.open) ? 'bg-[var(--surface-subtle)]' : ''}`}
                     >
@@ -694,6 +704,41 @@ export function FixturePredictScreen({
         </div>
       )}
 
+      {/* The design puts the full squad list over the fixture, not on a route
+          of its own: you are choosing a scorer *for this match*, and leaving
+          the match to do it loses the eight answers around it. The route still
+          exists, for a link shared into the picker. */}
+      {pickingPlayers && (
+        <div className="absolute inset-0 z-50 bg-[var(--scrim)] flex flex-col justify-end md:items-center md:justify-center md:p-[20px]">
+          <button
+            type="button"
+            aria-label="Close the squad list"
+            onClick={() => setPickingPlayers(null)}
+            className="absolute inset-0"
+          />
+          <div className="relative bg-[var(--surface-canvas)] w-full md:max-w-[1032px] h-[86vh] md:h-[80vh] rounded-t-[18px] md:rounded-[16px] overflow-hidden flex flex-col">
+            <PlayerPickerPanel
+              leagueId={leagueId}
+              fixtureId={fixtureId}
+              market={pickingPlayers}
+              squads={squads}
+              savedPlayerId={(answers[MARKET_TYPE[pickingPlayers]] as string | undefined) ?? null}
+              expectedVersion={marketVersions[MARKET_TYPE[pickingPlayers]] ?? 0}
+              snapshotId={snapshotId}
+              price={markets.find(m => m.marketType === MARKET_TYPE[pickingPlayers])?.pointsLabel ?? ''}
+              onClose={() => setPickingPlayers(null)}
+              onSaved={(playerId, version) => {
+                const key = MARKET_TYPE[pickingPlayers];
+                setAnswers(prev => ({ ...prev, [key]: playerId }));
+                setMarketVersions(prev => ({ ...prev, [key]: version }));
+                setPickingPlayers(null);
+                showReceipt(key);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {editingLineup && (
         <div className="absolute inset-0 z-50 bg-[var(--surface-canvas)] md:bg-[rgba(0,0,0,0.5)] md:flex md:items-center md:justify-center md:p-[20px]">
           <div className="bg-[var(--surface-canvas)] w-full max-w-[500px] rounded-[16px] overflow-hidden flex flex-col md:max-h-[80vh]">
@@ -702,17 +747,26 @@ export function FixturePredictScreen({
               <button type="button" aria-label="Close" onClick={() => setEditingLineup(null)} className="text-[24px] text-[var(--text-muted)]">×</button>
             </div>
             <div className="p-[16px] overflow-y-auto">
-              <LineupPicker
-                players={(markets.find(m => m.key === `${editingLineup}_lineup`)?.players ?? []).map(p => ({
-                  id: p.id,
-                  displayName: p.name,
-                  position: p.position,
-                  shirtNumber: p.shirtNumber,
-                }))}
-                onSave={playerIds => saveLineup(editingLineup, playerIds)}
-                isSaving={submitLineup.isPending}
-                initialSelection={(answers[`${editingLineup}_lineup`] as string[] | undefined) ?? []}
-              />
+              {(() => {
+                const market = markets.find(m => m.key === `${editingLineup}_lineup`);
+                // The players go through unremapped now: the picker takes the
+                // domain's own PlayerOption, so a renamed field is a compile
+                // error rather than a silently empty pitch.
+                return (
+                  <LineupPicker
+                    players={market?.players ?? []}
+                    onSave={playerIds => saveLineup(editingLineup, playerIds)}
+                    isSaving={submitLineup.isPending}
+                    initialSelection={(answers[`${editingLineup}_lineup`] as string[] | undefined) ?? []}
+                    phase={settled ? 'scored' : market?.open ? 'editable' : 'locked'}
+                    started={market?.startedPlayerIds ?? null}
+                    pointsLabel={market && market.pointsAwarded !== null
+                      ? (market.pointsAwarded > 0 ? `+${market.pointsAwarded}` : '0')
+                      : null}
+                    failure={failed[`${editingLineup}_lineup`] ?? null}
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>

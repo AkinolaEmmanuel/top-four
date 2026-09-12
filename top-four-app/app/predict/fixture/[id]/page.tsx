@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { FixturePredictScreen } from '../../../components/predict/FixturePredictScreen';
 import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { toSquads } from '@/lib/predict/player-picker';
 import {
   fixturePhaseOf, hydrateAnswers, pointsAtStake, pointsEarned, toFixtureMarkets,
 } from '@/lib/predict/fixture-predict';
@@ -111,6 +112,13 @@ export default async function FixturePredictPage({ params, searchParams }: {
         away: predictions?.data.lineups.away?.version ?? 0,
       }}
       snapshotId={predictions?.data.lineups.snapshot?.snapshotId ?? players?.data.snapshot?.snapshotId ?? null}
+      // The squads this page already reads, so the full picker can open over
+      // the fixture instead of sending the member to a route of its own.
+      squads={toSquads(
+        players?.data.players ?? [],
+        { code: homeCode, name: homeName },
+        { code: awayCode, name: awayName },
+      )}
       pointsAtStake={pointsAtStake(markets)}
       pointsEarned={pointsEarned(marketResults)}
       otherLeagueCount={otherLeagues}

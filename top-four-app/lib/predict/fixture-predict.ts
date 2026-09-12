@@ -70,6 +70,12 @@ export interface FixtureMarket {
   landed: string | null;
   /** Settled exact score, home and away. */
   landedScore: [number, number] | null;
+  /**
+   * The XI that actually started, once it is confirmed — a lineup market's
+   * landing is eleven players rather than one answer. Null while unknown, which
+   * is what the scored pitch says rather than marking everybody wrong.
+   */
+  startedPlayerIds: string[] | null;
 }
 
 /** The member's in-flight answers, keyed by market key. */
@@ -135,6 +141,21 @@ export function landedAnswerFor(
     return typeof ownPick === 'string' && ids.includes(ownPick) ? ownPick : null;
   }
   return null;
+}
+
+/**
+ * The confirmed starters from a settled lineup market.
+ *
+ * The resolved answer is an untyped upstream shape, so the ids are read out
+ * rather than cast: an unexpected payload yields null — nothing started — which
+ * the pitch renders as "waiting on the confirmed XI".
+ */
+export function startedFrom(resolved: Record<string, unknown> | null | undefined): string[] | null {
+  if (!resolved) return null;
+  const raw = resolved.playerIds ?? resolved.startingPlayerIds ?? resolved.starters;
+  if (!Array.isArray(raw)) return null;
+  const ids = raw.filter((v): v is string => typeof v === 'string');
+  return ids.length > 0 ? ids : null;
 }
 
 export function landedScoreFor(resolved: Record<string, unknown> | null): [number, number] | null {
@@ -244,6 +265,8 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
         pointsAwarded: result?.viewerOutcome?.pointsDelta ?? null,
         landed: landedAnswerFor(marketType, resolved, answers[marketType]),
         landedScore: marketType === 'exact_score' ? landedScoreFor(resolved) : null,
+        // Only a lineup lands as eleven players.
+        startedPlayerIds: null,
       };
     });
 
@@ -275,6 +298,7 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
         pointsAwarded: result?.viewerOutcome?.pointsDelta ?? null,
         landed: null,
         landedScore: null,
+        startedPlayerIds: startedFrom(result?.resolvedAnswer ?? null),
       };
     }),
   ];
