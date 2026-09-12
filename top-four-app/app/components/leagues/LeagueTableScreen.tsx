@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { LeagueTabs } from './LeagueTabs';
 import { toBreakdown, type TablePage, type TableRow } from '@/lib/leagues/league-table';
 
 /**
@@ -68,37 +67,26 @@ export function LeagueTableScreen({
     page <= 1 ? `/leagues/${leagueId}/table` : `/leagues/${leagueId}/table?page=${page}`;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
-
-      <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[18px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
-        <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[24px]">
-          <div className="flex items-center gap-[11px]">
-            <Link href={`/leagues/${leagueId}`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px] md:hidden">‹</Link>
-            <div className="min-w-0 flex-1">
-              <div className="font-heading font-[650] text-[17px] md:text-[22px] leading-[1.1] tracking-[-0.3px] truncate">{leagueName}</div>
-              <div className="text-[10.5px] md:text-[12px] text-[var(--nav-text-faint)] mt-[4px]">
-                {ownCaption} · {isFinal ? 'final' : 'updated live'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-end gap-[12px] mt-[16px]">
-            <span className="tf-num font-heading font-bold text-[40px] md:text-[46px] leading-[0.88] tracking-[-1.8px]">{ownPosition}</span>
-            <div className="pb-[5px]">
-              <div className="font-heading font-semibold text-[12.5px]">{ownPoints}</div>
-              <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[3px]">{ownCaption}</div>
-            </div>
+    <>
+      {/* The member's own standing. It used to live in this screen's header,
+          which made the league chrome a different height on this tab than on
+          every other; as content it says the same thing without moving the
+          page around. */}
+      <section className="flex items-end gap-[12px] p-[16px_var(--gutter)] md:px-0 md:pt-[4px] md:pb-[18px]">
+        <span className="tf-num font-heading font-bold text-[40px] md:text-[46px] leading-[0.88] tracking-[-1.8px]">
+          {ownPosition}
+        </span>
+        <div className="pb-[5px]">
+          <div className="font-heading font-semibold text-[12.5px]">{ownPoints}</div>
+          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">
+            {ownCaption} · {isFinal ? 'final' : 'updated live'}
           </div>
         </div>
-      </header>
+      </section>
 
-      <LeagueTabs leagueId={leagueId} active="table" />
-
-      <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
-        <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:pt-[18px]">
-
-          {/* Column headings, wide screens only. */}
-          <div className="hidden md:grid grid-cols-[46px_minmax(0,1fr)_110px_24px] gap-[14px] items-center p-[10px_8px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)]">
+          {/* Column headings, wide screens only — and only over actual rows;
+              a heading strip above an empty table reads as a failed load. */}
+          <div className={`${table.rows.length === 0 ? 'hidden' : 'hidden md:grid'} grid-cols-[46px_minmax(0,1fr)_110px_24px] gap-[14px] items-center p-[10px_8px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)]`}>
             <span className="tf-kicker">Pos</span>
             <span className="tf-kicker">Member</span>
             <span className="tf-kicker text-right">Points</span>
@@ -180,8 +168,6 @@ export function LeagueTableScreen({
               </ol>
             </section>
           )}
-        </div>
-      </main>
-    </div>
+    </>
   );
 }

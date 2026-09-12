@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LeagueTabs } from './LeagueTabs';
 import { useSubmitCustomAnswer, useCreateCustomQuestion, useResolveCustomQuestion, useVoidCustomQuestion } from '@/hooks/api/useCustomQuestions';
 import { toAnswerValue, toQuestionSections, type QuestionCard } from '@/lib/leagues/league-questions';
 import { pluralise } from '@/lib/format';
@@ -153,52 +152,49 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
   };
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
-
-      <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[18px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
-        <div className="md:max-w-[900px] md:mx-auto md:px-[24px] md:py-[24px]">
-          <div className="flex items-center gap-[11px]">
-            <Link href={`/leagues/${leagueId}/more`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px] md:hidden">‹</Link>
-            <div className="min-w-0 flex-1">
-              <div className="font-heading font-[650] text-[17px] md:text-[20px] leading-[1.1] tracking-[-0.3px]">Questions</div>
-              <div className="text-[10.5px] md:text-[12px] text-[var(--nav-text-faint)] mt-[4px] truncate">{leagueName}</div>
-            </div>
+    <>
+      {/* The screen's own summary. It used to live in a header this screen drew
+          itself; the league chrome moved to the layout and took this with it, so
+          it is content now — which is where it belongs, since it is about the
+          questions rather than about the league. */}
+      {(!none || canAdmin) && (
+        <section className="p-[16px_var(--gutter)_18px] md:px-0 md:pt-[4px]">
+          <div className="flex items-start gap-[12px]">
+            {/* The stake is what is actually at issue on this screen. It is hidden
+                on an empty board, where the list's own empty state says it better. */}
+            {!none && (
+              <div className="flex items-end gap-[10px] flex-1 min-w-0">
+                <span
+                  className="tf-num font-heading font-bold text-[38px] leading-[0.9] tracking-[-1.6px]"
+                  style={{ color: owing.length === 0 ? 'var(--success-text)' : 'var(--warn-text)' }}
+                >
+                  {owing.length === 0 ? committed : unclaimed}
+                </span>
+                <div className="pb-[4px] min-w-0">
+                  <div className="text-[11.5px] leading-[1.35]">
+                    {owing.length === 0 ? 'points already committed' : 'points still unclaimed'}
+                  </div>
+                  <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">
+                    {owing.length === 0
+                      ? 'Every open question is answered. You can change any of them until its deadline.'
+                      : `${pluralise(owing.length, 'question')} unanswered. They score onto the same table as the fixtures.`}
+                  </div>
+                </div>
+              </div>
+            )}
+            {none && <div className="flex-1" />}
             {canAdmin && (
               <button
                 type="button"
                 onClick={() => setView(view === 'create' ? 'list' : 'create')}
-                className="h-[38px] px-[14px] rounded-[10px] bg-[var(--nav-accent)] text-[var(--nav-on-accent)] font-heading font-bold text-[11.5px] flex-none"
+                className="h-[38px] px-[14px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px] flex-none"
               >
                 {view === 'create' ? 'Close' : 'New question'}
               </button>
             )}
           </div>
-
-          <div className="flex items-end gap-[10px] mt-[16px]">
-            <span
-              className="tf-num font-heading font-bold text-[38px] leading-[0.9] tracking-[-1.6px]"
-              style={{ color: none ? 'var(--nav-text-faint)' : owing.length === 0 ? 'var(--nav-positive)' : 'var(--nav-warning)' }}
-            >
-              {none ? 0 : owing.length === 0 ? committed : unclaimed}
-            </span>
-            <div className="pb-[4px] text-[11.5px] leading-[1.35] text-[var(--nav-text-faint)]">
-              {none ? 'points on offer' : owing.length === 0 ? 'points already committed' : 'points still unclaimed'}
-            </div>
-          </div>
-          <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[8px]">
-            {none
-              ? 'No questions have been written for this league yet.'
-              : owing.length === 0
-                ? 'Every open question is answered. You can change any of them until its deadline.'
-                : `${pluralise(owing.length, 'question')} unanswered. Questions score onto the same table as fixtures.`}
-          </div>
-        </div>
-      </header>
-
-      <LeagueTabs leagueId={leagueId} active="more" />
-
-      <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
-        <div className="md:max-w-[900px] md:mx-auto md:px-[24px]">
+        </section>
+      )}
 
           {view === 'create' && canAdmin && (
             <CreateQuestion
@@ -249,8 +245,6 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
           )}
 
           {failed && <p role="alert" className="p-[14px_var(--gutter)] md:px-[8px] text-[11.5px] text-[var(--danger-text)]">{failed}</p>}
-        </div>
-      </main>
 
       {resolving && (
         <div
@@ -304,7 +298,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

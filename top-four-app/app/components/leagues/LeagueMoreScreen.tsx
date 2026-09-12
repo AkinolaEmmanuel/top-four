@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LeagueTabs } from './LeagueTabs';
 import { useLeaveLeague } from '@/hooks/api/useLeagues';
 import type { MoreEntry, MoreSection } from '@/lib/leagues/league-more';
 
@@ -73,27 +72,10 @@ export function LeagueMoreScreen({ leagueId, leagueName, lifecycleLabel, roleLab
     `flex items-center gap-[13px] p-[13px_var(--gutter)] md:px-[6px] border-t border-[var(--surface-border)] last:border-b w-full text-left ${entry.tone === 'danger' ? 'shadow-[inset_3px_0_0_0_var(--color-danger)]' : ''}`;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <>
 
-      <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[14px] md:p-0 md:bg-[var(--surface-card)] md:border-b md:border-[var(--surface-border)]">
-        <div className="flex items-center gap-[11px] md:max-w-[1080px] md:mx-auto md:px-[24px] md:h-[54px] md:items-end">
-          <Link href={`/leagues/${leagueId}`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px] md:hidden">‹</Link>
-          <div className="min-w-0 flex-1 md:pb-[11px]">
-            <div className="font-heading font-[650] md:font-bold text-[17px] md:text-[14.5px] leading-[1.1] tracking-[-0.3px] truncate md:text-[var(--text-primary)]">{leagueName}</div>
-            <div className="flex items-center gap-[7px] mt-[4px]">
-              <span className={`inline-flex items-center h-[20px] px-[8px] rounded-[5px] font-heading font-bold text-[9px] leading-[1] tracking-[0.05em] ${isComplete ? 'bg-[var(--nav-fill)] text-[var(--nav-text-quiet)] md:bg-[var(--surface-subtle)] md:text-[var(--text-muted)]' : 'bg-[var(--nav-accent)] text-[var(--nav-on-accent)]'}`}>
-                {lifecycleLabel}
-              </span>
-              <span className="font-heading font-semibold text-[9.5px] tracking-[0.07em] text-[var(--nav-text-faint)] md:text-[var(--text-muted)]">{roleLabel}</span>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      <LeagueTabs leagueId={leagueId} active="more" />
 
-      <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
-        <div className="md:max-w-[680px] md:mx-auto md:px-[24px]">
           {sections.map(section => (
             <section key={section.label} className="mt-[18px] md:mt-[24px]">
               <div className="p-[0_var(--gutter)_9px] md:px-0">
@@ -126,8 +108,6 @@ export function LeagueMoreScreen({ leagueId, leagueName, lifecycleLabel, roleLab
           )}
 
           <p className="p-[20px_var(--gutter)_26px] md:px-0 text-[11px] leading-[1.6] text-[var(--text-muted)]">{footNote}</p>
-        </div>
-      </main>
-    </div>
+    </>
   );
 }

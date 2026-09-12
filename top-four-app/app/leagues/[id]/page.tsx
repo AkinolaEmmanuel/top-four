@@ -30,6 +30,7 @@ type OwnStanding = Api<'OwnStandingResponseDto'>;
 type TaskPage = Api<'PredictionTaskPageDto'>;
 type Questions = Api<'CustomQuestionPageResponseDto'>;
 type Me = Api<'CurrentAuthenticationResponseDto'>;
+type AvailabilityPage = { data: FixtureAvailability[]; nextCursor: string | null };
 
 
 /**
@@ -49,9 +50,9 @@ export default async function LeagueOverviewPage({ params }: { params: { id: str
   let dashboard: Dashboard | null;
   let standings: Standings | null;
   let own: OwnStanding | null;
-  let tasks: { items: PredictionTask[] };
+  let tasks: TaskPage | null;
   let questions: { items: CustomQuestion[] };
-  let fixtures: { items: FixtureAvailability[]; truncated: boolean };
+  let fixtures: AvailabilityPage | null;
   let me: Me | null;
 
   try {
@@ -60,12 +61,15 @@ export default async function LeagueOverviewPage({ params }: { params: { id: str
       serverFetchOrNull<Dashboard>(`/leagues/${id}/dashboard`),
       serverFetchOrNull<Standings>(`/leagues/${id}/standings?page=1&pageSize=50`),
       serverFetchOrNull<OwnStanding>(`/leagues/${id}/standings/me`),
-      // Every page: this league's next task can sit behind another league's.
-      serverFetchAllPages<PredictionTask, TaskPage>(`/me/prediction-tasks?limit=${TASK_PAGE_SIZE}`),
+      // One page: this screen only needs the soonest task for this league, and
+      // the feed is ordered by deadline. Following every page cost four extra
+      // serial round-trips to answer a question page one already answers.
+      serverFetchOrNull<TaskPage>(`/me/prediction-tasks?limit=${TASK_PAGE_SIZE}`),
       serverFetchAllPages<CustomQuestion, Questions>(`/leagues/${id}/custom-questions`),
-      // Every page: the last played fixture is the league's, not page one's,
-      // and the next task's fixture can sit on any page.
-      serverFetchAllPages<FixtureAvailability>(`/leagues/${id}/fixtures/availability?limit=${AVAILABILITY_PAGE_SIZE}`),
+      // One page, ordered by kickoff, so the played fixtures come first and the
+      // most recent of them is here. Reading the whole season to find two
+      // fixtures put five serial calls in front of every visit.
+      serverFetchOrNull<AvailabilityPage>(`/leagues/${id}/fixtures/availability?limit=${AVAILABILITY_PAGE_SIZE}`),
       serverFetchOrNull<Me>('/auth/me'),
     ]);
   } catch (error) {
@@ -80,9 +84,9 @@ export default async function LeagueOverviewPage({ params }: { params: { id: str
   // The hero is about the next fixture, so its progress comes from that
   // fixture's own record. The dashboard's completeness counts the whole season —
   // a four-digit number that says nothing about what is waiting now.
-  const nextTask = tasks.items.find(t => t.kind === 'fixture' && t.league.id === id);
+  const nextTask = tasks?.items.find(t => t.kind === 'fixture' && t.league.id === id);
   const nextAvailability = nextTask?.kind === 'fixture'
-    ? fixtures.items.find(f => f.leagueFixtureId === nextTask.leagueFixtureId)
+    ? fixtures?.data.find(f => f.leagueFixtureId === nextTask.leagueFixtureId)
     : undefined;
 
   const nextFixture: NextFixture | null = nextTask?.kind === 'fixture' ? {
@@ -98,7 +102,7 @@ export default async function LeagueOverviewPage({ params }: { params: { id: str
 
   // The most recently played fixture, and how the member scored on it. One
   // extra read, for the per-market breakdown the availability feed does not carry.
-  const lastFinished = fixtures.items
+  const lastFinished = (fixtures?.data ?? [])
     .filter(f => ['finished', 'awarded', 'walkover'].includes(f.fixtureState))
     .sort((a, b) => Date.parse(b.kickoff?.at ?? '') - Date.parse(a.kickoff?.at ?? ''))[0];
 

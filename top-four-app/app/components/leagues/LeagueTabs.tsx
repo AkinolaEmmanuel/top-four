@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type { ReactElement } from 'react';
 
 /**
@@ -14,7 +15,7 @@ import type { ReactElement } from 'react';
  */
 
 /** Four tabs, as the design's league bar has. Questions is reached via More. */
-type TabId = 'overview' | 'fixtures' | 'table' | 'more';
+export type TabId = 'overview' | 'fixtures' | 'table' | 'more';
 
 const ICONS: Record<TabId, ReactElement> = {
   overview: (
@@ -41,12 +42,26 @@ const TABS: Array<{ id: TabId; label: string }> = [
 const hrefFor = (leagueId: string, id: TabId) =>
   id === 'overview' ? `/leagues/${leagueId}` : `/leagues/${leagueId}/${id}`;
 
-export function LeagueTabs({ leagueId, active, badge }: {
+/**
+ * Derives the active tab from the URL rather than taking it as a prop, so the
+ * bar can live in the league layout and survive navigation between tabs
+ * instead of remounting with each screen.
+ */
+function activeFrom(pathname: string, leagueId: string): TabId {
+  const rest = pathname.replace(`/leagues/${leagueId}`, '');
+  if (rest.startsWith('/fixtures')) return 'fixtures';
+  if (rest.startsWith('/table')) return 'table';
+  if (rest === '' || rest === '/') return 'overview';
+  // Rules, Questions and Admin are all reached through More.
+  return 'more';
+}
+
+export function LeagueTabs({ leagueId, badge }: {
   leagueId: string;
-  active: TabId;
   /** Unanswered markets, shown on Fixtures. Empty string hides it. */
   badge?: string;
 }) {
+  const active = activeFrom(usePathname() ?? '', leagueId);
   const badgeFor = (id: TabId) => (id === 'fixtures' ? badge : '');
 
   return (

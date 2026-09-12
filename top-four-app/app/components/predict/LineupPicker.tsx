@@ -13,13 +13,23 @@ function quotasFor(formation: string): Record<Bucket, number> {
 
 const BUCKET_LABEL: Record<Bucket, string> = { GK: 'Goalkeeper', DEF: 'Defender', MID: 'Midfielder', FWD: 'Forward' };
 
-function bucketOf(position: string | null | undefined): Bucket {
+/**
+ * The bucket a position belongs to, or null when the catalogue does not say.
+ *
+ * Deliberately does not guess. This used to fall through to 'MID', so a player
+ * with no position — which was every player, once the fixture screen stopped
+ * passing one — filled a midfield slot. A goalkeeper counted as a midfielder
+ * and the keeper slot could never be filled.
+ */
+function bucketOf(position: string | null | undefined): Bucket | null {
   const p = (position || '').toLowerCase();
-  if (p.includes('keeper')) return 'GK';
-  if (p.includes('defen') || p.includes('back')) return 'DEF';
-  if (p.includes('mid')) return 'MID';
-  if (p.includes('forward') || p.includes('wing') || p.includes('striker') || p.includes('attack')) return 'FWD';
-  return 'MID';
+  if (!p) return null;
+  if (p.includes('keeper') || p === 'gk' || p === 'g') return 'GK';
+  if (p.includes('defen') || p.includes('back') || p === 'd') return 'DEF';
+  if (p.includes('mid') || p === 'm') return 'MID';
+  if (p.includes('forward') || p.includes('wing') || p.includes('striker')
+    || p.includes('attack') || p === 'f' || p === 'a') return 'FWD';
+  return null;
 }
 
 // A previously-saved lineup carries no formation of its own on the wire (just
@@ -31,7 +41,10 @@ function deriveFormation(ids: string[], byId: Record<string, any>): string | nul
   for (const id of ids) {
     const p = byId[id];
     if (!p) return null;
-    counts[bucketOf(p.position)]++;
+    const bucket = bucketOf(p.position);
+    // An unknown position cannot be counted, so no formation can be claimed.
+    if (!bucket) return null;
+    counts[bucket]++;
   }
   const label = `${counts.DEF}-${counts.MID}-${counts.FWD}`;
   return FORMATIONS.includes(label) ? label : null;
@@ -50,9 +63,25 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
 
   const selectedPlayers = selected.map((id) => byId[id]).filter(Boolean);
   const counts: Record<Bucket, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
-  selectedPlayers.forEach((p) => { counts[bucketOf(p.position)]++; });
+  selectedPlayers.forEach((p) => {
+    const bucket = bucketOf(p.position);
+    if (bucket) counts[bucket]++;
+  });
 
   const isComplete = !!quotas && counts.GK === quotas.GK && counts.DEF === quotas.DEF && counts.MID === quotas.MID && counts.FWD === quotas.FWD;
+
+  /**
+   * What the XI is still short of, named.
+   *
+   * A disabled button that does not say why reads as a broken one — the member
+   * can see eleven slots and no reason the save will not take.
+   */
+  const missing = quotas
+    ? (['GK', 'DEF', 'MID', 'FWD'] as Bucket[])
+      .map(bucket => ({ bucket, short: quotas[bucket] - counts[bucket] }))
+      .filter(entry => entry.short > 0)
+      .map(entry => `${entry.short} ${BUCKET_LABEL[entry.bucket].toLowerCase()}${entry.short === 1 ? '' : 's'}`)
+    : [];
 
   const togglePlayer = (id: string) => {
     if (!quotas) return;
@@ -63,7 +92,9 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
     const player = byId[id];
     if (!player) return;
     const bucket = bucketOf(player.position);
-    if (counts[bucket] >= quotas[bucket]) return;
+    // Without a position there is no slot to put them in; picking them would
+    // silently consume somebody else's.
+    if (!bucket || counts[bucket] >= quotas[bucket]) return;
     setSelected([...selected, id]);
   };
 
@@ -75,7 +106,7 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
       const p = byId[id];
       if (!p) continue;
       const b = bucketOf(p.position);
-      if (running[b] < nextQuotas[b]) {
+      if (b && running[b] < nextQuotas[b]) {
         running[b]++;
         trimmed.push(id);
       }
@@ -89,7 +120,10 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
   };
 
   const rows: Record<Bucket, any[]> = { GK: [], DEF: [], MID: [], FWD: [] };
-  selectedPlayers.forEach((p) => { rows[bucketOf(p.position)].push(p); });
+  selectedPlayers.forEach((p) => {
+    const bucket = bucketOf(p.position);
+    if (bucket) rows[bucket].push(p);
+  });
 
   const pitchRows: Array<{ key: Bucket; top: string }> = [
     { key: 'FWD', top: '13%' },
@@ -163,8 +197,9 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
           {players.map((p) => {
             const isSel = selected.includes(p.id);
             const bucket = bucketOf(p.position);
-            const bucketFull = !!quotas && counts[bucket] >= quotas[bucket];
-            const disabled = !quotas || (!isSel && bucketFull);
+            const bucketFull = !!quotas && !!bucket && counts[bucket] >= quotas[bucket];
+            // A player the catalogue gives no position for cannot be slotted.
+            const disabled = !quotas || !bucket || (!isSel && bucketFull);
             return (
               <button
                 key={p.id}
@@ -235,9 +270,12 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
       <button
         onClick={handleSave}
         disabled={!isComplete || isSaving}
-        className="mt-[20px] w-full h-[46px] rounded-[10px] bg-[var(--color-brand)] text-[var(--color-on-brand)] font-heading font-bold text-[14px] disabled:opacity-50"
+        className="mt-[20px] w-full h-[46px] rounded-[10px] grid place-items-center bg-[var(--color-brand)] text-[var(--color-on-brand)] font-heading font-bold text-[14px] disabled:opacity-50"
       >
-        {isSaving ? 'Saving...' : 'Save Lineup'}
+        {isSaving ? 'Saving…'
+          : !quotas ? 'Pick a formation'
+            : isComplete ? 'Save lineup'
+              : `Still need ${missing.join(', ')}`}
       </button>
     </div>
   );

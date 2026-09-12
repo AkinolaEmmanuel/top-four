@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LeagueTabs } from './LeagueTabs';
 import { useUpdateLeague } from '@/hooks/api/useLeagues';
 import { useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
 import type { CompetitionRule, MarketRule } from '@/lib/leagues/league-rules';
@@ -137,28 +136,10 @@ export function LeagueRulesScreen({
   };
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <>
 
-      <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[20px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
-        <div className="md:max-w-[860px] md:mx-auto md:px-[24px] md:py-[24px]">
-          <div className="flex items-center gap-[11px]">
-            <Link href={`/leagues/${leagueId}/more`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px] md:hidden">‹</Link>
-            <div className="min-w-0 flex-1">
-              <div className="font-heading font-[650] text-[17px] md:text-[22px] leading-[1.1] tracking-[-0.3px] truncate">Rules</div>
-              <div className="text-[10.5px] md:text-[12px] text-[var(--nav-text-faint)] mt-[4px] truncate">{leagueName}</div>
-            </div>
-          </div>
-          <div className="flex items-end gap-[12px] mt-[16px]">
-            <span className="tf-num font-heading font-bold text-[40px] leading-[0.88] tracking-[-1.8px]">{maxPoints}</span>
-            <div className="pb-[5px] text-[11px] leading-[1.45] text-[var(--nav-text-faint)] max-w-[300px]">points at most from one fixture</div>
-          </div>
-        </div>
-      </header>
 
-      <LeagueTabs leagueId={leagueId} active="more" />
 
-      <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
-        <div className="md:max-w-[860px] md:mx-auto md:px-[24px] md:pt-[20px]">
 
           <p className="p-[16px_var(--gutter)] md:px-[6px] text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
             These froze when the league was published. Members answered under them, so they cannot change while it runs. {maxNote}
@@ -238,8 +219,6 @@ export function LeagueRulesScreen({
           <p className="p-[20px_var(--gutter)_26px] md:px-[6px] text-[11px] leading-[1.6] text-[var(--text-muted)]">
             Changing anything frozen would mean members had answered under different rules. That is why the only route is completing this league and starting another.
           </p>
-        </div>
-      </main>
-    </div>
+    </>
   );
 }

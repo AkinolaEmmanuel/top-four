@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LeagueTabs } from './LeagueTabs';
 import {
   useUpdateMemberRole, useRemoveMember, useTransferOwnership, useProcessJoinRequest,
   useCreateInvitation, useRevokeInvitation, usePublishLeague, useDeleteLeague,
@@ -109,21 +108,9 @@ export function LeagueAdminScreen({
         : id === 'requests' ? requests.filter(r => r.isPending).length : 0;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <>
 
-      <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[14px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
-        <div className="flex items-center gap-[11px] md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[20px]">
-          <Link href={`/leagues/${leagueId}/more`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px] md:hidden">‹</Link>
-          <div className="min-w-0 flex-1">
-            <div className="font-heading font-[650] text-[17px] md:text-[20px] leading-[1.1] tracking-[-0.3px] truncate">Members and settings</div>
-            <div className="text-[10.5px] md:text-[12px] text-[var(--nav-text-faint)] mt-[4px] truncate">
-              {leagueName} · {isOwner ? 'you own this league' : 'you help run it'}
-            </div>
-          </div>
-        </div>
-      </header>
 
-      <LeagueTabs leagueId={leagueId} active="more" />
 
       <div className="tf-scroll flex-none flex gap-[2px] px-[var(--gutter)] md:px-[24px] overflow-x-auto border-b border-[var(--surface-border)] md:max-w-[1080px] md:mx-auto md:w-full">
         {TABS.map(t => {
@@ -144,8 +131,6 @@ export function LeagueAdminScreen({
         })}
       </div>
 
-      <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
-        <div className="md:max-w-[1080px] md:mx-auto md:px-[24px]">
 
           {tab === 'members' && members.map(member => (
             <button
@@ -301,8 +286,6 @@ export function LeagueAdminScreen({
           )}
 
           {failed && <p role="alert" className="p-[14px_var(--gutter)] md:px-[6px] text-[11.5px] text-[var(--danger-text)]">{failed}</p>}
-        </div>
-      </main>
 
       {/* A member's row, opened for a role change, a removal, or a handover. */}
       {openMember && (
@@ -426,6 +409,6 @@ export function LeagueAdminScreen({
       )}
 
       {toast && <Toast message={toast} />}
-    </div>
+    </>
   );
 }

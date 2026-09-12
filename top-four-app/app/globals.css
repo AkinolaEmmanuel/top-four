@@ -157,15 +157,3 @@ input:-webkit-autofill:active {
     -webkit-text-fill-color: var(--text-primary) !important;
     transition: background-color 5000s ease-in-out 0s, border-color 5000s ease-in-out 0s;
 }
-
-/*
- * A control that used to be a <div> must lay out like one.
- *
- * Tailwind's preflight already hands buttons the inherited font and colour, but
- * not the text alignment: a button centres its text by default, which silently
- * re-aligns every row that became a real control. Anything that wants centring
- * asks for it.
- */
-button {
-  text-align: inherit;
-}

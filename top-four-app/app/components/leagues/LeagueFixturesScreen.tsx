@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { LeagueTabs } from './LeagueTabs';
 import { groupByDay, stateLabel, type FixtureCounts, type FixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
 
 /**
@@ -87,22 +86,10 @@ export function LeagueFixturesScreen({
   const days = groupByDay(rows);
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <>
 
-      <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[14px] md:p-0 md:bg-[var(--surface-card)] md:border-b md:border-[var(--surface-border)]">
-        <div className="flex items-center gap-[11px] md:max-w-[1080px] md:mx-auto md:px-[24px] md:h-[54px] md:items-end">
-          <Link href={`/leagues/${leagueId}`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px] md:hidden">‹</Link>
-          <div className="min-w-0 flex-1 md:flex md:items-baseline md:gap-[10px] md:pb-[11px]">
-            <div className="font-heading font-[650] md:font-bold text-[17px] md:text-[14.5px] leading-[1.1] tracking-[-0.3px] truncate md:text-[var(--text-primary)]">{leagueName}</div>
-            <div className="text-[10.5px] md:text-[11px] text-[var(--nav-text-faint)] md:text-[var(--text-muted)] mt-[4px] md:mt-0">{competition}</div>
-          </div>
-        </div>
-      </header>
 
-      <LeagueTabs leagueId={leagueId} active="fixtures" badge={unansweredBadge} />
 
-      <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
-        <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:pt-[20px]">
 
           <div className="flex gap-[6px] p-[12px_var(--gutter)] md:px-0 md:pt-0 border-b border-[var(--surface-border)] md:border-b-0">
             {([['upcoming', 'Upcoming', counts.upcoming], ['results', 'Results', counts.results]] as const).map(([id, label, count]) => {
@@ -165,8 +152,6 @@ export function LeagueFixturesScreen({
           <p className="p-[20px_var(--gutter)_26px] md:px-0 text-[11px] leading-[1.6] text-[var(--text-muted)]">
             A fixture stays readable after it settles. Points are provisional until review closes, and a voided market scores nothing for anyone.
           </p>
-        </div>
-      </main>
-    </div>
+    </>
   );
 }

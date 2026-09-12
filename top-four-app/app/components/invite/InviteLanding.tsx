@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ApiError } from '@/lib/api/fetcher';
+import { failureMessage } from '@/lib/api/failure';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../auth/auth-shell';
@@ -19,6 +20,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
   const [preview, setPreview] = useState<InvitationIntentPreview | null>(null);
   const [outcome, setOutcome] = useState<InvitationConsumeOutcome | null>(null);
   const [status, setStatus] = useState<'loading' | 'invalid' | 'ready' | 'joining' | 'joined' | 'pending' | 'limit' | 'error'>('loading');
+  const [failed, setFailed] = useState<string | null>(null);
 
   // Step 1: turn the code/token into an intent. Works whether or not the
   // visitor is signed in -- the capability lives only in an httpOnly cookie.
@@ -51,6 +53,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
       },
       onError: (err: unknown) => {
         const limitReached = err instanceof ApiError && err.code === 'USER_LEAGUE_LIMIT_REACHED';
+        setFailed(limitReached ? null : failureMessage(err, 'Something went wrong on our end.'));
         setStatus(limitReached ? 'limit' : 'error');
       },
     });
@@ -97,9 +100,18 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
   }
 
   if (status === 'error') {
+    // The intent cookie survives a failed consume, so retrying is just the
+    // second step again — the visitor does not need the original link back.
     return (
-      <AuthShell eyebrow="Invitation" title="Couldn't join that league" subtitle="Something went wrong on our end.">
-        <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
+      <AuthShell eyebrow="Invitation" title="Couldn't join that league" subtitle={failed ?? 'Something went wrong on our end.'}>
+        <button
+          type="button"
+          onClick={() => { setFailed(null); setStatus('ready'); }}
+          className="inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors"
+        >
+          Try again
+        </button>
+        <Link href="/home" className="mt-3 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full border border-[var(--border-base)] text-[var(--text-primary)] hover:bg-[var(--surface-canvas)] transition-colors">
           Go to my leagues
         </Link>
       </AuthShell>

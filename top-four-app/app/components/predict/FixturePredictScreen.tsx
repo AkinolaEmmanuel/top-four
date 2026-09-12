@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { LeagueTabs } from '../leagues/LeagueTabs';
 import { LineupPicker } from './LineupPicker';
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
-import { ApiError } from '@/lib/api/fetcher';
+import { failureMessage } from '@/lib/api/failure';
 import {
   carryLabelsFor, progressOf, toAnswerPayload, toCopySummaries,
   type CopyLeagueSummary, type FixtureAnswers, type FixtureMarket, type FixturePhase,
@@ -160,17 +160,10 @@ export function FixturePredictScreen({
     setTimeout(() => setSaved(current => (current === key ? null : current)), 2200);
   };
 
-  const failureText = (error: unknown): string => {
-    if (error instanceof ApiError && error.status === 409) {
-      return 'Changed somewhere else — reopen to see the stored answer.';
-    }
-    return error instanceof Error && error.message ? error.message : 'Not saved.';
-  };
-
   const recordFailure = (key: string, snapshot: FixtureAnswers, error: unknown) => {
     setAnswers(snapshot);
     setSaved(current => (current === key ? null : current));
-    setFailed(prev => ({ ...prev, [key]: failureText(error) }));
+    setFailed(prev => ({ ...prev, [key]: failureMessage(error, 'Not saved.') }));
   };
 
   const answerMarket = (market: FixtureMarket, value: unknown) => {
@@ -274,7 +267,7 @@ export function FixturePredictScreen({
       </header>
 
       <div className="hidden md:block">
-        <LeagueTabs leagueId={leagueId} active="fixtures" />
+        <LeagueTabs leagueId={leagueId} />
       </div>
 
       <main className="tf-scroll flex-1 overflow-auto">
@@ -692,7 +685,10 @@ export function FixturePredictScreen({
             <div className="p-[16px] overflow-y-auto">
               <LineupPicker
                 players={(markets.find(m => m.key === `${editingLineup}_lineup`)?.players ?? []).map(p => ({
-                  id: p.id, displayName: p.name,
+                  id: p.id,
+                  displayName: p.name,
+                  position: p.position,
+                  shirtNumber: p.shirtNumber,
                 }))}
                 onSave={playerIds => saveLineup(editingLineup, playerIds)}
                 isSaving={submitLineup.isPending}

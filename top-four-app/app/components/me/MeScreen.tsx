@@ -166,7 +166,19 @@ export function MeScreen({
             <section className="mt-[24px]">
               <div className="tf-kicker px-[var(--gutter)] md:px-0 pb-[8px]">Your leagues</div>
               {leagues.length === 0 ? (
-                <p className="px-[var(--gutter)] md:px-0 text-[12.5px] text-[var(--text-secondary)]">You are not in a league yet.</p>
+                <div className="px-[var(--gutter)] md:px-0">
+                  <p className="text-[12.5px] leading-[1.55] text-[var(--text-secondary)]">
+                    You are not in a league yet. Everything on this page — your points, your form, your history — starts with one.
+                  </p>
+                  <div className="flex gap-[9px] mt-[13px]">
+                    <Link href="/leagues/setup" className="h-[38px] px-[14px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px] grid place-items-center">
+                      Start a league
+                    </Link>
+                    <Link href="/leagues/join" className="h-[38px] px-[14px] rounded-[10px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[11.5px] grid place-items-center">
+                      Join with a code
+                    </Link>
+                  </div>
+                </div>
               ) : leagues.map(league => (
                 <Link key={league.id} href={`/leagues/${league.id}`} className="flex items-center gap-[12px] p-[13px_var(--gutter)] md:px-[4px] border-b border-[var(--surface-border)]">
                   <span className="tf-crest w-[26px] h-[28px] text-[8px] flex-none" style={{ background: tintFor(league.crest) }}>{league.crest}</span>

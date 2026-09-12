@@ -7,7 +7,8 @@ import {
   useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead
 } from '@/hooks/api/useNotifications';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
-import type { NotificationItem, NotificationKind } from '@/lib/api/notifications';
+import { failureMessage } from '@/lib/api/failure';
+import type { NotificationItem, NotificationKind, NotificationPreferences } from '@/lib/api/notifications';
 
 const KIND_COPY: Record<NotificationKind, (n: NotificationItem) => { title: string; body: string }> = {
   'league.join_request.received': () => ({ title: 'New join request', body: 'Somebody asked to join. Approve or decline it from the admin page.' }),
@@ -86,7 +87,10 @@ export default function AlertsPage() {
   const onList = view === "list";
   const onPrefs = view === "prefs";
   const isLoading = onPrefs ? prefsLoading : notificationsLoading;
-  const isEmpty = !isLoading && NOTES.length === 0;
+  // The empty state belongs to the list, not to the settings panel that shares
+  // this <main>. Without the guard, "Nothing to catch up on" sat above the
+  // preferences.
+  const isEmpty = onList && !isLoading && NOTES.length === 0;
   const showList = onList && !isLoading && !isEmpty;
 
   const isUnread = (n: any) => n.unread;
@@ -135,11 +139,36 @@ export default function AlertsPage() {
     };
   });
 
+  /* Which preference is in flight, so its own row can say so. The backend
+     takes seconds, and a toggle that does not move reads as a dead control. */
+  const savingField = updatePrefsMutation.isPending
+    ? Object.keys(updatePrefsMutation.variables ?? {})[0]
+    : null;
+
+  const failure = onPrefs
+    ? (updatePrefsMutation.error ? failureMessage(updatePrefsMutation.error, 'That setting did not save.') : null)
+    : (markAllReadMutation.error ? failureMessage(markAllReadMutation.error, 'Could not mark them read.')
+      : markReadMutation.error ? failureMessage(markReadMutation.error, 'Could not mark that read.')
+      : null);
+
+  const PREF_FIELD: Record<string, keyof NotificationPreferences | undefined> = {
+    reminders: 'roundReminder', questions: 'customQuestionAdmin',
+  };
+
   const mkPref = (id: string, title: string, note: string, on: boolean, locked?: boolean) => {
+    const field = PREF_FIELD[id];
+    const saving = !locked && savingField !== null && field === savingField;
+    // While the write is in flight the toggle shows where it is going, so the
+    // control answers the tap even though the server takes seconds.
+    const pendingValue = saving && field
+      ? (updatePrefsMutation.variables as Partial<NotificationPreferences>)[field]
+      : undefined;
     return {
-      id, title, note, on: locked ? true : on, locked: !!locked,
+      id, title, note: saving ? 'Saving…' : note,
+      on: locked ? true : (typeof pendingValue === 'boolean' ? pendingValue : on),
+      locked: !!locked, saving,
       titleColor: locked ? "var(--text-secondary)" : "var(--text-primary)",
-      rowStyle: `flex items-center justify-between p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${locked ? 'opacity-65' : 'cursor-pointer'}`
+      rowStyle: `flex items-center justify-between p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${locked || saving ? 'opacity-65' : 'cursor-pointer'}`
     };
   };
 
@@ -185,9 +214,22 @@ export default function AlertsPage() {
               </button>
             ))}
             {unreadCount > 0 && (
-              <button type="button" onClick={() => markAllReadMutation.mutate()} className="flex-none ml-auto font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer whitespace-nowrap">MARK ALL READ</button>
+              <button
+                type="button"
+                onClick={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending}
+                className="flex-none ml-auto font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer whitespace-nowrap disabled:opacity-50"
+              >
+                {markAllReadMutation.isPending ? 'MARKING…' : 'MARK ALL READ'}
+              </button>
             )}
           </div>
+        )}
+
+        {failure && (
+          <p role="status" className="mt-[8px] p-[10px_14px] rounded-[10px] bg-[var(--danger-surface)] text-[var(--danger-text)] text-[11.5px] leading-[1.5]">
+            {failure}
+          </p>
         )}
 
         <main className="flex-1 mt-[8px] bg-[var(--surface-card)] rounded-[18px] border border-[var(--surface-border)] overflow-hidden shadow-[var(--elev-2)]">
@@ -257,9 +299,8 @@ export default function AlertsPage() {
                   <div className="p-[0_24px_6px]"><span className="tf-kicker text-[var(--text-muted)]">{g.label}</span></div>
                   {g.note && <div className="p-[0_24px_6px] text-[11.5px] leading-[1.5] text-[var(--text-muted)]">{g.note}</div>}
                   {g.rows.map((r, ri) => (
-                    <button type="button" key={ri} onClick={() => {
-                      if (r.locked) return;
-                      const field = r.id === 'reminders' ? 'roundReminder' : r.id === 'questions' ? 'customQuestionAdmin' : null;
+                    <button type="button" key={ri} disabled={r.locked || savingField !== null} onClick={() => {
+                      const field = PREF_FIELD[r.id];
                       if (field) updatePrefsMutation.mutate({ [field]: !r.on });
                     }} className={r.rowStyle}>
                       <div className="flex-1 min-w-0">
