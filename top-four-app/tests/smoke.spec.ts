@@ -29,15 +29,17 @@ async function requireSession(page: Page) {
  */
 async function visit(page: Page, url: string) {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
+  // Checked on every navigation: Next's dev overlay means the route failed to
+  // compile, usually because the tree changed mid-run. Without this the real
+  // cause hides behind whatever locator times out next.
+  await expect(
+    page.getByRole('heading', { name: 'Server Error' }),
+    `${url} returned a Server Error — is something mid-edit?`,
+  ).toHaveCount(0);
 }
 
 /** The app's own failure screens, which must never be what a smoke test sees. */
 async function expectNoProblemState(page: Page) {
-  // Next's dev overlay means the route failed to compile — usually because the
-  // tree changed mid-run. Say that, rather than letting every later locator
-  // time out against an error dialog.
-  const devError = page.getByRole('heading', { name: 'Server Error' });
-  await expect(devError, 'the dev server returned a Server Error — is something mid-edit?').toHaveCount(0);
 
   await expect(page.getByText('Something went wrong at our end')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Not found, or no longer available' })).toHaveCount(0);

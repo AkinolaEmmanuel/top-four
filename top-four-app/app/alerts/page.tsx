@@ -180,12 +180,12 @@ export default function AlertsPage() {
         {onList && (
           <div className="flex-none flex items-center gap-[8px] py-[16px] overflow-x-auto">
             {filters.map(f => (
-              <div key={f.label} onClick={() => { setFilter(f.label); setView('list'); }} className={f.style}>
+              <button type="button" key={f.label} onClick={() => { setFilter(f.label); setView('list'); }} className={f.style}>
                 {f.label}<span className={f.countStyle}>{f.count}</span>
-              </div>
+              </button>
             ))}
             {unreadCount > 0 && (
-              <div onClick={() => markAllReadMutation.mutate()} className="flex-none ml-auto font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer whitespace-nowrap">MARK ALL READ</div>
+              <button type="button" onClick={() => markAllReadMutation.mutate()} className="flex-none ml-auto font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer whitespace-nowrap">MARK ALL READ</button>
             )}
           </div>
         )}
@@ -216,7 +216,17 @@ export default function AlertsPage() {
                 <section key={gi}>
                   <div className="p-[16px_24px_9px]"><span className="tf-kicker text-[var(--text-muted)]">{g.label}</span></div>
                   {g.rows.map((r, ri) => (
-                    <div key={ri} onClick={r.onOpen} className={r.rowStyle}>
+                    <div
+                      key={ri}
+                      // Stays a div because it contains its own link, which a
+                      // button may not wrap; given the role and keyboard
+                      // support a real control needs instead.
+                      role="button"
+                      tabIndex={0}
+                      onClick={r.onOpen}
+                      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); r.onOpen(); } }}
+                      className={r.rowStyle}
+                    >
                       <span className={r.dotStyle} style={r.unread ? { background: r.accent } : {}}></span>
                       <div className="flex-1 min-w-0">
                         <div className={r.titleStyle}>{r.title}</div>
@@ -247,7 +257,7 @@ export default function AlertsPage() {
                   <div className="p-[0_24px_6px]"><span className="tf-kicker text-[var(--text-muted)]">{g.label}</span></div>
                   {g.note && <div className="p-[0_24px_6px] text-[11.5px] leading-[1.5] text-[var(--text-muted)]">{g.note}</div>}
                   {g.rows.map((r, ri) => (
-                    <div key={ri} onClick={() => {
+                    <button type="button" key={ri} onClick={() => {
                       if (r.locked) return;
                       const field = r.id === 'reminders' ? 'roundReminder' : r.id === 'questions' ? 'customQuestionAdmin' : null;
                       if (field) updatePrefsMutation.mutate({ [field]: !r.on });
@@ -259,7 +269,7 @@ export default function AlertsPage() {
                       <div className={`w-[40px] h-[24px] rounded-full flex-none p-[2px] flex transition-colors ${r.on ? 'bg-[var(--color-brand)] justify-end' : 'bg-[var(--surface-border-strong)] justify-start'}`}>
                         <div className="w-[20px] h-[20px] rounded-full bg-[var(--surface-card)]"></div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </section>
               ))}

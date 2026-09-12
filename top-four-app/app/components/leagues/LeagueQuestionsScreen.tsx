@@ -253,8 +253,14 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
       </main>
 
       {resolving && (
-        <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center" onClick={() => setResolving(null)}>
-          <div className="w-full md:w-[440px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]" onClick={e => e.stopPropagation()}>
+        <div
+          // Dismisses on its own surface only, so the panel below needs no
+          // click handler of its own to stop the event travelling.
+          role="presentation"
+          className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center"
+          onClick={event => { if (event.target === event.currentTarget) setResolving(null); }}
+        >
+          <div role="dialog" aria-modal="true" aria-label="Settle this question" className="w-full md:w-[440px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]">
             <div className="font-heading font-bold text-[17px] tracking-[-0.4px]">Settle this question</div>
             <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px]">{resolving.title}</p>
 

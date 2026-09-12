@@ -306,8 +306,14 @@ export function LeagueAdminScreen({
 
       {/* A member's row, opened for a role change, a removal, or a handover. */}
       {openMember && (
-        <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center" onClick={() => setOpenMember(null)}>
-          <div className="w-full md:w-[420px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]" onClick={e => e.stopPropagation()}>
+        <div
+          // Dismisses on its own surface only, so the panel below needs no
+          // click handler of its own to stop the event travelling.
+          role="presentation"
+          className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center"
+          onClick={event => { if (event.target === event.currentTarget) setOpenMember(null); }}
+        >
+          <div role="dialog" aria-modal="true" className="w-full md:w-[420px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]">
             <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">{openMember.name}</div>
             <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px]">
               Change what they can do, or take them out. Their predictions and points stay either way.
@@ -381,8 +387,14 @@ export function LeagueAdminScreen({
 
       {/* Lifecycle confirmation. A destructive one also asks for the league's name. */}
       {pendingAction && (
-        <div className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center" onClick={() => setPendingAction(null)}>
-          <div className="w-full md:w-[440px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]" onClick={e => e.stopPropagation()}>
+        <div
+          // Dismisses on its own surface only, so the panel below needs no
+          // click handler of its own to stop the event travelling.
+          role="presentation"
+          className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center"
+          onClick={event => { if (event.target === event.currentTarget) setPendingAction(null); }}
+        >
+          <div role="dialog" aria-modal="true" className="w-full md:w-[440px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]">
             <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">{pendingAction.title}?</div>
             <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px]">{pendingAction.note}</p>
 

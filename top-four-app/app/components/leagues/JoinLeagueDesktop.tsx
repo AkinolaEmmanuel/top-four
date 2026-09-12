@@ -238,9 +238,9 @@ export function JoinLeagueDesktop(props: JoinLeagueDesktopProps) {
                             <div className="font-heading font-semibold text-[13px] truncate">{name}</div>
                             <div className="text-[11px] text-[var(--text-muted)] mt-[2px]">{meta}</div>
                           </div>
-                          <span onClick={() => onLeaveLeague(id)} className="font-heading font-bold text-[11px] text-[var(--text-link)] flex-none cursor-pointer">
+                          <button type="button" onClick={() => onLeaveLeague(id)} className="font-heading font-bold text-[11px] text-[var(--text-link)] flex-none cursor-pointer">
                             {action}
-                          </span>
+                          </button>
                         </div>
                       ))}
                     </div>

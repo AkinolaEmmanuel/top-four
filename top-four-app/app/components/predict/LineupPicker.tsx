@@ -124,13 +124,15 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
         </div>
         <div className="flex flex-wrap gap-[6px]">
           {FORMATIONS.map((f) => (
-            <div
+            <button
               key={f}
+              type="button"
+              aria-pressed={formation === f}
               onClick={() => handleFormationChange(f)}
               className={`cursor-pointer px-[11px] py-[6px] rounded-[7px] text-[12px] font-heading font-bold border ${formation === f ? 'bg-[var(--color-brand)] border-[var(--color-brand)] text-white' : 'border-[var(--surface-border)] text-[var(--text-secondary)]'}`}
             >
               {f}
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -164,9 +166,12 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
             const bucketFull = !!quotas && counts[bucket] >= quotas[bucket];
             const disabled = !quotas || (!isSel && bucketFull);
             return (
-              <div
+              <button
                 key={p.id}
-                onClick={() => !disabled && togglePlayer(p.id)}
+                type="button"
+                disabled={disabled}
+                aria-pressed={isSel}
+                onClick={() => togglePlayer(p.id)}
                 className={`flex items-center gap-[12px] p-[12px] rounded-[8px] border transition-colors ${disabled ? 'cursor-not-allowed opacity-45' : 'cursor-pointer'} ${isSel ? 'border-[var(--color-brand)] bg-[rgba(var(--color-brand-rgb),0.1)]' : 'border-[var(--surface-border)] bg-[var(--surface-canvas)]'}`}
               >
                 <div className={`w-[16px] h-[16px] rounded-full border-[1.5px] flex items-center justify-center ${isSel ? 'border-[var(--color-brand)] bg-[var(--color-brand)]' : 'border-[var(--text-muted)]'}`}>
@@ -176,7 +181,7 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
                 <div className="ml-auto text-[11px] text-[var(--text-muted)]">
                   {p.position || 'Player'}{!isSel && bucketFull ? ' · slot full' : ''}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -201,8 +206,10 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
                   style={{ top }}
                 >
                   {rowPlayers.map((p) => (
-                    <div
+                    <button
                       key={p.id}
+                      type="button"
+                      aria-pressed
                       onClick={() => togglePlayer(p.id)}
                       className="cursor-pointer flex flex-col items-center gap-[3px] transition-transform hover:scale-105"
                     >
@@ -212,7 +219,7 @@ export function LineupPicker({ players, onSave, isSaving, initialSelection = [] 
                       <div className="px-[6px] py-[1px] rounded-[4px] bg-black/60 text-white text-[9.5px] font-semibold whitespace-nowrap max-w-[74px] overflow-hidden text-ellipsis">
                         {p.displayName.split(' ').pop()}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               );

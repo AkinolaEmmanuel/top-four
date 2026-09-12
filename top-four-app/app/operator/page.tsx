@@ -247,7 +247,7 @@ export default function OperatorConsolePage() {
       <div className="min-h-[100dvh] grid place-items-center font-['Sora',sans-serif] p-[24px]">
         <div className="max-w-[380px] flex flex-col items-center text-center gap-[8px]">
           <div className="font-heading font-bold text-[18px]">Operator access required</div>
-          <div className="text-[13px] text-[var(--text-secondary)] leading-[1.5]">This account isn't flagged as an operator, so the platform admin API refuses these routes. Sign in with an operator account to use this console.</div>
+          <div className="text-[13px] text-[var(--text-secondary)] leading-[1.5]">This account isn&apos;t flagged as an operator, so the platform admin API refuses these routes. Sign in with an operator account to use this console.</div>
         </div>
       </div>
     );
@@ -266,7 +266,7 @@ export default function OperatorConsolePage() {
             { id: "light", label: "Light" },
             { id: "dark", label: "Dark" }
           ].map(t => (
-            <div key={t.id} onClick={() => setTheme(t.id as any)} className={`p-[8px_12px] rounded-[9px] text-[12px] font-heading font-semibold cursor-pointer border ${theme === t.id ? 'border-[var(--dev-strong)] bg-[var(--dev-strong)] text-[var(--dev-card)]' : 'border-[var(--dev-field)] bg-[var(--dev-card)] text-[var(--dev-text)]'}`}>{t.label}</div>
+            <button type="button" key={t.id} onClick={() => setTheme(t.id as any)} className={`p-[8px_12px] rounded-[9px] text-[12px] font-heading font-semibold cursor-pointer border ${theme === t.id ? 'border-[var(--dev-strong)] bg-[var(--dev-strong)] text-[var(--dev-card)]' : 'border-[var(--dev-field)] bg-[var(--dev-card)] text-[var(--dev-text)]'}`}>{t.label}</button>
           ))}
         </div>
       </div>
@@ -287,10 +287,10 @@ export default function OperatorConsolePage() {
             {queues.map(q => {
               const on = !tool && q.id === queue;
               return (
-                <div key={q.id} onClick={() => { setQueue(q.id); setTool(null); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
+                <button type="button" key={q.id} onClick={() => { setQueue(q.id); setTool(null); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                   <span className={`flex-1 text-[12.5px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>{q.label}</span>
                   <span className={`font-heading font-semibold text-[11.5px] font-tabular-nums ${q.danger ? 'text-[var(--danger-text)]' : on ? 'text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>{q.count}</span>
-                </div>
+                </button>
               );
             })}
 
@@ -301,9 +301,9 @@ export default function OperatorConsolePage() {
             ].map(t => {
               const on = tool === t.id;
               return (
-                <div key={t.id} onClick={() => { setTool(t.id as any); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
+                <button type="button" key={t.id} onClick={() => { setTool(t.id as any); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                   <span className={`flex-1 text-[12.5px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>{t.label}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -342,7 +342,7 @@ export default function OperatorConsolePage() {
                         {consistency.isLoading ? (
                           <div className="text-[12px] text-[var(--text-muted)]">Loading…</div>
                         ) : consistency.isError ? (
-                          <div className="text-[12px] text-[var(--danger-text)]">Couldn't load a consistency report for that league.</div>
+                          <div className="text-[12px] text-[var(--danger-text)]">Couldn&apos;t load a consistency report for that league.</div>
                         ) : (
                           <div className="flex flex-col gap-[6px]">
                             {[
@@ -363,8 +363,8 @@ export default function OperatorConsolePage() {
                           </div>
                         )}
                         <div className="flex gap-[8px]">
-                          <div onClick={() => rebuildStandings.mutate(consistencyLeagueId, { onSuccess: () => flash('Standings rebuild enqueued'), onError: () => flash('Could not enqueue a rebuild') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Rebuild standings</div>
-                          <div onClick={() => recheckCompletion.mutate(consistencyLeagueId, { onSuccess: () => flash('Completion recheck enqueued'), onError: () => flash('Could not enqueue a recheck') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Recheck completion</div>
+                          <button type="button" onClick={() => rebuildStandings.mutate(consistencyLeagueId, { onSuccess: () => flash('Standings rebuild enqueued'), onError: () => flash('Could not enqueue a rebuild') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Rebuild standings</button>
+                          <button type="button" onClick={() => recheckCompletion.mutate(consistencyLeagueId, { onSuccess: () => flash('Completion recheck enqueued'), onError: () => flash('Could not enqueue a recheck') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Recheck completion</button>
                         </div>
                       </div>
                     )}
@@ -374,11 +374,11 @@ export default function OperatorConsolePage() {
                     <div className="max-w-[560px] flex flex-col gap-[10px]">
                       <label className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Canonical fixture ID</label>
                       <input value={refreshFixtureId} onChange={e => setRefreshFixtureId(e.target.value.trim())} placeholder="uuid" className="h-[38px] px-[12px] rounded-[9px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[12.5px] font-mono" />
-                      <div className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">This is the football fixture's canonical ID, not a specific league's copy of it. Queues a provider re-sync of official facts or squad participation.</div>
+                      <div className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">This is the football fixture&apos;s canonical ID, not a specific league&apos;s copy of it. Queues a provider re-sync of official facts or squad participation.</div>
                     </div>
                     <div className="max-w-[560px] flex gap-[8px]">
-                      <div onClick={() => refreshFixtureId && refreshFacts.mutate(refreshFixtureId, { onSuccess: () => flash('Facts refresh queued'), onError: () => flash('Could not queue a facts refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh facts</div>
-                      <div onClick={() => refreshFixtureId && refreshPlayers.mutate(refreshFixtureId, { onSuccess: () => flash('Squad refresh queued'), onError: () => flash('Could not queue a squad refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh players</div>
+                      <button type="button" onClick={() => refreshFixtureId && refreshFacts.mutate(refreshFixtureId, { onSuccess: () => flash('Facts refresh queued'), onError: () => flash('Could not queue a facts refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh facts</button>
+                      <button type="button" onClick={() => refreshFixtureId && refreshPlayers.mutate(refreshFixtureId, { onSuccess: () => flash('Squad refresh queued'), onError: () => flash('Could not queue a squad refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh players</button>
                     </div>
                   </div>
                 ) : (
@@ -398,12 +398,12 @@ export default function OperatorConsolePage() {
                         const on = id === selected;
                         const cols = toCols(qid, r);
                         return (
-                          <div key={id} onClick={() => setSelected(id)} className={`flex gap-[12px] items-center p-[12px_20px] cursor-pointer border-b border-[var(--surface-border)] border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
+                          <button type="button" key={id} onClick={() => setSelected(id)} className={`flex gap-[12px] items-center p-[12px_20px] cursor-pointer border-b border-[var(--surface-border)] border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                             <span className={`w-[70px] flex-none font-heading font-tabular-nums text-[12px] font-semibold text-[var(--text-primary)]`}>{cols[0]}</span>
                             <span className={`flex-1 min-w-0 text-[12px] whitespace-nowrap overflow-hidden text-ellipsis ${on ? 'font-heading font-semibold' : ''}`}>{cols[1]}</span>
                             <span className="w-[190px] flex-none text-[11.5px] text-[var(--text-secondary)] whitespace-nowrap overflow-hidden text-ellipsis">{cols[2]}</span>
                             <span className={`w-[76px] flex-none text-right text-[11.5px] font-tabular-nums ${on ? 'font-heading font-semibold' : ''}`}>{cols[3]}</span>
-                          </div>
+                          </button>
                         );
                       })}
                       {isReady && rowsData.length === 0 && (
@@ -426,7 +426,7 @@ export default function OperatorConsolePage() {
                           <div className="font-heading font-semibold text-[14px]">Decision</div>
                           <div className="text-[11px] text-[var(--text-secondary)] whitespace-nowrap overflow-hidden text-ellipsis">{currentQueue?.label}</div>
                         </div>
-                        <div onClick={() => setSelected(null)} className="w-[26px] h-[26px] flex-none rounded-full border border-[var(--surface-border-strong)] flex justify-center items-center text-[12px] text-[var(--text-secondary)] cursor-pointer">×</div>
+                        <button type="button" onClick={() => setSelected(null)} className="w-[26px] h-[26px] flex-none rounded-full border border-[var(--surface-border-strong)] flex justify-center items-center text-[12px] text-[var(--text-secondary)] cursor-pointer">×</button>
                       </div>
                       <div className="tf-scroll flex-1 overflow-y-auto flex flex-col gap-[14px] p-[14px_18px]">
 
@@ -456,10 +456,10 @@ export default function OperatorConsolePage() {
                               ].map(a => {
                                 const on = settleAction === a.id;
                                 return (
-                                  <div key={a.id} onClick={() => setSettleAction(a.id as any)} className={`flex items-center gap-[10px] p-[11px_13px] rounded-[10px] cursor-pointer min-h-[44px] box-border ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border border-[var(--surface-border-strong)] bg-[var(--surface-card)]'}`}>
+                                  <button type="button" key={a.id} onClick={() => setSettleAction(a.id as any)} className={`flex items-center gap-[10px] p-[11px_13px] rounded-[10px] cursor-pointer min-h-[44px] box-border ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border border-[var(--surface-border-strong)] bg-[var(--surface-card)]'}`}>
                                     <span className={`w-[14px] h-[14px] rounded-full flex-none box-border ${on ? 'bg-[var(--color-brand)] border-[3px] border-[var(--surface-card)] shadow-[0_0_0_1px_var(--color-brand)]' : 'border border-[var(--surface-border-strong)]'}`}></span>
                                     <span className={`flex-1 text-[12px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : ''}`}>{a.label}</span>
-                                  </div>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -468,9 +468,9 @@ export default function OperatorConsolePage() {
                               {(settleAction === 'settle_current_facts' ? SETTLE_REASON_CODES : VOID_REASON_CODES).map(c => {
                                 const on = settleReason === c;
                                 return (
-                                  <div key={c} onClick={() => setSettleReason(c)} className={`font-mono text-[11px] p-[9px_12px] rounded-[9px] cursor-pointer min-h-[36px] box-border flex items-center ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)] text-[var(--accent-text-strong)]' : 'border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)]'}`}>
+                                  <button type="button" key={c} onClick={() => setSettleReason(c)} className={`font-mono text-[11px] p-[9px_12px] rounded-[9px] cursor-pointer min-h-[36px] box-border flex items-center ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)] text-[var(--accent-text-strong)]' : 'border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)]'}`}>
                                     {c}
-                                  </div>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -490,7 +490,7 @@ export default function OperatorConsolePage() {
                               <pre className="text-[10.5px] leading-[1.5] bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-[8px] p-[10px] overflow-x-auto whitespace-pre-wrap break-words">{JSON.stringify(row.candidate, null, 2)}</pre>
                             </div>
                             <div className="p-[11px_13px] rounded-[10px] bg-[var(--surface-card)] border border-[var(--surface-border)]">
-                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">The provider's facts conflict with a protected manual fact. Keeping the current facts resolves this without changing anything.</span>
+                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">The provider&apos;s facts conflict with a protected manual fact. Keeping the current facts resolves this without changing anything.</span>
                             </div>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Note</div>
@@ -557,7 +557,7 @@ export default function OperatorConsolePage() {
 
                       </div>
                       <div className="flex-none flex flex-col gap-[8px] p-[14px_18px] border-t border-[var(--surface-border)]">
-                        <div onClick={() => canAct() && setConfirm(true)} className={`min-h-[44px] rounded-[11px] flex justify-center items-center font-heading font-semibold text-[13px] text-white ${!canAct() ? 'opacity-40 pointer-events-none bg-[var(--surface-border-strong)]' : (queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'cursor-pointer bg-[var(--color-danger)]' : 'cursor-pointer bg-[var(--brand-fill)]'}`}>{actionLabel()}</div>
+                        <button type="button" onClick={() => canAct() && setConfirm(true)} className={`min-h-[44px] rounded-[11px] flex justify-center items-center font-heading font-semibold text-[13px] text-white ${!canAct() ? 'opacity-40 pointer-events-none bg-[var(--surface-border-strong)]' : (queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'cursor-pointer bg-[var(--color-danger)]' : 'cursor-pointer bg-[var(--brand-fill)]'}`}>{actionLabel()}</button>
                         <div className="text-[10.5px] text-[var(--text-secondary)] text-center">One more step before anything is written.</div>
                       </div>
                     </div>
@@ -580,11 +580,11 @@ export default function OperatorConsolePage() {
             <div className="font-mono text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Confirm step</div>
             <div className="font-heading font-semibold text-[15.5px] leading-[1.35]">{actionLabel()}?</div>
             <div className="flex gap-[8px]">
-              <div onClick={() => setConfirm(false)} className="flex-1 min-h-[44px] border border-[var(--surface-border-strong)] rounded-[11px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Cancel</div>
-              <div onClick={commit} className={`flex-1 min-h-[44px] rounded-[11px] flex justify-center items-center gap-[8px] font-heading font-semibold text-[12.5px] text-white ${isBusy ? 'opacity-60 pointer-events-none' : 'cursor-pointer'} ${(queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
+              <button type="button" onClick={() => setConfirm(false)} className="flex-1 min-h-[44px] border border-[var(--surface-border-strong)] rounded-[11px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Cancel</button>
+              <button type="button" onClick={commit} className={`flex-1 min-h-[44px] rounded-[11px] flex justify-center items-center gap-[8px] font-heading font-semibold text-[12.5px] text-white ${isBusy ? 'opacity-60 pointer-events-none' : 'cursor-pointer'} ${(queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
                 <span>{isBusy ? 'Working…' : 'Confirm'}</span>
                 <span className="font-mono text-[10px] opacity-75">⌘↵</span>
-              </div>
+              </button>
             </div>
           </div>
         </div>

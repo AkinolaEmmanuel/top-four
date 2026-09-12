@@ -139,7 +139,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
                 })}
               </div>
             </div>
-            <div
+            <button type="button"
               onClick={onJoinCode}
               className={`tf-tap mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] ${
                 inviteCode.length === 10 && !joinLeaguePending
@@ -148,7 +148,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
               }`}
             >
               {joinLeaguePending ? 'Joining...' : 'Join this league'}
-            </div>
+            </button>
             <div className="mt-[14px] text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
               A code that has been used up, withdrawn or has expired fails the same way a dead link does — you are told, and nothing else about the league is revealed.
             </div>
@@ -170,7 +170,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
             {o.list && (
               <div className="mt-[18px]">
                 {MY_LEAGUES.map(([name, meta, action, tint, initials, id], i, arr) => (
-                  <div
+                  <button type="button"
                     key={i}
                     onClick={action === "—" ? undefined : () => onLeaveLeague(id)}
                     className={`flex items-center gap-[11px] py-[12px] border-t border-[var(--surface-border)] ${
@@ -190,13 +190,13 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
                       <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{meta}</div>
                     </div>
                     <span className="font-heading font-bold text-[10px] text-[var(--text-link)] flex-none">{action}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
 
             {o.primary && (
-              <div
+              <button type="button"
                 onClick={() => {
                   if (outcome === 'welcome') {
                     onNavigateHome();
@@ -207,17 +207,17 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
                 className="tf-tap mt-[22px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] shadow-[var(--elev-glow)]"
               >
                 {o.primary}
-              </div>
+              </button>
             )}
             {o.secondary && (
-              <div
+              <button type="button"
                 onClick={o.secondaryOff ? undefined : secondaryAction}
                 className={`mt-[8px] h-[46px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px] ${
                   o.secondaryOff || !secondaryAction ? 'opacity-45' : 'cursor-pointer'
                 }`}
               >
                 {o.secondary}
-              </div>
+              </button>
             )}
             {o.note && <div className="mt-[16px] text-[11px] leading-[1.6] text-[var(--text-muted)]">{o.note}</div>}
           </div>

@@ -74,7 +74,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
     return (
       <AuthShell eyebrow="Invitation" title="This invitation can't be used" subtitle="It may have expired, been used up, or been withdrawn.">
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-          For safety we don't say which. Ask whoever invited you for a fresh link.
+          For safety we don&apos;t say which. Ask whoever invited you for a fresh link.
         </p>
         <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
           Go to my leagues
@@ -87,7 +87,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
     return (
       <AuthShell eyebrow="Invitation" title="You're in twenty leagues already" subtitle="Twenty unfinished leagues is the limit.">
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-          Leagues that have finished don't count and stay in your history, so finishing or leaving one makes room. Nothing about this invitation is lost -- come back to the link once you have room.
+          Leagues that have finished don&apos;t count and stay in your history, so finishing or leaving one makes room. Nothing about this invitation is lost -- come back to the link once you have room.
         </p>
         <Link href="/leagues" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
           Choose one to leave
@@ -110,7 +110,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
     return (
       <AuthShell eyebrow="Invitation" title="Your request is with the owner" subtitle={`${preview?.league.name || 'This league'} approves every join by hand.`}>
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-          We'll tell you the moment somebody decides. Until then you can't see its fixtures or its table.
+          We&apos;ll tell you the moment somebody decides. Until then you can&apos;t see its fixtures or its table.
         </p>
         <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
           Back to my leagues

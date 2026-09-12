@@ -225,14 +225,14 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
 
         <header className="flex-none space-y-5 text-[var(--nav-text)] p-[8px_var(--gutter)_14px]">
           <div className="flex items-center gap-[11px]">
-            <div onClick={() => { const b = backFor[step]; if (b) { setStep(b); setSheet(null); } }} className={`w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center text-[15px] flex-none text-[var(--nav-text-quiet)] cursor-pointer ${step === '1' || step === 'done' ? 'opacity-35' : ''}`}>
+            <button type="button" onClick={() => { const b = backFor[step]; if (b) { setStep(b); setSheet(null); } }} className={`w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center text-[15px] flex-none text-[var(--nav-text-quiet)] cursor-pointer ${step === '1' || step === 'done' ? 'opacity-35' : ''}`}>
               ‹
-            </div>
+            </button>
             <div className="min-w-0 flex-1">
               <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{step === 'done' ? name : 'New league'}</div>
               <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{step === 'done' ? 'Published just now' : `Step ${step} of 5 · ${{ '1': 'Name', '2': 'Competitions', '3': 'Points', '4': 'Rules', '5': 'Review' }[step] || ''}`}</div>
             </div>
-            <div 
+            <button type="button" 
               onClick={() => {
                 if (step === 'done' && createdLeagueId) {
                   router.push(`/leagues/${createdLeagueId}`);
@@ -240,7 +240,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
               }}
               className={`h-[32px] px-[12px] rounded-[8px] grid place-items-center flex-none font-heading font-bold text-[10px] tracking-[0.06em] uppercase ${step === 'done' ? 'bg-[var(--nav-accent)] text-[var(--nav-on-accent)] cursor-pointer' : 'border border-[var(--nav-border)] text-[var(--nav-text-quiet)] cursor-pointer'}`}>
               {step === 'done' ? 'MANAGE' : 'SAVE'}
-            </div>
+            </button>
           </div>
 
           {step !== 'done' && currentHero && (
@@ -281,11 +281,11 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
               else w = 'flex-1 min-w-[4px]';
 
               return (
-                <div
+                <button type="button"
                   key={s}
                   onClick={() => setStep(s as any)}
                   className={`h-[4px] rounded-full cursor-pointer transition-all duration-300 ${w} ${(step === 'done' || parseInt(step) >= i + 1) ? 'bg-[var(--nav-accent)]' : 'bg-white/15'}`}
-                ></div>
+                ></button>
               );
             })}
           </div>
@@ -358,26 +358,26 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                 <div className="mt-[22px]">
                   {comps.map((c, i) => (
                     <div key={i} className={c.blockStyle}>
-                      <div onClick={c.toggle} className="flex items-center gap-[12px] cursor-pointer">
+                      <button type="button" onClick={c.toggle} className="flex items-center gap-[12px] cursor-pointer">
                         <div className={c.crestStyle}>{c.abbr}</div>
                         <div className="flex-1 min-w-0">
                           <div className="font-heading font-[650] text-[14px] tracking-[-0.2px] whitespace-nowrap overflow-hidden text-ellipsis">{c.name}</div>
                           <div className={c.metaStyle}>{c.meta}</div>
                         </div>
                         <div className={c.checkStyle}>{c.check}</div>
-                      </div>
+                      </button>
 
                       {c.on && (
                         <div className="mt-[13px]">
                           <div className="flex gap-[6px]">
                             {c.scopes.map((s, j) => (
-                              <div
+                              <button type="button"
                                 key={j}
                                 onClick={s.pick}
                                 className={`h-[32px] px-[12px] rounded-[8px] grid place-items-center cursor-pointer whitespace-nowrap flex-none font-heading font-bold text-[11px] ${s.on ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-secondary)]'}`}
                               >
                                 {s.label}
-                              </div>
+                              </button>
                             ))}
                           </div>
                           <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[9px]">{c.scopeNote}</div>
@@ -387,7 +387,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                               <div className="flex items-baseline justify-between gap-[10px]">
                                 <span className={`tf-kicker ${c.railKickerStyle}`}>{c.railKicker}</span>
                                 {c.showRailAction && (
-                                  <span onClick={c.railAction} className="tf-tap tf-kicker text-[var(--text-link)] flex-none">START AGAIN</span>
+                                  <button type="button" onClick={c.railAction} className="tf-tap tf-kicker text-[var(--text-link)] flex-none">START AGAIN</button>
                                 )}
                               </div>
                               <div className={`tf-num ${c.spanStyle}`}>{c.spanText}</div>
@@ -399,9 +399,9 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                                   )}
                                   <div className="flex flex-wrap gap-[5px]">
                                     {g.rounds.map((r: any, l: number) => (
-                                      <div key={l} onClick={r.pick} className={`tf-num ${r.style}`}>
+                                      <button type="button" key={l} onClick={r.pick} className={`tf-num ${r.style}`}>
                                         {r.label}
-                                      </div>
+                                      </button>
                                     ))}
                                   </div>
                                 </div>
@@ -440,17 +440,17 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                   const isOn = on(m);
                   return (
                     <div key={i} className={`flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${i === MARKETS.length - 1 ? 'border-b' : ''} ${isOn ? '' : 'opacity-50'}`}>
-                      <div onClick={() => setOff(s => ({ ...s, [m.marketType]: isOn }))} className={`w-[40px] h-[24px] rounded-full flex-none p-[2px] flex cursor-pointer transition-colors duration-150 ${isOn ? 'bg-[var(--color-brand)] justify-end' : 'bg-[var(--surface-border-strong)] justify-start'}`}>
+                      <button type="button" onClick={() => setOff(s => ({ ...s, [m.marketType]: isOn }))} className={`w-[40px] h-[24px] rounded-full flex-none p-[2px] flex cursor-pointer transition-colors duration-150 ${isOn ? 'bg-[var(--color-brand)] justify-end' : 'bg-[var(--surface-border-strong)] justify-start'}`}>
                         <div className="w-[20px] h-[20px] rounded-full bg-[var(--tf-white)] shadow-[var(--elev-1)]"></div>
-                      </div>
+                      </button>
                       <div className="flex-1 min-w-0">
                         <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px]">{m.name}</div>
                         <div className="text-[10.5px] leading-[1.45] text-[var(--text-muted)] mt-[3px]">{m.note}</div>
                       </div>
                       <div className={`flex items-center rounded-[10px] bg-[var(--surface-subtle)] flex-none ${isOn ? '' : 'invisible'}`}>
-                        <div onClick={() => bump(m, -1)} className="tf-tap w-[30px] h-[30px] grid place-items-center text-[15px] text-[var(--text-secondary)]">−</div>
+                        <button type="button" onClick={() => bump(m, -1)} className="tf-tap w-[30px] h-[30px] grid place-items-center text-[15px] text-[var(--text-secondary)]">−</button>
                         <span className="tf-num min-w-[24px] text-center font-heading font-bold text-[15px]">{pts(m)}</span>
-                        <div onClick={() => bump(m, 1)} className="tf-tap w-[30px] h-[30px] grid place-items-center text-[15px] text-[var(--text-secondary)]">+</div>
+                        <button type="button" onClick={() => bump(m, 1)} className="tf-tap w-[30px] h-[30px] grid place-items-center text-[15px] text-[var(--text-secondary)]">+</button>
                       </div>
                     </div>
                   );
@@ -465,13 +465,13 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                   </div>
                   <div className="tf-scroll flex gap-[6px] overflow-x-auto p-[12px_var(--gutter)] border-y border-[var(--surface-border)]">
                     {LINES.map((l, i) => (
-                      <div
+                      <button type="button"
                         key={i}
                         onClick={() => setLine(l)}
                         className={`h-[32px] px-[12px] rounded-[8px] grid place-items-center cursor-pointer whitespace-nowrap flex-none font-heading font-bold text-[11px] ${line === l ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-secondary)]'}`}
                       >
                         {l}
-                      </div>
+                      </button>
                     ))}
                   </div>
                   <div className="p-[12px_var(--gutter)_0] text-[10.5px] leading-[1.55] text-[var(--text-muted)]">Everyone answers over or under this one line. Members cannot pick their own.</div>
@@ -494,13 +494,13 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                 <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">PREDICTIONS LOCK</div>
                 <div className="flex flex-wrap gap-[6px] p-[12px_var(--gutter)] border-t border-[var(--surface-border)]">
                   {LOCKS.map((l, i) => (
-                    <div
+                    <button type="button"
                       key={i}
                       onClick={() => setLock(l.kind)}
                       className={`h-[32px] px-[12px] rounded-[8px] grid place-items-center cursor-pointer whitespace-nowrap flex-none font-heading font-bold text-[11px] ${lock === l.kind ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-secondary)]'}`}
                     >
                       {l.label}
-                    </div>
+                    </button>
                   ))}
                 </div>
                 <div className="p-[0_var(--gutter)_14px] text-[11.5px] leading-[1.55] text-[var(--text-secondary)] border-b border-[var(--surface-border)]">{lockRow.note}</div>
@@ -513,7 +513,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                   { id: "open", label: "Late joining allowed", note: "Somebody can join mid-season. They start on zero and cannot touch a locked match." },
                   { id: "closed", label: "Close when it starts", note: "Membership shuts the moment the first deadline passes." }
                 ].map((j, i) => (
-                  <div key={i} onClick={() => setLateJoin(j.id)} className={`flex gap-[12px] items-start p-[14px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${lateJoin === j.id ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}>
+                  <button type="button" key={i} onClick={() => setLateJoin(j.id)} className={`flex gap-[12px] items-start p-[14px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${lateJoin === j.id ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}>
                     <div className={`w-[20px] h-[20px] rounded-full flex-none mt-[1px] grid place-items-center border-[1.5px] ${lateJoin === j.id ? 'border-[var(--color-brand)]' : 'border-[var(--surface-border-strong)]'}`}>
                       <div className={`w-[10px] h-[10px] rounded-full ${lateJoin === j.id ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`}></div>
                     </div>
@@ -521,9 +521,9 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                       <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px]">{j.label}</div>
                       <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[3px]">{j.note}</div>
                     </div>
-                  </div>
+                  </button>
                 ))}
-                <div onClick={() => setApproval(!approval)} className="flex items-center gap-[12px] p-[14px_var(--gutter)] border-y border-[var(--surface-border)] cursor-pointer">
+                <button type="button" onClick={() => setApproval(!approval)} className="flex items-center gap-[12px] p-[14px_var(--gutter)] border-y border-[var(--surface-border)] cursor-pointer">
                   <div className={`w-[40px] h-[24px] rounded-full flex-none p-[2px] flex transition-colors duration-150 ${approval ? 'bg-[var(--color-brand)] justify-end' : 'bg-[var(--surface-border-strong)] justify-start'}`}>
                     <div className="w-[20px] h-[20px] rounded-full bg-[var(--tf-white)] shadow-[var(--elev-1)]"></div>
                   </div>
@@ -531,7 +531,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                     <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px]">Approve every request</div>
                     <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[3px]">{approval ? "Every request waits for an owner or admin." : "Anyone with the link is in immediately."}</div>
                   </div>
-                </div>
+                </button>
               </section>
 
               <section className="mt-[24px]">
@@ -543,7 +543,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                   <div key={i} className="flex items-center gap-[12px] p-[11px_var(--gutter)] border-t border-[var(--surface-border)]">
                     <span className="tf-num w-[22px] h-[22px] rounded-[6px] flex-none grid place-items-center font-heading font-bold text-[10.5px] bg-[var(--surface-subtle)] text-[var(--text-secondary)]">{i + 1}</span>
                     <span className="flex-1 text-[12.5px] text-[var(--text-primary)]">{MARKETS.find(m => m.marketType === id)?.tiebreakerLabel}</span>
-                    <div onClick={() => {
+                    <button type="button" onClick={() => {
                       if (i > 0) {
                         const n = [...tieOrder];
                         const at = n.indexOf(id);
@@ -552,7 +552,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                         n[at] = t;
                         setTieOrder(n);
                       }
-                    }} className={`w-[30px] h-[30px] rounded-[8px] flex-none grid place-items-center text-[13px] bg-[var(--surface-subtle)] text-[var(--text-secondary)] ${i === 0 ? 'opacity-30' : 'cursor-pointer'}`}>↑</div>
+                    }} className={`w-[30px] h-[30px] rounded-[8px] flex-none grid place-items-center text-[13px] bg-[var(--surface-subtle)] text-[var(--text-secondary)] ${i === 0 ? 'opacity-30' : 'cursor-pointer'}`}>↑</button>
                   </div>
                 ))}
                 <div className="flex items-center gap-[12px] p-[11px_var(--gutter)] border-y border-[var(--surface-border)]">
@@ -617,7 +617,8 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                     </div>
                     <div className="flex items-center gap-[10px] mt-[10px]">
                       <span className="flex-1 text-[11.5px] opacity-80 whitespace-nowrap overflow-hidden text-ellipsis">topfour.app/j/{inviteCode}</span>
-                      <span
+                      <button
+                        type="button"
                         className="tf-tap font-heading font-bold text-[11px] flex-none"
                         onClick={async () => {
                           try {
@@ -628,9 +629,9 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                         }}
                       >
                         {copyToast ? 'COPIED ✓' : 'COPY'}
-                      </span>
+                      </button>
                     </div>
-                    <div
+                    <button type="button"
                       className="tf-tap mt-[16px] h-[48px] rounded-[13px] bg-[var(--tf-white)] text-[var(--tf-green-800)] grid place-items-center font-heading font-bold text-[13.5px]"
                       onClick={async () => {
                         const url = `https://topfour.app/j/${inviteCode}`;
@@ -647,7 +648,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                       }}
                     >
                     Share the invitation
-                    </div>
+                    </button>
                   </>
                 ) : (
                   <div className="mt-[20px] h-[46px] rounded-[10px] bg-[rgba(255,255,255,.1)] animate-pulse" />
@@ -681,11 +682,11 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                       <span className="text-[13px] text-[var(--text-muted)] flex-none">›</span>
                     </Link>
                   ) : (
-                    <div key={i} onClick={action} className={`flex items-center gap-[12px] p-[12px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b' : ''}`}>
+                    <button type="button" key={i} onClick={action} className={`flex items-center gap-[12px] p-[12px_var(--gutter)] border-t border-[var(--surface-border)] cursor-pointer ${i === a.length - 1 ? 'border-b' : ''}`}>
                       <span className="tf-num w-[22px] flex-none font-heading font-bold text-[11.5px] text-[var(--text-muted)]">{num}</span>
                       <span className="flex-1 text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">{label}</span>
                       <span className="text-[13px] text-[var(--text-muted)] flex-none">›</span>
-                    </div>
+                    </button>
                   )
                 ))}
               </section>
@@ -704,19 +705,25 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                 {{ '1': 'Just now', '2': String(selectedComps.length), '3': maxPoints + ' pts', '4': String(tieOrder.length), '5': String(totalRounds) }[step]}
               </span>
             </div>
-            <div onClick={() => {
+            <button type="button" onClick={() => {
               if (!canNext) return;
               if (step === '5') { setSheet('publish'); return; }
               setStep(nextFor[step] as any);
-            }} className={`h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[14px] tracking-[-0.1px] ${canNext ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
+            }} className={`w-full h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[14px] tracking-[-0.1px] ${canNext ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
               {step === '5' ? 'Publish the league' : canNext ? 'Continue' : selectedComps.length === 0 ? 'Choose at least one' : 'Finish the rounds first'}
-            </div>
+            </button>
           </div>
         )}
 
         {sheet === 'publish' && (
-          <div onClick={() => setSheet(null)} className="absolute inset-0 z-50 bg-[var(--scrim)] flex items-end">
-            <div className="w-full bg-[var(--surface-card)] rounded-[20px_20px_27px_27px] p-[18px_var(--gutter)_22px] animate-[tfup_0.22s_cubic-bezier(0.2,0.8,0.2,1)] shadow-[var(--elev-4)]" onClick={e => e.stopPropagation()}>
+          <div
+            // Dismisses on its own surface only, so the sheet below needs no
+            // click handler of its own to stop the event travelling.
+            role="presentation"
+            onClick={event => { if (event.target === event.currentTarget) setSheet(null); }}
+            className="absolute inset-0 z-50 bg-[var(--scrim)] flex items-end"
+          >
+            <div role="dialog" aria-modal="true" className="w-full bg-[var(--surface-card)] rounded-[20px_20px_27px_27px] p-[18px_var(--gutter)_22px] animate-[tfup_0.22s_cubic-bezier(0.2,0.8,0.2,1)] shadow-[var(--elev-4)]">
               <div className="w-[38px] h-[4px] rounded-full bg-[var(--surface-border-strong)] mx-auto mb-[15px]"></div>
               <div className="font-heading font-bold text-[19px] leading-[1.2] tracking-[-0.5px]">Publish {name || 'league'}?</div>
               <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">This cannot be undone. To run different rules you would clone the league and publish that instead.</div>
@@ -733,8 +740,8 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                 ))}
               </div>
               <div className="flex gap-[8px] mt-[16px]">
-                <div onClick={() => setSheet(null)} className="tf-tap flex-1 h-[48px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px]">Keep editing</div>
-                <div onClick={() => {
+                <button type="button" onClick={() => setSheet(null)} className="tf-tap flex-1 h-[48px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[12.5px]">Keep editing</button>
+                <button type="button" onClick={() => {
                   if (createLeague.isPending || publishingRef.current) return;
                   publishingRef.current = true;
                   const idempotencyKey = crypto.randomUUID();
@@ -795,7 +802,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
                   });
                 }} className={`tf-tap flex-1 h-[48px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12.5px] shadow-[var(--elev-glow)] ${(createLeague.isPending || publishLeague.isPending) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   {createLeague.isPending || publishLeague.isPending ? 'Publishing...' : 'Publish'}
-                </div>
+                </button>
               </div>
               {publishError && (
                 <div className="mt-[10px] text-[12px] text-[var(--danger-text)] leading-[1.5]">{publishError}</div>
