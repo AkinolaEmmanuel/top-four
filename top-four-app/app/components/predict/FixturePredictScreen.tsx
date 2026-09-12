@@ -781,11 +781,15 @@ export function FixturePredictScreen({
             </button>
           )}
 
-          <p className="p-[18px_var(--gutter)_26px] md:px-0 md:max-w-[640px] text-[10.5px] md:text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
-            {settled
-              ? 'Provisional scores become final once review closes. If a market is voided it scores nothing for everyone, so nobody gains on you.'
-              : 'There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.'}
-          </p>
+          {/* Only the settled note survives. The open-state line explained that
+              the screen has no save button, which is a fact about the interface
+              rather than about the member's predictions. */}
+          {settled && (
+            <p className="p-[18px_var(--gutter)_26px] md:px-0 md:max-w-[640px] text-[10.5px] md:text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
+              Provisional scores become final once review closes. If a market is voided it scores
+              nothing for everyone, so nobody gains on you.
+            </p>
+          )}
         </div>
       </main>
 
@@ -965,12 +969,14 @@ export function FixturePredictScreen({
 
       {editingLineup && (
         <div className="absolute inset-0 z-50 bg-[var(--surface-canvas)] md:bg-[rgba(0,0,0,0.5)] md:flex md:items-center md:justify-center md:p-[20px]">
-          <div className="bg-[var(--surface-canvas)] w-full max-w-[500px] rounded-[16px] overflow-hidden flex flex-col md:max-h-[80vh]">
+          <div className="bg-[var(--surface-canvas)] w-full max-w-[500px] h-full md:h-auto rounded-[16px] overflow-hidden flex flex-col md:max-h-[86vh]">
             <div className="flex justify-between items-center p-[16px] border-b border-[var(--surface-border)]">
               <h2 className="font-heading font-bold text-[18px]">{editingLineup === 'home' ? homeName : awayName} Starting XI</h2>
               <button type="button" aria-label="Close" onClick={() => setEditingLineup(null)} className="text-[24px] text-[var(--text-muted)]">×</button>
             </div>
-            <div className="p-[16px] overflow-y-auto">
+            {/* The picker manages its own column, so this only gives it the
+                space that is left. Scrolling here would take Save with it. */}
+            <div className="flex-1 min-h-0 p-[16px] flex flex-col">
               {(() => {
                 const market = markets.find(m => m.key === `${editingLineup}_lineup`);
                 // The players go through unremapped now: the picker takes the

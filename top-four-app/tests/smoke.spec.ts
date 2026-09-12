@@ -189,6 +189,36 @@ test('every open market on a fixture is answerable', async ({ page }) => {
   await expect(page.getByRole('button', { name: /One more goal for/ }).first()).toBeVisible();
 });
 
+test('the lineup dialog keeps its save control on screen', async ({ page }) => {
+  await requireSession(page);
+  const id = await firstLeagueId(page);
+  const availability = await page.request.get(`/api/leagues/${id}/fixtures/availability?limit=100`);
+  const withLineups = (await availability.json()).data?.find(
+    (f: { markets?: { marketType: string; state: string }[] }) =>
+      f.markets?.some(m => m.marketType === 'lineup' && m.state === 'open'),
+  );
+  test.skip(!withLineups, 'no fixture with an open lineup in this league');
+
+  await visit(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await expectNoProblemState(page);
+  await page.locator('button', { hasText: /Starting XI/i }).first().click();
+
+  /* The pitch was `aspect-[3/4]` of the dialog's full width — about 670px tall
+     in a 500px dialog — inside a single scrolling body, so Save sat below the
+     fold and the one control the dialog exists to reach was lost. It is pinned
+     outside the scroll area now, and this asserts it stays there. */
+  const save = page.getByRole('button', { name: /Save this XI|Choose a shape first|Still \d+ to fill/ }).first();
+  await expect(save).toBeVisible();
+
+  const box = await save.boundingBox();
+  const viewport = page.viewportSize();
+  expect(box, 'the save control has no box').not.toBeNull();
+  expect(
+    Math.round(box!.y + box!.height),
+    'the save control ends below the fold',
+  ).toBeLessThanOrEqual(viewport!.height + 1);
+});
+
 test('a league you cannot see and one that does not exist look the same', async ({ page }) => {
   // Both need a session: middleware sends a signed-out visitor to sign-in
   // before either route runs.

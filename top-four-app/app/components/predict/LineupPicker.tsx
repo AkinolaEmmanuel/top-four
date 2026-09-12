@@ -186,10 +186,19 @@ export function LineupPicker({
     });
   };
 
+  /*
+   * A column that fills its container rather than one that grows.
+   *
+   * The pitch used to be `aspect-[3/4]` of the full width — around 670px tall in
+   * a 500px dialog — so the whole picker overflowed and Save sat below the fold,
+   * which is the one control the screen exists to reach. The pitch now takes the
+   * height that is left after the shape chips and the footer, and the footer
+   * never scrolls away.
+   */
   return (
-    <div>
+    <div className="flex flex-col h-full min-h-0">
       {editable && (
-        <div className="mb-[14px]">
+        <div className="flex-none mb-[14px]">
           <div className="tf-kicker text-[var(--text-muted)] mb-[8px]">
             {formation ? 'Formation' : 'Choose a shape to start picking'}
           </div>
@@ -213,6 +222,10 @@ export function LineupPicker({
         </div>
       )}
 
+      {/* The pitch keeps its own proportions — it is a pitch, and squashing it
+          to fit reads as a broken graphic. What changed is that this scrolls and
+          the footer below does not, so Save is never the thing pushed off. */}
+      <div className="flex-1 min-h-0 overflow-y-auto tf-scroll">
       <div
         className="relative w-full aspect-[3/4] rounded-[12px] overflow-hidden border border-[var(--surface-border)]"
         style={{ background: 'linear-gradient(to bottom, var(--pitch-bg-top), var(--pitch-bg-bottom))' }}
@@ -361,7 +374,9 @@ export function LineupPicker({
         )}
       </div>
 
-      <div className="mt-[14px]">
+      </div>
+
+      <div className="flex-none mt-[14px]">
         {phase === 'scored' ? (
           <div className="flex items-center gap-[14px]">
             <span className="tf-num font-heading font-bold text-[36px] leading-[0.9] tracking-[-1.5px] flex-none">
