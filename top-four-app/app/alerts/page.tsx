@@ -54,6 +54,8 @@ function timeAgo(iso: string): string {
 export default function AlertsPage() {
   const [view, setView] = useState<'list' | 'prefs'>('list');
   const [filter, setFilter] = useState<string>('All');
+  /** Which alert the wide layout is reading. Narrow screens have no pane. */
+  const [reading, setReading] = useState<string | null>(null);
 
   const { data: prefsData, isLoading: prefsLoading } = useNotificationPreferences();
   const { data: unreadData } = useUnreadNotifications();
@@ -150,6 +152,8 @@ export default function AlertsPage() {
     : (markAllReadMutation.error ? failureMessage(markAllReadMutation.error, 'Could not mark them read.')
       : markReadMutation.error ? failureMessage(markReadMutation.error, 'Could not mark that read.')
       : null);
+
+  const open = NOTES.find(note => note.id === reading) ?? null;
 
   const PREF_FIELD: Record<string, keyof NotificationPreferences | undefined> = {
     reminders: 'roundReminder', questions: 'customQuestionAdmin',
@@ -255,7 +259,12 @@ export default function AlertsPage() {
           )}
 
           {showList && (
-            <div>
+            /* Two panes at width: the list keeps its place on the left while the
+               selected alert is read whole on the right. A single column at
+               every width means every alert you open loses the list you were
+               working through. */
+            <div className="md:grid md:grid-cols-[minmax(0,1fr)_360px] md:items-start">
+            <div className="md:border-r md:border-[var(--surface-border)]">
               {groups.map((g, gi) => (
                 <section key={gi}>
                   <div className="p-[16px_24px_9px]"><span className="tf-kicker text-[var(--text-muted)]">{g.label}</span></div>
@@ -267,9 +276,10 @@ export default function AlertsPage() {
                       // support a real control needs instead.
                       role="button"
                       tabIndex={0}
-                      onClick={r.onOpen}
-                      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); r.onOpen(); } }}
-                      className={r.rowStyle}
+                      aria-current={reading === r.id ? 'true' : undefined}
+                      onClick={() => { setReading(r.id); r.onOpen(); }}
+                      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setReading(r.id); r.onOpen(); } }}
+                      className={`${r.rowStyle} ${reading === r.id ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
                     >
                       <span className={r.dotStyle} style={r.unread ? { background: r.accent } : {}}></span>
                       <div className="flex-1 min-w-0">
@@ -291,6 +301,37 @@ export default function AlertsPage() {
               <div className="p-[20px_24px] text-[11.5px] leading-[1.55] text-[var(--text-muted)]">
                 Alerts are personal. You are told when your own total moves, never when somebody else&apos;s does.
               </div>
+            </div>
+
+            {/* The reading pane. Sticky, so working down a long list does not
+                leave the thing being read somewhere above the fold. */}
+            <aside className="hidden md:block md:sticky md:top-[16px] p-[20px]">
+              {open ? (
+                <>
+                  <span className="font-heading font-bold text-[9px] tracking-[0.06em] px-[8px] py-[3px] rounded-[5px] bg-[var(--surface-subtle)] text-[var(--text-muted)]">
+                    {open.group}
+                  </span>
+                  <h2 className="font-heading font-bold text-[17px] leading-[1.25] tracking-[-0.3px] mt-[12px]">{open.title}</h2>
+                  <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">{open.body}</p>
+                  <div className="flex items-center gap-[8px] mt-[14px]">
+                    <span className="font-heading font-bold text-[9px] tracking-[0.06em] p-[3px_8px] rounded-[5px] bg-[var(--surface-subtle)] text-[var(--text-muted)]">{open.league}</span>
+                    <span className="text-[10.5px] text-[var(--text-muted)]">{open.when}</span>
+                  </div>
+                  {open.href && (
+                    <Link
+                      href={open.href}
+                      className="mt-[16px] h-[42px] px-[16px] rounded-[11px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[12px] inline-grid place-items-center"
+                    >
+                      {open.action || 'Open'}
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <p className="text-[12px] leading-[1.6] text-[var(--text-muted)]">
+                  Pick an alert to read it here. Opening one marks it read.
+                </p>
+              )}
+            </aside>
             </div>
           )}
 

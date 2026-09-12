@@ -232,6 +232,15 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
 
   const currentHero = HERO[step];
 
+  /** Each step and what it has decided so far. */
+  const STEP_TRAIL: Array<{ id: string; label: string; value: string }> = [
+    { id: '1', label: 'Name', value: name || 'Not named yet' },
+    { id: '2', label: 'Competitions', value: compSummary || 'None chosen' },
+    { id: '3', label: 'Points', value: `${enabled.length} markets · max ${maxPoints}` },
+    { id: '4', label: 'Rules', value: `${lockValue} · ${tieOrder.length} tiebreakers` },
+    { id: '5', label: 'Review', value: `${totalRounds} rounds` },
+  ];
+
   return (
     <div className="flex flex-col flex-1 bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
       <Breadcrumb trail={[{ label: 'Leagues', href: '/leagues' }, { label: 'New league' }]} />
@@ -307,7 +316,37 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
           </div>
         </header>
 
-        <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)]">
+        {/* Three columns at width. A wizard that shows one step at a time is a
+            phone's answer to a small screen; on a screen whose output is frozen
+            forever at publication, hiding what the earlier steps decided is the
+            wrong trade. */}
+        <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)] md:grid md:grid-cols-[220px_minmax(0,1fr)_280px] md:gap-[28px] md:px-[24px] md:pt-[20px] md:items-start">
+
+          <nav aria-label="Setup steps" className="hidden md:block md:sticky md:top-[20px]">
+            {STEP_TRAIL.map(entry => {
+              const on = step === entry.id;
+              const done = STEP_TRAIL.findIndex(x => x.id === step) > STEP_TRAIL.findIndex(x => x.id === entry.id);
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  disabled={!done}
+                  onClick={() => done && setStep(entry.id)}
+                  aria-current={on ? 'step' : undefined}
+                  className={`w-full text-left p-[11px_12px] rounded-[10px] ${on ? 'bg-[var(--surface-card)] shadow-[var(--elev-1)]' : done ? 'cursor-pointer' : 'opacity-45 cursor-default'}`}
+                >
+                  <div className={`font-heading text-[12.5px] ${on ? 'font-bold' : 'font-semibold text-[var(--text-secondary)]'}`}>
+                    {entry.label}
+                  </div>
+                  {/* What this step decided, so the trail is a record and not
+                      just a position. */}
+                  <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.value}</div>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="min-w-0">
 
           {/* 1. NAME */}
           {step === '1' && (
@@ -709,6 +748,21 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
               <div className="h-[26px]"></div>
             </div>
           )}
+          </div>
+
+          <aside className="hidden md:block md:sticky md:top-[20px] p-[16px] rounded-[14px] bg-[var(--surface-card)] border border-[var(--surface-border)]">
+            <div className="tf-kicker text-[var(--text-muted)]">The whole rule set</div>
+            {[...editable, ...frozen].map(row => (
+              <div key={row.label} className="flex items-baseline gap-[10px] py-[8px] border-b border-[var(--surface-border)] last:border-b-0">
+                <span className="text-[10.5px] text-[var(--text-muted)] w-[96px] flex-none">{row.label}</span>
+                <span className="text-[11.5px] flex-1 min-w-0 text-right truncate">{row.value || '—'}</span>
+              </div>
+            ))}
+            <p className="text-[10px] leading-[1.6] text-[var(--text-muted)] mt-[10px]">
+              Everything below the name freezes at publication. Members answer under it, so it cannot
+              change while the league runs.
+            </p>
+          </aside>
         </main>
 
         {step !== 'done' && (
