@@ -22,7 +22,11 @@ export function Breadcrumb({ trail }: { trail: Crumb[] }) {
       aria-label="Breadcrumb"
       className="hidden md:block flex-none bg-[var(--surface-card)]"
     >
-      <ol className="max-w-[1080px] mx-auto px-[24px] h-[38px] flex items-center gap-[7px] text-[11.5px] text-[var(--text-muted)]">
+      {/* Edge to edge with the same 24px as the bars above and below it. Capped
+          at 1080 and centred, the trail started 167px in on a 1365px window
+          while the brand mark and the league crest both started at 24 — the
+          same mistake level one was making. */}
+      <ol className="px-[24px] h-[38px] flex items-center gap-[7px] text-[11.5px] text-[var(--text-muted)]">
         {trail.map((crumb, i) => (
           <li key={i} className="flex items-center gap-[7px] min-w-0">
             {i > 0 && <span aria-hidden="true" className="text-[var(--surface-border-strong)]">/</span>}
