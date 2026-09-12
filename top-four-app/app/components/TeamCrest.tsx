@@ -11,6 +11,11 @@ import { tintFor } from '@/lib/crest';
  *
  * The two share a box of the same size so a row of teams does not jump when
  * one of them is missing a badge.
+ *
+ * Both are `inline-block` on purpose. The width and height are inline styles,
+ * and an inline element ignores them — this rendered at 0×0 the moment a caller
+ * wrapped it in anything that was not a flex container, which is exactly what
+ * happened on the fixture hero.
  */
 export function TeamCrest({ code, logoUrl, size, className = '' }: {
   code: string;
@@ -23,7 +28,7 @@ export function TeamCrest({ code, logoUrl, size, className = '' }: {
 
   if (logoUrl) {
     return (
-      <span className={`relative flex-none ${className}`} style={{ width: size, height }}>
+      <span className={`relative inline-block flex-none align-middle ${className}`} style={{ width: size, height }}>
         <Image src={logoUrl} alt={code} fill sizes={`${size}px`} className="object-contain" />
       </span>
     );
@@ -31,7 +36,7 @@ export function TeamCrest({ code, logoUrl, size, className = '' }: {
 
   return (
     <span
-      className={`tf-crest flex-none ${className}`}
+      className={`tf-crest inline-grid flex-none align-middle ${className}`}
       style={{ background: tintFor(code), width: size, height, fontSize: Math.round(size * 0.32) }}
     >
       {code}

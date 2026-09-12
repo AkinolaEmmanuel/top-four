@@ -370,8 +370,7 @@ export function FixturePredictScreen({
 
             <div className="flex items-center gap-[8px] md:gap-[14px] mt-[20px] md:max-w-[780px] md:mx-auto md:mt-[24px]">
               <div className="flex-1 flex items-center gap-[7px] md:gap-[9px] min-w-0">
-                <span className="md:hidden"><TeamCrest code={homeCode} logoUrl={homeLogo} size={32} /></span>
-                <span className="hidden md:block"><TeamCrest code={homeCode} logoUrl={homeLogo} size={40} /></span>
+                <TeamCrest code={homeCode} logoUrl={homeLogo} size={36} />
                 <span className="font-heading font-[650] text-[14px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate">{homeName}</span>
               </div>
               <span className={settledScore
@@ -381,8 +380,7 @@ export function FixturePredictScreen({
               </span>
               <div className="flex-1 flex items-center gap-[7px] md:gap-[9px] justify-end min-w-0">
                 <span className="font-heading font-[650] text-[14px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate text-right">{awayName}</span>
-                <span className="md:hidden"><TeamCrest code={awayCode} logoUrl={awayLogo} size={32} /></span>
-                <span className="hidden md:block"><TeamCrest code={awayCode} logoUrl={awayLogo} size={40} /></span>
+                <TeamCrest code={awayCode} logoUrl={awayLogo} size={36} />
               </div>
             </div>
 
