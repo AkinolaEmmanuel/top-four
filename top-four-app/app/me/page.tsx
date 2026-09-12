@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MeMobile } from '../components/me/MeMobile';
-import { MeDesktop } from '../components/me/MeDesktop';
+import { MeScreen } from '../components/me/MeScreen';
 import { useAuth } from '@/context/auth-context';
 import { useMyLeagues } from '@/hooks/api/useLeagues';
 import { useOwnPointsHistory } from '@/hooks/api/usePoints';
@@ -164,68 +163,25 @@ export default function MePage() {
     };
   });
 
-  const IconMap: Record<string, any> = {
-    home: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z" /><path d="M9.5 20v-6h5v6" /></svg>,
-    ball: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><circle cx="12" cy="12" r="8" /><path d="m12 8 3.4 2.5-1.3 4h-4.2l-1.3-4L12 8Z" /></svg>,
-    leagues: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M12 3 21 8.5v7L12 21l-9-5.5v-7L12 3Z" /></svg>,
-    me: () => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
-  };
-
-  const tabs = [
-    { label: "HOME", ic: "home", on: false, badge: "" },
-    { label: "PREDICT", ic: "ball", on: false, badge: "" },
-    { label: "LEAGUES", ic: "leagues", on: false, badge: "" },
-    { label: "ME", ic: "me", on: true, badge: "" }
-  ];
-
-  const rootNav = [["Home","home",""],["Predict","predict",""],["Leagues","leagues",""]].map(it => {
-    const [label, id, badge] = it;
-    return {
-      label, id, badge,
-      badgeStyle: badge ? { marginLeft:'7px', minWidth:'16px', height:'16px', padding:'0 4px', borderRadius:'8px', background:'var(--nav-accent)', color:'var(--nav-on-accent)', display:'inline-grid', placeItems:'center', font:"700 9px 'DM Sans',sans-serif" } : { display:'none' },
-      style: { display:'flex', alignItems:'center', padding:'7px 13px', borderRadius:'9px', font:"600 12.5px 'DM Sans',sans-serif", cursor:'pointer', background: id==="me"?'var(--nav-fill)':'transparent', opacity: id==="me"?1:0.66 }
-    };
-  });
-
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <MeMobile
-          user={user}
-          theme={theme}
-          isLoading={authLoading}
-          prefs={prefs}
-          setPrefs={setPrefs}
-          chart={chartMobile}
-          leagues={leagues}
-          totalPoints={totalPoints}
-          leagueCount={leagueCount}
-          groups={groups}
-          IconMap={IconMap}
-          tabs={tabs}
-          signOut={signOut}
-        />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <MeDesktop
-          user={user}
-          theme={theme}
-          isLoading={authLoading}
-          prefs={prefs}
-          setPrefs={setPrefs}
-          chart={chartDesktop}
-          leagues={leagues}
-          totalPoints={totalPoints}
-          leagueCount={leagueCount}
-          rootNav={rootNav}
-          accountRows={accountRows}
-          emailPrefs={emailPrefs}
-          emailUnverified={emailUnverified}
-          noGoogle={noGoogle}
-          signOut={signOut}
-        />
-      </div>
+      <MeScreen
+        user={user}
+        theme={theme}
+        isLoading={authLoading}
+        prefs={prefs}
+        setPrefs={setPrefs}
+        chartMobile={chartMobile}
+        chartDesktop={chartDesktop}
+        leagues={leagues}
+        totalPoints={totalPoints}
+        leagueCount={leagueCount}
+        groups={groups}
+        accountRows={accountRows}
+        emailPrefs={emailPrefs}
+        emailUnverified={emailUnverified}
+        signOut={signOut}
+      />
     </div>
   );
 }
