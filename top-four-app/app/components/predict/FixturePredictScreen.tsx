@@ -790,6 +790,11 @@ export function FixturePredictScreen({
               nothing for everyone, so nobody gains on you.
             </p>
           )}
+
+          {/* The list's own bottom margin. It used to come from the note above,
+              so removing that note left the last row flush against the edge of
+              the scroll area with nothing under it. */}
+          <div className="h-[26px] pb-[env(safe-area-inset-bottom)]" />
         </div>
       </main>
 
