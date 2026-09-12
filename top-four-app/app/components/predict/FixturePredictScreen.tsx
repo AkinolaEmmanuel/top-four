@@ -8,6 +8,7 @@ import { LeagueTabs } from '../leagues/LeagueTabs';
 import { LineupPicker } from './LineupPicker';
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { failureMessage } from '@/lib/api/failure';
+import { Breadcrumb } from '../Breadcrumb';
 import {
   carryLabelsFor, progressOf, toAnswerPayload, toCopySummaries,
   type CopyLeagueSummary, type FixtureAnswers, type FixtureMarket, type FixturePhase,
@@ -250,7 +251,12 @@ export function FixturePredictScreen({
       : `CLOSE AT ${timeOfDay(lineupDeadlineAt)} · ${countdown(lineupDeadlineAt)}`;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative">
+    <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative">
+      <Breadcrumb trail={[
+        { label: 'Leagues', href: '/leagues' },
+        { label: leagueName, href: `/leagues/${leagueId}/fixtures` },
+        { label: `${homeName} v ${awayName}` },
+      ]} />
 
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[6px] md:hidden">
         <div className="flex items-center gap-[11px]">
@@ -270,7 +276,7 @@ export function FixturePredictScreen({
         <LeagueTabs leagueId={leagueId} />
       </div>
 
-      <main className="tf-scroll flex-1 overflow-auto">
+      <main className="tf-scroll flex-1 min-h-0 overflow-auto">
 
         <section className="relative overflow-hidden text-[var(--nav-text)] px-[var(--gutter)] pt-[8px] md:px-0 md:pt-[22px]" style={{ background: heroBg }}>
           <div className="absolute left-0 right-0 top-1/2 h-px bg-[rgba(255,255,255,0.07)]" />

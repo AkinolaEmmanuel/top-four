@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { LeagueTabs } from '../../components/leagues/LeagueTabs';
+import { Breadcrumb } from '../../components/Breadcrumb';
 import { getLeagueContext } from '@/lib/leagues/league-context';
 import { NotAuthenticatedError } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
@@ -42,7 +43,9 @@ export default async function LeagueLayout({
   const { league, competition, unansweredBadge } = context;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+      <Breadcrumb trail={[{ label: 'Leagues', href: '/leagues' }, { label: league.name }]} />
+
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[14px] md:p-0 md:bg-[var(--surface-card)] md:border-b md:border-[var(--surface-border)]">
         <div className="flex items-center gap-[11px] md:max-w-[1080px] md:mx-auto md:px-[24px] md:h-[54px] md:items-end">
           <Link
@@ -63,7 +66,7 @@ export default async function LeagueLayout({
 
       <LeagueTabs leagueId={id} badge={unansweredBadge} />
 
-      <main className="tf-scroll flex-1 overflow-auto pb-[86px] md:pb-[26px]">
+      <main className="tf-scroll flex-1 min-h-0 overflow-auto pb-[86px] md:pb-[26px]">
         {/* One column for every screen, so a tab switch never reflows the page. */}
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:pt-[20px]">
           {children}

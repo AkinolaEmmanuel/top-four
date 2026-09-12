@@ -47,8 +47,13 @@ const hrefFor = (leagueId: string, id: TabId) =>
  * bar can live in the league layout and survive navigation between tabs
  * instead of remounting with each screen.
  */
-function activeFrom(pathname: string, leagueId: string): TabId {
-  const rest = pathname.replace(`/leagues/${leagueId}`, '');
+function activeFrom(pathname: string, leagueId: string): TabId | null {
+  const base = `/leagues/${leagueId}`;
+  // The strip also appears on Fixture Predict, which is not a league route.
+  // Nothing there is a tab, so nothing is marked current — before this guard
+  // the fall-through lit "More" on every fixture.
+  if (pathname !== base && !pathname.startsWith(`${base}/`)) return null;
+  const rest = pathname.slice(base.length);
   if (rest.startsWith('/fixtures')) return 'fixtures';
   if (rest.startsWith('/table')) return 'table';
   if (rest === '' || rest === '/') return 'overview';

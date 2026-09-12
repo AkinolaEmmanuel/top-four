@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { Breadcrumb } from '../Breadcrumb';
 import { useCreateLeague, usePublishLeague } from '@/hooks/api/useLeagues';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
@@ -35,7 +36,6 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
   const publishLeague = usePublishLeague();
   const publishingRef = useRef(false); // double-tap guard
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [step, setStep] = useState('1');
   const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
   const [createdLeagueName, setCreatedLeagueName] = useState<string>('');
@@ -218,7 +218,8 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
   const currentHero = HERO[step];
 
   return (
-    <div className={`flex flex-col flex-1 bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className="flex flex-col flex-1 bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+      <Breadcrumb trail={[{ label: 'Leagues', href: '/leagues' }, { label: 'New league' }]} />
 
       {/* App Container */}
       <div className="flex flex-col flex-1 w-full max-w-[1080px] mx-auto overflow-hidden relative">
@@ -291,7 +292,7 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
           </div>
         </header>
 
-        <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+        <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)]">
 
           {/* 1. NAME */}
           {step === '1' && (

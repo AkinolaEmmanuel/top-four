@@ -57,7 +57,6 @@ function formatTarget(t: any): string {
 }
 
 export default function OperatorConsolePage() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [queue, setQueue] = useState<QueueId>('settlement');
   const [tool, setTool] = useState<'consistency' | 'refresh' | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -254,20 +253,12 @@ export default function OperatorConsolePage() {
   }
 
   return (
-    <div className={`min-h-[100dvh] box-border p-[32px] flex flex-col gap-[16px] items-center font-['Sora',sans-serif] bg-[var(--dev-backdrop)] ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className="min-h-[100dvh] box-border p-[32px] flex flex-col gap-[16px] items-center font-['Sora',sans-serif] bg-[var(--dev-backdrop)]">
 
       <div className="w-[1280px] flex items-end gap-[22px]">
         <div className="flex-1 flex flex-col gap-[4px]">
           <div className="font-heading font-bold text-[20px] tracking-[-0.2px] text-[var(--dev-strong)]">Operator console</div>
           <div className="text-[12px] text-[var(--dev-quiet)]">Six review queues plus two per-fixture/league admin tools, wired straight to the platform API. <strong>Esc</strong> closes a decision.</div>
-        </div>
-        <div className="flex gap-[5px] flex-none">
-          {[
-            { id: "light", label: "Light" },
-            { id: "dark", label: "Dark" }
-          ].map(t => (
-            <button type="button" key={t.id} onClick={() => setTheme(t.id as any)} className={`p-[8px_12px] rounded-[9px] text-[12px] font-heading font-semibold cursor-pointer border ${theme === t.id ? 'border-[var(--dev-strong)] bg-[var(--dev-strong)] text-[var(--dev-card)]' : 'border-[var(--dev-field)] bg-[var(--dev-card)] text-[var(--dev-text)]'}`}>{t.label}</button>
-          ))}
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MobileNav } from '../MobileNav';
+import { ThemeToggle } from '../ThemeToggle';
 import { useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
 import { useAuth } from '@/context/auth-context';
 import type { FormBar, MeLeagueRow } from '@/lib/me/me-data';
@@ -117,7 +118,7 @@ export function MeScreen({
   const peak = Math.max(1, ...form.map(f => f.points));
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
 
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(16px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[22px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[26px] md:flex md:items-center md:gap-[20px]">
@@ -135,7 +136,7 @@ export function MeScreen({
         </div>
       </header>
 
-      <main className="tf-scroll flex-1 overflow-auto">
+      <main className="tf-scroll flex-1 min-h-0 overflow-auto">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-[28px] md:py-[24px]">
 
           <div>
@@ -204,6 +205,11 @@ export function MeScreen({
                 href="/me/email"
               />
               <Row title="Google" note={hasGoogle ? `Linked to ${email}` : 'Not linked · sign in with your password only'} />
+            </section>
+
+            <section className="mt-[24px]">
+              <div className="tf-kicker px-[var(--gutter)] md:px-0 pb-[8px]">Appearance</div>
+              <ThemeToggle />
             </section>
 
             <section className="mt-[24px]">

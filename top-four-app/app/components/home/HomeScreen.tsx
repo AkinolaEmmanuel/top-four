@@ -161,7 +161,7 @@ export function HomeScreen({
 
   if (isNewUser) {
     return (
-      <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+      <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
         <div className="flex-1 grid place-items-center p-[var(--gutter)]">
           <div className="flex flex-col items-center text-center max-w-[440px]">
             <div className="w-[54px] h-[54px] rounded-[15px] bg-[var(--color-brand)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[18px]">T/</div>
@@ -181,7 +181,7 @@ export function HomeScreen({
   }
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
 
       {/* Phone header. The wide layout gets its chrome from DesktopLevelOne. */}
       <header className="md:hidden bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(14px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[16px] flex-none flex items-center justify-between">
@@ -215,7 +215,7 @@ export function HomeScreen({
         </div>
       </div>
 
-      <main className="flex-1 overflow-y-auto tf-scroll">
+      <main className="flex-1 min-h-0 overflow-y-auto tf-scroll">
         <section style={{ background: heroBg }} className="px-[var(--gutter)] py-[22px] md:py-[30px] text-[var(--nav-text)] border-b border-[rgba(255,255,255,0.1)]">
           <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:flex md:items-center md:gap-[44px]">
 

@@ -168,3 +168,61 @@ test('a league you cannot see and one that does not exist look the same', async 
   await visit(page, '/leagues/00000000-0000-4000-8000-000000000000');
   await expect(notFound).toBeVisible();
 });
+
+/**
+ * The shell's three guarantees, each standing for a defect that shipped:
+ * a tab bar 209px below the fold, no way back on desktop but the browser's own
+ * button, and a document hardcoded to dark.
+ */
+
+test('the root tab bar sits inside the viewport on every root screen', async ({ page }, testInfo) => {
+  await requireSession(page);
+  test.skip(testInfo.project.name !== 'mobile', 'The tab bar is narrow-screen only.');
+
+  for (const path of ['/home', '/predict', '/leagues', '/me']) {
+    await visit(page, path);
+    const bar = page.locator('nav.grid-cols-4');
+    await expect(bar, `${path} has no tab bar`).toBeVisible();
+    const box = await bar.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box, `${path} tab bar has no box`).not.toBeNull();
+    expect(
+      Math.round(box!.y + box!.height),
+      `${path} tab bar ends below the fold`,
+    ).toBeLessThanOrEqual(viewport!.height + 1);
+  }
+});
+
+test('every screen below the root offers a way back on wide screens', async ({ page }, testInfo) => {
+  await requireSession(page);
+  test.skip(testInfo.project.name === 'mobile', 'Narrow screens use their own chevron.');
+
+  const leagueId = await firstLeagueId(page);
+  const paths = ['/alerts', '/me/name', '/me/email', '/me/password', '/leagues/setup', `/leagues/${leagueId}`];
+
+  for (const path of paths) {
+    await visit(page, path);
+    const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' });
+    await expect(crumbs, `${path} has no breadcrumb`).toBeVisible();
+    // A trail of one is not a way back.
+    await expect(crumbs.getByRole('link').first(), `${path} breadcrumb has no link`).toBeVisible();
+  }
+});
+
+test('the theme follows the stored choice, and light mode is reachable', async ({ page }) => {
+  await requireSession(page);
+  await visit(page, '/me');
+
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', /^(light|dark)$/);
+
+  await page.getByRole('radio', { name: 'Light' }).click();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+
+  await page.getByRole('radio', { name: 'Dark' }).click();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+
+  // The choice must survive a reload, which is the whole point of storing it.
+  await visit(page, '/home');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+});

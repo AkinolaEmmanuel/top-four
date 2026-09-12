@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Breadcrumb } from '../../components/Breadcrumb';
 import { useChangePassword } from '@/hooks/api/useAccount';
 
 export default function PasswordPage() {
@@ -45,7 +46,9 @@ export default function PasswordPage() {
   };
 
   return (
-    <div className="flex-1 bg-[var(--surface-canvas)] flex flex-col min-h-0 text-[var(--text-primary)] font-['Sora',sans-serif] overflow-y-auto">
+    <div className="flex-1 bg-[var(--surface-canvas)] flex flex-col min-h-0 text-[var(--text-primary)] font-['Sora',sans-serif] overflow-hidden">
+      <Breadcrumb trail={[{ label: 'Me', href: '/me' }, { label: 'Password' }]} />
+      <div className="flex-1 min-h-0 overflow-y-auto tf-scroll">
       <div className="max-w-[700px] w-full mx-auto p-[24px_20px] md:p-[40px_32px] flex flex-col gap-[24px]">
         {/* Header / Breadcrumbs */}
         <div className="flex items-center gap-[12px] pb-[16px] border-b border-[var(--surface-border)]">
@@ -136,6 +139,7 @@ export default function PasswordPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

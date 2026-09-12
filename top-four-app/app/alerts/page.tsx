@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Breadcrumb } from '../components/Breadcrumb';
 import {
   useNotificationPreferences, useUpdateNotificationPreferences, useUnreadNotifications,
   useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead
@@ -52,7 +53,6 @@ function timeAgo(iso: string): string {
 
 export default function AlertsPage() {
   const [view, setView] = useState<'list' | 'prefs'>('list');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [filter, setFilter] = useState<string>('All');
 
   const { data: prefsData, isLoading: prefsLoading } = useNotificationPreferences();
@@ -188,7 +188,9 @@ export default function AlertsPage() {
   const headActLabel = onPrefs ? "Done" : "Settings";
 
   return (
-    <div className={`flex-1 flex flex-col bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''} overflow-y-auto`}>
+    <div className="flex-1 flex flex-col min-h-0 bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] overflow-hidden">
+      <Breadcrumb trail={[{ label: 'Home', href: '/home' }, { label: 'Alerts' }]} />
+      <div className="flex-1 min-h-0 overflow-y-auto tf-scroll">
       {/* Container */}
       <div className="flex flex-col w-full max-w-[1000px] mx-auto p-[20px_16px] md:p-[32px] overflow-hidden relative">
         <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] p-[16px_24px] rounded-[16px] border border-[var(--surface-border)] shadow-[var(--elev-2)]">
@@ -321,6 +323,7 @@ export default function AlertsPage() {
           )}
         </main>
       </div>
+    </div>
     </div>
   );
 }

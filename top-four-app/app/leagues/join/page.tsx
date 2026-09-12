@@ -17,7 +17,6 @@ export default function JoinLeaguePage() {
   const { data: myLeaguesData } = useMyLeagues();
   const leaveAnyLeague = useLeaveAnyLeague();
 
-  const [theme] = useState<'light' | 'dark'>('dark');
   const [outcome, setOutcome] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState('');
   const [joinedLeague, setJoinedLeague] = useState<any>(null);
@@ -187,7 +186,7 @@ export default function JoinLeaguePage() {
   };
 
   return (
-    <div className={`flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
       <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
         <JoinLeagueMobile {...sharedProps} />
       </div>

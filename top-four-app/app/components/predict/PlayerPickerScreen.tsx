@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Breadcrumb } from '../Breadcrumb';
 import { useSubmitPrediction } from '@/hooks/api/useFixturePrediction';
 import { ApiError } from '@/lib/api/fetcher';
 import {
@@ -78,7 +79,13 @@ export function PlayerPickerScreen({
     `flex items-center h-[32px] px-[13px] rounded-full cursor-pointer whitespace-nowrap flex-none font-heading font-semibold text-[11.5px] ${on ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-secondary)]'}`;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+      <Breadcrumb trail={[
+        { label: 'Leagues', href: '/leagues' },
+        { label: leagueName, href: `/leagues/${leagueId}/fixtures` },
+        { label: 'Fixture', href: backHref },
+        { label: MARKET_COPY[market].title },
+      ]} />
 
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(8px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[14px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
         <div className="flex items-center gap-[11px] md:max-w-[880px] md:mx-auto md:px-[24px] md:py-[18px]">
@@ -118,7 +125,7 @@ export function PlayerPickerScreen({
         </div>
       </div>
 
-      <main className="tf-scroll flex-1 overflow-auto">
+      <main className="tf-scroll flex-1 min-h-0 overflow-auto">
         <div className="md:max-w-[880px] md:mx-auto md:px-[24px]">
           {shown === 0 ? (
             <div className="p-[60px_30px] text-center">

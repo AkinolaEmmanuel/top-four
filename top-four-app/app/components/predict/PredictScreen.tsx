@@ -76,7 +76,7 @@ export function PredictScreen({
   if (!hasLeagues || totalEntries === 0) {
     const noLeagues = !hasLeagues;
     return (
-      <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+      <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
         <div className="flex-1 grid place-items-center p-[var(--gutter)]">
           <div className="flex flex-col items-center text-center max-w-[400px]">
             <div className="w-[52px] h-[52px] rounded-full bg-[var(--surface-subtle)] grid place-items-center text-[20px] text-[var(--text-muted)]">
@@ -104,7 +104,7 @@ export function PredictScreen({
   }
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
 
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(14px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[20px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[26px]">
@@ -117,7 +117,7 @@ export function PredictScreen({
         </div>
       </header>
 
-      <main className="tf-scroll flex-1 overflow-auto">
+      <main className="tf-scroll flex-1 min-h-0 overflow-auto">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[22px]">
 
           {leagues.length > 1 && (

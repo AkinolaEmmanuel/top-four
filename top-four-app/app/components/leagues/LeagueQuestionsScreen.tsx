@@ -170,15 +170,8 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
                 >
                   {owing.length === 0 ? committed : unclaimed}
                 </span>
-                <div className="pb-[4px] min-w-0">
-                  <div className="text-[11.5px] leading-[1.35]">
-                    {owing.length === 0 ? 'points already committed' : 'points still unclaimed'}
-                  </div>
-                  <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">
-                    {owing.length === 0
-                      ? 'Every open question is answered. You can change any of them until its deadline.'
-                      : `${pluralise(owing.length, 'question')} unanswered. They score onto the same table as the fixtures.`}
-                  </div>
+                <div className="pb-[5px] text-[11.5px] leading-[1.35] min-w-0">
+                  {owing.length === 0 ? 'points already committed' : 'points still unclaimed'}
                 </div>
               </div>
             )}
@@ -193,6 +186,15 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
               </button>
             )}
           </div>
+          {/* Its own line: beside a 38px figure and a button, this wrapped to
+              three lines on a 375px screen and left the number stranded. */}
+          {!none && (
+            <p className="text-[10.5px] md:text-[11.5px] text-[var(--text-muted)] mt-[9px] leading-[1.5]">
+              {owing.length === 0
+                ? 'Every open question is answered. You can change any of them until its deadline.'
+                : `${pluralise(owing.length, 'question')} unanswered. They score onto the same table as the fixtures.`}
+            </p>
+          )}
         </section>
       )}
 

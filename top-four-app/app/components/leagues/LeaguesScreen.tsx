@@ -124,7 +124,7 @@ export function LeaguesScreen({ leagues, pendingRequests, limit = LEAGUE_LIMIT, 
   ];
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
+    <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
 
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(14px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[20px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
         <div className="flex items-center justify-between md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[18px] md:gap-[26px]">
@@ -156,7 +156,7 @@ export function LeaguesScreen({ leagues, pendingRequests, limit = LEAGUE_LIMIT, 
         </div>
       </header>
 
-      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+      <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)]">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[22px] md:pb-[30px]">
 
           {!isEmpty && (

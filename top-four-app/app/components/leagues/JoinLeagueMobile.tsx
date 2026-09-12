@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Breadcrumb } from '../Breadcrumb';
 
 interface JoinLeagueMobileProps {
   leagueName: string;
@@ -49,6 +50,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
 
   return (
     <div className="flex flex-col flex-1 w-full overflow-hidden bg-[var(--surface-canvas)] font-['Sora',sans-serif] text-[var(--text-primary)]">
+      <Breadcrumb trail={[{ label: 'Leagues', href: '/leagues' }, { label: 'Join a league' }]} />
       <header className="bg-[var(--nav-surface)] text-[var(--nav-text)] p-[6px_var(--gutter)_20px] flex-none">
         <div className="flex items-center justify-between">
           <div className="font-heading font-bold text-[17px] tracking-[-0.5px]">TopFour</div>
@@ -104,7 +106,7 @@ export function JoinLeagueMobile(props: JoinLeagueMobileProps) {
         )}
       </header>
 
-      <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+      <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)]">
         {/* CODE */}
         {!onOutcome && (
           <div className="p-[20px_var(--gutter)_26px] animate-[tfin_0.16s_ease]">
