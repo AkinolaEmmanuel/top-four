@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumb } from '../../components/Breadcrumb';
 import { useChangePassword } from '@/hooks/api/useAccount';
+import { failureMessage } from '@/lib/api/failure';
 
 export default function PasswordPage() {
   const router = useRouter();
@@ -38,9 +39,7 @@ export default function PasswordPage() {
           setSuccess(true);
           setTimeout(() => router.push('/me'), 1500);
         },
-        onError: (err: any) => {
-          setError(err.message || 'Failed to update password');
-        }
+        onError: error => setError(failureMessage(error, 'Failed to update password.')),
       }
     );
   };

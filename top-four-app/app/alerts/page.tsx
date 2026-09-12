@@ -11,24 +11,62 @@ import { useMyLeagues } from '@/hooks/api/useLeagues';
 import { failureMessage } from '@/lib/api/failure';
 import type { NotificationItem, NotificationKind, NotificationPreferences } from '@/lib/api/notifications';
 
-const KIND_COPY: Record<NotificationKind, (n: NotificationItem) => { title: string; body: string }> = {
-  'league.join_request.received': () => ({ title: 'New join request', body: 'Somebody asked to join. Approve or decline it from the admin page.' }),
-  'league.join_request.approved': () => ({ title: "You're in", body: 'Your request to join was approved.' }),
+/**
+ * What each alert says, and the one thing it wants the reader to do.
+ *
+ * `to` is a path builder rather than a path, because most destinations are
+ * inside the league the alert came from. A kind with no `action` gets no
+ * control: an alert about a league you have just been removed from should not
+ * offer a link into it.
+ */
+type AlertCopy = {
+  title: string;
+  body: string;
+  action?: string;
+  to?: (leagueId: string) => string;
+};
+
+const IN_LEAGUE = {
+  overview: (id: string) => `/leagues/${id}`,
+  fixtures: (id: string) => `/leagues/${id}/fixtures`,
+  results: (id: string) => `/leagues/${id}/fixtures?view=results`,
+  questions: (id: string) => `/leagues/${id}/questions`,
+  table: (id: string) => `/leagues/${id}/table`,
+  admin: (id: string) => `/leagues/${id}/admin`,
+};
+
+const KIND_COPY: Record<NotificationKind, (n: NotificationItem) => AlertCopy> = {
+  'league.join_request.received': () => ({ title: 'New join request', body: 'Somebody asked to join. Approve or decline it from the admin page.', action: 'Review requests', to: IN_LEAGUE.admin }),
+  'league.join_request.approved': () => ({ title: "You're in", body: 'Your request to join was approved.', action: 'Open the league', to: IN_LEAGUE.overview }),
   'league.join_request.rejected': () => ({ title: 'Request declined', body: 'Your request to join was not approved.' }),
-  'league.role.changed': () => ({ title: 'Your role changed', body: 'An owner or admin updated what you can do in this league.' }),
+  'league.role.changed': () => ({ title: 'Your role changed', body: 'An owner or admin updated what you can do in this league.', action: 'Open the league', to: IN_LEAGUE.overview }),
   'league.membership.removed': () => ({ title: 'Removed from a league', body: 'You are no longer a member. Your history stays with the league.' }),
-  'league.round.reminder': () => ({ title: 'Predictions still open', body: 'Something in this league is still unanswered before the next deadline.' }),
-  'league.results.settled': () => ({ title: 'Results are in', body: 'A fixture in this league has settled.' }),
-  'league.results.corrected': () => ({ title: 'A result was corrected', body: 'Your points moved after a settled result was corrected.' }),
-  'league.completed': () => ({ title: 'League completed', body: 'Every fixture and question has settled. The table is final.' }),
+  'league.round.reminder': () => ({ title: 'Predictions still open', body: 'Something in this league is still unanswered before the next deadline.', action: 'Predict', to: IN_LEAGUE.fixtures }),
+  'league.results.settled': () => ({ title: 'Results are in', body: 'A fixture in this league has settled.', action: 'See the result', to: IN_LEAGUE.results }),
+  'league.results.corrected': () => ({ title: 'A result was corrected', body: 'Your points moved after a settled result was corrected.', action: 'See the breakdown', to: IN_LEAGUE.table }),
+  'league.completed': () => ({ title: 'League completed', body: 'Every fixture and question has settled. The table is final.', action: 'See the final table', to: IN_LEAGUE.table }),
   'league.cancelled': () => ({ title: 'League cancelled', body: 'The owner ended this league.' }),
-  'league.fixture.moved': () => ({ title: 'A fixture moved', body: 'A kickoff time changed, which may have shifted a deadline.' }),
-  'league.custom_question.resolve_reminder': () => ({ title: 'A question needs resolving', body: 'A custom question is waiting on an outcome.' }),
-  'league.custom_question.auto_voided': () => ({ title: 'A question was voided', body: 'A custom question passed its outcome date unresolved and was voided automatically.' }),
+  'league.fixture.moved': () => ({ title: 'A fixture moved', body: 'A kickoff time changed, which may have shifted a deadline.', action: 'See the fixtures', to: IN_LEAGUE.fixtures }),
+  'league.custom_question.resolve_reminder': () => ({ title: 'A question needs resolving', body: 'A custom question is waiting on an outcome.', action: 'Resolve it', to: IN_LEAGUE.questions }),
+  'league.custom_question.auto_voided': () => ({ title: 'A question was voided', body: 'A custom question passed its outcome date unresolved and was voided automatically.', action: 'See the question', to: IN_LEAGUE.questions }),
   'account.password.changed': () => ({ title: 'Password changed', body: 'Your account password was changed.' }),
   'account.email.changed': () => ({ title: 'Email changed', body: 'Your account email address was changed.' }),
   'account.password_reset.completed': () => ({ title: 'Password reset', body: 'Your password was reset.' }),
 };
+
+/** One row as the screen draws it, built from a notification and its copy. */
+interface AlertRow {
+  id: string;
+  title: string;
+  body: string;
+  unread: boolean;
+  accent: string;
+  group: string;
+  league: string;
+  when: string;
+  action: string;
+  href: string | null;
+}
 
 const CATEGORY_LABEL: Record<string, string> = {
   membership: 'MEMBERSHIP',
@@ -70,7 +108,7 @@ export default function AlertsPage() {
     return leaguesData?.items.find(l => l.id === leagueId)?.name || 'A league';
   };
 
-  const NOTES = (notificationsData?.items || []).map(n => {
+  const NOTES: AlertRow[] = (notificationsData?.items || []).map(n => {
     const copy = KIND_COPY[n.kind]?.(n) || { title: n.kind, body: '' };
     return {
       id: n.id,
@@ -81,8 +119,11 @@ export default function AlertsPage() {
       group: CATEGORY_LABEL[n.category] || n.category.toUpperCase(),
       league: leagueName(n.leagueId),
       when: timeAgo(n.createdAt),
-      action: n.leagueId ? 'VIEW LEAGUE' : '',
-      href: n.leagueId ? `/leagues/${n.leagueId}` : null,
+      // The design names the action per alert — Predict, See the result, Review
+      // requests — because "VIEW LEAGUE" on every row says nothing about why the
+      // row is there. A kind that has nowhere useful to send anyone gets no link.
+      action: copy.action && copy.to && n.leagueId ? copy.action.toUpperCase() : '',
+      href: copy.to && n.leagueId ? copy.to(n.leagueId) : null,
     };
   });
 
@@ -95,11 +136,10 @@ export default function AlertsPage() {
   const isEmpty = onList && !isLoading && NOTES.length === 0;
   const showList = onList && !isLoading && !isEmpty;
 
-  const isUnread = (n: any) => n.unread;
   const unreadCount = unreadData ?? 0;
 
-  const match = (n: any) => {
-    if (filter === "Unread") return isUnread(n);
+  const match = (n: AlertRow) => {
+    if (filter === "Unread") return n.unread;
     if (filter === "Deadlines") return n.group === "DEADLINES";
     if (filter === "Points") return n.group === "POINTS";
     return true;
@@ -112,7 +152,7 @@ export default function AlertsPage() {
   const groups = names.map(g => ({
     label: g,
     rows: shown.filter(n => n.group === g).map((n, i, a) => {
-      const u = isUnread(n);
+      const u = n.unread;
       return {
         ...n,
         dotStyle: `w-[8px] h-[8px] rounded-full flex-none mt-[6px] ${u ? '' : 'border-[1.5px] border-[var(--surface-border-strong)] bg-transparent'}`,

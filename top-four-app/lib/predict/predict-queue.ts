@@ -96,9 +96,36 @@ export function toPredictGroups(entries: PredictEntry[]): PredictGroup[] {
     .filter(group => group.entries.length > 0);
 }
 
-/** Every market still open, across every league. */
+/** Every market still open in whatever slice it is handed. */
 export function openMarketCount(entries: PredictEntry[]): number {
   return entries.reduce((total, entry) => total + entry.openCount, 0);
+}
+
+/** Soonest deadline first. A task with no deadline has no urgency, so it sorts last. */
+export function byDeadline(a: PredictEntry, b: PredictEntry): number {
+  if (!a.deadlineAt) return b.deadlineAt ? 1 : 0;
+  if (!b.deadlineAt) return -1;
+  return Date.parse(a.deadlineAt) - Date.parse(b.deadlineAt);
+}
+
+/**
+ * Splits the queue at the horizon a member can act on.
+ *
+ * The task feed is the whole season — in a mature league that is thousands of
+ * markets, months of them — and summing it gives a headline that is accurate and
+ * useless. What answers "how much do I have to do" is the part closing inside a
+ * week; the rest is a tail, kept on screen under its own heading rather than
+ * folded into the number.
+ *
+ * `/me/prediction-tasks` takes only `limit` and `cursor`, so this is done here.
+ * Once it takes the kickoff window availability now has, the split moves to the
+ * read and the tail stops being fetched at all.
+ */
+export function splitHorizon(entries: PredictEntry[]): { queue: PredictEntry[]; later: PredictEntry[] } {
+  return {
+    queue: entries.filter(e => e.bucket !== 'later'),
+    later: entries.filter(e => e.bucket === 'later'),
+  };
 }
 
 /** The line under the headline number: how many leagues, and when the next lock is. */

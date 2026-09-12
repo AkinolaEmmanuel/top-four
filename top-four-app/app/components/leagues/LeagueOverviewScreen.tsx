@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { heroGradient } from '@/lib/crest-colour';
-import { useTeamColours } from '@/hooks/useTeamColours';
+import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import { TeamCrest } from '../TeamCrest';
 import { pluralise } from '@/lib/format';
 import { closingMarketFor } from '@/lib/leagues/league-overview';
@@ -59,12 +59,12 @@ export function LeagueOverviewScreen({
   const fixtureName = nextFixture ? `${nextFixture.homeName} v ${nextFixture.awayName}` : competition || 'No fixtures';
   const heroHref = nextFixture ? `/predict/fixture/${nextFixture.leagueFixtureId}?leagueId=${leagueId}` : '/predict';
 
-  const [homeColour, awayColour] = useTeamColours(
+  const [homePalette, awayPalette] = useTeamPalettes(
     { code: nextFixture?.homeCode ?? '', logoUrl: nextFixture?.homeLogo ?? null },
     { code: nextFixture?.awayCode ?? '', logoUrl: nextFixture?.awayLogo ?? null },
   );
   const heroBg = nextFixture
-    ? heroGradient(homeColour, awayColour)
+    ? heroGradient(homePalette, awayPalette)
     : 'var(--nav-surface)';
 
   return (

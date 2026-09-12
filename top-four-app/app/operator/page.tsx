@@ -13,6 +13,10 @@ import {
   useRequestFixtureFactsRefresh, useRequestFixturePlayersRefresh,
 } from '@/hooks/api/useOperator';
 import { SETTLE_REASON_CODES, VOID_REASON_CODES } from '@/lib/api/operator';
+import type {
+  SettlementReviewItem, FactConflictItem, ProviderIssueItem, ExhaustedJobItem,
+  FailedNotificationItem, ProviderTarget,
+} from '@/lib/api/operator';
 
 type QueueId = 'settlement' | 'late' | 'conflicts' | 'provider' | 'jobs' | 'notifications';
 
@@ -47,7 +51,22 @@ function ageShort(iso: string | null): string {
 
 const short = (id: string | null | undefined) => id ? id.slice(0, 8) : '—';
 
-function formatTarget(t: any): string {
+/**
+ * A row in whichever queue is on screen, carrying the queue it came from.
+ *
+ * Six endpoints return six unrelated shapes into one table. The tag is what
+ * lets the compiler follow which is which — the pane used to read every field
+ * off `any`, so a renamed field on any of the six would have reached the
+ * operator as a blank cell rather than a build failure.
+ */
+type OperatorRow =
+  | (SettlementReviewItem & { queue: 'settlement' | 'late' })
+  | (FactConflictItem & { queue: 'conflicts' })
+  | (ProviderIssueItem & { queue: 'provider' })
+  | (ExhaustedJobItem & { queue: 'jobs' })
+  | (FailedNotificationItem & { queue: 'notifications' });
+
+function formatTarget(t: ProviderTarget | null | undefined): string {
   if (!t) return '—';
   if (t.kind === 'competition') return `Competition ${short(t.competitionId)}`;
   if (t.kind === 'season') return `Season ${short(t.seasonId)}`;
@@ -97,7 +116,9 @@ export default function OperatorConsolePage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const settlementItems = settlements.data?.items || [];
+  // Memoised because the `|| []` produces a fresh array on every render, which
+  // would re-run both filters below each time regardless of whether data moved.
+  const settlementItems = useMemo(() => settlements.data?.items || [], [settlements.data]);
   const settlementRows = useMemo(() => settlementItems.filter(s => s.state === 'pending_review'), [settlementItems]);
   const lateRows = useMemo(() => settlementItems.filter(s => s.state !== 'pending_review'), [settlementItems]);
 
@@ -110,24 +131,20 @@ export default function OperatorConsolePage() {
     notifications: notifications.isLoading,
   };
 
-  const rawItemsByQueue: Record<QueueId, any[]> = {
-    settlement: settlementRows,
-    late: lateRows,
-    conflicts: conflicts.data?.items || [],
-    provider: providerIssues.data?.items || [],
-    jobs: jobs.data?.items || [],
-    notifications: notifications.data?.items || [],
+  const rawItemsByQueue: Record<QueueId, OperatorRow[]> = {
+    settlement: settlementRows.map(item => ({ ...item, queue: 'settlement' as const })),
+    late: lateRows.map(item => ({ ...item, queue: 'late' as const })),
+    conflicts: (conflicts.data?.items || []).map(item => ({ ...item, queue: 'conflicts' as const })),
+    provider: (providerIssues.data?.items || []).map(item => ({ ...item, queue: 'provider' as const })),
+    jobs: (jobs.data?.items || []).map(item => ({ ...item, queue: 'jobs' as const })),
+    notifications: (notifications.data?.items || []).map(item => ({ ...item, queue: 'notifications' as const })),
   };
 
-  const rowId = (q: QueueId, item: any): string =>
-    q === 'settlement' || q === 'late' ? item.id
-      : q === 'conflicts' ? item.id
-      : q === 'provider' ? item.issueId
-      : q === 'jobs' ? item.id
-      : item.id;
+  const rowId = (item: OperatorRow): string =>
+    item.queue === 'provider' ? item.issueId : item.id;
 
-  const toCols = (q: QueueId, item: any): [string, string, string, string] => {
-    switch (q) {
+  const toCols = (item: OperatorRow): [string, string, string, string] => {
+    switch (item.queue) {
       case 'settlement':
       case 'late':
         return [ageShort(item.updatedAt), `${short(item.leagueFixtureId)} · ${item.marketType}${item.side ? ` (${item.side})` : ''}`, item.reasonCode, `v${item.version}`];
@@ -162,7 +179,7 @@ export default function OperatorConsolePage() {
   const qid = queue;
   const rowsData = tool ? [] : rawItemsByQueue[qid];
   const isReady = !isLoadingByQueue[qid];
-  const row = selected != null ? rowsData.find(r => rowId(qid, r) === selected) : null;
+  const row = selected != null ? rowsData.find(r => rowId(r) === selected) ?? null : null;
   const currentQueue = queues.find(q => q.id === queue);
 
   useEffect(() => {
@@ -186,29 +203,29 @@ export default function OperatorConsolePage() {
 
   const canAct = (): boolean => {
     if (!row) return false;
-    if (queue === 'conflicts') return conflictNote.trim().length > 0;
-    if (queue === 'provider') return !!row.retryable;
+    if (row.queue === 'conflicts') return conflictNote.trim().length > 0;
+    if (row.queue === 'provider') return !!row.retryable;
     return true;
   };
 
   const commit = useCallback(() => {
     if (!row) return;
-    if (queue === 'settlement' || queue === 'late') {
+    if (row.queue === 'settlement' || row.queue === 'late') {
       resolveSettlement.mutate({ settlementId: row.id, expectedVersion: row.version, action: settleAction, reasonCode: settleReason }, {
         onSuccess: () => { setConfirm(false); setSelected(null); flash('Decision recorded'); },
         onError: () => { setConfirm(false); flash('Could not record that decision — it may have changed since you opened it'); }
       });
-    } else if (queue === 'conflicts') {
+    } else if (row.queue === 'conflicts') {
       keepFacts.mutate({ conflictId: row.id, note: conflictNote }, {
         onSuccess: () => { setConfirm(false); setSelected(null); setConflictNote(''); flash('Kept current facts'); },
         onError: () => { setConfirm(false); flash('Could not resolve that conflict'); }
       });
-    } else if (queue === 'provider') {
+    } else if (row.queue === 'provider') {
       retryProvider.mutate({ issueKind: row.issueKind, issueId: row.issueId }, {
         onSuccess: () => { setConfirm(false); setSelected(null); flash('Retry enqueued'); },
         onError: () => { setConfirm(false); flash('Could not retry that issue'); }
       });
-    } else if (queue === 'jobs') {
+    } else if (row.queue === 'jobs') {
       retryJob.mutate(row.id, {
         onSuccess: () => { setConfirm(false); setSelected(null); flash('Job rescheduled'); },
         onError: () => { setConfirm(false); flash('Could not retry that job'); }
@@ -286,13 +303,13 @@ export default function OperatorConsolePage() {
             })}
 
             <div className="p-[18px_16px_8px] text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Tools</div>
-            {[
+            {([
               { id: "consistency", label: "League consistency" },
-              { id: "refresh", label: "Fact refresh" }
-            ].map(t => {
+              { id: "refresh", label: "Fact refresh" },
+            ] as const).map(t => {
               const on = tool === t.id;
               return (
-                <button type="button" key={t.id} onClick={() => { setTool(t.id as any); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
+                <button type="button" key={t.id} onClick={() => { setTool(t.id); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                   <span className={`flex-1 text-[12.5px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>{t.label}</span>
                 </button>
               );
@@ -384,10 +401,10 @@ export default function OperatorConsolePage() {
                         <div className="p-[60px_30px] flex flex-col gap-[6px] items-center text-center">
                           <div className="font-heading font-semibold text-[14px] text-[var(--text-muted)]">Loading…</div>
                         </div>
-                      ) : rowsData.map((r: any) => {
-                        const id = rowId(qid, r);
+                      ) : rowsData.map(r => {
+                        const id = rowId(r);
                         const on = id === selected;
-                        const cols = toCols(qid, r);
+                        const cols = toCols(r);
                         return (
                           <button type="button" key={id} onClick={() => setSelected(id)} className={`flex gap-[12px] items-center p-[12px_20px] cursor-pointer border-b border-[var(--surface-border)] border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                             <span className={`w-[70px] flex-none font-heading font-tabular-nums text-[12px] font-semibold text-[var(--text-primary)]`}>{cols[0]}</span>
@@ -421,7 +438,7 @@ export default function OperatorConsolePage() {
                       </div>
                       <div className="tf-scroll flex-1 overflow-y-auto flex flex-col gap-[14px] p-[14px_18px]">
 
-                        {(queue === 'settlement' || queue === 'late') && (
+                        {(row.queue === 'settlement' || row.queue === 'late') && (
                           <>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
@@ -441,13 +458,13 @@ export default function OperatorConsolePage() {
                             </div>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Action</div>
-                              {[
+                              {([
                                 { id: "settle_current_facts", label: "Settle on current facts" },
-                                { id: "void", label: "Void this market" }
-                              ].map(a => {
+                                { id: "void", label: "Void this market" },
+                              ] as const).map(a => {
                                 const on = settleAction === a.id;
                                 return (
-                                  <button type="button" key={a.id} onClick={() => setSettleAction(a.id as any)} className={`flex items-center gap-[10px] p-[11px_13px] rounded-[10px] cursor-pointer min-h-[44px] box-border ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border border-[var(--surface-border-strong)] bg-[var(--surface-card)]'}`}>
+                                  <button type="button" key={a.id} onClick={() => setSettleAction(a.id)} className={`flex items-center gap-[10px] p-[11px_13px] rounded-[10px] cursor-pointer min-h-[44px] box-border ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border border-[var(--surface-border-strong)] bg-[var(--surface-card)]'}`}>
                                     <span className={`w-[14px] h-[14px] rounded-full flex-none box-border ${on ? 'bg-[var(--color-brand)] border-[3px] border-[var(--surface-card)] shadow-[0_0_0_1px_var(--color-brand)]' : 'border border-[var(--surface-border-strong)]'}`}></span>
                                     <span className={`flex-1 text-[12px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : ''}`}>{a.label}</span>
                                   </button>
@@ -468,7 +485,7 @@ export default function OperatorConsolePage() {
                           </>
                         )}
 
-                        {queue === 'conflicts' && (
+                        {row.queue === 'conflicts' && (
                           <>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
@@ -490,7 +507,7 @@ export default function OperatorConsolePage() {
                           </>
                         )}
 
-                        {queue === 'provider' && (
+                        {row.queue === 'provider' && (
                           <div className="flex flex-col gap-[8px]">
                             <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
                             {[
@@ -511,7 +528,7 @@ export default function OperatorConsolePage() {
                           </div>
                         )}
 
-                        {queue === 'jobs' && (
+                        {row.queue === 'jobs' && (
                           <div className="flex flex-col gap-[8px]">
                             <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
                             {[
@@ -528,7 +545,7 @@ export default function OperatorConsolePage() {
                           </div>
                         )}
 
-                        {queue === 'notifications' && (
+                        {row.queue === 'notifications' && (
                           <div className="flex flex-col gap-[8px]">
                             <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
                             {[

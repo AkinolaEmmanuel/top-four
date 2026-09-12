@@ -18,6 +18,7 @@ import type { Api } from '@/lib/api/types';
 import type { CustomQuestion } from '@/lib/api/custom-questions';
 import type { PredictionTask } from '@/lib/api/predictions';
 import type { FixtureAvailability, FixtureResultsResponse } from '@/lib/api/predictions-fixture';
+import { landedScoreFor } from '@/lib/predict/fixture-predict';
 
 /**
  * The league overview, fetched on the server.
@@ -146,7 +147,7 @@ async function Overview({ params }: { params: { id: string } }) {
     );
     const settled = (results?.data.markets ?? []).filter(m => m.viewerOutcome !== null);
     const exact = results?.data.markets.find(m => m.marketType === 'exact_score');
-    const score = exact?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
+    const score = landedScoreFor(exact?.resolvedAnswer);
 
     lastResult = toLastResult({
       leagueFixtureId: lastFinished.leagueFixtureId,
@@ -156,8 +157,7 @@ async function Overview({ params }: { params: { id: string } }) {
       awayTeamCode: lastFinished.awayTeam.code || 'AWA',
       homeTeamLogoUrl: lastFinished.homeTeam.logoUrl ?? null,
       awayTeamLogoUrl: lastFinished.awayTeam.logoUrl ?? null,
-      score: typeof score?.homeGoals === 'number' && typeof score?.awayGoals === 'number'
-        ? { home: score.homeGoals, away: score.awayGoals } : undefined,
+      score: score ? { home: score[0], away: score[1] } : undefined,
       pointsAwarded: settled.length > 0
         ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta ?? 0), 0) : undefined,
       predictionState: settled.length === 0 ? undefined

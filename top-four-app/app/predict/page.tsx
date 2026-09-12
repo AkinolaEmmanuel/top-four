@@ -4,7 +4,9 @@ import {
   serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
-import { openMarketCount, summaryLine, toPredictEntry, ALL_LEAGUES } from '@/lib/predict/predict-queue';
+import {
+  openMarketCount, summaryLine, toPredictEntry, byDeadline, splitHorizon, ALL_LEAGUES,
+} from '@/lib/predict/predict-queue';
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
 import type { LeaguesPage } from '@/lib/api/leagues';
@@ -16,6 +18,10 @@ import type { LeaguesPage } from '@/lib/api/leagues';
  * everything is measured against — which bucket a deadline falls in, and whether
  * it counts as urgent — so a device with a wrong clock cannot move a fixture
  * between sections.
+ *
+ * The feed is the whole season and arrives in its own order, so it is sorted by
+ * deadline before the row window is taken: forty rows of a five-hundred-row queue
+ * are only useful if they are the forty that close first.
  */
 
 type TaskPage = Api<'PredictionTaskPageDto'>;
@@ -46,7 +52,7 @@ export default async function PredictPage({
   }
 
   const now = Date.parse(tasks.first.serverTime);
-  const entries = tasks.items.map(task => toPredictEntry(task, now));
+  const entries = tasks.items.map(task => toPredictEntry(task, now)).sort(byDeadline);
 
   const leagueOptions = Array.from(
     new Map(entries.map(e => [e.leagueId, e.leagueName])).entries(),
@@ -69,6 +75,13 @@ export default async function PredictPage({
     show: String(shown + ROW_WINDOW),
   });
 
+  /* The headline counts the part of the queue a member can act on — what closes
+     inside a week. A league whose season has not started has nothing in that
+     window, and a zero there would read as "you are done" when the opposite is
+     true, so in that case the headline widens to everything and says so. */
+  const { queue, later } = splitHorizon(filtered);
+  const horizon = queue.length > 0 ? 'week' : 'all';
+
   return (
     <PredictScreen
       entries={filtered.slice(0, shown)}
@@ -76,7 +89,9 @@ export default async function PredictPage({
       league={selected}
       totalEntries={filtered.length}
       showMoreHref={shown < filtered.length ? `/predict?${showMoreQuery}` : null}
-      openMarkets={openMarketCount(filtered)}
+      horizon={horizon}
+      openMarkets={openMarketCount(horizon === 'week' ? queue : filtered)}
+      laterMarkets={horizon === 'week' ? openMarketCount(later) : 0}
       summary={summaryLine(filtered, now)}
       hasLeagues={(leagues?.items.length ?? 0) > 0}
     />

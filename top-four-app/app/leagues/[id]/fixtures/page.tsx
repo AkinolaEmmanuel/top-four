@@ -11,6 +11,7 @@ import { splitFixtures, toFixtureRow, matchesFilter, FIXTURE_FILTERS, type Fixtu
 import type { Api } from '@/lib/api/types';
 import type { LeagueFixture } from '@/lib/api/leagues';
 import type { FixtureAvailability, FixtureResultsResponse } from '@/lib/api/predictions-fixture';
+import { landedScoreFor } from '@/lib/predict/fixture-predict';
 
 /**
  * The league fixtures list, fetched on the server.
@@ -62,12 +63,10 @@ function outcomeOf(result: FixtureResultsResponse | undefined): Pick<LeagueFixtu
   if (!result) return {};
   const settled = result.markets.filter(m => m.viewerOutcome !== null);
   const exact = result.markets.find(m => m.marketType === 'exact_score');
-  const resolved = exact?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
+  const score = landedScoreFor(exact?.resolvedAnswer);
 
   return {
-    score: typeof resolved?.homeGoals === 'number' && typeof resolved?.awayGoals === 'number'
-      ? { home: resolved.homeGoals, away: resolved.awayGoals }
-      : undefined,
+    score: score ? { home: score[0], away: score[1] } : undefined,
     pointsAwarded: settled.length > 0
       ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta ?? 0), 0)
       : undefined,

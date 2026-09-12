@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../../components/auth/auth-shell';
 import { useConfirmPasswordReset } from '@/hooks/api/useAccount';
+import { failureMessage } from '@/lib/api/failure';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -29,7 +30,7 @@ function ResetPasswordForm() {
       { token, password },
       {
         onSuccess: () => setDone(true),
-        onError: (err: any) => setError(err?.message || 'That link is invalid or has expired.'),
+        onError: error => setError(failureMessage(error, 'That link is invalid or has expired.')),
       },
     );
   }

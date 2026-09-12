@@ -85,11 +85,27 @@ test('leagues lists the member’s leagues', async ({ page }) => {
   await expect(page.getByRole('link').filter({ hasText: /./ }).first()).toBeVisible();
 });
 
-test('predict counts open markets across every league', async ({ page }) => {
+test('predict counts the markets a member can act on, and says which', async ({ page }) => {
   await requireSession(page);
   await visit(page, '/predict');
   await expectNoProblemState(page);
-  await expect(page.getByText(/markets still unanswered|Nothing needs you|No predictions to make/)).toBeVisible();
+
+  const empty = page.getByText(/Nothing needs you|No predictions to make/);
+  if (await empty.isVisible().catch(() => false)) return;
+
+  /* The headline used to sum the whole season — thousands of markets, most of
+     them months away. It now counts what closes inside a week, and a league
+     with nothing in that window falls back to the whole queue. Either is fine;
+     what must never happen is the kicker naming one window and the subtitle
+     the other, which is how the number stopped meaning anything the first time. */
+  const thisWeek = page.getByText('OPEN THIS WEEK');
+  const scoped = await thisWeek.isVisible().catch(() => false);
+
+  await expect(page.getByText(scoped ? 'markets to answer' : 'markets still unanswered')).toBeVisible();
+  await expect(page.getByText(scoped ? 'OPEN THIS WEEK' : 'OPEN ACROSS EVERY LEAGUE')).toBeVisible();
+
+  // Whatever the window, the figure beside it is a number.
+  await expect(page.getByText(/^\d+$/).first()).toBeVisible();
 });
 
 test('me renders the account', async ({ page }) => {

@@ -872,7 +872,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List fixture market availability and deadlines. */
+        /**
+         * List fixture market availability and deadlines.
+         * @description Optional date, stage and round filters are combined before pagination. Repeat the same filters on subsequent pages.
+         */
         get: operations["PredictionAvailabilityController_list"];
         put?: never;
         post?: never;
@@ -1990,7 +1993,7 @@ export interface components {
             /** @example true */
             emailChanged: boolean;
         };
-        CompetitionScopeDto: {
+        CatalogueCompetitionScopeDto: {
             /** @enum {string} */
             kind: "domestic" | "continental";
             /** @example GB-ENG */
@@ -2017,7 +2020,7 @@ export interface components {
             shortName: string;
             /** @enum {string} */
             kind: "league" | "cup";
-            scope: components["schemas"]["CompetitionScopeDto"];
+            scope: components["schemas"]["CatalogueCompetitionScopeDto"];
             /** @example https://assets.topfour.app/v1/logos/competition/00000000-0000-4000-8000-000000000001/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png */
             logoUrl: Record<string, never> | null;
             readiness: components["schemas"]["CatalogueReadinessDto"];
@@ -2078,6 +2081,23 @@ export interface components {
             /** @default false */
             joinApprovalRequired: boolean;
         };
+        RoundBoundaryDto: {
+            /** Format: uuid */
+            stageId: string;
+            /** Format: uuid */
+            roundId: string;
+        };
+        CompetitionScopeDto: {
+            /** Format: uuid */
+            supportedCompetitionId: string;
+            /** Format: uuid */
+            seasonId: string;
+            /** @enum {string} */
+            kind: "full_season" | "single_round" | "round_range";
+            round?: components["schemas"]["RoundBoundaryDto"];
+            firstRound?: components["schemas"]["RoundBoundaryDto"];
+            lastRound?: components["schemas"]["RoundBoundaryDto"];
+        };
         MarketConfigurationDto: {
             /** @enum {string} */
             marketType: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card" | "lineup";
@@ -2127,12 +2147,6 @@ export interface components {
             /** @enum {string} */
             kind: "at_kickoff" | "minutes_5" | "minutes_15" | "minutes_30" | "minutes_60" | "minutes_120" | "custom";
             offsetMinutes: number;
-        };
-        RoundBoundaryDto: {
-            /** Format: uuid */
-            stageId: string;
-            /** Format: uuid */
-            roundId: string;
         };
         LeagueScopeResponseDto: {
             /** Format: uuid */
@@ -3039,6 +3053,49 @@ export interface components {
             serverTime: string;
             nextCursor: string | null;
         };
+        CopiedAnswerDto: {
+            /** @enum {string} */
+            answer: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card" | "lineup_home" | "lineup_away";
+            /** @enum {string} */
+            outcome: "copied" | "replaced" | "unchanged" | "locked" | "not_enabled" | "league_closed" | "changed_elsewhere" | "no_longer_member" | "snapshot_unavailable" | "player_unavailable" | "line_differs";
+        };
+        CopyLeagueReportDto: {
+            /** Format: uuid */
+            leagueId: string;
+            leagueName: string;
+            answers: components["schemas"]["CopiedAnswerDto"][];
+        };
+        CopyReportDto: {
+            copied: number;
+            leagues: components["schemas"]["CopyLeagueReportDto"][];
+            truncated: boolean;
+        };
+        PredictionCopyResponseDto: {
+            data: components["schemas"]["CopyReportDto"];
+        };
+        ResolvedMatchResultDto: {
+            /** @enum {string} */
+            outcome: "home" | "draw" | "away";
+        };
+        ResolvedExactScoreDto: {
+            homeGoals: number;
+            awayGoals: number;
+        };
+        ResolvedBothTeamsScoreDto: {
+            bothScore: boolean;
+        };
+        ResolvedTotalGoalsDto: {
+            goals: number;
+            line: number;
+        };
+        ResolvedPlayersDto: {
+            playerIds: string[];
+        };
+        ResolvedLineupDto: {
+            playerIds: string[];
+            /** Format: uuid */
+            teamId: string;
+        };
         MemberResultOutcomeDto: {
             /** @enum {string} */
             outcome: "correct" | "incorrect" | "void";
@@ -3061,9 +3118,8 @@ export interface components {
             decidedAt: string | null;
             /** Format: date-time */
             finalizedAt: string | null;
-            resolvedAnswer: {
-                [key: string]: unknown;
-            } | null;
+            /** @description Shape follows marketType: match_result outcome; exact_score homeGoals/awayGoals; both_teams_to_score bothScore; total_goals goals/line; anytime_goalscorer and player_card playerIds; lineup teamId/playerIds. Null until settled facts are available. */
+            resolvedAnswer: (components["schemas"]["ResolvedMatchResultDto"] | components["schemas"]["ResolvedExactScoreDto"] | components["schemas"]["ResolvedBothTeamsScoreDto"] | components["schemas"]["ResolvedTotalGoalsDto"] | components["schemas"]["ResolvedPlayersDto"] | components["schemas"]["ResolvedLineupDto"]) | null;
             viewerOutcome: components["schemas"]["MemberResultOutcomeDto"] | null;
         };
         MemberFixtureResultsDataDto: {
@@ -5096,7 +5152,7 @@ export interface operations {
                     "application/json": components["schemas"]["OwnPendingJoinRequestPageDto"];
                 };
             };
-            /** @description VALIDATION_FAILED or INVALID_CURSOR. */
+            /** @description VALIDATION_FAILED or PAGINATION_CURSOR_INVALID. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6009,6 +6065,12 @@ export interface operations {
     PredictionAvailabilityController_list: {
         parameters: {
             query?: {
+                /** @description Inclusive kickoff boundary; an explicit timezone is required. Unknown kickoffs are excluded. */
+                from?: string;
+                /** @description Exclusive kickoff boundary, later than from; an explicit timezone is required. */
+                to?: string;
+                stageId?: string;
+                roundId?: string;
                 limit?: number;
                 cursor?: string;
             };
@@ -6028,6 +6090,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AvailabilityPageResponseDto"];
                 };
+            };
+            /** @description VALIDATION_FAILED or FIXTURE_AVAILABILITY_CURSOR_INVALID. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description AUTHENTICATION_REQUIRED. */
             401: {
@@ -6448,7 +6517,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PredictionCopyResponseDto"];
+                };
             };
             /** @description AUTHENTICATION_REQUIRED. */
             401: {

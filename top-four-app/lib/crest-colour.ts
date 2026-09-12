@@ -18,35 +18,78 @@ import { tintFor } from './crest';
  * only the first sighting of a team pays for the decode.
  */
 
-const MEMO = new Map<string, string>();
-const STORAGE_PREFIX = 'tf.crest.';
+/**
+ * What a badge yields: one colour, and a second one when the club really has
+ * two. Crystal Palace is the case that forced this — a red-and-blue badge whose
+ * single dominant hue came back red, so the hero told a blue club it was red.
+ * Picking one of two colours is a coin toss; keeping both is the club.
+ */
+export interface TeamPalette {
+  primary: string;
+  /** Null when the badge has one colour, or when the runner-up was noise. */
+  secondary: string | null;
+}
 
-function read(url: string): string | null {
+const MEMO = new Map<string, string>();
+/**
+ * Bumped when the extraction changes.
+ *
+ * The key is the badge URL, which is content-hashed and so never changes — a
+ * team already in a reader's cache would otherwise keep the colour the old
+ * single-hue pass gave it and never see this one.
+ */
+const STORAGE_PREFIX = 'tf.crest3.';
+
+/** Stored as one field so an older single-colour entry still reads. */
+function parse(stored: string): TeamPalette {
+  const [primary, secondary] = stored.split('|');
+  return { primary, secondary: secondary || null };
+}
+
+function read(url: string): TeamPalette | null {
   const live = MEMO.get(url);
-  if (live) return live;
+  if (live) return parse(live);
   try {
     const stored = localStorage.getItem(STORAGE_PREFIX + url);
-    if (stored) { MEMO.set(url, stored); return stored; }
+    if (stored) { MEMO.set(url, stored); return parse(stored); }
   } catch {
     // Blocked site data: derive it each session instead of remembering it.
   }
   return null;
 }
 
-function write(url: string, colour: string): void {
-  MEMO.set(url, colour);
-  try { localStorage.setItem(STORAGE_PREFIX + url, colour); } catch { /* as above */ }
+function write(url: string, palette: TeamPalette): void {
+  const stored = palette.secondary ? `${palette.primary}|${palette.secondary}` : palette.primary;
+  MEMO.set(url, stored);
+  try { localStorage.setItem(STORAGE_PREFIX + url, stored); } catch { /* as above */ }
 }
 
 /**
- * The most present strongly-coloured hue in the image.
+ * How much of the winner's weight a runner-up needs to count as a real colour.
+ *
+ * Below this it is trim — the gold on a crest, the white of a stripe's edge
+ * catching a neighbouring hue — and promoting it would put a colour in the hero
+ * the club does not wear.
+ */
+const SECOND_COLOUR_SHARE = 0.35;
+
+/**
+ * And how far from the winner it has to sit, in degrees of hue.
+ *
+ * Two adjacent buckets are usually one colour split by shading. A club's second
+ * colour is a different colour, not a darker version of the first.
+ */
+const SECOND_COLOUR_DISTANCE = 45;
+
+/**
+ * The strongly-coloured hues in the image, most present first.
  *
  * Near-white, near-black and unsaturated pixels are skipped — a badge is mostly
  * outline and background, and averaging those returns mud. Remaining pixels are
  * bucketed by hue and weighted by how colourful they are, so a small vivid
  * crest beats a large pale wash.
  */
-function dominantColour(image: HTMLImageElement): string | null {
+function dominantColours(image: HTMLImageElement): TeamPalette | null {
   const size = 48;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -65,6 +108,8 @@ function dominantColour(image: HTMLImageElement): string | null {
     return null;
   }
 
+  const BUCKET_DEGREES = 18;
+  const BUCKET_COUNT = 360 / BUCKET_DEGREES;
   const buckets = new Map<number, { weight: number; r: number; g: number; b: number }>();
 
   for (let i = 0; i < pixels.length; i += 4) {
@@ -73,7 +118,12 @@ function dominantColour(image: HTMLImageElement): string | null {
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const saturation = max === 0 ? 0 : (max - min) / max;
     const value = max / 255;
-    if (saturation < 0.35 || value < 0.18 || value > 0.96) continue;
+    /* No upper bound on value. `value` here is max channel, not lightness, so a
+       pure vivid colour reads 1.0 — the old `> 0.96` clause was meant to drop
+       near-white and instead dropped the brightest pixel of every badge, which
+       is why a red club came back a muddy brown. White cannot reach this line
+       anyway: it has no saturation. */
+    if (saturation < 0.35 || value < 0.18) continue;
 
     let hue = 0;
     if (max !== min) {
@@ -83,7 +133,11 @@ function dominantColour(image: HTMLImageElement): string | null {
       hue = (hue * 60 + 360) % 360;
     }
 
-    const key = Math.round(hue / 18);
+    /* Floor, not round, and wrapped. Rounding produced one bucket more than the
+       circle has: hue 355 landed in key 20 and hue 5 in key 0, so red — the one
+       hue that straddles zero — was split in two and lost to any club whose
+       colour sat in the middle of a bucket. */
+    const key = Math.floor(hue / BUCKET_DEGREES) % BUCKET_COUNT;
     const bucket = buckets.get(key) ?? { weight: 0, r: 0, g: 0, b: 0 };
     const weight = saturation * value;
     bucket.weight += weight;
@@ -93,17 +147,35 @@ function dominantColour(image: HTMLImageElement): string | null {
     buckets.set(key, bucket);
   }
 
-  let best: { weight: number; r: number; g: number; b: number } | null = null;
-  for (const bucket of buckets.values()) if (!best || bucket.weight > best.weight) best = bucket;
+  const ranked = [...buckets.entries()]
+    .map(([key, bucket]) => ({ key, ...bucket }))
+    .sort((a, b) => b.weight - a.weight);
+
+  const best = ranked[0];
   if (!best || best.weight === 0) return null;
 
-  const channel = (total: number) => Math.round(total / best!.weight).toString(16).padStart(2, '0');
-  return `#${channel(best.r)}${channel(best.g)}${channel(best.b)}`;
+  const hex = (bucket: { weight: number; r: number; g: number; b: number }) => {
+    const channel = (total: number) => Math.round(total / bucket.weight).toString(16).padStart(2, '0');
+    return `#${channel(bucket.r)}${channel(bucket.g)}${channel(bucket.b)}`;
+  };
+
+  // Hue is a circle, so the distance between two buckets is the shorter way round.
+  const apart = (a: number, b: number) => {
+    const steps = Math.abs(a - b);
+    return Math.min(steps, BUCKET_COUNT - steps) * BUCKET_DEGREES;
+  };
+
+  const second = ranked.slice(1).find(bucket =>
+    bucket.weight >= best.weight * SECOND_COLOUR_SHARE
+    && apart(bucket.key, best.key) >= SECOND_COLOUR_DISTANCE);
+
+  return { primary: hex(best), secondary: second ? hex(second) : null };
 }
 
-/** Resolves a badge's colour, from cache when possible. */
-export async function teamColour(logoUrl: string | null, code: string): Promise<string> {
-  if (!logoUrl) return tintFor(code);
+/** Resolves a badge's palette, from cache when possible. */
+export async function teamPalette(logoUrl: string | null, code: string): Promise<TeamPalette> {
+  const fallback = (): TeamPalette => ({ primary: tintFor(code), secondary: null });
+  if (!logoUrl) return fallback();
   const cached = read(logoUrl);
   if (cached) return cached;
 
@@ -115,12 +187,12 @@ export async function teamColour(logoUrl: string | null, code: string): Promise<
   try {
     await image.decode();
   } catch {
-    return tintFor(code);
+    return fallback();
   }
 
-  const colour = dominantColour(image) ?? tintFor(code);
-  write(logoUrl, colour);
-  return colour;
+  const palette = dominantColours(image) ?? fallback();
+  write(logoUrl, palette);
+  return palette;
 }
 
 /**
@@ -132,11 +204,20 @@ export async function teamColour(logoUrl: string | null, code: string): Promise<
  * middle of the fixture. And the wash is kept weak because the badges now sit
  * on it without a plate behind them: at 40% a blue club disappeared into its
  * own colour.
+ *
+ * A two-colour club gets both, its second colour handed the middle of its own
+ * half. It is never blended with the first — mixing Palace's red and blue gives
+ * a purple neither half of the club wears.
  */
-export function heroGradient(homeColour: string, awayColour: string): string {
-  return [
-    `linear-gradient(103deg, color-mix(in srgb, ${homeColour} 24%, transparent) 0%, transparent 62%)`,
-    `linear-gradient(257deg, color-mix(in srgb, ${awayColour} 24%, transparent) 0%, transparent 62%)`,
-    'var(--nav-surface)',
-  ].join(', ');
+function side(palette: TeamPalette, angle: number): string {
+  const wash = (colour: string, strength: number) =>
+    `color-mix(in srgb, ${colour} ${strength}%, transparent)`;
+
+  return palette.secondary
+    ? `linear-gradient(${angle}deg, ${wash(palette.primary, 24)} 0%, ${wash(palette.secondary, 19)} 30%, transparent 62%)`
+    : `linear-gradient(${angle}deg, ${wash(palette.primary, 24)} 0%, transparent 62%)`;
+}
+
+export function heroGradient(home: TeamPalette, away: TeamPalette): string {
+  return [side(home, 103), side(away, 257), 'var(--nav-surface)'].join(', ');
 }

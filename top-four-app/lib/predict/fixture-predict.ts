@@ -118,18 +118,24 @@ export function toPlayerOption(player: SelectablePlayer, teamCode: string): Play
  */
 export function landedAnswerFor(
   marketType: string,
-  resolved: Record<string, unknown> | null,
+  resolved: ResolvedAnswer | null,
   ownPick: unknown,
 ): string | null {
   if (!resolved) return null;
 
+  /* Each branch checks for its own field before reading it. The union says which
+     shapes are possible, not which one arrived — that is decided by
+     `marketType`, which is a string the compiler cannot tie to a member. */
   if (marketType === 'match_result') {
-    return typeof resolved.outcome === 'string' ? resolved.outcome : null;
+    return 'outcome' in resolved && typeof resolved.outcome === 'string' ? resolved.outcome : null;
   }
   if (marketType === 'both_teams_to_score') {
-    return typeof resolved.bothScore === 'boolean' ? (resolved.bothScore ? 'yes' : 'no') : null;
+    return 'bothScore' in resolved && typeof resolved.bothScore === 'boolean'
+      ? (resolved.bothScore ? 'yes' : 'no')
+      : null;
   }
   if (marketType === 'total_goals') {
+    if (!('goals' in resolved) || !('line' in resolved)) return null;
     const { goals, line } = resolved;
     if (typeof goals !== 'number' || typeof line !== 'number') return null;
     return goals > line ? 'over' : 'under';
@@ -137,7 +143,7 @@ export function landedAnswerFor(
   if (PLAYER_MARKETS.has(marketType)) {
     // Several players can have scored or been booked, so "landed" is membership
     // of that set rather than one id — only the member's own pick can be marked.
-    const ids = Array.isArray(resolved.playerIds) ? resolved.playerIds : [];
+    const ids = 'playerIds' in resolved && Array.isArray(resolved.playerIds) ? resolved.playerIds : [];
     return typeof ownPick === 'string' && ids.includes(ownPick) ? ownPick : null;
   }
   return null;
@@ -146,20 +152,28 @@ export function landedAnswerFor(
 /**
  * The confirmed starters from a settled lineup market.
  *
- * The resolved answer is an untyped upstream shape, so the ids are read out
- * rather than cast: an unexpected payload yields null — nothing started — which
- * the pitch renders as "waiting on the confirmed XI".
+ * An unexpected payload yields null — nothing started — which the pitch renders
+ * as "waiting on the confirmed XI" rather than as an empty team.
  */
-export function startedFrom(resolved: Record<string, unknown> | null | undefined): string[] | null {
-  if (!resolved) return null;
-  const raw = resolved.playerIds ?? resolved.startingPlayerIds ?? resolved.starters;
-  if (!Array.isArray(raw)) return null;
-  const ids = raw.filter((v): v is string => typeof v === 'string');
+export function startedFrom(resolved: ResolvedAnswer | null | undefined): string[] | null {
+  if (!resolved || !('playerIds' in resolved) || !Array.isArray(resolved.playerIds)) return null;
+  const ids = resolved.playerIds.filter((v): v is string => typeof v === 'string');
   return ids.length > 0 ? ids : null;
 }
 
-export function landedScoreFor(resolved: Record<string, unknown> | null): [number, number] | null {
-  if (!resolved) return null;
+/**
+ * The settled answer, in the union the server now publishes.
+ *
+ * It used to be a bare object, so every reader cast. The union means a field
+ * name that moves upstream is a build failure here instead of an undefined at
+ * runtime — but the narrowing below stays, because which member of the union
+ * arrives depends on the market and the compiler cannot know that from a string.
+ */
+export type ResolvedAnswer = NonNullable<MemberMarketResult['resolvedAnswer']>;
+
+/** The settled score, for the one market that has one. */
+export function landedScoreFor(resolved: ResolvedAnswer | null | undefined): [number, number] | null {
+  if (!resolved || !('homeGoals' in resolved) || !('awayGoals' in resolved)) return null;
   const { homeGoals, awayGoals } = resolved;
   return typeof homeGoals === 'number' && typeof awayGoals === 'number'
     ? [homeGoals, awayGoals]
@@ -245,7 +259,7 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
     .map(marketType => {
       const price = points(marketType) as number;
       const result = bySettledMarket.get(marketType);
-      const resolved = (result?.resolvedAnswer ?? null) as Record<string, unknown> | null;
+      const resolved = result?.resolvedAnswer ?? null;
       const slot = byPredictionSlot.get(marketType);
 
       return {

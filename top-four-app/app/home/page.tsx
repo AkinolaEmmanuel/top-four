@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { HomeScreen } from '../components/home/HomeScreen';
 import {
@@ -5,6 +6,7 @@ import {
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import { toHomeLeague, toQueueEntry } from '@/lib/home/home-data';
+import { HomePayoffSection, HomePayoffSkeleton } from '../components/home/HomePayoff';
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
 import type { LeaguesPage } from '@/lib/api/leagues';
@@ -64,6 +66,11 @@ export default async function HomePage() {
       leagues={leagues.items.map(toHomeLeague)}
       next={queue[0] ?? null}
       serverTime={tasks.first.serverTime}
+      payoff={(
+        <Suspense fallback={<HomePayoffSkeleton />}>
+          <HomePayoffSection leagueIds={leagues.items.map(l => l.id)} />
+        </Suspense>
+      )}
     />
   );
 }

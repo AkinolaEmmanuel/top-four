@@ -32,7 +32,7 @@ export interface MoreSection {
 
 export function toMoreSections({
   leagueId, role, isComplete, memberCount, openQuestions, pendingRequests,
-  questionCount = 0, marketCount = 0,
+  questionCount = 0, marketCount = 0, liveInvitations = 0,
 }: {
   leagueId: string;
   role: LeagueRole;
@@ -44,6 +44,8 @@ export function toMoreSections({
   questionCount?: number;
   /** Enabled markets, which is what the rules screen is mostly about. */
   marketCount?: number;
+  /** Invitations still in `active` state — links that would let someone in. */
+  liveInvitations?: number;
 }): MoreSection[] {
   const owner = role === 'owner';
   const runsIt = owner || role === 'admin';
@@ -79,12 +81,19 @@ export function toMoreSections({
       tone: 'normal',
       entries: [
         {
-          glyph: '↗', title: 'Invitation links',
-          note: 'Share, or revoke a link you have shared',
-          badge: 'LIVE', tone: 'live', href: at('admin'), action: null,
+          // A bare LIVE said a league with no invitation out had one. The badge
+          // is the count or it is nothing, the same rule as Join requests.
+          glyph: liveInvitations > 0 ? String(liveInvitations) : '↗',
+          title: 'Invitation links',
+          note: liveInvitations > 0
+            ? 'Share, or revoke a link you have shared'
+            : 'No link is open. Create one to let someone in.',
+          badge: liveInvitations > 0 ? `${liveInvitations} LIVE` : '',
+          tone: liveInvitations > 0 ? 'live' : 'normal',
+          href: at('admin'), action: null,
         },
         {
-          glyph: '✓', title: 'Join requests',
+          glyph: pendingRequests > 0 ? String(pendingRequests) : '✓', title: 'Join requests',
           note: 'People waiting for you or an admin to approve',
           badge: pendingRequests > 0 ? `${pendingRequests} WAITING` : '',
           tone: pendingRequests > 0 ? 'live' : 'normal',

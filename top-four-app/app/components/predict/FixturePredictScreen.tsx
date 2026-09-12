@@ -11,15 +11,24 @@ import { MARKET_TYPE, type PickerMarket, type PickerSquad } from '@/lib/predict/
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { usePredictionHistory } from '@/hooks/api/usePredictionHistory';
 import { failureMessage } from '@/lib/api/failure';
+import { ApiError } from '@/lib/api/fetcher';
+import { fetchOwnPredictions } from '@/lib/api/predictions-fixture';
 import { lockLabel } from '@/lib/format';
 import { Breadcrumb } from '../Breadcrumb';
 import { TeamCrest } from '../TeamCrest';
 import { heroGradient } from '@/lib/crest-colour';
-import { useTeamColours } from '@/hooks/useTeamColours';
+import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import {
-  carryLabelsFor, progressOf, toAnswerPayload, toCopySummaries,
-  type CopyLeagueSummary, type FixtureAnswers, type FixtureMarket, type FixturePhase,
-  answerLabelFor, readStoredAnswer,
+  carryLabelsFor,
+  progressOf,
+  toAnswerPayload,
+  toCopySummaries,
+  type CopyLeagueSummary,
+  type FixtureAnswers,
+  type FixtureMarket,
+  type FixturePhase,
+  answerLabelFor,
+  readStoredAnswer,
 } from '@/lib/predict/fixture-predict';
 import type { StandardAnswerValue } from '@/lib/api/predictions-fixture';
 import { pluralise } from '@/lib/format';
@@ -74,6 +83,19 @@ const kickoffLabel = (at: string | null, nowMs: number) => {
   return sameDay ? time : `${when.toLocaleDateString([], { weekday: 'short' }).toUpperCase()} ${time}`;
 };
 
+/**
+ * A write the server refused because the stored answer had already moved.
+ *
+ * `stored` is read back from the API after the refusal rather than guessed, and
+ * is `undefined` when the other device cleared the answer instead of changing it.
+ */
+interface MarketConflict {
+  market: FixtureMarket;
+  /** What this device was about to save. */
+  attempted: unknown;
+  stored: unknown;
+}
+
 export function FixturePredictScreen({
   leagueId, fixtureId, leagueName, competition,
   homeName, awayName, homeCode, awayCode, homeLogo, awayLogo,
@@ -118,6 +140,7 @@ export function FixturePredictScreen({
   const [pickingPlayers, setPickingPlayers] = useState<PickerMarket | null>(null);
   const [openTrail, setOpenTrail] = useState<string | null>(null);
   const [copyView, setCopyView] = useState<'closed' | 'confirm' | 'done'>('closed');
+  const [conflict, setConflict] = useState<MarketConflict | null>(null);
   const [copyReport, setCopyReport] = useState<CopyLeagueSummary[] | null>(null);
   const [now, setNow] = useState(() => Date.parse(serverTime));
 
@@ -213,7 +236,10 @@ export function FixturePredictScreen({
           showReceipt(market.key);
           router.refresh();
         },
-        onError: error => recordFailure(market.key, snapshot, error),
+        onError: error => {
+          recordFailure(market.key, snapshot, error);
+          if (error instanceof ApiError && error.status === 409) void openConflict(market, value);
+        },
         onSettled: () => {
           inFlight.current[market.key] = false;
           if (!(market.key in queued.current)) return;
@@ -223,6 +249,63 @@ export function FixturePredictScreen({
         },
       },
     );
+  };
+
+  /*
+   * A refused write, turned into a choice rather than a dead end.
+   *
+   * A 409 means the stored answer moved under this device — the same account on
+   * a phone and a laptop, most often. The row can say so on its own, but saying
+   * so is all it can do: it does not know what the other device stored, so the
+   * member is left to guess whether to try again.
+   *
+   * So the refusal is followed by a read. Once the stored answer is in hand the
+   * panel can name both sides and offer the two real options, which is what the
+   * design asked for and what the old hardcoded version only pretended to do.
+   */
+  const openConflict = async (market: FixtureMarket, attempted: unknown) => {
+    const fresh = await fetchOwnPredictions(leagueId, fixtureId).catch(() => null);
+    // Without the read there is nothing true to put in the panel, so the row's
+    // own message stands as the whole of the report.
+    if (!fresh) return;
+
+    const slot = fresh.markets.find(m => m.marketType === market.marketType);
+    const storedVersion = slot?.version ?? versionRef.current[market.marketType] ?? 0;
+
+    // Adopt the server's version either way: whichever option is taken next,
+    // the next write has to carry the version the store actually holds.
+    versionRef.current[market.marketType] = storedVersion;
+    setMarketVersions(prev => ({ ...prev, [market.marketType]: storedVersion }));
+
+    setConflict({
+      market,
+      attempted,
+      stored: slot?.answer ? readStoredAnswer(slot.answer.value) : undefined,
+    });
+  };
+
+  const applyAnswer = (market: FixtureMarket, value: unknown) => {
+    const next = { ...answersRef.current };
+    if (value === undefined) delete next[market.key];
+    else next[market.key] = value;
+    answersRef.current = next;
+    setAnswers(next);
+    clearFailure(market.key);
+    return next;
+  };
+
+  const keepStored = () => {
+    if (!conflict) return;
+    applyAnswer(conflict.market, conflict.stored);
+    setConflict(null);
+    router.refresh();
+  };
+
+  const replaceStored = () => {
+    if (!conflict) return;
+    const { market, attempted } = conflict;
+    setConflict(null);
+    writeMarket(market, attempted, applyAnswer(market, attempted));
   };
 
   const answerMarket = (market: FixtureMarket, value: unknown) => {
@@ -291,11 +374,11 @@ export function FixturePredictScreen({
     });
   };
 
-  const [homeColour, awayColour] = useTeamColours(
+  const [homePalette, awayPalette] = useTeamPalettes(
     { code: homeCode, logoUrl: homeLogo },
     { code: awayCode, logoUrl: awayLogo },
   );
-  const heroBg = heroGradient(homeColour, awayColour);
+  const heroBg = heroGradient(homePalette, awayPalette);
 
   const standardMarkets = markets.filter(m => m.kind !== 'lineup');
   const lineupMarkets = markets.filter(m => m.kind === 'lineup');
@@ -705,6 +788,61 @@ export function FixturePredictScreen({
           </p>
         </div>
       </main>
+
+      {conflict && (
+        <div className="absolute inset-0 z-50 bg-[var(--scrim)] flex flex-col justify-end md:items-center md:justify-center md:p-[20px]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="This answer changed somewhere else"
+            className="bg-[var(--surface-card)] rounded-[18px_18px_0_0] md:rounded-[18px] md:max-w-[460px] md:w-full animate-[tfsheet_0.18s_ease]"
+          >
+            <div className="p-[12px_var(--gutter)_20px] md:p-[22px]">
+              <div className="w-[34px] h-[4px] rounded-full bg-[var(--surface-border-strong)] mx-auto mb-[16px] md:hidden" />
+
+              <h2 className="font-heading font-bold text-[19px] leading-[1.15] tracking-[-0.5px]">
+                {conflict.market.name} changed somewhere else
+              </h2>
+              <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">
+                Another device saved this market after this page was opened. Both answers are below —
+                pick the one to keep.
+              </p>
+
+              <div className="mt-[18px] rounded-[12px] border border-[var(--surface-border-strong)] overflow-hidden">
+                <div className="p-[12px_14px]">
+                  <div className="tf-kicker text-[var(--text-muted)]">Stored now</div>
+                  <div className="font-heading font-semibold text-[14px] mt-[4px]">
+                    {answerLabelFor(conflict.market, conflict.stored)
+                      ?? <span className="italic text-[var(--text-muted)]">No answer</span>}
+                  </div>
+                </div>
+                <div className="p-[12px_14px] border-t border-[var(--surface-border)] bg-[var(--surface-subtle)]">
+                  <div className="tf-kicker text-[var(--text-muted)]">This device was about to save</div>
+                  <div className="font-heading font-semibold text-[14px] mt-[4px]">
+                    {answerLabelFor(conflict.market, conflict.attempted)
+                      ?? <span className="italic text-[var(--text-muted)]">No answer</span>}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={replaceStored}
+                className="w-full mt-[18px] h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[13.5px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]"
+              >
+                Replace it with mine
+              </button>
+              <button
+                type="button"
+                onClick={keepStored}
+                className="tf-tap w-full mt-[8px] h-[44px] grid place-items-center font-heading font-bold text-[12px] text-[var(--text-secondary)]"
+              >
+                Keep what is stored
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {copyView !== 'closed' && (
         <div className="absolute inset-0 z-50 bg-[var(--scrim)] flex flex-col justify-end md:items-center md:justify-center md:p-[20px]">

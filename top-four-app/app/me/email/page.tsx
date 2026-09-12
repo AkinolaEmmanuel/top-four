@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Breadcrumb } from '../../components/Breadcrumb';
 import { useRequestEmailChange, useResendVerificationEmail } from '@/hooks/api/useAccount';
 import { useAuth } from '@/context/auth-context';
+import { failureMessage } from '@/lib/api/failure';
 
 export default function EmailPage() {
   const { user } = useAuth();
@@ -28,9 +29,7 @@ export default function EmailPage() {
         onSuccess: () => {
           setSuccess(true);
         },
-        onError: (err: any) => {
-          setError(err.message || 'Failed to request email change');
-        }
+        onError: error => setError(failureMessage(error, 'Failed to request the email change.')),
       }
     );
   };

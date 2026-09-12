@@ -12,6 +12,14 @@ import {
   type LeagueDraft, type MarketPreset, type ScopeSelection, type SetupCompetition,
 } from '@/lib/leagues/league-setup';
 
+/** The wizard's five panels plus its confirmation, as the URL-free step state. */
+type Step = '1' | '2' | '3' | '4' | '5' | 'done';
+
+/** Only the field the publish flow reads back off a freshly created invitation. */
+interface InvitationCreated {
+  data?: { joinCode?: string | null } | null;
+}
+
 const BRAND = "var(--color-brand)";
 
 
@@ -41,7 +49,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
   const publishLeague = usePublishLeague();
   const publishingRef = useRef(false); // double-tap guard
 
-  const [step, setStep] = useState('1');
+  const [step, setStep] = useState<Step>('1');
   const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
   const [createdLeagueName, setCreatedLeagueName] = useState<string>('');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -71,9 +79,12 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
 
   const pts = (m: MarketPreset) => points[m.marketType] ?? m.points;
   const on = (m: MarketPreset) => !off[m.marketType];
-  const bump = (m: any, d: number) => {
+  const bump = (m: MarketPreset, d: number) => {
     const v = Math.min(50, Math.max(1, pts(m) + d));
-    setPoints(s => ({ ...s, [m.id]: v }));
+    // Keyed by `marketType`, which is what `pts` reads and what `points` is
+    // typed on. This wrote `m.id` — a field a preset does not have — so every
+    // step landed under the key "undefined" and the stepper did nothing.
+    setPoints(s => ({ ...s, [m.marketType]: v }));
   };
 
   const tapRound = (id: string, scope: string, i: number) => {
@@ -185,8 +196,8 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
       : step === "3" ? maxPoints > 0
         : true;
 
-  const backFor: any = { "2": "1", "3": "2", "4": "3", "5": "4", "done": "1" };
-  const nextFor: any = { "1": "2", "2": "3", "3": "4", "4": "5" };
+  const backFor: Partial<Record<Step, Step>> = { "2": "1", "3": "2", "4": "3", "5": "4", "done": "1" };
+  const nextFor: Partial<Record<Step, Step>> = { "1": "2", "2": "3", "3": "4", "4": "5" };
 
   const weightBar = totals.map(t => ({ style: "flex-grow: " + t.total + "; background: " + t.m.colour + "; min-width: 3px;" }));
   const weightKeys = totals.map(t => ({
@@ -233,7 +244,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
   const currentHero = HERO[step];
 
   /** Each step and what it has decided so far. */
-  const STEP_TRAIL: Array<{ id: string; label: string; value: string }> = [
+  const STEP_TRAIL: Array<{ id: Step; label: string; value: string }> = [
     { id: '1', label: 'Name', value: name || 'Not named yet' },
     { id: '2', label: 'Competitions', value: compSummary || 'None chosen' },
     { id: '3', label: 'Points', value: `${enabled.length} markets · max ${maxPoints}` },
@@ -297,7 +308,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
           )}
 
           <div className="flex gap-[4px] mt-[16px]">
-            {['1', '2', '3', '4', '5'].map((s, i) => {
+            {(['1', '2', '3', '4', '5'] as const).map((s, i) => {
               const num = parseInt(step);
               let w = 'flex-1';
               if (step === 'done') w = 'flex-1';
@@ -308,7 +319,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
               return (
                 <button type="button"
                   key={s}
-                  onClick={() => setStep(s as any)}
+                  onClick={() => setStep(s)}
                   className={`h-[4px] rounded-full cursor-pointer transition-all duration-300 ${w} ${(step === 'done' || parseInt(step) >= i + 1) ? 'bg-[var(--nav-accent)]' : 'bg-white/15'}`}
                 ></button>
               );
@@ -445,13 +456,13 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                               </div>
                               <div className={`tf-num ${c.spanStyle}`}>{c.spanText}</div>
 
-                              {c.groups.map((g: any, k: number) => (
+                              {c.groups.map((g, k) => (
                                 <div key={k} className="mt-[13px]">
                                   {g.named && (
                                     <div className="tf-kicker text-[var(--text-muted)] mb-[8px]">{g.name}</div>
                                   )}
                                   <div className="flex flex-wrap gap-[5px]">
-                                    {g.rounds.map((r: any, l: number) => (
+                                    {g.rounds.map((r, l) => (
                                       <button type="button" key={l} onClick={r.pick} className={`tf-num ${r.style}`}>
                                         {r.label}
                                       </button>
@@ -776,7 +787,8 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
             <button type="button" onClick={() => {
               if (!canNext) return;
               if (step === '5') { setSheet('publish'); return; }
-              setStep(nextFor[step] as any);
+              const next = nextFor[step];
+              if (next) setStep(next);
             }} className={`w-full h-[48px] rounded-[13px] grid place-items-center font-heading font-bold text-[14px] tracking-[-0.1px] ${canNext ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)] cursor-pointer shadow-[var(--elev-glow)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
               {step === '5' ? 'Publish the league' : canNext ? 'Continue' : selectedComps.length === 0 ? 'Choose at least one' : 'Finish the rounds first'}
             </button>
@@ -846,12 +858,12 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                           publishingRef.current = false;
                           // Auto-create a default invitation link
                           try {
-                            const inv = await apiFetch<any>(`/leagues/${data.id}/invitations`, {
+                            const inv = await apiFetch<InvitationCreated>(`/leagues/${data.id}/invitations`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ useLimit: 100 }),
                             });
-                            const code = inv?.data?.joinCode || inv?.joinCode || null;
+                            const code = inv?.data?.joinCode ?? null;
                             if (code) setInviteCode(code);
                           } catch {
                             // invitation creation failed silently; user can still manage from admin

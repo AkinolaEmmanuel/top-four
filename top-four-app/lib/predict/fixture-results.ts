@@ -1,4 +1,4 @@
-import { landedAnswerFor } from './fixture-predict';
+import { landedAnswerFor, landedScoreFor, type ResolvedAnswer } from './fixture-predict';
 import { MARKET_LABELS } from '@/lib/constants/markets';
 import { personInitials } from '@/lib/format';
 import type { Api } from '@/lib/api/types';
@@ -23,8 +23,8 @@ export interface ResultMarket {
   landedLabel: string | null;
   /** Every player who scored or was booked — a player market lands as a set. */
   landedPlayerIds: string[];
-  /** The raw resolved payload, kept for the match-facts panel. */
-  resolved: Record<string, unknown> | null;
+  /** The settled payload, kept for the match-facts panel. */
+  resolved: ResolvedAnswer | null;
   pointsAwarded: number | null;
 }
 
@@ -48,7 +48,7 @@ export function toResultMarkets(
   return results
     .filter(result => result.viewerOutcome !== null || result.resolvedAnswer !== null)
     .map(result => {
-      const resolved = (result.resolvedAnswer ?? null) as Record<string, unknown> | null;
+      const resolved = result.resolvedAnswer ?? null;
       return {
         marketType: result.marketType,
         key: result.side ? `${result.side}_${result.marketType}` : result.marketType,
@@ -58,7 +58,7 @@ export function toResultMarkets(
           ? `${result.side === 'home' ? context.homeName : context.awayName} XI`
           : MARKET_LABELS[result.marketType] ?? result.marketType,
         landedLabel: landedInWords(result.marketType, resolved, context),
-        landedPlayerIds: Array.isArray(resolved?.playerIds)
+        landedPlayerIds: resolved && 'playerIds' in resolved && Array.isArray(resolved.playerIds)
           ? resolved.playerIds.filter((v): v is string => typeof v === 'string')
           : [],
         resolved,
@@ -78,7 +78,7 @@ export function toResultMarkets(
  */
 function landedInWords(
   marketType: string,
-  resolved: Record<string, unknown> | null,
+  resolved: ResolvedAnswer | null,
   context: { homeName: string; awayName: string; totalGoalsLine: number },
 ): string | null {
   if (!resolved) return null;
@@ -91,9 +91,8 @@ function landedInWords(
     return null;
   }
   if (marketType === 'exact_score') {
-    const { homeGoals, awayGoals } = resolved;
-    return typeof homeGoals === 'number' && typeof awayGoals === 'number'
-      ? `${homeGoals}–${awayGoals}` : null;
+    const score = landedScoreFor(resolved);
+    return score ? `${score[0]}–${score[1]}` : null;
   }
   if (marketType === 'both_teams_to_score') {
     const landed = landedAnswerFor(marketType, resolved, undefined);

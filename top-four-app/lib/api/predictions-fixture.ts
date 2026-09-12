@@ -76,39 +76,17 @@ export interface SelectablePlayersResponse {
 }
 
 /**
- * What copying actually reports back.
+ * What copying reports back — the server's own types now.
  *
- * Hand-written because the route documents a description but no response type,
- * so the generated schema carries `content: never` for it. Kept matching the
- * server's own `CopyReport`: the previous shape here invented a `targets` array
- * the server has never sent, which went unnoticed only because the screen threw
- * the response away.
+ * These were hand-written while the copy route published a description and no
+ * response type. It publishes one, so the hand-written shapes are gone and the
+ * enums below are the server's rather than a transcription of them: `answer`
+ * was `string` here and is a closed set upstream.
  */
-export const COPY_OUTCOMES = [
-  'copied', 'replaced', 'unchanged', 'locked', 'not_enabled', 'league_closed',
-  'changed_elsewhere', 'no_longer_member', 'snapshot_unavailable',
-  'player_unavailable', 'line_differs',
-] as const;
-export type CopyOutcome = (typeof COPY_OUTCOMES)[number];
-
-export interface CopiedAnswer {
-  /** The market, or `lineup_home` / `lineup_away`. */
-  answer: string;
-  outcome: CopyOutcome;
-}
-
-export interface CopyLeagueReport {
-  leagueId: string;
-  leagueName: string;
-  answers: CopiedAnswer[];
-}
-
-export interface CopyPredictionsResponse {
-  copied: number;
-  leagues: CopyLeagueReport[];
-  /** True when the member is in more leagues than one request will copy into. */
-  truncated: boolean;
-}
+export type CopiedAnswer = Api<'CopiedAnswerDto'>;
+export type CopyOutcome = CopiedAnswer['outcome'];
+export type CopyLeagueReport = Api<'CopyLeagueReportDto'>;
+export type CopyPredictionsResponse = Api<'CopyReportDto'>;
 
 export type MemberMarketResult = Api<'MemberMarketResultDto'>;
 

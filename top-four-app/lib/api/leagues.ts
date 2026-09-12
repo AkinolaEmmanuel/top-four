@@ -2,6 +2,7 @@ import { apiFetch } from './fetcher';
 import type { Api } from './types';
 import { fetchFixtureResultsBatch, type FixtureAvailability } from './predictions-fixture';
 import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
+import { landedScoreFor } from '@/lib/predict/fixture-predict';
 
 export type LeagueRulesetMarket = Api<'MarketConfigurationDto'>;
 /** Every market a ruleset can price — the six standard ones plus `lineup`. */
@@ -158,7 +159,7 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
     if (!result) return fixture;
 
     const exactScore = result.markets.find(m => m.marketType === 'exact_score');
-    const resolved = exactScore?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
+    const resolved = landedScoreFor(exactScore?.resolvedAnswer);
     const settled = result.markets.filter(m => m.viewerOutcome !== null);
     const allVoid = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'void');
     const allCorrect = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'correct');
@@ -166,9 +167,7 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
 
     return {
       ...fixture,
-      score: typeof resolved?.homeGoals === 'number' && typeof resolved?.awayGoals === 'number'
-        ? { home: resolved.homeGoals, away: resolved.awayGoals }
-        : undefined,
+      score: resolved ? { home: resolved[0], away: resolved[1] } : undefined,
       pointsAwarded: settled.length > 0
         ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0)
         : undefined,
@@ -184,31 +183,23 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
 }
 
 /** A stage and round the server can resolve, for scoping a league to a span. */
-export interface RoundBoundary {
-  stageId: string;
-  roundId: string;
-}
+export type RoundBoundary = Api<'RoundBoundaryDto'>;
 
 /** How much of a competition a league covers. */
-export type CompetitionSpanKind = 'full_season' | 'single_round' | 'round_range';
+export type CompetitionSpanKind = Api<'CompetitionScopeDto'>['kind'];
 
 /**
  * One competition a league covers, optionally narrowed to a round or a span.
  *
- * UNTYPED UPSTREAM: the published schema shows the *catalogue's*
- * `CompetitionScopeDto` here — `{ kind, code, name }` — because two unrelated
- * classes share that name on the server and only one gets registered. The
- * request shape is the one in `league.dto.ts`, mirrored here.
+ * The server's own type. This was mirrored by hand while two unrelated classes
+ * shared the name `CompetitionScopeDto` upstream and only the catalogue's got
+ * registered, so the published schema described a body the server would reject.
+ * The catalogue's is now `CatalogueCompetitionScopeDto` and this is the real one.
+ *
+ * `round` is required by `single_round` and mutually exclusive with the pair
+ * below it — a rule the schema cannot express, so it stays a comment.
  */
-export interface CreateLeagueScope {
-  supportedCompetitionId: string;
-  seasonId: string;
-  kind: CompetitionSpanKind;
-  /** Required by `single_round`; mutually exclusive with the pair below. */
-  round?: RoundBoundary;
-  firstRound?: RoundBoundary;
-  lastRound?: RoundBoundary;
-}
+export type CreateLeagueScope = Api<'CompetitionScopeDto'>;
 
 export interface CreateLeaguePayload {
   name: string;

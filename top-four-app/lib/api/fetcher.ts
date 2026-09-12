@@ -152,7 +152,14 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
 
     // Append field-specific validation errors if present
     if (data?.errors && Array.isArray(data.errors)) {
-      const fieldErrors = data.errors.map((e: any) => e.messages?.join(', ')).filter(Boolean);
+      // The body is whatever the server sent, so each entry is narrowed here
+      // rather than trusted to have the shape the happy path expects.
+      const fieldErrors = (data.errors as unknown[])
+        .map(entry => {
+          const messages = (entry as { messages?: unknown })?.messages;
+          return Array.isArray(messages) ? messages.join(', ') : '';
+        })
+        .filter(Boolean);
       if (fieldErrors.length > 0) {
           errorMessage += ' ' + fieldErrors.join('; ');
       }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Breadcrumb } from '../../components/Breadcrumb';
 import { useUpdateDisplayName } from '@/hooks/api/useAccount';
 import { useAuth } from '@/context/auth-context';
+import { failureMessage } from '@/lib/api/failure';
 
 export default function NamePage() {
   const { user } = useAuth();
@@ -23,9 +24,7 @@ export default function NamePage() {
         setSuccess(true);
         setTimeout(() => router.push('/me'), 1200);
       },
-      onError: (err: any) => {
-        setError(err.message || 'Failed to update name');
-      }
+      onError: error => setError(failureMessage(error, 'Failed to update name.')),
     });
   };
 

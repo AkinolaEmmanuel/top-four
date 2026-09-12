@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../../components/auth/auth-shell';
 import { useRequestPasswordReset } from '@/hooks/api/useAccount';
+import { failureMessage } from '@/lib/api/failure';
 
 export default function ForgotPasswordPage() {
   const requestReset = useRequestPasswordReset();
@@ -21,7 +22,7 @@ export default function ForgotPasswordPage() {
     setError(null);
     requestReset.mutate(email, {
       onSuccess: () => setSubmitted(true),
-      onError: (err: any) => setError(err?.message || 'Something went wrong.'),
+      onError: error => setError(failureMessage(error, 'Something went wrong.')),
     });
   }
 

@@ -11,14 +11,16 @@ import type { Api } from '@/lib/api/types';
 /**
  * The league "More" menu, fetched on the server.
  *
- * Join requests are an admin-only read, so a participant gets a 403 there — the
- * `orNull` form turns that into an absent count rather than an error page.
+ * Join requests and invitations are admin-only reads, so a participant gets a
+ * 403 on both — the `orNull` form turns that into an absent count rather than an
+ * error page, and a participant does not see those rows anyway.
  */
 
 type LeagueRead = Api<'LeagueReadResponseDto'>;
 type Dashboard = Api<'LeagueDashboardResponseDto'>;
 type Questions = Api<'CustomQuestionPageResponseDto'>;
 type JoinRequests = Api<'JoinRequestPageResponseDto'>;
+type Invitations = Api<'InvitationPageResponseDto'>;
 
 export default function LeagueMorePage({ params }: { params: { id: string } }) {
   return (
@@ -35,13 +37,15 @@ async function More({ params }: { params: { id: string } }) {
   let dashboard: Dashboard | null;
   let questions: Questions | null;
   let requests: JoinRequests | null;
+  let invitations: Invitations | null;
 
   try {
-    [league, dashboard, questions, requests] = await Promise.all([
+    [league, dashboard, questions, requests, invitations] = await Promise.all([
       getLeague(id),
       getLeagueDashboard(id),
       serverFetchOrNull<Questions>(`/leagues/${id}/custom-questions`),
       serverFetchOrNull<JoinRequests>(`/leagues/${id}/join-requests`),
+      serverFetchOrNull<Invitations>(`/leagues/${id}/invitations`),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/more`);
@@ -70,6 +74,7 @@ async function More({ params }: { params: { id: string } }) {
         pendingRequests: (requests?.data ?? []).filter(r => r.state === 'pending').length,
         questionCount: questions?.data.length ?? 0,
     marketCount: league.ruleset?.markets.filter(market => market.enabled).length ?? 0,
+        liveInvitations: (invitations?.data ?? []).filter(i => i.state === 'active').length,
   })}
       footNote={isComplete
         ? 'A completed league is read-only. Everything here stays readable, and the table never moves again.'

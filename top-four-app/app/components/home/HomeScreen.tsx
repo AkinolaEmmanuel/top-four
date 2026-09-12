@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { timeUntilLabel, personInitials } from '@/lib/format';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,7 +8,7 @@ import { MobileNav } from '../MobileNav';
 import { TeamCrest } from '../TeamCrest';
 import { tintFor } from '@/lib/crest';
 import { heroGradient } from '@/lib/crest-colour';
-import { useTeamColours } from '@/hooks/useTeamColours';
+import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import type { HomeLeagueEntry, HomeQueueEntry, TeamIdentity } from '@/lib/home/home-data';
 
 /**
@@ -156,7 +156,7 @@ function LeagueRow({ entry }: { entry: HomeLeagueEntry }) {
 }
 
 export function HomeScreen({
-  displayName, unreadCount, todayLabel, queue, queueCount, leagues, next, serverTime,
+  displayName, unreadCount, todayLabel, queue, queueCount, leagues, next, serverTime, payoff,
 }: {
   displayName: string;
   unreadCount: number;
@@ -165,6 +165,9 @@ export function HomeScreen({
   queue: HomeQueueEntry[];
   /** Everything owed across every league, which is what the counts say. */
   queueCount: number;
+  /** The payoff block, streamed in by the server so its reads stay off the
+   *  critical path. Null once nothing has settled in the window. */
+  payoff?: ReactNode;
   leagues: HomeLeagueEntry[];
   /** The soonest task, which the hero is about. Null when nothing is open. */
   next: HomeQueueEntry | null;
@@ -177,12 +180,12 @@ export function HomeScreen({
   const isNewUser = leagues.length === 0;
 
   const tone = urgent ? 'var(--color-danger)' : caught ? 'var(--nav-positive)' : 'var(--nav-accent)';
-  const [homeColour, awayColour] = useTeamColours(
+  const [homePalette, awayPalette] = useTeamPalettes(
     { code: next?.home?.code ?? '', logoUrl: next?.home?.logoUrl ?? null },
     { code: next?.away?.code ?? '', logoUrl: next?.away?.logoUrl ?? null },
   );
   const heroBg = next?.home && next?.away
-    ? heroGradient(homeColour, awayColour)
+    ? heroGradient(homePalette, awayPalette)
     : 'var(--nav-surface)';
 
   if (isNewUser) {
@@ -322,15 +325,23 @@ export function HomeScreen({
             )}
           </section>
 
-          <section className="pt-[24px] md:pt-0 border-t-[6px] md:border-t-0 border-[var(--surface-subtle)]">
-            <div className="flex items-baseline justify-between px-[var(--gutter)] md:px-0 mb-[10px]">
-              <span className="tf-kicker">Where you stand</span>
-              <Link href="/leagues" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {leagues.length} →</Link>
-            </div>
-            <div className="md:px-0">
-              {leagues.map(entry => <LeagueRow key={entry.id} entry={entry} />)}
-            </div>
-          </section>
+          {/* One grid child, two blocks: the payoff sits above the league strip
+              in the rail at width, and between the queue and the strip on a
+              phone. As separate children the grid would wrap the second one
+              back under the queue. */}
+          <div>
+            {payoff}
+
+            <section className="pt-[24px] md:pt-0 border-t-[6px] md:border-t-0 border-[var(--surface-subtle)]">
+              <div className="flex items-baseline justify-between px-[var(--gutter)] md:px-0 mb-[10px]">
+                <span className="tf-kicker">Where you stand</span>
+                <Link href="/leagues" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {leagues.length} →</Link>
+              </div>
+              <div className="md:px-0">
+                {leagues.map(entry => <LeagueRow key={entry.id} entry={entry} />)}
+              </div>
+            </section>
+          </div>
         </div>
 
         <div className="h-[26px]" />

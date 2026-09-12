@@ -515,6 +515,11 @@
   --success-surface: rgb(230,246,241);
   --success-border:  rgb(191,229,217);
 
+  /* The payoff block is a solid dark green with white type on it, so it is its
+     own surface rather than `--success-surface`, which is a tint behind body
+     ink. It stays dark in both themes: the block reads as a ribbon. */
+  --payoff-surface: var(--tf-green-800);
+
   --color-warning: var(--tf-amber-700);
   --warn-text:     var(--tf-amber-800);
   --warn-surface:  var(--tf-amber-100);
@@ -533,6 +538,8 @@
   --success-text:   var(--tf-green-400);
   --success-surface: rgba(15,138,107,0.18);
   --success-border:  rgba(67,203,161,0.32);
+  /* Lifted off the dark canvas so the block still reads as a raised panel. */
+  --payoff-surface: rgb(7,112,86);
 
   --color-warning: rgb(176,92,12);
   --warn-text:     var(--tf-amber-300);

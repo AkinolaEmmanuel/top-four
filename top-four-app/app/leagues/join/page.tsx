@@ -16,10 +16,12 @@ export default function JoinLeaguePage() {
 
   const [outcome, setOutcome] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState('');
-  const [joinedLeague, setJoinedLeague] = useState<any>(null);
+  /* Only ever the two fields the confirmation needs; `id` is absent until the
+     join has actually produced one. */
+  const [joinedLeague, setJoinedLeague] = useState<{ name: string; id?: string } | null>(null);
   const [pendingRequest, setPendingRequest] = useState<{ leagueId: string; requestId: string } | null>(null);
 
-  const joinedLeagueName = joinedLeague?.name || joinedLeague?.league?.name || "Your league";
+  const joinedLeagueName = joinedLeague?.name || "Your league";
 
   /*
    * What to tell a member, and what to leave out.
