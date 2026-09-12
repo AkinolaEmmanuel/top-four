@@ -2,8 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { StandingsPickerMobile } from '../../components/predict/StandingsPickerMobile';
-import { StandingsPickerDesktop } from '../../components/predict/StandingsPickerDesktop';
+import { StandingsPickerScreen } from '../../components/predict/StandingsPickerScreen';
 import { submitCustomAnswer, fetchOwnCustomAnswer } from '@/lib/api/custom-questions';
 import { useCatalogueCompetitions, useCompetitionSeasons, useSeasonTeams } from '@/hooks/api/useCatalogue';
 
@@ -68,30 +67,16 @@ function StandingsPredictionContent() {
           {saveMessage}
         </div>
       )}
-      <div className="md:hidden h-full flex flex-col">
-        <StandingsPickerMobile
-          teams={teams}
-          competitions={competitions}
-          selectedCompId={selectedCompId}
-          onSelectComp={setSelectedCompId}
-          isLoadingTeams={isLoadingComps || isLoadingTeams}
-          onSave={handleSave}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      </div>
-      <div className="hidden md:flex h-full flex-col">
-        <StandingsPickerDesktop
-          teams={teams}
-          competitions={competitions}
-          selectedCompId={selectedCompId}
-          onSelectComp={setSelectedCompId}
-          isLoadingTeams={isLoadingComps || isLoadingTeams}
-          onSave={handleSave}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      </div>
+      <StandingsPickerScreen
+        teams={teams}
+        competitions={competitions}
+        selectedCompId={selectedCompId}
+        onSelectComp={setSelectedCompId}
+        isLoadingTeams={isLoadingComps || isLoadingTeams}
+        onSave={handleSave}
+        onBack={handleBack}
+        isSaving={isSaving}
+      />
     </>
   );
 }
