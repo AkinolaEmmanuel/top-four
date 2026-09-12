@@ -20,7 +20,7 @@ export function Breadcrumb({ trail }: { trail: Crumb[] }) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="hidden md:block flex-none border-b border-[var(--surface-border)] bg-[var(--surface-card)]"
+      className="hidden md:block flex-none bg-[var(--surface-card)]"
     >
       <ol className="max-w-[1080px] mx-auto px-[24px] h-[38px] flex items-center gap-[7px] text-[11.5px] text-[var(--text-muted)]">
         {trail.map((crumb, i) => (

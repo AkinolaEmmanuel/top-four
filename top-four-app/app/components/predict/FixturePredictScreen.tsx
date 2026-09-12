@@ -10,7 +10,8 @@ import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } fr
 import { failureMessage } from '@/lib/api/failure';
 import { Breadcrumb } from '../Breadcrumb';
 import { TeamCrest } from '../TeamCrest';
-import { tintFor } from '@/lib/crest';
+import { heroGradient } from '@/lib/crest-colour';
+import { useTeamColours } from '@/hooks/useTeamColours';
 import {
   carryLabelsFor, progressOf, toAnswerPayload, toCopySummaries,
   type CopyLeagueSummary, type FixtureAnswers, type FixtureMarket, type FixturePhase,
@@ -218,7 +219,11 @@ export function FixturePredictScreen({
     });
   };
 
-  const heroBg = `linear-gradient(103deg, color-mix(in srgb, ${tintFor(homeCode)} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${tintFor(awayCode)} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`;
+  const [homeColour, awayColour] = useTeamColours(
+    { code: homeCode, logoUrl: homeLogo },
+    { code: awayCode, logoUrl: awayLogo },
+  );
+  const heroBg = heroGradient(homeColour, awayColour);
 
   const standardMarkets = markets.filter(m => m.kind !== 'lineup');
   const lineupMarkets = markets.filter(m => m.kind === 'lineup');
@@ -258,7 +263,7 @@ export function FixturePredictScreen({
 
       <main className="tf-scroll flex-1 min-h-0 overflow-auto">
 
-        <section className="relative overflow-hidden text-[var(--nav-text)] px-[var(--gutter)] pt-[8px] md:px-0 md:pt-[22px]" style={{ background: heroBg }}>
+        <section className="relative overflow-hidden text-[var(--nav-text)] px-[var(--gutter)] pt-[8px] md:px-0 md:pt-[22px]" style={{ background: heroBg, transition: 'background 240ms ease' }}>
           <div className="absolute left-0 right-0 top-1/2 h-px bg-[rgba(255,255,255,0.07)]" />
           <div className="relative md:max-w-[1080px] md:mx-auto md:px-[24px]">
             <div className="flex items-center gap-[8px]">

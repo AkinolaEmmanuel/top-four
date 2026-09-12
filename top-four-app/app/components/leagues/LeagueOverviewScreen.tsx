@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { tintFor } from '@/lib/crest';
+import { heroGradient } from '@/lib/crest-colour';
+import { useTeamColours } from '@/hooks/useTeamColours';
 import { TeamCrest } from '../TeamCrest';
 import { pluralise } from '@/lib/format';
 import type { LastResult, LeagueOverviewPhase, RivalGap, StandingRow, NextFixture } from '@/lib/leagues/league-overview';
@@ -54,8 +55,12 @@ export function LeagueOverviewScreen({
   const fixtureName = nextFixture ? `${nextFixture.homeName} v ${nextFixture.awayName}` : competition || 'No fixtures';
   const heroHref = nextFixture ? `/predict/fixture/${nextFixture.leagueFixtureId}?leagueId=${leagueId}` : '/predict';
 
+  const [homeColour, awayColour] = useTeamColours(
+    { code: nextFixture?.homeCode ?? '', logoUrl: nextFixture?.homeLogo ?? null },
+    { code: nextFixture?.awayCode ?? '', logoUrl: nextFixture?.awayLogo ?? null },
+  );
   const heroBg = nextFixture
-    ? `linear-gradient(103deg, color-mix(in srgb, ${tintFor(nextFixture.homeCode)} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${tintFor(nextFixture.awayCode)} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`
+    ? heroGradient(homeColour, awayColour)
     : 'var(--nav-surface)';
 
   return (
@@ -64,7 +69,7 @@ export function LeagueOverviewScreen({
 
 
 
-        <section style={{ background: heroBg }} className="px-[var(--gutter)] py-[20px] md:py-[26px] text-[var(--nav-text)] border-b border-[rgba(255,255,255,0.1)]">
+        <section style={{ background: heroBg, transition: 'background 240ms ease' }} className="px-[var(--gutter)] py-[20px] md:py-[26px] text-[var(--nav-text)] border-b border-[rgba(255,255,255,0.1)]">
           <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:flex md:items-center md:gap-[40px]">
             <div className="md:flex-none">
               <div className="flex items-center gap-[8px]">

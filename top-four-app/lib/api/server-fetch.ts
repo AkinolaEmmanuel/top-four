@@ -52,7 +52,7 @@ export async function serverFetch<T>(
   const cookieHeader = sessionCookieHeader();
   if (!cookieHeader) throw new NotAuthenticatedError();
 
-  const response = await fetch(`${SERVER_API_BASE}${endpoint}`, {
+  const request = () => fetch(`${SERVER_API_BASE}${endpoint}`, {
     headers: {
       Accept: 'application/json',
       Cookie: cookieHeader,
@@ -60,6 +60,24 @@ export async function serverFetch<T>(
     cache: options.revalidate === undefined ? 'no-store' : undefined,
     next: options.revalidate === undefined ? undefined : { revalidate: options.revalidate },
   });
+
+  let response: Response;
+  try {
+    response = await request();
+  } catch {
+    // A dropped socket is an operational failure, not a defect in the call, and
+    // these reads are all GETs — so one retry. The screens that read every page
+    // of a resource issue dozens of these per render and a single drop collapses
+    // the whole route into the unexpected-failure screen.
+    try {
+      response = await request();
+    } catch (error) {
+      // The bare `TypeError: fetch failed` names neither the endpoint nor the
+      // cause, which are the two things you need when a page fails this way.
+      const cause = error instanceof Error && error.cause ? ` (${String(error.cause)})` : '';
+      throw new Error(`Could not reach ${SERVER_API_BASE}${endpoint}${cause}`, { cause: error });
+    }
+  }
 
   if (!response.ok) {
     let body: unknown;

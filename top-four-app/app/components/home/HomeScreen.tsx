@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
 import { TeamCrest } from '../TeamCrest';
 import { tintFor } from '@/lib/crest';
+import { heroGradient } from '@/lib/crest-colour';
+import { useTeamColours } from '@/hooks/useTeamColours';
 import type { HomeLeagueEntry, HomeQueueEntry, TeamIdentity } from '@/lib/home/home-data';
 
 /**
@@ -136,8 +138,12 @@ export function HomeScreen({
   const isNewUser = leagues.length === 0;
 
   const tone = urgent ? 'var(--color-danger)' : caught ? 'var(--nav-positive)' : 'var(--nav-accent)';
+  const [homeColour, awayColour] = useTeamColours(
+    { code: next?.home?.code ?? '', logoUrl: next?.home?.logoUrl ?? null },
+    { code: next?.away?.code ?? '', logoUrl: next?.away?.logoUrl ?? null },
+  );
   const heroBg = next?.home && next?.away
-    ? `linear-gradient(103deg, color-mix(in srgb, ${tintFor(next.home.code)} 42%, transparent) 0%, transparent 52%), linear-gradient(257deg, color-mix(in srgb, ${tintFor(next.away.code)} 42%, transparent) 0%, transparent 52%), var(--nav-surface)`
+    ? heroGradient(homeColour, awayColour)
     : 'var(--nav-surface)';
 
   if (isNewUser) {
@@ -197,7 +203,7 @@ export function HomeScreen({
       </div>
 
       <main className="flex-1 min-h-0 overflow-y-auto tf-scroll">
-        <section style={{ background: heroBg }} className="px-[var(--gutter)] py-[22px] md:py-[30px] text-[var(--nav-text)] border-b border-[rgba(255,255,255,0.1)]">
+        <section style={{ background: heroBg, transition: 'background 240ms ease' }} className="px-[var(--gutter)] py-[22px] md:py-[30px] text-[var(--nav-text)] border-b border-[rgba(255,255,255,0.1)]">
           <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:flex md:items-center md:gap-[44px]">
 
             <div className="md:flex-none">
