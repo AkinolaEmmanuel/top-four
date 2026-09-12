@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEstablishInvitationIntent, useConsumeInvitationIntent, useCancelJoinRequest, useMyLeagues, useLeaveAnyLeague } from '@/hooks/api/useLeagues';
-import { JoinLeagueMobile } from '@/app/components/leagues/JoinLeagueMobile';
-import { JoinLeagueDesktop } from '@/app/components/leagues/JoinLeagueDesktop';
+import { JoinLeagueScreen } from '@/app/components/leagues/JoinLeagueScreen';
 
 const CLUB: Record<string, string> = { PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f", SS: "#1746a2", FC: "#b7152b" };
 
@@ -188,12 +187,7 @@ export default function JoinLeaguePage() {
 
   return (
     <div className={`flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative ${theme === 'dark' ? 'dark' : ''}`}>
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <JoinLeagueMobile {...sharedProps} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <JoinLeagueDesktop {...sharedProps} />
-      </div>
+      <JoinLeagueScreen {...sharedProps} />
     </div>
   );
 }
