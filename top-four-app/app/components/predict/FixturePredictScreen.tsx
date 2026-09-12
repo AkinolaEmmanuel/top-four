@@ -269,7 +269,16 @@ export function FixturePredictScreen({
       <main className="tf-scroll flex-1 min-h-0 overflow-auto">
 
         <section className="relative overflow-hidden text-[var(--nav-text)] px-[var(--gutter)] pt-[8px] md:px-0 md:pt-[22px]" style={{ background: heroBg, transition: 'background 240ms ease' }}>
-          <div className="absolute left-0 right-0 top-1/2 h-px bg-[rgba(255,255,255,0.07)]" />
+          {/* Pitch markings: a halfway line and a centre circle. They only read
+              as markings together — the line alone read as a rule drawn through
+              the fixture. Fainter than the design's own .06, which sits over a
+              flat panel; here they sit over a team-coloured wash that already
+              carries the eye, and at that weight they competed with it. */}
+          <div aria-hidden="true" className="absolute left-0 right-0 top-1/2 h-px bg-[rgba(255,255,255,0.03)]" />
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-1/2 w-[300px] h-[300px] -ml-[150px] -mt-[150px] rounded-full border border-[rgba(255,255,255,0.03)]"
+          />
           <div className="relative md:max-w-[1080px] md:mx-auto md:px-[24px]">
             <div className="flex items-center gap-[8px]">
               <span
