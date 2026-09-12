@@ -6,6 +6,7 @@ import { getLeagueContext } from '@/lib/leagues/league-context';
 import { NotAuthenticatedError } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import { pluralise } from '@/lib/format';
+import { lifecycleBadge } from '@/lib/leagues/lifecycle';
 
 /**
  * The chrome every league screen shares: identity, tabs, and one content column.
@@ -43,6 +44,7 @@ export default async function LeagueLayout({
 
   const { league, competition, unansweredBadge } = context;
   const memberLabel = league.memberCount > 0 ? pluralise(league.memberCount, 'member') : '';
+  const badge = lifecycleBadge(league.lifecycleState);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
@@ -61,8 +63,16 @@ export default async function LeagueLayout({
             <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] truncate">
               {league.name}
             </div>
-            <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px] truncate">
-              {competition}
+            <div className="flex items-center gap-[7px] mt-[5px] min-w-0">
+              <span
+                className="font-heading font-bold text-[8.5px] tracking-[0.07em] px-[6px] py-[2px] rounded-[4px] flex-none uppercase"
+                style={{ background: 'var(--nav-fill)', color: 'var(--nav-text)' }}
+              >
+                {badge.label}
+              </span>
+              <span className="text-[10.5px] text-[var(--nav-text-faint)] truncate">
+                {memberLabel ? `${competition} · ${memberLabel}` : competition}
+              </span>
             </div>
           </div>
         </div>

@@ -108,8 +108,25 @@ export function LeagueAdminScreen({
       : id === 'invites' ? invites.filter(i => i.isActive).length
         : id === 'requests' ? requests.filter(r => r.isPending).length : 0;
 
+  const adminCount = members.filter(m => !m.hasLeft && ['owner', 'admin'].includes(m.roleLabel.toLowerCase())).length;
+
   return (
     <LeagueColumn className="md:pt-[20px]">
+      {/* The design leads with the size of the thing being administered. This
+          went straight to the tabs, so the screen opened without saying how
+          many people it was about. */}
+      <section className="flex items-end gap-[12px] p-[16px_var(--gutter)_18px] md:px-0 md:pt-[4px]">
+        <span className="tf-num font-heading font-bold text-[40px] md:text-[46px] leading-[0.88] tracking-[-1.8px]">
+          {memberCount}
+        </span>
+        <div className="pb-[5px]">
+          <div className="font-heading font-semibold text-[12.5px]">{memberCount === 1 ? 'member' : 'members'}</div>
+          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">
+            {adminCount === 1 ? '1 of them runs it' : `${adminCount} of them run it`}
+            {requests.length > 0 ? ` · ${requests.length} waiting to join` : ''}
+          </div>
+        </div>
+      </section>
 
 
 

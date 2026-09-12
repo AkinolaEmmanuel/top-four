@@ -55,6 +55,25 @@ function formatDuration(seconds: number): string {
 const timeOfDay = (at: string | null) =>
   at ? new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
 
+/**
+ * The kickoff with its day, as the design's hero has it: "Sat 15:00".
+ *
+ * On a screen whose whole subject is a deadline the day is the half that
+ * matters — a fixture three days out and one this afternoon read identically
+ * without it. Today drops the weekday, because there it says nothing.
+ */
+const kickoffLabel = (at: string | null, nowMs: number) => {
+  if (!at) return '—';
+  const when = new Date(at);
+  if (Number.isNaN(when.getTime())) return '—';
+  const today = new Date(nowMs);
+  const sameDay = when.getFullYear() === today.getFullYear()
+    && when.getMonth() === today.getMonth()
+    && when.getDate() === today.getDate();
+  const time = timeOfDay(at);
+  return sameDay ? time : `${when.toLocaleDateString([], { weekday: 'short' }).toUpperCase()} ${time}`;
+};
+
 export function FixturePredictScreen({
   leagueId, fixtureId, leagueName, competition,
   homeName, awayName, homeCode, awayCode, homeLogo, awayLogo,
@@ -349,19 +368,21 @@ export function FixturePredictScreen({
               <div className="text-[11px] leading-[1.4] text-[var(--nav-text-faint)] pb-[6px]">{countdownCaption}</div>
             </div>
 
-            <div className="flex items-center gap-[14px] mt-[20px] md:max-w-[780px] md:mx-auto md:mt-[24px]">
-              <div className="flex-1 flex items-center gap-[9px] min-w-0">
-                <TeamCrest code={homeCode} logoUrl={homeLogo} size={40} />
-                <span className="font-heading font-[650] text-[15px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate">{homeName}</span>
+            <div className="flex items-center gap-[8px] md:gap-[14px] mt-[20px] md:max-w-[780px] md:mx-auto md:mt-[24px]">
+              <div className="flex-1 flex items-center gap-[7px] md:gap-[9px] min-w-0">
+                <span className="md:hidden"><TeamCrest code={homeCode} logoUrl={homeLogo} size={32} /></span>
+                <span className="hidden md:block"><TeamCrest code={homeCode} logoUrl={homeLogo} size={40} /></span>
+                <span className="font-heading font-[650] text-[14px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate">{homeName}</span>
               </div>
               <span className={settledScore
                 ? 'font-heading font-bold text-[19px] md:text-[26px] tracking-[-0.6px] flex-none tf-num'
                 : 'font-heading font-semibold text-[10px] md:text-[12px] text-[var(--nav-text-faint)] flex-none'}>
-                {settledScore ? `${settledScore[0]} — ${settledScore[1]}` : timeOfDay(kickoffAt)}
+                {settledScore ? `${settledScore[0]} — ${settledScore[1]}` : kickoffLabel(kickoffAt, now)}
               </span>
-              <div className="flex-1 flex items-center gap-[9px] justify-end min-w-0">
-                <span className="font-heading font-[650] text-[15px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate text-right">{awayName}</span>
-                <TeamCrest code={awayCode} logoUrl={awayLogo} size={40} />
+              <div className="flex-1 flex items-center gap-[7px] md:gap-[9px] justify-end min-w-0">
+                <span className="font-heading font-[650] text-[14px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate text-right">{awayName}</span>
+                <span className="md:hidden"><TeamCrest code={awayCode} logoUrl={awayLogo} size={32} /></span>
+                <span className="hidden md:block"><TeamCrest code={awayCode} logoUrl={awayLogo} size={40} /></span>
               </div>
             </div>
 
@@ -792,6 +813,7 @@ export function FixturePredictScreen({
               expectedVersion={marketVersions[MARKET_TYPE[pickingPlayers]] ?? 0}
               snapshotId={snapshotId}
               price={markets.find(m => m.marketType === MARKET_TYPE[pickingPlayers])?.pointsLabel ?? ''}
+              deadlineAt={markets.find(m => m.marketType === MARKET_TYPE[pickingPlayers])?.deadlineAt ?? null}
               onClose={() => setPickingPlayers(null)}
               onSaved={(playerId, version) => {
                 const key = MARKET_TYPE[pickingPlayers];

@@ -68,7 +68,9 @@ async function More({ params }: { params: { id: string } }) {
         memberCount,
         openQuestions: (questions?.data ?? []).filter(q => q.phase === 'open').length,
         pendingRequests: (requests?.data ?? []).filter(r => r.state === 'pending').length,
-      })}
+        questionCount: questions?.data.length ?? 0,
+    marketCount: league.ruleset?.markets.filter(market => market.enabled).length ?? 0,
+  })}
       footNote={isComplete
         ? 'A completed league is read-only. Everything here stays readable, and the table never moves again.'
         : 'Rules froze when the league was published, because members answered under them. Only the name, invitations and the approval setting can still change.'}

@@ -149,6 +149,7 @@ async function Overview({ params }: { params: { id: string } }) {
     const score = exact?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
 
     lastResult = toLastResult({
+      leagueFixtureId: lastFinished.leagueFixtureId,
       homeTeam: lastFinished.homeTeam.displayName,
       awayTeam: lastFinished.awayTeam.displayName,
       homeTeamCode: lastFinished.homeTeam.code || 'HOM',

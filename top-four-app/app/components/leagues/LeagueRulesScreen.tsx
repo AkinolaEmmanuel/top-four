@@ -142,9 +142,26 @@ export function LeagueRulesScreen({
 
 
 
-          <p className="p-[16px_var(--gutter)] md:px-[6px] text-[11.5px] leading-[1.6] text-[var(--text-muted)]">
-            These froze when the league was published. Members answered under them, so they cannot change while it runs. {maxNote}
-          </p>
+          {/* The number the screen exists to justify, before the prose that
+              explains it. This opened on the paragraph, with the figure buried
+              in a table further down. */}
+          <section className="flex items-end gap-[12px] p-[16px_var(--gutter)_0] md:px-[6px]">
+            <span className="tf-num font-heading font-bold text-[40px] md:text-[46px] leading-[0.88] tracking-[-1.8px]">
+              {maxPoints}
+            </span>
+            <div className="pb-[5px]">
+              <div className="font-heading font-semibold text-[12.5px]">points from one match, at most</div>
+              <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{maxNote}</div>
+            </div>
+          </section>
+
+          {/* The frozen warning is the screen's one rule, not a footnote. */}
+          <div className="m-[16px_var(--gutter)] md:mx-[6px] p-[13px_15px] rounded-[12px] bg-[var(--nav-surface)] text-[var(--nav-text)]">
+            <p className="text-[11.5px] leading-[1.6]">
+              These froze when the league was published. Members answered under them, so they cannot
+              change while it runs.
+            </p>
+          </div>
 
           <section className="mt-[8px]">
             <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Competitions</div>

@@ -45,7 +45,7 @@ export function PlayerPickerScreen({
           <div className="min-w-0 flex-1">
             <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] truncate">{MARKET_COPY[market].title}</div>
             <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px] truncate">
-              {squads[0]?.name} v {squads[1]?.name}{leagueName ? ` · ${leagueName}` : ''}
+              {squads[0]?.name} v {squads[1]?.name}
             </div>
           </div>
           {price && <span className="font-heading font-bold text-[11px] text-[var(--nav-accent)] flex-none">{price}</span>}

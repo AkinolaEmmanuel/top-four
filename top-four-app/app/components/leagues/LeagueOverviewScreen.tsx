@@ -162,9 +162,20 @@ export function LeagueOverviewScreen({
           <div className="md:contents">
             <section className="p-[22px_var(--gutter)_0] md:p-0">
               {lastResult ? (
-                <div className="rounded-[12px] p-[18px] text-[var(--tf-white)]" style={{ background: lastResult.outcome === 'won' ? 'var(--tf-green-800)' : 'var(--tf-navy-800)' }}>
+                <Link
+                  href={`/predict/fixture/${lastResult.leagueFixtureId}/results?leagueId=${leagueId}`}
+                  className="block rounded-[12px] p-[18px] text-[var(--tf-white)]"
+                  style={{ background: lastResult.outcome === 'won' ? 'var(--tf-green-800)' : 'var(--tf-navy-800)' }}
+                >
                   <div className="flex items-center justify-between gap-[10px]">
-                    <span className="tf-kicker text-[rgba(255,255,255,0.62)]">LAST RESULT</span>
+                    {/* The design celebrates when there is something to
+                        celebrate. A neutral "LAST RESULT" over a win reads as a
+                        report of something that happened to somebody else. */}
+                    <span className="tf-kicker text-[rgba(255,255,255,0.62)]">
+                      {lastResult.outcome === 'won' ? 'YOU CALLED IT'
+                        : lastResult.outcome === 'part' ? 'YOU GOT SOME OF IT'
+                          : 'LAST RESULT'}
+                    </span>
                     <span className="tf-chip bg-[var(--tf-white)] text-[var(--tf-navy-800)]">
                       {lastResult.outcome === 'won' ? 'EXACT SCORE' : lastResult.outcome === 'part' ? 'PARTIAL' : lastResult.outcome === 'void' ? 'VOID' : 'NO POINTS'}
                     </span>
@@ -191,7 +202,7 @@ export function LeagueOverviewScreen({
                       </span>
                     ))}
                   </div>
-                </div>
+                </Link>
               ) : (
                 <div className="p-[16px_0] border-y border-[var(--surface-border)] md:border-t-0">
                   <div className="tf-kicker text-[var(--text-muted)]">NO RESULTS YET</div>

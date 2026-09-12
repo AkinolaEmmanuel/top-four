@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { LeagueSetupScreen } from '../../components/leagues/LeagueSetupScreen';
 import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import type { Api } from '@/lib/api/types';
 import { roundLabel, type SetupCompetition, type SetupRound, type SetupStage } from '@/lib/leagues/league-setup';
 import type { CatalogueCompetition, CatalogueSeason } from '@/lib/api/catalogue';
 
@@ -101,5 +102,14 @@ export default async function LeagueSetupPage() {
     // A competition with no rounds cannot be scoped, so it is not offered.
     .filter(c => c.rounds.length > 0);
 
-  return <LeagueSetupScreen competitions={setupCompetitions} />;
+  // The cap, stated before any effort is spent on a league that cannot be made.
+  const leagues = await serverFetchOrNull<Api<'LeagueListResponseDto'>>('/leagues');
+
+  return (
+    <LeagueSetupScreen
+      competitions={setupCompetitions}
+      placesUsed={leagues?.unfinishedLeagueCount ?? 0}
+      placesLimit={leagues?.unfinishedLeagueLimit ?? 20}
+    />
+  );
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSubmitPrediction } from '@/hooks/api/useFixturePrediction';
 import { failureMessage } from '@/lib/api/failure';
+import { timeUntilLabel } from '@/lib/format';
 import {
   MARKET_COPY, MARKET_TYPE, matches, playerMeta, positionsIn,
   type PickerMarket, type PickerSquad,
@@ -16,13 +17,18 @@ import {
  * around it and what happens after a save; the choosing is the same either way.
  */
 
+/** The catalogue spells them out; a row of chips has no room for that. */
+const SHORT_POSITION: Record<string, string> = {
+  goalkeeper: 'GK', defender: 'DEF', midfielder: 'MID', forward: 'FWD', attacker: 'FWD',
+};
+
 const TINTS = [
   'var(--ident-0)', 'var(--ident-1)', 'var(--ident-2)', 'var(--ident-3)',
   'var(--ident-4)', 'var(--ident-5)', 'var(--ident-6)', 'var(--ident-7)',
 ];
 
 export function PlayerPickerPanel({
-  leagueId, fixtureId, market, squads, savedPlayerId, expectedVersion, snapshotId, price,
+  leagueId, fixtureId, market, squads, savedPlayerId, expectedVersion, snapshotId, price, deadlineAt,
   onSaved, onClose,
 }: {
   leagueId: string;
@@ -34,6 +40,8 @@ export function PlayerPickerPanel({
   /** Null while the squad list is still being built, which blocks saving. */
   snapshotId: string | null;
   price: string;
+  /** The market's own deadline. The one fact that decides whether to hurry. */
+  deadlineAt?: string | null;
   /** Given the stored id and the version it now carries. */
   onSaved: (playerId: string, version: number) => void;
   /** Present in a dialog, absent on the route, which has a breadcrumb instead. */
@@ -79,7 +87,10 @@ export function PlayerPickerPanel({
         <div className="flex-none flex items-center gap-[10px] p-[14px_16px] border-b border-[var(--surface-border)]">
           <div className="min-w-0 flex-1">
             <h2 className="font-heading font-bold text-[15px] truncate">{copy.title}</h2>
-            <p className="text-[10.5px] text-[var(--text-muted)] mt-[2px] truncate">{squads[0]?.name} v {squads[1]?.name}</p>
+            <p className="text-[10.5px] text-[var(--text-muted)] mt-[2px] truncate">
+              {squads[0]?.name} v {squads[1]?.name}
+              {deadlineAt ? ` · Locks in ${timeUntilLabel(deadlineAt, Date.now())}` : ''}
+            </p>
           </div>
           <span className="font-heading font-bold text-[11px] text-[var(--text-link)] flex-none">{price}</span>
           <button type="button" aria-label="Close" onClick={onClose} className="text-[22px] leading-none text-[var(--text-muted)] flex-none">×</button>
@@ -106,7 +117,9 @@ export function PlayerPickerPanel({
 
         <div className="tf-scroll flex gap-[6px] mt-[8px] pb-[12px] overflow-x-auto border-b border-[var(--surface-border)]">
           {positions.map(p => (
-            <button key={p} type="button" aria-pressed={position === p} onClick={() => setPosition(p)} className={chip(position === p)}>{p}</button>
+            <button key={p} type="button" aria-pressed={position === p} onClick={() => setPosition(p)} className={chip(position === p)}>
+              {SHORT_POSITION[p.toLowerCase()] ?? p}
+            </button>
           ))}
         </div>
       </div>

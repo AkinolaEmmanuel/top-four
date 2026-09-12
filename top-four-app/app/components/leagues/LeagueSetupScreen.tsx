@@ -30,7 +30,12 @@ const LINES = ["0.5", "1.5", "2.5", "3.5", "4.5", "5.5", "6.5", "7.5", "8.5", "9
  * in the browser and kept only a round count, so a league could never actually
  * be scoped to the rounds its creator picked.
  */
-export function LeagueSetupScreen({ competitions }: { competitions: SetupCompetition[] }) {
+export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
+  competitions: SetupCompetition[];
+  /** Unfinished leagues against the cap, for the step-one hero. */
+  placesUsed: number;
+  placesLimit: number;
+}) {
   const router = useRouter();
   const createLeague = useCreateLeague();
   const publishLeague = usePublishLeague();
@@ -208,7 +213,17 @@ export function LeagueSetupScreen({ competitions }: { competitions: SetupCompeti
   ];
 
   const HERO: Record<string, string[]> = {
-    // "1": ["20", "places used", "0 available", "var(--color-brand)"],
+    // The design states the cap on step one, before any effort is spent: a
+    // member already at twenty cannot make this league, and finding that out
+    // after five steps is the worst place to find it out.
+    "1": [
+      String(placesUsed),
+      `of ${placesLimit} unfinished leagues`,
+      placesUsed >= placesLimit
+        ? 'No places left. Finish or leave one to make room.'
+        : 'A draft counts. Finished ones give the place back.',
+      placesUsed >= placesLimit ? 'var(--danger-text)' : 'var(--nav-text)',
+    ],
     "2": [String(totalRounds), "rounds included", "across " + selectedComps.length + " comps", "var(--nav-text)"],
     "3": [String(maxPoints), "pts per match", enabled.length + " markets", "var(--nav-text)"],
     "4": [String(tieOrder.length), "tiebreakers", "lineups always 2h", "var(--nav-text)"],

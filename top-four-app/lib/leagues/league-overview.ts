@@ -54,6 +54,8 @@ export interface NextFixture {
 }
 
 export interface LastResult {
+  /** So the block can open the results screen rather than being a dead panel. */
+  leagueFixtureId: string;
   homeName: string;
   awayName: string;
   homeCode: string;
@@ -143,6 +145,7 @@ export function toRivalGap(rows: StandingRow[], totalMembers: number): RivalGap 
 
 export function toLastResult(
   fixture: {
+    leagueFixtureId: string;
     homeTeam: string; awayTeam: string; homeTeamCode: string; awayTeamCode: string;
     homeTeamLogoUrl?: string | null; awayTeamLogoUrl?: string | null;
     score?: { home: number; away: number }; pointsAwarded?: number;
@@ -155,6 +158,7 @@ export function toLastResult(
     ? fixture.predictionState : null;
 
   return {
+    leagueFixtureId: fixture.leagueFixtureId,
     homeName: fixture.homeTeam,
     awayName: fixture.awayTeam,
     homeCode: fixture.homeTeamCode,

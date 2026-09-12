@@ -12,6 +12,7 @@ import { pluralise } from '@/lib/format';
 export type LeagueRole = 'owner' | 'admin' | 'participant';
 
 export interface MoreEntry {
+  /** A figure where there is one to give; the glyph is the fallback. */
   glyph: string;
   title: string;
   note: string;
@@ -31,6 +32,7 @@ export interface MoreSection {
 
 export function toMoreSections({
   leagueId, role, isComplete, memberCount, openQuestions, pendingRequests,
+  questionCount = 0, marketCount = 0,
 }: {
   leagueId: string;
   role: LeagueRole;
@@ -38,6 +40,10 @@ export function toMoreSections({
   memberCount: number;
   openQuestions: number;
   pendingRequests: number;
+  /** Every question written, not only the open ones. */
+  questionCount?: number;
+  /** Enabled markets, which is what the rules screen is mostly about. */
+  marketCount?: number;
 }): MoreSection[] {
   const owner = role === 'owner';
   const runsIt = owner || role === 'admin';
@@ -48,19 +54,19 @@ export function toMoreSections({
     tone: 'normal',
     entries: [
       {
-        glyph: '?', title: 'Questions',
+        glyph: questionCount > 0 ? String(questionCount) : '?', title: 'Questions',
         note: isComplete ? 'Season questions, all resolved' : 'Season-long questions, scored separately from fixtures',
         badge: isComplete || openQuestions === 0 ? '' : `${openQuestions} OPEN`,
         tone: isComplete || openQuestions === 0 ? 'normal' : 'live',
         href: at('questions'), action: null,
       },
       {
-        glyph: '§', title: 'Rules',
+        glyph: marketCount > 0 ? String(marketCount) : '§', title: 'Rules',
         note: 'Markets, points, tiebreakers and deadlines — frozen at publication',
         badge: '', tone: 'normal', href: at('rules'), action: null,
       },
       {
-        glyph: '◍', title: 'Members',
+        glyph: memberCount > 0 ? String(memberCount) : '◍', title: 'Members',
         note: `${pluralise(memberCount, 'member')} · ${isComplete ? 'final roster' : 'admin settings'}`,
         badge: '', tone: 'normal', href: at('admin'), action: null,
       },
