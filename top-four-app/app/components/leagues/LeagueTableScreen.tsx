@@ -63,6 +63,30 @@ export function LeagueTableScreen({
 }) {
   const [openRow, setOpenRow] = useState<string | null>(null);
 
+  /* Wide screens spend the width on where the points came from, which is the
+     whole question a multi-competition league asks. The phone keeps it in the
+     accordion. Taken from the rows rather than the league's own competition
+     list so a column cannot appear with nothing under it. */
+  const splitColumns: Array<{ id: string; label: string }> = [];
+  for (const row of table.rows) {
+    for (const cp of row.competitionPoints) {
+      if (!splitColumns.some(c => c.id === cp.supportedCompetitionId)) {
+        splitColumns.push({
+          id: cp.supportedCompetitionId,
+          label: competitionNames.get(cp.supportedCompetitionId) ?? 'Competition',
+        });
+      }
+    }
+  }
+  const anyCustom = table.rows.some(row => row.customQuestionPoints !== 0);
+  /* Injected as a custom property, not as a class name: the column count is
+     only known at runtime, and Tailwind generates classes by scanning source
+     text — a `grid-cols-[...]` built from a template literal is a class that
+     never exists. The static class below reads this variable instead. */
+  const wideGrid = {
+    '--tf-table-grid': `46px minmax(0,1fr) repeat(${splitColumns.length + (anyCustom ? 1 : 0)}, 92px) 110px 24px`,
+  } as React.CSSProperties;
+
   const pageHref = (page: number) =>
     page <= 1 ? `/leagues/${leagueId}/table` : `/leagues/${leagueId}/table?page=${page}`;
 
@@ -86,9 +110,16 @@ export function LeagueTableScreen({
 
           {/* Column headings, wide screens only — and only over actual rows;
               a heading strip above an empty table reads as a failed load. */}
-          <div className={`${table.rows.length === 0 ? 'hidden' : 'hidden md:grid'} grid-cols-[46px_minmax(0,1fr)_110px_24px] gap-[14px] items-center p-[10px_8px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)]`}>
+          <div
+            style={wideGrid}
+            className={`${table.rows.length === 0 ? 'hidden' : 'hidden md:grid'} md:grid-cols-[var(--tf-table-grid)] gap-[14px] items-center p-[10px_8px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)]`}
+          >
             <span className="tf-kicker">Pos</span>
             <span className="tf-kicker">Member</span>
+            {splitColumns.map(col => (
+              <span key={col.id} className="tf-kicker text-right truncate" title={col.label}>{col.label}</span>
+            ))}
+            {anyCustom && <span className="tf-kicker text-right">Questions</span>}
             <span className="tf-kicker text-right">Points</span>
             <span />
           </div>
@@ -108,7 +139,8 @@ export function LeagueTableScreen({
                   type="button"
                   aria-expanded={open}
                   onClick={() => setOpenRow(open ? null : row.membershipId)}
-                  className="w-full text-left grid grid-cols-[34px_minmax(0,1fr)_auto_20px] md:grid-cols-[46px_minmax(0,1fr)_110px_24px] gap-[10px] md:gap-[14px] items-center p-[12px_var(--gutter)] md:p-[13px_8px]"
+                  style={wideGrid}
+                  className="w-full text-left grid grid-cols-[34px_minmax(0,1fr)_auto_20px] md:grid-cols-[var(--tf-table-grid)] gap-[10px] md:gap-[14px] items-center p-[12px_var(--gutter)] md:p-[13px_8px]"
                 >
                   <span className="font-heading font-bold text-[13px] tf-num text-[var(--text-primary)]">
                     {row.position}
@@ -124,6 +156,20 @@ export function LeagueTableScreen({
                     </span>
                     <span className={`truncate font-heading text-[13.5px] ${row.isYou ? 'font-bold text-[var(--accent-text-strong)]' : 'font-semibold'}`}>{row.name}</span>
                   </span>
+
+                  {splitColumns.map(col => {
+                    const points = row.competitionPoints.find(cp => cp.supportedCompetitionId === col.id)?.points ?? 0;
+                    return (
+                      <span key={col.id} className="hidden md:block tf-num font-heading font-semibold text-[12.5px] text-right text-[var(--text-secondary)]">
+                        {points.toLocaleString('en-GB')}
+                      </span>
+                    );
+                  })}
+                  {anyCustom && (
+                    <span className="hidden md:block tf-num font-heading font-semibold text-[12.5px] text-right text-[var(--text-secondary)]">
+                      {row.customQuestionPoints.toLocaleString('en-GB')}
+                    </span>
+                  )}
 
                   <span className={`tf-num font-heading font-bold text-[14px] text-right ${row.isYou ? 'text-[var(--accent-text-strong)]' : ''}`}>{row.pointsLabel}</span>
 

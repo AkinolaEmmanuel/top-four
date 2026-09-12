@@ -47,3 +47,20 @@ export function timeUntilLabel(deadlineAt: string | null, nowMs: number): string
   const minutes = Math.floor((diffMs % 3600000) / 60000);
   return hours > 0 ? `${hours}h ${String(minutes).padStart(2, '0')}m` : `${minutes}m`;
 }
+
+/**
+ * A deadline as a clock time a member can check against their own day.
+ *
+ * The countdown beside it says how long is left; this says when. Same day drops
+ * the weekday, because "Locks 14:55" is unambiguous on the day it happens.
+ */
+export function lockLabel(deadlineAt: string, nowMs: number = Date.now()): string {
+  const at = new Date(deadlineAt);
+  if (Number.isNaN(at.getTime())) return '';
+  const today = new Date(nowMs);
+  const sameDay = at.getFullYear() === today.getFullYear()
+    && at.getMonth() === today.getMonth()
+    && at.getDate() === today.getDate();
+  const time = at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  return sameDay ? time : `${at.toLocaleDateString([], { weekday: 'short' })} ${time}`;
+}

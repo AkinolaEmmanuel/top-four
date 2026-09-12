@@ -59,35 +59,77 @@ function secondsUntil(deadlineAt: string | null, nowMs: number) {
   return Math.max(0, Math.round((Date.parse(deadlineAt) - nowMs) / 1000));
 }
 
+/**
+ * The queue, as a table at width.
+ *
+ * The phone folds the league, what is still open and when it locks into one
+ * stacked line because it has nowhere else to put them. Given the width the
+ * design gives each its own column, so a round can be scanned for what is owed
+ * rather than read row by row.
+ */
+/* Written out in full at each site rather than composed: Tailwind generates
+   classes by scanning source text, so a `md:` variant assembled at runtime is a
+   class that never exists. This is finding 04's failure mode. */
+const QUEUE_GRID = 'md:grid md:grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] md:gap-[14px] md:items-center';
+
+function QueueHead() {
+  return (
+    <div className={`hidden ${QUEUE_GRID} px-[4px] py-[10px] border-b border-[var(--surface-border-strong)]`}>
+      <span />
+      <span className="tf-kicker">Match</span>
+      <span className="tf-kicker">League</span>
+      <span className="tf-kicker text-right">Still open</span>
+      <span className="tf-kicker text-right">Locks</span>
+    </div>
+  );
+}
+
+function QueueMark({ entry }: { entry: HomeQueueEntry }) {
+  if (entry.home && entry.away) {
+    return (
+      <div className="flex flex-col gap-[2px] flex-none">
+        <TeamCrest code={entry.home.code} logoUrl={entry.home.logoUrl} size={22} />
+        <TeamCrest code={entry.away.code} logoUrl={entry.away.logoUrl} size={22} />
+      </div>
+    );
+  }
+  return <span className="tf-crest flex-none w-[22px] h-[24px] text-[8px]" style={{ background: 'var(--surface-border-strong)' }}>Q</span>;
+}
+
 function QueueRow({ entry, nowMs }: { entry: HomeQueueEntry; nowMs: number }) {
   return (
-    <Link
-      href={entry.href}
-      className="flex items-center gap-[11px] py-[11px] border-b border-[var(--surface-border)] last:border-b-0 md:gap-[13px] md:py-[13px] md:hover:bg-[var(--surface-subtle)] md:transition-colors md:px-[10px] md:-mx-[10px] md:rounded-[10px]"
-    >
-      {entry.home && entry.away ? (
-        <div className="flex flex-col gap-[2px] flex-none">
-          <TeamCrest code={entry.home.code} logoUrl={entry.home.logoUrl} size={22} />
-          <TeamCrest code={entry.away.code} logoUrl={entry.away.logoUrl} size={22} />
+    <>
+      <Link
+        href={entry.href}
+        className="md:hidden flex items-center gap-[11px] py-[11px] border-b border-[var(--surface-border)] last:border-b-0"
+      >
+        <QueueMark entry={entry} />
+        <div className="flex-1 min-w-0">
+          <div className="font-heading font-semibold text-[12.5px] truncate">{entry.title}</div>
+          <div className="text-[9.5px] text-[var(--text-muted)] mt-[3px] truncate">
+            {entry.competition} · {entry.league}
+          </div>
         </div>
-      ) : (
-        <span className="tf-crest flex-none w-[22px] h-[24px] text-[8px]" style={{ background: 'var(--surface-border-strong)' }}>Q</span>
-      )}
+        <div className="text-right flex-none">
+          <div className="tf-num font-heading font-bold text-[12px]">{timeUntilLabel(entry.deadlineAt, nowMs)}</div>
+          <div className="tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{entry.openLabel}</div>
+        </div>
+      </Link>
 
-      <div className="flex-1 min-w-0">
-        <div className="font-heading font-semibold text-[12.5px] md:text-[13.5px] truncate">{entry.title}</div>
-        <div className="text-[9.5px] md:text-[11px] text-[var(--text-muted)] mt-[3px] truncate">
-          {entry.competition} · {entry.league}
+      <Link
+        href={entry.href}
+        className={`hidden ${QUEUE_GRID} px-[10px] -mx-[10px] py-[13px] rounded-[10px] hover:bg-[var(--surface-subtle)] transition-colors`}
+      >
+        <QueueMark entry={entry} />
+        <div className="min-w-0">
+          <div className="font-heading font-semibold text-[13.5px] tracking-[-0.2px] truncate">{entry.title}</div>
+          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.competition}</div>
         </div>
-      </div>
-
-      <div className="text-right flex-none">
-        <div className="tf-num font-heading font-bold text-[12px] md:text-[13px]">
-          {timeUntilLabel(entry.deadlineAt, nowMs)}
-        </div>
-        <div className="tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{entry.openLabel}</div>
-      </div>
-    </Link>
+        <div className="text-[11.5px] text-[var(--text-secondary)] truncate">{entry.league}</div>
+        <div className="tf-num text-right font-heading font-bold text-[12px] text-[var(--text-link)]">{entry.openLabel}</div>
+        <div className="tf-num text-right font-heading font-bold text-[12px]">{timeUntilLabel(entry.deadlineAt, nowMs)}</div>
+      </Link>
+    </>
   );
 }
 
@@ -276,7 +318,8 @@ export function HomeScreen({
                 Nothing else is waiting on you. Every other market in every league is answered.
               </p>
             ) : (
-              <div className="flex flex-col">
+              <div className="flex flex-col md:block">
+                <QueueHead />
                 {queue.map(entry => <QueueRow key={`${entry.kind}-${entry.id}`} entry={entry} nowMs={nowMs} />)}
               </div>
             )}

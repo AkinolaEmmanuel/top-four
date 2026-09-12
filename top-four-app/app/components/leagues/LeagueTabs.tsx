@@ -14,10 +14,21 @@ import type { ReactElement } from 'react';
  * league screen, cannot be missing from one of them.
  */
 
-/** Four tabs, as the design's league bar has. Questions is reached via More. */
-export type TabId = 'overview' | 'fixtures' | 'table' | 'more';
+/**
+ * Five tabs at width, four on a phone.
+ *
+ * Questions is a tab on desktop and a More row on a phone — the design is
+ * explicit that this is a slot problem, not a ranking one: it is member-facing,
+ * it carries a badge and it has points riding on it, and the four-slot bottom
+ * bar simply ran out of room. Desktop may add tabs; it may never rename one.
+ */
+export type TabId = 'overview' | 'fixtures' | 'table' | 'questions' | 'more';
 
-const ICONS: Record<TabId, ReactElement> = {
+/** Narrowed once here, so the phone bar's icon lookup needs no cast. */
+type PhoneTabId = Exclude<TabId, 'questions'>;
+
+/** Phone-bar icons only; the wide bar is text. Questions has no phone slot. */
+const ICONS: Record<PhoneTabId, ReactElement> = {
   overview: (
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z" /><path d="M9.5 20v-6h5v6" /></svg>
   ),
@@ -32,12 +43,17 @@ const ICONS: Record<TabId, ReactElement> = {
   ),
 };
 
-const TABS: Array<{ id: TabId; label: string }> = [
+const TABS: Array<{ id: TabId; label: string; wideOnly?: boolean }> = [
   { id: 'overview', label: 'Overview' },
   { id: 'fixtures', label: 'Fixtures' },
   { id: 'table', label: 'Table' },
+  { id: 'questions', label: 'Questions', wideOnly: true },
   { id: 'more', label: 'More' },
 ];
+
+const PHONE_TABS: Array<{ id: PhoneTabId; label: string }> = TABS
+  .filter((tab): tab is { id: PhoneTabId; label: string } => tab.id !== 'questions')
+  .map(({ id, label }) => ({ id, label }));
 
 const hrefFor = (leagueId: string, id: TabId) =>
   id === 'overview' ? `/leagues/${leagueId}` : `/leagues/${leagueId}/${id}`;
@@ -56,66 +72,76 @@ function activeFrom(pathname: string, leagueId: string): TabId | null {
   const rest = pathname.slice(base.length);
   if (rest.startsWith('/fixtures')) return 'fixtures';
   if (rest.startsWith('/table')) return 'table';
+  if (rest.startsWith('/questions')) return 'questions';
   if (rest === '' || rest === '/') return 'overview';
-  // Rules, Questions and Admin are all reached through More.
+  // Rules and Admin are reached through More at both widths.
   return 'more';
 }
 
-export function LeagueTabs({ leagueId, badge }: {
+export function LeagueTabs({ leagueId, badge, variant }: {
   leagueId: string;
   /** Unanswered markets, shown on Fixtures. Empty string hides it. */
   badge?: string;
+  /**
+   * Which bar to draw. They are separate elements in separate places now — the
+   * wide one sits inside the level-two bar beside the league's name, the phone
+   * one is fixed to the bottom of the viewport — so the component can no longer
+   * render both and let a media query pick.
+   */
+  variant: 'wide' | 'phone';
 }) {
   const active = activeFrom(usePathname() ?? '', leagueId);
   const badgeFor = (id: TabId) => (id === 'fixtures' ? badge : '');
 
+  if (variant === 'wide') {
+    return (
+      <nav className="flex flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] px-[24px]">
+          <div className="max-w-[1080px] mx-auto w-full flex items-end gap-[2px] h-[43px]">
+            {TABS.map(tab => {
+              const on = tab.id === active;
+              const count = badgeFor(tab.id);
+              return (
+                <Link
+                  key={tab.id}
+                  href={hrefFor(leagueId, tab.id)}
+                  aria-current={on ? 'page' : undefined}
+                  className={`flex items-center h-full px-[13px] font-heading font-semibold text-[12.5px] border-b-2 ${on ? 'border-[var(--color-brand)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                >
+                  {tab.label}
+                  {count && (
+                    <span className="ml-[7px] min-w-[16px] h-[16px] px-[4px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] inline-grid place-items-center font-bold text-[9px]">{count}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+    );
+  }
+
   return (
-    <>
-      {/* Wide screens: a context strip under the app chrome. */}
-      <nav className="hidden md:flex flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] px-[24px]">
-        <div className="max-w-[1080px] mx-auto w-full flex items-end gap-[2px] h-[43px]">
-          {TABS.map(tab => {
-            const on = tab.id === active;
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-card)] border-t border-[var(--surface-border)] grid grid-cols-4 pt-[7px] px-[4px] pb-[calc(8px+env(safe-area-inset-bottom))] min-h-[66px]">
+          {PHONE_TABS.map(tab => {
+            // Questions is a wide-screen tab; on a phone it stays a More row, so
+            // landing there lights More rather than nothing.
+            const on = tab.id === active || (tab.id === 'more' && active === 'questions');
             const count = badgeFor(tab.id);
             return (
               <Link
                 key={tab.id}
                 href={hrefFor(leagueId, tab.id)}
                 aria-current={on ? 'page' : undefined}
-                className={`flex items-center h-full px-[13px] font-heading font-semibold text-[12.5px] border-b-2 ${on ? 'border-[var(--color-brand)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                className="relative flex flex-col items-center justify-center font-heading font-semibold text-[9px] leading-[1]"
+                style={{ color: on ? 'var(--color-brand)' : 'var(--text-muted)' }}
               >
-                {tab.label}
+                <div className="w-[19px] h-[19px] grid place-items-center">{ICONS[tab.id]}</div>
+                <span className="mt-[6px] tracking-[0.01em] uppercase">{tab.label}</span>
                 {count && (
-                  <span className="ml-[7px] min-w-[16px] h-[16px] px-[4px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] inline-grid place-items-center font-bold text-[9px]">{count}</span>
+                  <span className="absolute top-[2px] left-[calc(50%+6px)] min-w-[15px] h-[15px] px-[3px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] grid place-items-center font-bold text-[8px]">{count}</span>
                 )}
               </Link>
             );
           })}
-        </div>
-      </nav>
-
-      {/* Phones: the bottom bar, which replaces the root nav inside a league. */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-card)] border-t border-[var(--surface-border)] grid grid-cols-4 pt-[7px] px-[4px] pb-[calc(8px+env(safe-area-inset-bottom))] min-h-[66px]">
-        {TABS.map(tab => {
-          const on = tab.id === active;
-          const count = badgeFor(tab.id);
-          return (
-            <Link
-              key={tab.id}
-              href={hrefFor(leagueId, tab.id)}
-              aria-current={on ? 'page' : undefined}
-              className="relative flex flex-col items-center justify-center font-heading font-semibold text-[9px] leading-[1]"
-              style={{ color: on ? 'var(--color-brand)' : 'var(--text-muted)' }}
-            >
-              <div className="w-[19px] h-[19px] grid place-items-center">{ICONS[tab.id]}</div>
-              <span className="mt-[6px] tracking-[0.01em] uppercase">{tab.label}</span>
-              {count && (
-                <span className="absolute top-[2px] left-[calc(50%+6px)] min-w-[15px] h-[15px] px-[3px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] grid place-items-center font-bold text-[8px]">{count}</span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-    </>
+        </nav>
   );
 }

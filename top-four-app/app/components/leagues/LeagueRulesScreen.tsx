@@ -166,6 +166,7 @@ export function LeagueRulesScreen({
             <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Timing and joining</div>
             <Frozen label="Standard lock" value={`${lockMinutes} minutes before`} note="Applies to every market except the lineups" />
             <Frozen label="Lineup lock" value="2 hours before" note="Fixed by TopFour — the standard lock never applies to it" />
+            <Frozen label="Custom questions" value="Per question" note="Set when the question is written, and locked once somebody answers" />
             <Frozen label="Late joining" value={lateJoin} note="A late member starts on zero and cannot answer locked matches" />
           </section>
 

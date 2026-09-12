@@ -7,7 +7,7 @@ import {
 import { ApiError } from '@/lib/api/fetcher';
 import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
 import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
-import { splitFixtures, toFixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
+import { splitFixtures, toFixtureRow, matchesFilter, FIXTURE_FILTERS, type FixtureView, type FixtureFilter } from '@/lib/leagues/league-fixtures';
 import type { Api } from '@/lib/api/types';
 import type { LeagueFixture } from '@/lib/api/leagues';
 import type { FixtureAvailability, FixtureResultsResponse } from '@/lib/api/predictions-fixture';
@@ -127,10 +127,10 @@ export default function LeagueFixturesPage({
   params, searchParams,
 }: {
   params: { id: string };
-  searchParams: { view?: string; show?: string };
+  searchParams: { view?: string; show?: string; filter?: string };
 }) {
   return (
-    <Suspense key={`${searchParams.view ?? ''}:${searchParams.show ?? ''}`} fallback={<LeagueContentSkeleton rows={6} />}>
+    <Suspense key={`${searchParams.view ?? ''}:${searchParams.filter ?? ''}:${searchParams.show ?? ''}`} fallback={<LeagueContentSkeleton rows={6} />}>
       <Fixtures params={params} searchParams={searchParams} />
     </Suspense>
   );
@@ -140,7 +140,7 @@ async function Fixtures({
   params, searchParams,
 }: {
   params: { id: string };
-  searchParams: { view?: string; show?: string };
+  searchParams: { view?: string; show?: string; filter?: string };
 }) {
   const id = params.id;
 
@@ -174,6 +174,11 @@ async function Fixtures({
     status: statusOf(f.fixtureState),
     markets: [],
     predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
+    // The two columns the design gives this table and the phone folds into one
+    // line of note text: what is answered, and when the first market closes.
+    answered: f.predictionCompleteness?.answered,
+    required: f.predictionCompleteness?.required,
+    deadlineAt: f.nextDeadlineAt ?? null,
   }));
 
   const playedIds = base.filter(f => f.status === 'finished').map(f => f.id);
@@ -198,7 +203,16 @@ async function Fixtures({
     : searchParams.view === 'upcoming' ? 'upcoming'
       : split.upcoming.length > 0 ? 'upcoming' : 'results';
 
-  const all = view === 'upcoming' ? split.upcoming : split.results;
+  const filter: FixtureFilter = FIXTURE_FILTERS.some(f => f.id === searchParams.filter)
+    ? searchParams.filter as FixtureFilter
+    : 'all';
+
+  const inView = view === 'upcoming' ? split.upcoming : split.results;
+  // Counted over everything read, not over the window, so a chip's number means
+  // the league rather than the slice already on screen.
+  const filterCounts = Object.fromEntries(FIXTURE_FILTERS.map(f =>
+    [f.id, split.upcoming.filter(x => matchesFilter(x.predictionState, f.id)).length])) as Record<FixtureFilter, number>;
+  const all = view === 'upcoming' ? inView.filter(f => matchesFilter(f.predictionState, filter)) : inView;
   const requested = Number.parseInt(searchParams.show ?? '', 10);
   const shown = Number.isFinite(requested) && requested > 0
     ? Math.min(requested, all.length)
@@ -210,6 +224,8 @@ async function Fixtures({
       leagueName={league.name}
       competition={league.competitions[0]?.displayName ?? ''}
       view={view}
+      filter={filter}
+      filterCounts={filterCounts}
       rows={all.slice(0, shown).map(f => toFixtureRow(f, id, view))}
       counts={{
         // Results are complete because the read stops only once they run out;
@@ -222,7 +238,7 @@ async function Fixtures({
       }}
       unansweredBadge={unanswered > 0 ? (unanswered > 99 ? '99+' : String(unanswered)) : ''}
       showMoreHref={shown < all.length
-        ? `/leagues/${id}/fixtures?view=${view}&show=${shown + ROW_WINDOW}`
+        ? `/leagues/${id}/fixtures?view=${view}&filter=${filter}&show=${shown + ROW_WINDOW}`
         : null}
     />
   );

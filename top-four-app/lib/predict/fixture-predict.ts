@@ -433,21 +433,29 @@ export function toCopySummaries(leagues: CopyLeagueReport[]): CopyLeagueSummary[
 }
 
 /** The answers that will travel, as the member sees them named. */
+/**
+ * One market's stored answer, in the words the member chose it by.
+ *
+ * The controls say it while they are on screen; at width the design also states
+ * it in the row's right column, where it survives the market being locked or
+ * settled and the controls going away.
+ */
+export function answerLabelFor(market: FixtureMarket, value: FixtureAnswers[string]): string | null {
+  if (value === null || value === undefined) return null;
+
+  if (market.kind === 'score') {
+    return Array.isArray(value) ? `${value[0]}–${value[1]}` : null;
+  }
+  if (market.kind === 'players') {
+    return market.players.find(p => p.id === value)?.name ?? null;
+  }
+  if (market.kind === 'lineup') return null;
+  return market.tiles.find(t => t.id === value)?.label ?? null;
+}
+
 export function carryLabelsFor(markets: FixtureMarket[], answers: FixtureAnswers): string[] {
   return markets.flatMap(market => {
-    const value = answers[market.key];
-    if (value === null || value === undefined) return [];
-
-    if (market.kind === 'score') {
-      const score = value as [number, number];
-      return Array.isArray(score) ? [`${score[0]}–${score[1]}`] : [];
-    }
-    if (market.kind === 'players') {
-      const player = market.players.find(p => p.id === value);
-      return player ? [player.name] : [];
-    }
-    if (market.kind === 'lineup') return [];
-    const tile = market.tiles.find(t => t.id === value);
-    return tile ? [tile.label] : [];
+    const label = answerLabelFor(market, answers[market.key]);
+    return label ? [label] : [];
   });
 }

@@ -43,24 +43,54 @@ function Marks({ entry }: { entry: PredictEntry }) {
   );
 }
 
+/* Written out in full: Tailwind scans source text, so a `md:` class assembled
+   at runtime is one that never exists. */
+const TASK_ROW = 'md:flex md:items-center md:gap-[16px] md:px-[18px] md:py-[15px]';
+
 function TaskRow({ entry, isLast }: { entry: PredictEntry; isLast: boolean }) {
+  const deadline = entry.deadlineAt
+    ? new Date(entry.deadlineAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    : '—';
+
   return (
-    <Link
-      href={entry.href}
-      className={`flex items-center gap-[13px] p-[13px_var(--gutter)] md:px-[14px] md:rounded-[10px] border-t border-[var(--surface-border)] md:border-t-0 md:border-b md:border-[var(--surface-border)] ${isLast ? 'border-b md:border-b-0' : ''} ${entry.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)] md:shadow-none' : ''} md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
-    >
-      <Marks entry={entry} />
-      <div className="flex-1 min-w-0">
-        <div className="font-heading font-semibold text-[13px] md:text-[14px] truncate">{entry.title}</div>
-        <div className="text-[10.5px] md:text-[11.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
-      </div>
-      <div className="text-right flex-none">
-        <div className={`font-heading font-bold text-[13px] tf-num ${entry.urgent ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`}>
-          {entry.deadlineAt ? new Date(entry.deadlineAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}
+    <>
+      <Link
+        href={entry.href}
+        className={`md:hidden flex items-center gap-[13px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${isLast ? 'border-b' : ''} ${entry.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
+      >
+        <Marks entry={entry} />
+        <div className="flex-1 min-w-0">
+          <div className="font-heading font-semibold text-[13px] truncate">{entry.title}</div>
+          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
         </div>
-        <div className="text-[10px] text-[var(--text-link)] mt-[3px] font-bold tf-num">{entry.openLabel}</div>
-      </div>
-    </Link>
+        <div className="text-right flex-none">
+          <div className={`font-heading font-bold text-[13px] tf-num ${entry.urgent ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`}>{deadline}</div>
+          <div className="text-[10px] text-[var(--text-link)] mt-[3px] font-bold tf-num">{entry.openLabel}</div>
+        </div>
+      </Link>
+
+      {/* Width buys each fact its own column instead of a stacked pair.
+          The design also draws a progress bar here; the task feed carries what
+          is still missing but never the fixture's total, so there is nothing
+          honest to divide by — recorded rather than faked with a full bar. */}
+      <Link
+        href={entry.href}
+        className={`hidden ${TASK_ROW} border-t border-[var(--surface-border)] ${isLast ? 'md:border-b' : ''} ${entry.urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
+      >
+        <Marks entry={entry} />
+        <div className="flex-1 min-w-0">
+          <div className="font-heading font-semibold text-[14px] truncate">{entry.title}</div>
+          <div className="text-[11.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
+        </div>
+        <div className="w-[176px] flex-none text-[11.5px] text-[var(--text-secondary)]">{entry.openLabel} still open</div>
+        <span className={`w-[96px] flex-none text-right font-heading font-bold text-[13px] tf-num ${entry.urgent ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`}>
+          {deadline}
+        </span>
+        <span className="w-[66px] flex-none h-[31px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[11px]">
+          Answer
+        </span>
+      </Link>
+    </>
   );
 }
 

@@ -5,6 +5,7 @@ import { heroGradient } from '@/lib/crest-colour';
 import { useTeamColours } from '@/hooks/useTeamColours';
 import { TeamCrest } from '../TeamCrest';
 import { pluralise } from '@/lib/format';
+import { closingMarketFor } from '@/lib/leagues/league-overview';
 import type { LastResult, LeagueOverviewPhase, RivalGap, StandingRow, NextFixture } from '@/lib/leagues/league-overview';
 
 /**
@@ -28,7 +29,7 @@ const PHASE_COPY: Record<LeagueOverviewPhase, { kicker: string; cta: string }> =
 export function LeagueOverviewScreen({
   leagueId, leagueName, lifecycleLabel, memberCount, competition,
   phase, timeToLock, answered, required, nextFixture,
-  rivals, gap, lastResult, openQuestions, questionDeadline, unansweredBadge,
+  rivals, gap, lastResult, openQuestions, questionDeadline, unansweredBadge, marketRules,
 }: {
   leagueId: string;
   leagueName: string;
@@ -46,8 +47,11 @@ export function LeagueOverviewScreen({
   openQuestions: number;
   questionDeadline: string | null;
   unansweredBadge: string;
+  /** The league's own scoring, for "one exact score would do it". */
+  marketRules: Array<{ label: string; points: number }>;
 }) {
   const urgent = phase === 'urgent';
+  const closingLine = gap.behind ? closingMarketFor(gap.behind.points, marketRules) : null;
   const caught = phase === 'caughtup';
   const tone = urgent ? 'var(--color-danger)' : caught ? 'var(--nav-positive)' : 'var(--nav-accent)';
   const pct = required > 0 ? Math.round((answered / required) * 100) : 0;
@@ -117,7 +121,11 @@ export function LeagueOverviewScreen({
 
           <section className="mt-[22px] md:mt-0">
             <div className="flex items-baseline justify-between p-[0_var(--gutter)_10px] md:px-0">
-              <span className="tf-kicker text-[var(--text-muted)]">{gap.positionLabel}</span>
+              {/* Naming who you are chasing is the design's headline; the bare
+                  position is what it falls back to when nobody is above you. */}
+              <span className="tf-kicker text-[var(--text-muted)]">
+                {gap.behind ? `You are chasing ${gap.behind.name}` : gap.positionLabel}
+              </span>
               <Link href={`/leagues/${leagueId}/table`} className="font-heading font-bold text-[10px] text-[var(--text-link)]">FULL TABLE →</Link>
             </div>
 
@@ -140,6 +148,9 @@ export function LeagueOverviewScreen({
                 <div className="tf-num font-heading font-bold text-[44px] leading-[0.85] tracking-[-2px]">{gap.behind.points}</div>
                 <div className="pb-[3px]">
                   <div className="font-heading font-semibold text-[12.5px]">points behind {gap.behind.name}</div>
+                  {closingLine && (
+                    <div className="text-[11px] text-[var(--text-secondary)] mt-[3px]">{closingLine}</div>
+                  )}
                   {gap.clearOf && (
                     <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">and {gap.clearOf.points} clear of {gap.clearOf.positionLabel}</div>
                   )}

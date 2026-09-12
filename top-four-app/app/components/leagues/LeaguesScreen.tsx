@@ -45,7 +45,7 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
     <Link
       href={`/leagues/${entry.id}`}
       className={`tf-tap flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${isLast ? 'border-b' : ''}
-                  md:grid md:gap-[14px] md:p-[13px_16px] md:grid-cols-[34px_minmax(0,1fr)_140px_90px] md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
+                  md:grid md:gap-[14px] md:p-[13px_16px] md:grid-cols-[34px_minmax(0,1fr)_104px_84px_92px] md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
       style={{ opacity: entry.isPast ? 0.62 : 1 }}
     >
       <span className="tf-crest w-[30px] h-[33px] md:text-[9px]" style={{ background: crestTint(entry.crest) }}>{entry.crest}</span>
@@ -62,9 +62,15 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
         </div>
       </div>
 
+      {/* Members is a column the width earns: on a phone it is one more figure
+          competing with the standing, which is the one a member came for. */}
+      <span className="hidden md:block text-right tf-num text-[13px] text-[var(--text-secondary)]">
+        {entry.memberCount > 0 ? entry.memberCount.toLocaleString('en-GB') : '—'}
+      </span>
+
       {/* Standing. On a phone it sits right-aligned beside the name; on a wide
           screen it becomes its own column under a heading. */}
-      <div className="text-right flex-none md:text-left">
+      <div className="text-right flex-none">
         {standing ? (
           <>
             <div className="font-heading font-bold text-[15px] tf-num text-[var(--text-primary)]">{standing}</div>
@@ -91,10 +97,11 @@ function Section({ section }: { section: LeagueSection }) {
       </div>
 
       {/* Column headings belong to the wide layout only. */}
-      <div className="hidden md:grid gap-[14px] items-center p-[10px_16px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)] grid-cols-[34px_minmax(0,1fr)_140px_90px]">
+      <div className="hidden md:grid gap-[14px] items-center p-[10px_16px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)] grid-cols-[34px_minmax(0,1fr)_104px_84px_92px]">
         <span />
         <span className="tf-kicker">League</span>
-        <span className="tf-kicker">Standing</span>
+        <span className="tf-kicker text-right">Members</span>
+        <span className="tf-kicker text-right">Position</span>
         <span className="tf-kicker text-right">Points</span>
       </div>
 

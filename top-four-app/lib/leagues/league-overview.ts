@@ -66,6 +66,20 @@ export interface LastResult {
   breakdown: Array<{ label: string; points: string; correct: boolean }>;
 }
 
+/**
+ * The smallest single market that would close a gap, in the member's words.
+ *
+ * The design's third line — "One exact score would do it." It turns a number
+ * into an action, which is the whole point of quoting the gap at all.
+ */
+export function closingMarketFor(gapPoints: number, markets: Array<{ label: string; points: number }>): string | null {
+  if (gapPoints <= 0) return null;
+  const enough = markets
+    .filter(m => m.points >= gapPoints)
+    .sort((a, b) => a.points - b.points)[0];
+  return enough ? `One ${enough.label.toLowerCase()} would do it.` : null;
+}
+
 export interface RivalGap {
   /** How the member sits in the whole league, not the loaded page of it. */
   positionLabel: string;

@@ -11,6 +11,23 @@ import type { LeagueFixture } from '@/lib/api/leagues';
 
 export type FixtureView = 'upcoming' | 'results';
 
+export type FixtureFilter = 'all' | 'unanswered' | 'open' | 'locked';
+
+export const FIXTURE_FILTERS: Array<{ id: FixtureFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'unanswered', label: 'Unanswered' },
+  { id: 'open', label: 'Open' },
+  { id: 'locked', label: 'Locked' },
+];
+
+/** Only the upcoming half is filterable; a result is not open or locked. */
+export function matchesFilter(state: LeagueFixture['predictionState'], filter: FixtureFilter): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'unanswered') return state === 'open';
+  if (filter === 'open') return state === 'open' || state === 'ready';
+  return state === 'syncing';
+}
+
 export interface FixtureRow {
   id: string;
   homeName: string;
@@ -26,6 +43,11 @@ export interface FixtureRow {
   /** Points won, on a played fixture only. */
   points: string | null;
   kickoffAt: string | null;
+  /** Answered and required for this fixture, which the phone hides in a note. */
+  progress: string | null;
+  /** Time until the first market closes, or what landed once it is played. */
+  note: string | null;
+  deadlineAt: string | null;
   href: string;
 }
 
@@ -61,6 +83,11 @@ export function toFixtureRow(fixture: LeagueFixture, leagueId: string, view: Fix
     state: fixture.predictionState,
     points: played ? (fixture.pointsAwarded === undefined ? '0' : `+${fixture.pointsAwarded}`) : null,
     kickoffAt: fixture.kickoffAt || null,
+    progress: typeof fixture.required === 'number' && fixture.required > 0
+      ? `${fixture.answered ?? 0} of ${fixture.required}`
+      : null,
+    note: played ? (fixture.landed ?? null) : (fixture.predictionNote ?? null),
+    deadlineAt: fixture.deadlineAt ?? null,
     href: `/predict/fixture/${fixture.id}?leagueId=${leagueId}`,
   };
 }

@@ -201,15 +201,28 @@ test('every screen below the root offers a way back on wide screens', async ({ p
   await requireSession(page);
   test.skip(testInfo.project.name === 'mobile', 'Narrow screens use their own chevron.');
 
-  const leagueId = await firstLeagueId(page);
-  const paths = ['/alerts', '/me/name', '/me/email', '/me/password', '/leagues/setup', `/leagues/${leagueId}`];
-
-  for (const path of paths) {
+  for (const path of ['/alerts', '/me/name', '/me/email', '/me/password', '/leagues/setup']) {
     await visit(page, path);
     const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(crumbs, `${path} has no breadcrumb`).toBeVisible();
     // A trail of one is not a way back.
     await expect(crumbs.getByRole('link').first(), `${path} breadcrumb has no link`).toBeVisible();
+  }
+
+  // League screens get theirs from the chrome instead: level two names the
+  // league you are in, and level one links out to the list of them. That is the
+  // design's own answer, so a breadcrumb on top of it would be a third bar.
+  const leagueId = await firstLeagueId(page);
+  for (const path of ['', '/fixtures', '/table', '/questions', '/more']) {
+    await visit(page, `/leagues/${leagueId}${path}`);
+    await expect(
+      page.getByRole('link', { name: 'Leagues', exact: true }),
+      `/leagues/${leagueId}${path} has no way back to the league list`,
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Questions', exact: true }),
+      `/leagues/${leagueId}${path} is missing the Questions tab`,
+    ).toBeVisible();
   }
 });
 

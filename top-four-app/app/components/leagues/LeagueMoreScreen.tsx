@@ -76,8 +76,12 @@ export function LeagueMoreScreen({ leagueId, leagueName, lifecycleLabel, roleLab
 
 
 
+          {/* Two columns at width. These sections are independent lists, not a
+              sequence — stacking them centred at 1080px leaves most of the page
+              empty and pushes the destructive one below the fold. */}
+          <div className="md:columns-2 md:gap-[34px]">
           {sections.map(section => (
-            <section key={section.label} className="mt-[18px] md:mt-[24px]">
+            <section key={section.label} className="mt-[18px] md:mt-0 md:mb-[26px] md:break-inside-avoid">
               <div className="p-[0_var(--gutter)_9px] md:px-0">
                 <span className="tf-kicker" style={{ color: section.tone === 'danger' ? 'var(--danger-text)' : 'var(--text-muted)' }}>
                   {section.label}
@@ -106,6 +110,8 @@ export function LeagueMoreScreen({ leagueId, leagueName, lifecycleLabel, roleLab
           {failed && (
             <p role="alert" className="px-[var(--gutter)] md:px-0 pt-[14px] text-[11.5px] text-[var(--danger-text)]">{failed}</p>
           )}
+
+          </div>
 
           <p className="p-[20px_var(--gutter)_26px] md:px-0 text-[11px] leading-[1.6] text-[var(--text-muted)]">{footNote}</p>
     </>

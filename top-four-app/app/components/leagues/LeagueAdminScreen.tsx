@@ -138,21 +138,38 @@ export function LeagueAdminScreen({
               type="button"
               onClick={() => canManage && setOpenMember(member)}
               disabled={!canManage}
-              className={`w-full text-left flex items-center gap-[11px] p-[12px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)] ${member.isYou ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} ${member.hasLeft ? 'opacity-55' : ''}`}
+              className={`w-full text-left flex md:grid md:grid-cols-[38px_minmax(0,1fr)_120px_96px_170px] items-center gap-[11px] md:gap-[14px] p-[12px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)] ${member.isYou ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} ${member.hasLeft ? 'opacity-55' : ''}`}
             >
               <span className="w-[34px] h-[34px] rounded-full flex-none grid place-items-center font-heading font-bold text-[11px] text-[var(--text-primary)]" style={{ background: `var(--ident-${member.tint})` }}>{member.initials}</span>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 md:flex-none min-w-0">
                 <div className="flex items-center gap-[7px]">
                   <span className="font-heading font-semibold text-[13.5px] truncate">{member.name}</span>
                   {member.isYou && <span className="font-heading font-bold text-[8.5px] tracking-[0.08em] px-[5px] py-[2px] rounded-[4px] bg-[var(--color-brand)] text-[var(--color-on-brand)] flex-none">YOU</span>}
                 </div>
-                <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">
+                {/* The phone stacks role and joined date under the name because
+                    it has nowhere else; at width each is its own column. */}
+                <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px] md:hidden">
                   {member.hasLeft ? 'Former member' : `${member.roleLabel} · ${member.joined}`}
                 </div>
               </div>
-              <div className="text-right flex-none">
+
+              <span className="hidden md:block">
+                {member.hasLeft ? (
+                  <span className="text-[11px] text-[var(--text-muted)]">Former member</span>
+                ) : (
+                  <span className={`inline-flex items-center h-[20px] px-[8px] rounded-[5px] font-heading font-bold text-[9px] tracking-[0.06em] uppercase ${member.roleLabel.toLowerCase() === 'owner' ? 'bg-[var(--accent-surface)] text-[var(--accent-text)]' : member.roleLabel.toLowerCase() === 'admin' ? 'bg-[var(--warn-surface)] text-[var(--warn-text)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
+                    {member.roleLabel}
+                  </span>
+                )}
+              </span>
+
+              <span className="hidden md:block text-[11px] text-[var(--text-muted)] text-right">
+                {member.hasLeft ? '—' : member.joined}
+              </span>
+
+              <div className="text-right flex-none md:flex md:items-baseline md:justify-end md:gap-[10px]">
                 <div className="tf-num font-heading font-bold text-[13px]">{member.hasLeft ? '—' : member.points}</div>
-                <div className="text-[10px] text-[var(--text-muted)] mt-[3px]">{member.hasLeft ? 'not ranked' : member.standing}</div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-[3px] md:mt-0">{member.hasLeft ? 'not ranked' : member.standing}</div>
               </div>
             </button>
           ))}

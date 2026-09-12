@@ -246,7 +246,13 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
                     : 'An admin has not set any season-long questions for this league.'}
                 </p>
               </div>
-            ) : sections.map(section => (
+            ) : (
+            /* Two columns at width: the open questions are the work, and the
+               closed and settled ones are reference beside it rather than a
+               scroll past it. */
+            <div className="md:grid md:grid-cols-[minmax(0,1fr)_330px] md:gap-[28px] md:items-start">
+            <div>
+            {sections.filter(s => s.group === 'open').map(section => (
               <section key={section.group} className="mt-[18px]">
                 <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_8px] md:px-[8px]">{section.label}</div>
                 {section.cards.map(card => (
@@ -275,7 +281,32 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
                   />
                 ))}
               </section>
-            ))
+            ))}
+            </div>
+
+            <div className="md:mt-[18px]">
+            {sections.filter(s => s.group !== 'open').map(section => (
+              <section key={section.group} className="mt-[18px] md:mt-0 md:mb-[20px]">
+                <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_8px] md:px-0">{section.label}</div>
+                {section.cards.map(card => (
+                  <div key={card.id} className="p-[12px_var(--gutter)] md:px-0 border-t border-[var(--surface-border)] last:border-b md:last:border-b-0">
+                    <div className="flex items-baseline gap-[10px]">
+                      <span className="flex-1 min-w-0 font-heading font-semibold text-[12.5px] leading-[1.35]">{card.title}</span>
+                      <span className="tf-num font-heading font-bold text-[12px] flex-none text-[var(--text-muted)]">{card.pointsLabel}</span>
+                    </div>
+                    <div className="text-[10.5px] text-[var(--text-muted)] mt-[4px]">
+                      {card.phase === 'void' ? 'Voided — nobody scored'
+                        : card.phase === 'settled' ? 'Settled'
+                          : 'Waiting on the outcome'}
+                      {card.answered ? ` · you said ${card.answered}` : ''}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            ))}
+            </div>
+            </div>
+            )
           )}
 
           {failed && <p role="alert" className="p-[14px_var(--gutter)] md:px-[8px] text-[11.5px] text-[var(--danger-text)]">{failed}</p>}

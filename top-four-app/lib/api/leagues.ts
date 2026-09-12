@@ -105,6 +105,13 @@ export interface LeagueFixture {
   predictionState?: 'open' | 'ready' | 'syncing' | 'won' | 'part' | 'lost' | 'void';
   predictionNote?: string;
   pointsAwarded?: number;
+  /** This fixture's own markets, not the league's season. */
+  answered?: number;
+  required?: number;
+  /** The earliest market deadline, for the "locks in" column. */
+  deadlineAt?: string | null;
+  /** What landed, once it has: the settled markets in the design's words. */
+  landed?: string | null;
 }
 
 export interface LeagueFixturesPage {

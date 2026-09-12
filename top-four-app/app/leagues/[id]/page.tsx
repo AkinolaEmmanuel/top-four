@@ -5,6 +5,7 @@ import {
   serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
+import { MARKET_LABELS } from '@/lib/constants/markets';
 import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
 import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
 import {
@@ -177,6 +178,10 @@ async function Overview({ params }: { params: { id: string } }) {
       lastResult={lastResult}
       openQuestions={openQuestions.length}
       questionDeadline={openQuestions.map(q => q.deadlineAt).sort()[0] ?? null}
+      marketRules={league.scoring.markets.map(m => ({
+        label: MARKET_LABELS[m.marketType] ?? m.marketType,
+        points: m.maximumPoints,
+      }))}
       unansweredBadge={unanswered > 0 ? (unanswered > 99 ? '99+' : String(unanswered)) : ''}
     />
   );

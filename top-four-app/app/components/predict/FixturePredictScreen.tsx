@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { LeagueTabs } from '../leagues/LeagueTabs';
+import { LeagueContextBar } from '../leagues/LeagueContextBar';
 import { LineupPicker } from './LineupPicker';
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { failureMessage } from '@/lib/api/failure';
+import { lockLabel } from '@/lib/format';
 import { Breadcrumb } from '../Breadcrumb';
 import { TeamCrest } from '../TeamCrest';
 import { heroGradient } from '@/lib/crest-colour';
@@ -15,6 +16,7 @@ import { useTeamColours } from '@/hooks/useTeamColours';
 import {
   carryLabelsFor, progressOf, toAnswerPayload, toCopySummaries,
   type CopyLeagueSummary, type FixtureAnswers, type FixtureMarket, type FixturePhase,
+  answerLabelFor,
 } from '@/lib/predict/fixture-predict';
 import type { StandardAnswerValue } from '@/lib/api/predictions-fixture';
 import { pluralise } from '@/lib/format';
@@ -257,9 +259,12 @@ export function FixturePredictScreen({
         </div>
       </header>
 
-      <div className="hidden md:block">
-        <LeagueTabs leagueId={leagueId} />
-      </div>
+      <LeagueContextBar
+        leagueId={leagueId}
+        leagueName={leagueName}
+        meta={competition}
+        linkName
+      />
 
       <main className="tf-scroll flex-1 min-h-0 overflow-auto">
 
@@ -491,8 +496,22 @@ export function FixturePredictScreen({
                           {market.pointsAwarded !== null ? (market.pointsAwarded > 0 ? `+${market.pointsAwarded}` : '0') : '0'}
                         </span>
                       )}
+                      {/* The answer in words, which the controls stop saying the
+                          moment a market locks or settles and they disappear. */}
+                      {answerLabelFor(market, mine) && (
+                        <span className="font-heading font-semibold text-[12px] text-right text-[var(--text-primary)] truncate max-w-[150px]">
+                          {answerLabelFor(market, mine)}
+                        </span>
+                      )}
+                      {/* Absolute before relative: a countdown alone cannot be
+                          checked against a calendar, and a member deciding
+                          whether they have time needs the actual clock time. */}
                       <span className="text-[10.5px] text-[var(--text-muted)] text-right">
-                        {settled ? 'Settled' : marketLocked ? 'Locked' : `Locks in ${countdown(market.deadlineAt)}`}
+                        {settled ? 'Settled'
+                          : marketLocked ? 'Locked at kick-off'
+                            : market.deadlineAt
+                              ? `Locks ${lockLabel(market.deadlineAt)} · ${countdown(market.deadlineAt)}`
+                              : `Locks in ${countdown(market.deadlineAt)}`}
                       </span>
                     </div>
 
