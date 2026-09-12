@@ -56,33 +56,82 @@ export default function Home() {
     return new Date(tasksData.serverTime).getTime() - Date.now();
   }, [tasksData?.serverTime]);
 
-  // Build queue from API tasks only
-  const queue = caught ? [] : (tasksData?.items.map((t: any) => {
-    if (t.kind === 'fixture') {
-      const homeCode = t.homeTeam.code || t.homeTeam.displayName.substring(0, 3).toUpperCase();
-      const awayCode = t.awayTeam.code || t.awayTeam.displayName.substring(0, 3).toUpperCase();
-      const missingCount = t.missingPredictions?.length || 0;
-      return {
-        match: `${t.homeTeam.displayName} v ${t.awayTeam.displayName}`,
-        competition: t.competition?.displayName || 'Match',
+  // Build queue from API tasks. Tasks are per (league, fixture): a member
+  // in several leagues that all share the same real-world fixture used to
+  // get one full-size row per league for the exact same match, bloating the
+  // list with visual duplicates. Fixture tasks are now grouped by the
+  // canonical fixtureId (not leagueFixtureId, which is per-league) into one
+  // row per real match, with a chip per league you can still predict it in.
+  // Custom questions aren't grouped -- each is a distinct per-league entity,
+  // not a shared fixture, so there is nothing to consolidate.
+  const queue = caught ? [] : (() => {
+    const items: any[] = tasksData?.items || [];
+    const fixtureGroups = new Map<string, any[]>();
+    const rows: any[] = [];
+
+    items.forEach((t) => {
+      if (t.kind === 'fixture') {
+        const list = fixtureGroups.get(t.fixtureId) || [];
+        list.push(t);
+        fixtureGroups.set(t.fixtureId, list);
+      }
+    });
+
+    items.forEach((t) => {
+      if (t.kind !== 'custom_question') return;
+      const deadlineMs = new Date(t.question?.deadlineAt || 0).getTime();
+      rows.push({
+        match: t.question?.questionText || "Question",
+        competition: "Custom Question",
         meta: t.league.name,
-        time: new Date(t.nextDeadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        missing: missingCount > 0 ? `${missingCount} open` : 'Open',
-        homeCode, homeColor: CLUB[homeCode] || '#000', homeLogo: t.homeTeam.logoUrl || null,
-        awayCode, awayColor: CLUB[awayCode] || '#000', awayLogo: t.awayTeam.logoUrl || null,
-        href: `/predict/fixture/${t.leagueFixtureId}?leagueId=${t.league.id}`
+        time: new Date(t.question?.deadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        missing: 'Open',
+        homeCode: 'Q', homeColor: '#333', homeLogo: null, awayCode: 'A', awayColor: '#555', awayLogo: null,
+        href: `/leagues/${t.league.id}/questions`,
+        sortMs: deadlineMs,
+      });
+    });
+
+    fixtureGroups.forEach((group, fixtureId) => {
+      const first = group[0];
+      const homeCode = first.homeTeam.code || first.homeTeam.displayName.substring(0, 3).toUpperCase();
+      const awayCode = first.awayTeam.code || first.awayTeam.displayName.substring(0, 3).toUpperCase();
+      const soonestMs = group.reduce((min: number, g: any) => {
+        const ms = new Date(g.nextDeadlineAt || 0).getTime();
+        return ms < min ? ms : min;
+      }, Infinity);
+
+      const leagueOptions = group
+        .map((g: any) => {
+          const missingCount = g.missingPredictions?.length || 0;
+          return {
+            id: g.league.id,
+            name: g.league.name,
+            href: `/predict/fixture/${g.leagueFixtureId}?leagueId=${g.league.id}`,
+            missing: missingCount > 0 ? `${missingCount} open` : 'Open',
+          };
+        })
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+      const base = {
+        match: `${first.homeTeam.displayName} v ${first.awayTeam.displayName}`,
+        competition: first.competition?.displayName || 'Match',
+        time: new Date(Number.isFinite(soonestMs) ? soonestMs : Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        homeCode, homeColor: CLUB[homeCode] || '#000', homeLogo: first.homeTeam.logoUrl || null,
+        awayCode, awayColor: CLUB[awayCode] || '#000', awayLogo: first.awayTeam.logoUrl || null,
+        sortMs: soonestMs,
       };
-    }
-    return {
-      match: t.question?.questionText || "Question",
-      competition: "Custom Question",
-      meta: t.league.name,
-      time: new Date(t.question?.deadlineAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      missing: 'Open',
-      homeCode: 'Q', homeColor: '#333', homeLogo: null, awayCode: 'A', awayColor: '#555', awayLogo: null,
-      href: `/leagues/${t.league.id}/questions`
-    };
-  }) || []);
+
+      if (leagueOptions.length === 1) {
+        rows.push({ ...base, href: leagueOptions[0].href, meta: leagueOptions[0].name, missing: leagueOptions[0].missing });
+      } else {
+        rows.push({ ...base, meta: `${leagueOptions.length} leagues`, leagueOptions });
+      }
+    });
+
+    rows.sort((a, b) => a.sortMs - b.sortMs);
+    return rows;
+  })();
 
   // Build leagues from API only
   // ownStanding carries `position`/`totalPoints`, not `rank`/`points` -- the
