@@ -176,6 +176,33 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
   return { items, nextCursor: response.nextCursor };
 }
 
+/** A stage and round the server can resolve, for scoping a league to a span. */
+export interface RoundBoundary {
+  stageId: string;
+  roundId: string;
+}
+
+/** How much of a competition a league covers. */
+export type CompetitionSpanKind = 'full_season' | 'single_round' | 'round_range';
+
+/**
+ * One competition a league covers, optionally narrowed to a round or a span.
+ *
+ * UNTYPED UPSTREAM: the published schema shows the *catalogue's*
+ * `CompetitionScopeDto` here — `{ kind, code, name }` — because two unrelated
+ * classes share that name on the server and only one gets registered. The
+ * request shape is the one in `league.dto.ts`, mirrored here.
+ */
+export interface CreateLeagueScope {
+  supportedCompetitionId: string;
+  seasonId: string;
+  kind: CompetitionSpanKind;
+  /** Required by `single_round`; mutually exclusive with the pair below. */
+  round?: RoundBoundary;
+  firstRound?: RoundBoundary;
+  lastRound?: RoundBoundary;
+}
+
 export interface CreateLeaguePayload {
   name: string;
   description?: string;
@@ -184,17 +211,13 @@ export interface CreateLeaguePayload {
     enabled: boolean;
   };
   configuration: {
-    competitionScopes: {
-      supportedCompetitionId: string;
-      seasonId: string;
-      kind: string;
-    }[];
-    markets: { marketType: string; enabled: boolean; points: number }[];
-    tiebreakers: string[];
-    standardLock: {
-      kind: string;
-      offsetMinutes?: number;
-    };
+    lateJoinPolicy?: Api<'LeagueConfigurationDto'>['lateJoinPolicy'];
+    totalGoalsLine?: Api<'LeagueConfigurationDto'>['totalGoalsLine'];
+    competitionScopes: CreateLeagueScope[];
+    /** Omit entirely to take the server's defaults for all seven. */
+    markets?: Api<'MarketConfigurationDto'>[];
+    tiebreakers: Api<'MarketConfigurationDto'>['marketType'][];
+    standardLock: Api<'StandardLockDto'>;
   };
 }
 

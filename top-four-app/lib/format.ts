@@ -19,3 +19,31 @@ export function ordinal(n: number): string {
 export function pluralise(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
+
+/**
+ * How long until a deadline, the way the queue says it: "7h 10m", "45m", or
+ * "Thu 16:30" once it is more than a day out.
+ *
+ * Deliberately never a bare clock time. Every other screen shows a fixture's
+ * kickoff, so "13:00" beside a fixture reads as kickoff even when it is the
+ * lock two hours earlier — two screens quoting the same fixture differently.
+ */
+export function timeUntilLabel(deadlineAt: string | null, nowMs: number): string {
+  if (!deadlineAt) return '—';
+  const deadline = Date.parse(deadlineAt);
+  if (Number.isNaN(deadline)) return '—';
+
+  const diffMs = deadline - nowMs;
+  if (diffMs <= 0) return 'Closed';
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  if (diffMs >= DAY_MS) {
+    return new Date(deadline).toLocaleString([], {
+      weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+  }
+
+  const hours = Math.floor(diffMs / 3600000);
+  const minutes = Math.floor((diffMs % 3600000) / 60000);
+  return hours > 0 ? `${hours}h ${String(minutes).padStart(2, '0')}m` : `${minutes}m`;
+}

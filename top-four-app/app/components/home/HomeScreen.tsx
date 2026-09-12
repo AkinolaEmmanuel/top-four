@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { timeUntilLabel } from '@/lib/format';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
@@ -57,21 +58,25 @@ function formatRemaining(seconds: number): string {
  * measured once from the `serverTime` that came with the data, so a device with
  * a wrong clock still sees the deadline the server will actually enforce.
  */
-function useServerCountdown(deadlineAt: string | null, serverTime: string) {
+/** Now, as the server counts it — the clock every deadline here is measured against. */
+function useServerNow(serverTime: string) {
   const [offsetMs] = useState(() => Date.parse(serverTime) - Date.now());
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!deadlineAt) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [deadlineAt]);
+  }, []);
 
-  if (!deadlineAt) return null;
-  return Math.max(0, Math.round((Date.parse(deadlineAt) - (now + offsetMs)) / 1000));
+  return now + offsetMs;
 }
 
-function QueueRow({ entry }: { entry: HomeQueueEntry }) {
+function secondsUntil(deadlineAt: string | null, nowMs: number) {
+  if (!deadlineAt) return null;
+  return Math.max(0, Math.round((Date.parse(deadlineAt) - nowMs) / 1000));
+}
+
+function QueueRow({ entry, nowMs }: { entry: HomeQueueEntry; nowMs: number }) {
   return (
     <Link
       href={entry.href}
@@ -95,7 +100,7 @@ function QueueRow({ entry }: { entry: HomeQueueEntry }) {
 
       <div className="text-right flex-none">
         <div className="tf-num font-heading font-bold text-[12px] md:text-[13px]">
-          {entry.deadlineAt ? new Date(entry.deadlineAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}
+          {timeUntilLabel(entry.deadlineAt, nowMs)}
         </div>
         <div className="tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{entry.openLabel}</div>
       </div>
@@ -143,7 +148,8 @@ export function HomeScreen({
   next: HomeQueueEntry | null;
   serverTime: string;
 }) {
-  const remaining = useServerCountdown(next?.deadlineAt ?? null, serverTime);
+  const nowMs = useServerNow(serverTime);
+  const remaining = secondsUntil(next?.deadlineAt ?? null, nowMs);
   const caught = queueCount === 0;
   const urgent = remaining !== null && remaining > 0 && remaining <= URGENT_WITHIN_SECONDS;
   const isNewUser = leagues.length === 0;
@@ -284,7 +290,7 @@ export function HomeScreen({
               </p>
             ) : (
               <div className="flex flex-col">
-                {queue.map(entry => <QueueRow key={`${entry.kind}-${entry.id}`} entry={entry} />)}
+                {queue.map(entry => <QueueRow key={`${entry.kind}-${entry.id}`} entry={entry} nowMs={nowMs} />)}
               </div>
             )}
           </section>
