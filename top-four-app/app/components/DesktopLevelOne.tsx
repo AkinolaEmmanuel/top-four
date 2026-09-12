@@ -29,7 +29,11 @@ export function DesktopLevelOne() {
 
   return (
     <div className="hidden md:flex flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] h-[56px] w-full z-50 relative">
-    <div className="flex items-center gap-[26px] px-[24px] h-full max-w-[1080px] w-full mx-auto">
+    {/* No inner column. The design runs level one and level two edge to edge
+        with the same 24px padding, so the brand mark sits directly above the
+        league's crest. Capping this one at 1080 and centring it pushed the
+        brand 166px in on a 1365px window while the bar below started at 24. */}
+    <div className="flex items-center gap-[26px] px-[24px] h-full w-full">
       <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
         TOPFOUR<span className="text-[var(--nav-accent)]">/</span>
       </div>

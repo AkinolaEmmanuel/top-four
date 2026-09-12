@@ -150,38 +150,82 @@ export function FixturePredictScreen({
   };
 
   const recordFailure = (key: string, snapshot: FixtureAnswers, error: unknown) => {
+    answersRef.current = snapshot;
     setAnswers(snapshot);
     setSaved(current => (current === key ? null : current));
     setFailed(prev => ({ ...prev, [key]: failureMessage(error, 'Not saved.') }));
   };
 
-  const answerMarket = (market: FixtureMarket, value: unknown) => {
-    if (!editable || !market.open) return;
-    const snapshot = answers;
-    setAnswers(prev => ({ ...prev, [market.key]: value }));
-    clearFailure(market.key);
+  /*
+   * One write at a time per market, and the freshest value wins.
+   *
+   * Every tap used to fire its own write carrying the version this page was
+   * built with. Setting a 1–0 is two taps, so the second left before the first
+   * came back, arrived with a version the server had already moved past, and
+   * was refused — "Changed somewhere else" against nobody but yourself. The
+   * exact-score stepper could not be finished before it started complaining.
+   *
+   * So: a market with a write in flight parks the new value instead of racing
+   * it, and sends it once the first returns with the version it produced.
+   * Nothing is dropped, nothing is sent against a stale version, and a run of
+   * taps collapses to one follow-up rather than one write each.
+   */
+  /** What is on screen right now, readable between renders. */
+  const answersRef = useRef<FixtureAnswers>(initialAnswers);
+  const inFlight = useRef<Record<string, boolean>>({});
+  const queued = useRef<Record<string, unknown>>({});
+  const versionRef = useRef<Record<string, number>>(versions);
+
+  const writeMarket = (market: FixtureMarket, value: unknown, snapshot: FixtureAnswers) => {
+    inFlight.current[market.key] = true;
 
     submitPrediction.mutate(
       {
         marketType: market.marketType,
-        expectedVersion: marketVersions[market.marketType] ?? 0,
+        expectedVersion: versionRef.current[market.marketType] ?? 0,
         answer: toAnswerPayload(market.marketType, value, snapshotId ?? undefined) as StandardAnswerValue,
       },
       {
         onSuccess: result => {
-          // The server's new version, so a second edit of the same market is
-          // not refused as a conflict against the one this page was built with.
+          versionRef.current[market.marketType] = result.version;
           setMarketVersions(prev => ({ ...prev, [market.marketType]: result.version }));
           showReceipt(market.key);
           router.refresh();
         },
         onError: error => recordFailure(market.key, snapshot, error),
+        onSettled: () => {
+          inFlight.current[market.key] = false;
+          if (!(market.key in queued.current)) return;
+          const next = queued.current[market.key];
+          delete queued.current[market.key];
+          writeMarket(market, next, snapshot);
+        },
       },
     );
   };
 
+  const answerMarket = (market: FixtureMarket, value: unknown) => {
+    if (!editable || !market.open) return;
+    const snapshot = answersRef.current;
+    answersRef.current = { ...answersRef.current, [market.key]: value };
+    setAnswers(answersRef.current);
+    clearFailure(market.key);
+
+    if (inFlight.current[market.key]) {
+      queued.current[market.key] = value;
+      return;
+    }
+    writeMarket(market, value, snapshot);
+  };
+
+  /*
+   * Read from the ref, not from render state: three taps in a row all see the
+   * same `answers` from the same render, so each one computed its result from
+   * 0–0 and the last overwrote the rest. Tapping home three times and away once
+   * produced 0–1.
+   */
   const bumpScore = (market: FixtureMarket, index: 0 | 1, delta: number) => {
-    const current = (answers.exact_score as [number, number] | undefined) ?? [0, 0];
+    const current = (answersRef.current.exact_score as [number, number] | undefined) ?? [0, 0];
     const next: [number, number] = [current[0], current[1]];
     next[index] = Math.max(0, Math.min(9, next[index] + delta));
     answerMarket(market, next);

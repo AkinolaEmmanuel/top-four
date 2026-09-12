@@ -93,10 +93,16 @@ export function LeagueTabs({ leagueId, badge, variant }: {
   const active = activeFrom(usePathname() ?? '', leagueId);
   const badgeFor = (id: TabId) => (id === 'fixtures' ? badge : '');
 
+  /*
+   * Just the tabs. The bar around them is the level-two bar's job now — this
+   * kept its old standalone chrome after it moved inside, so a centred 1080px
+   * box left the tabs stranded mid-bar instead of pushed to the right edge
+   * where the design puts them.
+   */
   if (variant === 'wide') {
     return (
-      <nav className="flex flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] px-[24px]">
-          <div className="max-w-[1080px] mx-auto w-full flex items-end gap-[2px] h-[43px]">
+      <nav aria-label="League sections" className="flex items-end self-stretch ml-auto">
+          <div className="flex items-end gap-[2px] h-[45px]">
             {TABS.map(tab => {
               const on = tab.id === active;
               const count = badgeFor(tab.id);
