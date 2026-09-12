@@ -135,6 +135,15 @@ export function FixturePredictScreen({
   const progress = progressOf(markets, answers);
   const carryLabels = carryLabelsFor(markets, answers);
   const [heroKicker, heroCaption, heroBlurb] = HERO_COPY[phase];
+
+  // The countdown runs to the *soonest* deadline, which before kickoff is the
+  // lineup lock two hours earlier — not the moment everything closes. Naming
+  // the wrong one put the hero at odds with the line right beneath it.
+  const nextIsLineups = phase === 'open'
+    && nextDeadlineAt !== null
+    && lineupDeadlineAt !== null
+    && Date.parse(nextDeadlineAt) === Date.parse(lineupDeadlineAt);
+  const countdownCaption = nextIsLineups ? 'until lineups lock' : heroCaption;
   const heroTone = phase === 'urgent' ? 'var(--color-danger)'
     : settled ? 'var(--state-provisional)'
       : locked ? 'var(--nav-text-faint)' : 'var(--nav-accent)';
@@ -288,7 +297,7 @@ export function FixturePredictScreen({
               >
                 {settled ? `+${pointsEarned}` : locked ? timeOfDay(kickoffAt) : countdown(nextDeadlineAt)}
               </div>
-              <div className="text-[11px] leading-[1.4] text-[var(--nav-text-faint)] pb-[6px]">{heroCaption}</div>
+              <div className="text-[11px] leading-[1.4] text-[var(--nav-text-faint)] pb-[6px]">{countdownCaption}</div>
             </div>
 
             <div className="flex items-center gap-[14px] mt-[20px] md:max-w-[780px] md:mx-auto md:mt-[24px]">
@@ -499,7 +508,7 @@ export function FixturePredictScreen({
                         </span>
                       )}
                       <span className="text-[10.5px] text-[var(--text-muted)] text-right">
-                        {settled ? 'Settled' : marketLocked ? 'Locked at kick-off' : `Locks in ${countdown(nextDeadlineAt)}`}
+                        {settled ? 'Settled' : marketLocked ? 'Locked' : `Locks in ${countdown(market.deadlineAt)}`}
                       </span>
                     </div>
 

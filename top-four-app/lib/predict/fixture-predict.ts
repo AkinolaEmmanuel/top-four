@@ -48,6 +48,12 @@ export interface FixtureMarket {
   side?: 'home' | 'away';
   /** False once this market's own deadline has passed, whatever the others do. */
   open: boolean;
+  /**
+   * This market's own deadline. The lineup markets close two hours before
+   * kickoff and the rest at the league's standard lock, so a row that counts
+   * down to the fixture's soonest deadline is wrong for almost all of them.
+   */
+  deadlineAt: string | null;
   outcome: MarketOutcome | null;
   pointsAwarded: number | null;
   /**
@@ -201,6 +207,7 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
 
   const line = ruleset?.totalGoalsLine ?? 2.5;
   const bySettledMarket = new Map(results.map(r => [r.side ? `${r.side}_${r.marketType}` : r.marketType, r]));
+  const byAvailability = new Map(availability.markets.map(m => [m.marketType, m]));
   const byPredictionSlot = new Map((predictions?.markets ?? []).map(s => [s.marketType, s]));
 
   const standard: FixtureMarket[] = STANDARD_MARKET_TYPES
@@ -223,6 +230,7 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
           ? input.players.map(p => toPlayerOption(p, p.side === 'home' ? input.homeCode : input.awayCode))
           : [],
         open: slot?.submissionAllowed !== false,
+        deadlineAt: byAvailability.get(marketType)?.deadlineAt ?? null,
         outcome: outcomeOf(result),
         pointsAwarded: result?.viewerOutcome?.pointsDelta ?? null,
         landed: landedAnswerFor(marketType, resolved, answers[marketType]),
@@ -253,6 +261,7 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
           .map(p => toPlayerOption(p, side === 'home' ? input.homeCode : input.awayCode)),
         side,
         open: lineupMarket?.submissionAllowed !== false,
+        deadlineAt: lineupMarket?.deadlineAt ?? null,
         outcome: outcomeOf(result),
         pointsAwarded: result?.viewerOutcome?.pointsDelta ?? null,
         landed: null,

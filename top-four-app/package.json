@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "api:types": "node scripts/generate-api-types.mjs"
+    "api:types": "node scripts/generate-api-types.mjs",
+    "test:smoke": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
@@ -20,6 +21,7 @@
     "tailwind-merge": "^2.5.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20.14.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
