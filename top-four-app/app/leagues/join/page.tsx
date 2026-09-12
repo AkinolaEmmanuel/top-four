@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ApiError } from '@/lib/api/fetcher';
 import { useRouter } from 'next/navigation';
 import { useEstablishInvitationIntent, useConsumeInvitationIntent, useCancelJoinRequest, useMyLeagues, useLeaveAnyLeague } from '@/hooks/api/useLeagues';
 import { JoinLeagueMobile } from '@/app/components/leagues/JoinLeagueMobile';
@@ -132,8 +133,9 @@ export default function JoinLeaguePage() {
               setOutcome("welcome");
             }
           },
-          onError: (err: any) => {
-            setOutcome(err?.data?.code === 'USER_LEAGUE_LIMIT_REACHED' ? "limit" : "dead");
+          onError: (err: unknown) => {
+            const limitReached = err instanceof ApiError && err.code === 'USER_LEAGUE_LIMIT_REACHED';
+            setOutcome(limitReached ? "limit" : "dead");
           }
         });
       },

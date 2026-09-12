@@ -14,16 +14,48 @@ export function generateIdempotencyKey(): string {
   return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
 }
 
-export class ApiError extends Error {
-  public status: number;
-  public data: any;
+/**
+ * The problem body the API returns with every failure.
+ *
+ * `requestId` is the only identifier a member is ever shown, and only on an
+ * unexpected failure — it is what lets us find this exact request. `detail` is
+ * for logs, never for the screen.
+ */
+export interface ApiProblem {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+  code?: string;
+  requestId?: string;
+  errors?: Array<{ field?: string; messages?: string[] }>;
+}
 
-  constructor(status: number, message: string, data?: any) {
+export class ApiError extends Error {
+  public readonly status: number;
+  public readonly problem: ApiProblem | undefined;
+
+  constructor(status: number, message: string, problem?: unknown) {
     super(message);
     this.status = status;
-    this.data = data;
+    this.problem = isApiProblem(problem) ? problem : undefined;
     this.name = 'ApiError';
   }
+
+  /** The reference the unexpected-failure screen quotes, when the API sent one. */
+  public get requestId(): string | undefined {
+    return this.problem?.requestId;
+  }
+
+  /** The machine-readable cause, for branching on a specific failure. */
+  public get code(): string | undefined {
+    return this.problem?.code;
+  }
+}
+
+function isApiProblem(value: unknown): value is ApiProblem {
+  return typeof value === 'object' && value !== null;
 }
 
 let cachedCsrfToken: string | null = null;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ApiError } from '@/lib/api/fetcher';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../auth/auth-shell';
@@ -48,8 +49,9 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
         setOutcome(result);
         setStatus(result.outcome === 'pending' ? 'pending' : 'joined');
       },
-      onError: (err: any) => {
-        setStatus(err?.data?.code === 'USER_LEAGUE_LIMIT_REACHED' ? 'limit' : 'error');
+      onError: (err: unknown) => {
+        const limitReached = err instanceof ApiError && err.code === 'USER_LEAGUE_LIMIT_REACHED';
+        setStatus(limitReached ? 'limit' : 'error');
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
