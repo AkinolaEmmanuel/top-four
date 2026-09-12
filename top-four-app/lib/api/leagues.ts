@@ -1,5 +1,5 @@
 import { apiFetch } from './fetcher';
-import { fetchFixtureResults } from './predictions-fixture';
+import { fetchFixturesResultsBatch, FixtureResultsResponse } from './predictions-fixture';
 import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
 
 export interface LeagueRulesetMarket {
@@ -182,7 +182,8 @@ function mapFixtureStatus(fixtureState: string): LeagueFixture['status'] {
 export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Promise<LeagueFixturesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   const response = await apiFetch<{ data: any[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
-  const items: LeagueFixture[] = await Promise.all(response.data.map(async (f) => {
+
+  const bases = response.data.map((f) => {
     const status = mapFixtureStatus(f.fixtureState);
     const base: LeagueFixture = {
       id: f.leagueFixtureId,
@@ -203,32 +204,50 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
     // ready/open/undefined logic as an upcoming fixture and showed up in
     // "Past Fixtures" mislabeled "NO POINTS", implying a graded loss on a
     // match that never happened.
-    if (status === 'voided') return { ...base, predictionState: 'void' };
+    if (status === 'voided') return { ...base, predictionState: 'void' as const };
+    return base;
+  });
 
-    // Availability only carries market *state*, not the resolved outcome — a
-    // finished fixture's score and points come from a separate call per fixture.
-    if (status !== 'finished') return base;
+  // Availability only carries market *state*, not the resolved outcome, so a
+  // finished fixture's score and points need a separate call. This used to
+  // be one request per finished fixture (an N+1 pattern); the backend now
+  // has a batch endpoint that reads up to 50 fixtures' results in one call.
+  const finishedIds = bases
+    .filter((b) => b.status === 'finished')
+    .map((b) => b.id);
+
+  let resultsById = new Map<string, FixtureResultsResponse>();
+  if (finishedIds.length > 0) {
     try {
-      const results = await fetchFixtureResults(leagueId, f.leagueFixtureId);
-      const exactScoreMarket = results.markets.find((m) => m.marketType === 'exact_score');
-      const resolvedScore = exactScoreMarket?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
-      const settled = results.markets.filter((m) => m.viewerOutcome !== null);
-      const totalPoints = settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0);
-      const anyCorrect = settled.some((m) => m.viewerOutcome?.outcome === 'correct');
-      const allVoid = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'void');
-      const allCorrect = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'correct');
-      return {
-        ...base,
-        score: resolvedScore && typeof resolvedScore.homeGoals === 'number' && typeof resolvedScore.awayGoals === 'number'
-          ? { home: resolvedScore.homeGoals, away: resolvedScore.awayGoals }
-          : undefined,
-        pointsAwarded: settled.length > 0 ? totalPoints : undefined,
-        predictionState: settled.length === 0 ? undefined : allVoid ? 'void' : allCorrect ? 'won' : anyCorrect ? 'part' : 'lost',
-      };
+      const batch = await fetchFixturesResultsBatch(leagueId, finishedIds);
+      resultsById = new Map(batch.map((r) => [r.leagueFixtureId, r]));
     } catch {
-      return base;
+      // Leave resultsById empty; affected fixtures fall back to their base
+      // (scoreless) shape below, matching the old per-fixture catch behavior.
     }
-  }));
+  }
+
+  const items: LeagueFixture[] = bases.map((base) => {
+    if (base.status !== 'finished') return base;
+    const results = resultsById.get(base.id);
+    if (!results) return base;
+    const exactScoreMarket = results.markets.find((m) => m.marketType === 'exact_score');
+    const resolvedScore = exactScoreMarket?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
+    const settled = results.markets.filter((m) => m.viewerOutcome !== null);
+    const totalPoints = settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0);
+    const anyCorrect = settled.some((m) => m.viewerOutcome?.outcome === 'correct');
+    const allVoid = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'void');
+    const allCorrect = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'correct');
+    return {
+      ...base,
+      score: resolvedScore && typeof resolvedScore.homeGoals === 'number' && typeof resolvedScore.awayGoals === 'number'
+        ? { home: resolvedScore.homeGoals, away: resolvedScore.awayGoals }
+        : undefined,
+      pointsAwarded: settled.length > 0 ? totalPoints : undefined,
+      predictionState: settled.length === 0 ? undefined : allVoid ? 'void' : allCorrect ? 'won' : anyCorrect ? 'part' : 'lost',
+    };
+  });
+
   return { items, nextCursor: response.nextCursor };
 }
 
