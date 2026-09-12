@@ -451,10 +451,6 @@ function CreateQuestion({ pending, onCancel, onCreate }: {
         </button>
         <button type="button" onClick={onCancel} className="h-[46px] px-[18px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px]">Cancel</button>
       </div>
-
-      <p className="text-[10.5px] leading-[1.6] text-[var(--text-muted)]">
-        Once somebody answers, the wording, options, deadline and point value are locked — they answered partly on the value.
-      </p>
     </form>
   );
 }

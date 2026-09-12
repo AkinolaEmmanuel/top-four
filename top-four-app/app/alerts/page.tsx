@@ -298,9 +298,6 @@ export default function AlertsPage() {
                   ))}
                 </section>
               ))}
-              <div className="p-[20px_24px] text-[11.5px] leading-[1.55] text-[var(--text-muted)]">
-                Alerts are personal. You are told when your own total moves, never when somebody else&apos;s does.
-              </div>
             </div>
 
             {/* The reading pane. Sticky, so working down a long list does not
@@ -357,9 +354,6 @@ export default function AlertsPage() {
                   ))}
                 </section>
               ))}
-              <div className="p-[20px_24px] text-[11.5px] leading-[1.55] text-[var(--text-muted)]">
-                Membership changes and point corrections never email. The badge is the whole notification — they are quiet by design.
-              </div>
             </div>
           )}
         </main>

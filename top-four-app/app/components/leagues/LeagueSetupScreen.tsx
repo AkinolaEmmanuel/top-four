@@ -386,8 +386,6 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                   ></textarea>
                 </div>
               </section>
-
-              <div className="p-[20px_var(--gutter)_26px] text-[10.5px] leading-[1.6] text-[var(--text-muted)]">Drafts count against your twenty. Completed and cancelled leagues give their place back, so the limit is on what you are running, not on what you have ever run.</div>
             </div>
           )}
 

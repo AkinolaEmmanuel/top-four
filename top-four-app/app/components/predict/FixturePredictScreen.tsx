@@ -987,11 +987,6 @@ function EditTrail({ leagueId, fixtureId, market, version, open, onToggle }: {
               </span>
             </div>
           ))}
-          {history.data && (
-            <p className="text-[10px] leading-[1.6] text-[var(--text-muted)] mt-[6px]">
-              Only the top line counted. Earlier answers are kept so a score can be checked, never re-scored.
-            </p>
-          )}
         </div>
       )}
     </div>

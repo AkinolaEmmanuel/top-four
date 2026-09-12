@@ -217,10 +217,6 @@ export function LeagueFixturesScreen({
               </Link>
             </div>
           )}
-
-          <p className="p-[20px_var(--gutter)_26px] md:px-0 text-[11px] leading-[1.6] text-[var(--text-muted)]">
-            A fixture stays readable after it settles. Points are provisional until review closes, and a voided market scores nothing for anyone.
-          </p>
     </LeagueColumn>
   );
 }

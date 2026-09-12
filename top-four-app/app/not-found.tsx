@@ -11,7 +11,7 @@ export default function NotFound() {
     <ProblemState
       icon="ghost"
       title="Not found, or no longer available"
-      body="This league either does not exist or is not one you can see. TopFour deliberately does not say which — telling you the difference would reveal which leagues exist and who is in them."
+      body="This either does not exist or is not yours to see."
       action={{ label: 'Back to my leagues', href: '/leagues' }}
     />
   );
