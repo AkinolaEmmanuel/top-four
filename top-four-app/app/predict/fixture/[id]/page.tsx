@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { FixtureMobile } from '../../../components/predict/FixtureMobile';
-import { FixtureDesktop } from '../../../components/predict/FixtureDesktop';
+import { FixtureScreen } from '../../../components/predict/FixtureScreen';
 import { LineupPicker } from '../../../components/predict/LineupPicker';
 import { useFixtureData, useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions, useMarketHistory } from '@/hooks/api/useFixturePrediction';
 import { useMyLeagues, useLeague } from '@/hooks/api/useLeagues';
@@ -108,7 +107,6 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const setTheme = () => {};
   const [history, setHistory] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
-  const [resolved, setResolved] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'done' | null>(null);
   const [copyResult, setCopyResult] = useState<CopyPredictionsResponse | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
@@ -318,12 +316,11 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   };
 
   const locked = isLocked, settled = isSettled;
-  const conflict = false;
   const editable = isReady && !locked && !settled;
   const seconds = secondsRemaining ?? 0;
   const clock = fmt(seconds);
 
-  const a = conflict ? { ...answers, match_result: "draw" } : answers;
+  const a = answers;
 
   const heroTone = urgent ? "var(--color-danger)" : settled ? "var(--state-provisional)" : locked ? "var(--nav-text-faint)" : "var(--nav-accent)";
   const MARKET_KEYS = ["match_result", "exact_score", "both_teams_to_score", "total_goals", "anytime_goalscorer", "player_card"];
@@ -554,7 +551,6 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     urgent: ["LOCKING NOW", "until everything locks", "Anything still unanswered when the whistle goes scores nothing. Lineups have already closed."],
     locked: ["LOCKED", "kick-off", "Nothing can change now. Any unanswered markets will score nothing."],
     settled: ["PROVISIONAL", "so far", "Provisional until review closes. A voided market scores nothing for everyone."],
-    conflict: ["OPEN", "until everything locks", "This fixture is open on another device too. The stored answer always wins until you replace it."],
     loading: ["", "", ""]
   };
   const heroKey = settled ? "settled" : locked ? "locked" : urgent ? "urgent" : "open";
@@ -669,9 +665,20 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
   const leagueName = currentLeague?.name || (leaguesData?.items?.[0]?.name) || "League";
   const competitionLabel = currentLeague?.competitions?.[0]?.displayName || "Premier League";
 
+  // Real, ticking lineup-lock countdown -- was a hardcoded literal
+  // "CLOSE AT 13:00 · 15m" on Mobile regardless of this fixture's actual
+  // kickoff time. Lineups lock two hours before kick-off, the same rule
+  // already documented elsewhere on this page.
+  const kickoffMs = availability?.kickoff?.at ? new Date(availability.kickoff.at).getTime() : null;
+  const lineupDeadlineMs = kickoffMs !== null ? kickoffMs - 2 * 60 * 60 * 1000 : null;
+  const lineupSecondsRemaining = lineupDeadlineMs !== null ? Math.max(0, Math.round((lineupDeadlineMs - (now + clockOffsetMs)) / 1000)) : null;
+  const lineupCloseLabel = settled ? "" : locked ? "CLOSED"
+    : lineupSecondsRemaining !== null && lineupSecondsRemaining <= 0 ? "CLOSED"
+    : lineupSecondsRemaining !== null ? `CLOSES IN ${fmt(lineupSecondsRemaining)}` : "";
+
   const props = {
     theme, isLoading, isReady, settled, locked, urgent, clock, HERO: heroData, heroTone,
-    answeredTotal, pct, conflict, setResolved, a, setAnswers, markets, lineups,
+    answeredTotal, pct, totalAnswerable, markets, lineups, lineupCloseLabel,
     carryLabels, setCopy, copy, targets, carrying, outcomes, CLUB,
     leagueName, competitionLabel, fixtureId, leagueId,
     hName, aName, hCode, aCode, hLogo, aLogo,
@@ -695,7 +702,6 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
     footNote: settled ? "Provisional scores become final once review closes. If a market is voided it scores nothing for everyone." : "There is no save button on this screen. Each market stores its own answer the moment you pick it, and you can change any of them until it locks.",
     canCopy: editable && activeTargetCount > 0,
     copySub: `${otherLeagues.length} other leagues · ${carryLabels.length} answers ready to carry`,
-    showConflict: conflict,
     copyError,
     copyPending: copyPredictionsMutation.isPending,
     copyPrimary: copyPredictionsMutation.isPending ? "Copying…" : activeTargetCount > 0 ? `Copy to ${activeTargetCount} ${activeTargetCount === 1 ? 'league' : 'leagues'}` : "No other leagues",
@@ -705,12 +711,7 @@ export default function FixturePredictPage({ params }: { params: { id: string } 
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <FixtureMobile {...props} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <FixtureDesktop {...props} />
-      </div>
+      <FixtureScreen {...props} />
 
       {editingLineup && (
         <div className="absolute inset-0 z-50 bg-[var(--surface-canvas)] md:bg-[rgba(0,0,0,0.5)] md:flex md:items-center md:justify-center p-[20px]">
