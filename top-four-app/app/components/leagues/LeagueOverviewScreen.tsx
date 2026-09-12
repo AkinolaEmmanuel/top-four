@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { tintFor } from '@/lib/crest';
+import { TeamCrest } from '../TeamCrest';
 import { pluralise } from '@/lib/format';
 import type { LastResult, LeagueOverviewPhase, RivalGap, StandingRow, NextFixture } from '@/lib/leagues/league-overview';
 
@@ -14,11 +16,6 @@ import type { LastResult, LeagueOverviewPhase, RivalGap, StandingRow, NextFixtur
  * disagree again.
  */
 
-const CLUB_TINTS: Record<string, string> = {
-  ARS: '#c8182f', CHE: '#1746a2', LIV: '#b7152b', TOT: '#17233d',
-  MCI: '#559ac7', EVE: '#153c85', MUN: '#d1262f', NEW: '#20242a',
-};
-const tintFor = (code: string) => CLUB_TINTS[code] || '#4b5563';
 
 const PHASE_COPY: Record<LeagueOverviewPhase, { kicker: string; cta: string }> = {
   live: { kicker: 'NEXT LOCK', cta: 'Finish predictions' },
@@ -26,16 +23,6 @@ const PHASE_COPY: Record<LeagueOverviewPhase, { kicker: string; cta: string }> =
   caughtup: { kicker: 'ALL ANSWERED', cta: 'Review your answers' },
 };
 
-function Crest({ code, size }: { code: string; size: number }) {
-  return (
-    <span
-      className="tf-crest flex-none"
-      style={{ background: tintFor(code), width: size, height: Math.round(size * 1.08), fontSize: Math.round(size * 0.29) }}
-    >
-      {code}
-    </span>
-  );
-}
 
 export function LeagueOverviewScreen({
   leagueId, leagueName, lifecycleLabel, memberCount, competition,
@@ -94,7 +81,7 @@ export function LeagueOverviewScreen({
               {nextFixture && (
                 <div className="flex items-center gap-[14px]">
                   <div className="flex-1 flex items-center gap-[9px] min-w-0">
-                    <Crest code={nextFixture.homeCode} size={38} />
+                    <TeamCrest code={nextFixture.homeCode} logoUrl={nextFixture.homeLogo} size={38} />
                     <span className="font-heading font-[650] text-[15px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate">{nextFixture.homeName}</span>
                   </div>
                   <span className="font-heading font-semibold text-[10px] text-[var(--nav-text-faint)] flex-none">
@@ -102,7 +89,7 @@ export function LeagueOverviewScreen({
                   </span>
                   <div className="flex-1 flex items-center gap-[9px] justify-end min-w-0">
                     <span className="font-heading font-[650] text-[15px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate text-right">{nextFixture.awayName}</span>
-                    <Crest code={nextFixture.awayCode} size={38} />
+                    <TeamCrest code={nextFixture.awayCode} logoUrl={nextFixture.awayLogo} size={38} />
                   </div>
                 </div>
               )}
@@ -167,9 +154,9 @@ export function LeagueOverviewScreen({
                     </span>
                   </div>
                   <div className="flex items-center gap-[13px] mt-[14px]">
-                    <Crest code={lastResult.homeCode} size={34} />
+                    <TeamCrest code={lastResult.homeCode} logoUrl={lastResult.homeLogo} size={34} />
                     <span className="tf-num font-heading font-bold text-[30px] leading-[1] tracking-[-1.2px]">{lastResult.score ?? '—'}</span>
-                    <Crest code={lastResult.awayCode} size={34} />
+                    <TeamCrest code={lastResult.awayCode} logoUrl={lastResult.awayLogo} size={34} />
                     <div className="flex-1 text-right">
                       <div className="tf-num font-heading font-bold text-[26px] tracking-[-0.8px]">
                         {lastResult.pointsAwarded === null ? '—' : `+${lastResult.pointsAwarded}`}

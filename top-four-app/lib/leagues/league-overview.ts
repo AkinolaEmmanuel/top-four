@@ -45,6 +45,8 @@ export interface NextFixture {
   homeCode: string;
   awayName: string;
   awayCode: string;
+  homeLogo: string | null;
+  awayLogo: string | null;
   kickoffAt: string | null;
   /** Answered and required for this fixture alone, not the whole season. */
   answered: number;
@@ -56,6 +58,8 @@ export interface LastResult {
   awayName: string;
   homeCode: string;
   awayCode: string;
+  homeLogo: string | null;
+  awayLogo: string | null;
   score: string | null;
   pointsAwarded: number | null;
   outcome: 'won' | 'part' | 'lost' | 'void' | null;
@@ -107,6 +111,7 @@ export function toRivalGap(rows: StandingRow[], totalMembers: number): RivalGap 
 export function toLastResult(
   fixture: {
     homeTeam: string; awayTeam: string; homeTeamCode: string; awayTeamCode: string;
+    homeTeamLogoUrl?: string | null; awayTeamLogoUrl?: string | null;
     score?: { home: number; away: number }; pointsAwarded?: number;
     predictionState?: string;
   },
@@ -121,6 +126,8 @@ export function toLastResult(
     awayName: fixture.awayTeam,
     homeCode: fixture.homeTeamCode,
     awayCode: fixture.awayTeamCode,
+    homeLogo: fixture.homeTeamLogoUrl ?? null,
+    awayLogo: fixture.awayTeamLogoUrl ?? null,
     score: fixture.score ? `${fixture.score.home} — ${fixture.score.away}` : null,
     pointsAwarded: fixture.pointsAwarded ?? null,
     outcome,

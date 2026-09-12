@@ -10,7 +10,8 @@ import {
   CreateCustomQuestionPayload,
   CustomAnswerValue,
   CustomResolutionValue,
-  fetchOwnCustomAnswer
+  fetchOwnCustomAnswer,
+  withdrawCustomQuestion,
 } from '@/lib/api/custom-questions';
 
 export function useCustomQuestions(leagueId: string) {
@@ -78,6 +79,17 @@ export function useResolveCustomQuestion(leagueId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'custom-questions'] });
     }
+  });
+}
+
+export function useWithdrawCustomQuestion(leagueId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (questionId: string) => withdrawCustomQuestion(leagueId, questionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'custom-questions'] });
+    },
   });
 }
 

@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSubmitCustomAnswer, useCreateCustomQuestion, useResolveCustomQuestion, useVoidCustomQuestion } from '@/hooks/api/useCustomQuestions';
+import { useSubmitCustomAnswer, useCreateCustomQuestion, useResolveCustomQuestion, useVoidCustomQuestion, useWithdrawCustomQuestion } from '@/hooks/api/useCustomQuestions';
+import { failureMessage } from '@/lib/api/failure';
 import { toAnswerValue, toQuestionSections, type QuestionCard } from '@/lib/leagues/league-questions';
 import { pluralise } from '@/lib/format';
 
@@ -20,13 +21,16 @@ import { pluralise } from '@/lib/format';
 
 type View = 'list' | 'create';
 
-function Card({ card, onAnswer, pending, canResolve, onResolve, onVoid }: {
+function Card({ card, onAnswer, pending, canResolve, onResolve, onVoid, onWithdraw, withdrawing }: {
   card: QuestionCard;
   onAnswer: (raw: string) => void;
   pending: boolean;
   canResolve: boolean;
   onResolve: (card: QuestionCard) => void;
   onVoid: (card: QuestionCard) => void;
+  /** Only offered while `card.editable`; null for a member who cannot admin. */
+  onWithdraw: ((card: QuestionCard) => void) | null;
+  withdrawing: boolean;
 }) {
   const [text, setText] = useState(card.answered ?? '');
   const unanswered = card.canAnswer && !card.answered;
@@ -89,6 +93,25 @@ function Card({ card, onAnswer, pending, canResolve, onResolve, onVoid }: {
         <p className="text-[10.5px] leading-[1.55] text-[var(--text-muted)] mt-[10px]">{card.criteria}</p>
       )}
 
+      {/* Withdrawing is not voiding: a void is a settlement and stays on the
+          record, and it is the only thing on offer once somebody has answered.
+          Until then a mistyped question can simply be taken back. */}
+      {onWithdraw && card.editable && card.canAnswer && (
+        <div className="mt-[12px]">
+          <button
+            type="button"
+            onClick={() => onWithdraw(card)}
+            disabled={withdrawing}
+            className="h-[32px] px-[12px] rounded-[9px] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] font-heading font-semibold text-[11px] disabled:opacity-50"
+          >
+            {withdrawing ? 'Withdrawing…' : 'Withdraw'}
+          </button>
+          <span className="ml-[9px] text-[10.5px] text-[var(--text-muted)]">
+            Nobody has answered yet, so this can still be taken back.
+          </span>
+        </div>
+      )}
+
       {canResolve && card.group === 'closed' && (
         <div className="flex gap-[8px] mt-[12px]">
           <button type="button" onClick={() => onResolve(card)} className="h-[38px] px-[14px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px]">Settle it</button>
@@ -115,6 +138,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
   const createQuestion = useCreateCustomQuestion(leagueId);
   const resolveQuestion = useResolveCustomQuestion(leagueId);
   const voidQuestion = useVoidCustomQuestion(leagueId);
+  const withdrawQuestion = useWithdrawCustomQuestion(leagueId);
 
   const sections = toQuestionSections(cards);
   const open = cards.filter(c => c.canAnswer);
@@ -237,9 +261,17 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
                       setFailed(null);
                       voidQuestion.mutate({ questionId: c.id, reason: 'Voided by an admin' }, {
                         onSuccess: () => router.refresh(),
-                        onError: () => setFailed('Voiding that question did not go through.'),
+                        onError: error => setFailed(failureMessage(error, 'Voiding that question did not go through.')),
                       });
                     }}
+                    withdrawing={withdrawQuestion.isPending && withdrawQuestion.variables === card.id}
+                    onWithdraw={canAdmin ? c => {
+                      setFailed(null);
+                      withdrawQuestion.mutate(c.id, {
+                        onSuccess: () => router.refresh(),
+                        onError: error => setFailed(failureMessage(error, 'Withdrawing that question did not go through.')),
+                      });
+                    } : null}
                   />
                 ))}
               </section>

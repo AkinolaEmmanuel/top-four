@@ -33,6 +33,8 @@ export interface QuestionCard {
   /** "closes Saturday 18:00" — the question's own deadline, not a fixed string. */
   deadlineLabel: string;
   canAnswer: boolean;
+  /** The API's own flag: true while nobody has answered, so it can be withdrawn. */
+  editable: boolean;
   /** The member's stored answer, as the raw id the choices compare against. */
   answered: string | undefined;
   /**
@@ -95,6 +97,7 @@ export function toQuestionCard(
   const deadline = new Date(question.deadlineAt);
 
   return {
+    editable: question.editable,
     id: question.id,
     title: question.questionText,
     criteria: question.resolutionCriteria,

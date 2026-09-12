@@ -95,6 +95,8 @@ export default async function LeagueOverviewPage({ params }: { params: { id: str
     homeCode: nextTask.homeTeam.code || nextTask.homeTeam.displayName.substring(0, 3).toUpperCase(),
     awayName: nextTask.awayTeam.displayName,
     awayCode: nextTask.awayTeam.code || nextTask.awayTeam.displayName.substring(0, 3).toUpperCase(),
+    homeLogo: nextTask.homeTeam.logoUrl,
+    awayLogo: nextTask.awayTeam.logoUrl,
     kickoffAt: nextAvailability?.kickoff?.at ?? null,
     answered: nextAvailability?.predictionCompleteness?.answered ?? 0,
     required: nextAvailability?.predictionCompleteness?.required ?? 0,
@@ -120,6 +122,8 @@ export default async function LeagueOverviewPage({ params }: { params: { id: str
       awayTeam: lastFinished.awayTeam.displayName,
       homeTeamCode: lastFinished.homeTeam.code || 'HOM',
       awayTeamCode: lastFinished.awayTeam.code || 'AWA',
+      homeTeamLogoUrl: lastFinished.homeTeam.logoUrl ?? null,
+      awayTeamLogoUrl: lastFinished.awayTeam.logoUrl ?? null,
       score: typeof score?.homeGoals === 'number' && typeof score?.awayGoals === 'number'
         ? { home: score.homeGoals, away: score.awayGoals } : undefined,
       pointsAwarded: settled.length > 0

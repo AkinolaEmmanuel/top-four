@@ -9,6 +9,8 @@ import { LineupPicker } from './LineupPicker';
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
 import { failureMessage } from '@/lib/api/failure';
 import { Breadcrumb } from '../Breadcrumb';
+import { TeamCrest } from '../TeamCrest';
+import { tintFor } from '@/lib/crest';
 import {
   carryLabelsFor, progressOf, toAnswerPayload, toCopySummaries,
   type CopyLeagueSummary, type FixtureAnswers, type FixtureMarket, type FixturePhase,
@@ -25,11 +27,6 @@ import { pluralise } from '@/lib/format';
  * scored on what the server kept, so showing them anything else is a lie.
  */
 
-const CLUB_TINTS: Record<string, string> = {
-  ARS: '#c8182f', CHE: '#1746a2', LIV: '#b7152b', TOT: '#17233d',
-  MCI: '#559ac7', EVE: '#153c85', MUN: '#d1262f', NEW: '#20242a',
-};
-const tintFor = (code: string) => CLUB_TINTS[code] || '#4b5563';
 
 /** The design lists a handful of names per market; the rest live in the picker. */
 const INLINE_PLAYERS = 3;
@@ -41,23 +38,6 @@ const HERO_COPY: Record<FixturePhase, [kicker: string, caption: string, blurb: s
   settled: ['PROVISIONAL', 'so far', 'Provisional until review closes. A voided market scores nothing for everyone.'],
 };
 
-function Crest({ logo, code, size }: { logo: string | null; code: string; size: number }) {
-  if (logo) {
-    return (
-      <span className="tf-crest relative overflow-hidden bg-white flex-none" style={{ width: size, height: Math.round(size * 1.08) }}>
-        <Image src={logo} alt="" fill sizes={`${size}px`} className="object-contain p-[3px]" />
-      </span>
-    );
-  }
-  return (
-    <span
-      className="tf-crest flex-none"
-      style={{ width: size, height: Math.round(size * 1.08), background: tintFor(code), fontSize: Math.round(size * 0.28) }}
-    >
-      {code}
-    </span>
-  );
-}
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -301,7 +281,7 @@ export function FixturePredictScreen({
 
             <div className="flex items-center gap-[14px] mt-[20px] md:max-w-[780px] md:mx-auto md:mt-[24px]">
               <div className="flex-1 flex items-center gap-[9px] min-w-0">
-                <Crest logo={homeLogo} code={homeCode} size={40} />
+                <TeamCrest code={homeCode} logoUrl={homeLogo} size={40} />
                 <span className="font-heading font-[650] text-[15px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate">{homeName}</span>
               </div>
               <span className={settledScore
@@ -311,7 +291,7 @@ export function FixturePredictScreen({
               </span>
               <div className="flex-1 flex items-center gap-[9px] justify-end min-w-0">
                 <span className="font-heading font-[650] text-[15px] md:text-[17px] leading-[1.15] tracking-[-0.3px] truncate text-right">{awayName}</span>
-                <Crest logo={awayLogo} code={awayCode} size={40} />
+                <TeamCrest code={awayCode} logoUrl={awayLogo} size={40} />
               </div>
             </div>
 
@@ -416,7 +396,7 @@ export function FixturePredictScreen({
                               return (
                                 <div key={code} className="flex-1 min-w-0">
                                   <div className="flex items-center gap-[7px] mb-[7px]">
-                                    <span className="tf-crest w-[18px] h-[19px] text-[6.5px] flex-none" style={{ background: tintFor(code) }}>{code}</span>
+                                    <TeamCrest code={code} logoUrl={code === homeCode ? homeLogo : awayLogo} size={18} />
                                     <span className="font-heading font-[650] text-[11px] truncate">{team}</span>
                                   </div>
                                   <div className="flex items-center gap-[6px]">
@@ -553,7 +533,7 @@ export function FixturePredictScreen({
                       onClick={() => market.side && setEditingLineup(market.side)}
                       className={`tf-tap w-full text-left flex items-center gap-[12px] p-[14px_var(--gutter)] md:px-[14px] md:rounded-[13px] md:border border-t border-[var(--surface-border)] ${index === lineupMarkets.length - 1 ? 'border-b md:border' : ''} ${(!isSet && editable && market.open) ? 'bg-[var(--surface-subtle)]' : ''}`}
                     >
-                      <span className="tf-crest w-[30px] h-[32px] text-[9px] flex-none" style={{ background: tintFor(code) }}>{code}</span>
+                      <TeamCrest code={code} logoUrl={code === homeCode ? homeLogo : awayLogo} size={30} />
                       <div className="flex-1 min-w-0">
                         <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px] truncate">{market.name}</div>
                         <div className={`text-[10.5px] mt-[3px] ${isSet ? 'text-[var(--text-muted)]' : (settled || !market.open) ? 'text-[var(--danger-text)]' : 'text-[var(--text-secondary)]'}`}>{sub}</div>

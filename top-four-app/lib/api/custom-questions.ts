@@ -111,6 +111,17 @@ export async function fetchDisclosedAnswers(leagueId: string, questionId: string
   return response.data;
 }
 
+/**
+ * Withdraw a question nobody has answered.
+ *
+ * Distinct from voiding, which is a settlement and stays on the record. This
+ * is the only way to undo a mistyped question, and it closes the moment the
+ * first member answers — the API answers 409 CUSTOM_QUESTION_FROZEN after that.
+ */
+export async function withdrawCustomQuestion(leagueId: string, questionId: string): Promise<void> {
+  await apiFetch<void>(`/leagues/${leagueId}/custom-questions/${questionId}`, { method: 'DELETE' });
+}
+
 export async function voidCustomQuestion(leagueId: string, questionId: string, reason: string): Promise<CustomQuestion> {
   const response = await apiFetch<Api<'CustomQuestionResponseDto'>>(`/leagues/${leagueId}/custom-questions/${questionId}/void`, {
     method: 'POST',

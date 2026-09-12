@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { TeamCrest } from '../TeamCrest';
+import { tintFor } from '@/lib/crest';
 import Image from 'next/image';
 import { groupByDay, stateLabel, type FixtureCounts, type FixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
 
@@ -11,11 +13,6 @@ import { groupByDay, stateLabel, type FixtureCounts, type FixtureRow, type Fixtu
  * the view being looked at is rendered, a window at a time.
  */
 
-const CLUB_TINTS: Record<string, string> = {
-  ARS: '#c8182f', CHE: '#1746a2', LIV: '#b7152b', TOT: '#17233d',
-  MCI: '#559ac7', EVE: '#153c85', MUN: '#d1262f', NEW: '#20242a',
-};
-const tintFor = (code: string) => CLUB_TINTS[code] || '#4b5563';
 
 /** Green once something landed, muted when nothing did or nothing is settled. */
 const stateTone = (state: FixtureRow['state'], view: FixtureView) => {
@@ -23,19 +20,6 @@ const stateTone = (state: FixtureRow['state'], view: FixtureView) => {
   return state === 'won' || state === 'part' ? 'text-[var(--success-text)]' : 'text-[var(--text-muted)]';
 };
 
-function Crest({ logo, code, size }: { logo: string | null; code: string; size: number }) {
-  const height = Math.round(size * 1.1);
-  if (logo) {
-    return (
-      <span className="tf-crest relative overflow-hidden bg-white flex-none" style={{ width: size, height }}>
-        <Image src={logo} alt={code} fill sizes={`${size}px`} className="object-contain p-[2px]" />
-      </span>
-    );
-  }
-  return (
-    <span className="tf-crest flex-none" style={{ background: tintFor(code), width: size, height, fontSize: Math.round(size * 0.32) }}>{code}</span>
-  );
-}
 
 function Row({ row, view }: { row: FixtureRow; view: FixtureView }) {
   return (
@@ -44,8 +28,8 @@ function Row({ row, view }: { row: FixtureRow; view: FixtureView }) {
       className="flex items-center gap-[11px] p-[13px_var(--gutter)] md:px-[8px] border-t border-[var(--surface-border)] last:border-b md:hover:bg-[var(--surface-subtle)] md:transition-colors"
     >
       <div className="flex flex-col gap-[3px] flex-none">
-        <Crest logo={row.homeLogo} code={row.homeCode} size={24} />
-        <Crest logo={row.awayLogo} code={row.awayCode} size={24} />
+        <TeamCrest code={row.homeCode} logoUrl={row.homeLogo} size={24} />
+        <TeamCrest code={row.awayCode} logoUrl={row.awayLogo} size={24} />
       </div>
 
       <div className="flex-1 min-w-0">

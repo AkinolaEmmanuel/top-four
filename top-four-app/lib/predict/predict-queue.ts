@@ -28,6 +28,8 @@ export interface PredictEntry {
   openLabel: string;
   homeCode: string | null;
   awayCode: string | null;
+  homeLogo: string | null;
+  awayLogo: string | null;
   href: string;
 }
 
@@ -78,6 +80,8 @@ export function toPredictEntry(task: PredictTask, nowMs: number): PredictEntry {
     openLabel: openCount > 0 ? pluralise(openCount, 'market') : 'Open',
     homeCode: isFixture ? task.homeTeam.code || task.homeTeam.displayName.substring(0, 3).toUpperCase() : null,
     awayCode: isFixture ? task.awayTeam.code || task.awayTeam.displayName.substring(0, 3).toUpperCase() : null,
+    homeLogo: isFixture ? task.homeTeam.logoUrl : null,
+    awayLogo: isFixture ? task.awayTeam.logoUrl : null,
     href: isFixture
       ? `/predict/fixture/${task.leagueFixtureId}?leagueId=${task.league.id}`
       : `/leagues/${task.league.id}/questions`,

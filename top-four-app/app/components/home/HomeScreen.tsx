@@ -5,6 +5,8 @@ import { timeUntilLabel } from '@/lib/format';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
+import { TeamCrest } from '../TeamCrest';
+import { tintFor } from '@/lib/crest';
 import type { HomeLeagueEntry, HomeQueueEntry, TeamIdentity } from '@/lib/home/home-data';
 
 /**
@@ -23,28 +25,7 @@ import type { HomeLeagueEntry, HomeQueueEntry, TeamIdentity } from '@/lib/home/h
 const URGENT_WITHIN_SECONDS = 15 * 60;
 
 /** Crest tints for teams the catalogue did not resolve a logo for. */
-const CLUB_TINTS: Record<string, string> = {
-  ARS: '#c8182f', CHE: '#1746a2', LIV: '#b7152b', TOT: '#17233d',
-  MCI: '#559ac7', EVE: '#153c85', MUN: '#d1262f', NEW: '#20242a',
-  PP: '#0879bf', OL: '#7f56d9', AL: '#0e7a5f',
-};
-const tintFor = (code: string) => CLUB_TINTS[code] || '#4b5563';
 
-function Crest({ team, size }: { team: TeamIdentity; size: number }) {
-  const height = Math.round(size * 1.06);
-  if (team.logoUrl) {
-    return (
-      <span className="tf-crest relative overflow-hidden bg-white flex-none" style={{ width: size, height }}>
-        <Image src={team.logoUrl} alt={team.code} fill sizes={`${size}px`} className="object-contain p-[3px]" />
-      </span>
-    );
-  }
-  return (
-    <span className="tf-crest flex-none" style={{ background: tintFor(team.code), width: size, height, fontSize: Math.round(size * 0.32) }}>
-      {team.code}
-    </span>
-  );
-}
 
 function formatRemaining(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -84,8 +65,8 @@ function QueueRow({ entry, nowMs }: { entry: HomeQueueEntry; nowMs: number }) {
     >
       {entry.home && entry.away ? (
         <div className="flex flex-col gap-[2px] flex-none">
-          <Crest team={entry.home} size={22} />
-          <Crest team={entry.away} size={22} />
+          <TeamCrest code={entry.home.code} logoUrl={entry.home.logoUrl} size={22} />
+          <TeamCrest code={entry.away.code} logoUrl={entry.away.logoUrl} size={22} />
         </div>
       ) : (
         <span className="tf-crest flex-none w-[22px] h-[24px] text-[8px]" style={{ background: 'var(--surface-border-strong)' }}>Q</span>
@@ -250,13 +231,13 @@ export function HomeScreen({
                 {next.home && next.away ? (
                   <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-[16px] md:gap-[22px] items-center mt-[14px] md:mt-[16px]">
                     <div className="flex items-center gap-[9px] md:gap-[11px] justify-end min-w-0">
-                      <Crest team={next.home} size={28} />
+                      <TeamCrest code={next.home.code} logoUrl={next.home.logoUrl} size={28} />
                       <span className="font-heading font-[650] text-[18px] md:text-[21px] leading-[1.15] tracking-[-0.4px] truncate">{next.home.name}</span>
                     </div>
                     <span className="font-heading font-semibold text-[10px] md:text-[11px] text-[var(--nav-text-faint)]">v</span>
                     <div className="flex items-center gap-[9px] md:gap-[11px] min-w-0">
                       <span className="font-heading font-[650] text-[18px] md:text-[21px] leading-[1.15] tracking-[-0.4px] truncate text-right">{next.away.name}</span>
-                      <Crest team={next.away} size={28} />
+                      <TeamCrest code={next.away.code} logoUrl={next.away.logoUrl} size={28} />
                     </div>
                   </div>
                 ) : (

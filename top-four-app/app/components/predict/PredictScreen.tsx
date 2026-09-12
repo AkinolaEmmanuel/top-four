@@ -1,4 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
+import { tintFor } from '@/lib/crest';
 import { MobileNav } from '../MobileNav';
 import { toPredictGroups, ALL_LEAGUES, type PredictEntry } from '@/lib/predict/predict-queue';
 
@@ -10,12 +12,20 @@ import { toPredictGroups, ALL_LEAGUES, type PredictEntry } from '@/lib/predict/p
  * alone, so the chips on a phone changed nothing.
  */
 
-const CLUB_TINTS: Record<string, string> = {
-  ARS: '#c8182f', CHE: '#1746a2', LIV: '#b7152b', TOT: '#17233d',
-  MCI: '#559ac7', EVE: '#153c85', MUN: '#d1262f', NEW: '#20242a',
-};
-const tintFor = (code: string) => CLUB_TINTS[code] || '#4b5563';
 
+
+function Mark({ code, logo }: { code: string | null; logo: string | null }) {
+  if (logo) {
+    return (
+      <span className="relative w-full h-[28px] md:h-[30px]">
+        <Image src={logo} alt={code ?? ''} fill sizes="30px" className="object-contain" />
+      </span>
+    );
+  }
+  return (
+    <span className="tf-crest w-full h-[28px] md:h-[30px] text-[8px]" style={{ background: tintFor(code ?? '') }}>{code}</span>
+  );
+}
 
 function Marks({ entry }: { entry: PredictEntry }) {
   if (entry.kind === 'custom_question') {
@@ -27,8 +37,8 @@ function Marks({ entry }: { entry: PredictEntry }) {
   }
   return (
     <div className="flex flex-col gap-[3px] flex-none w-[26px] md:w-[30px]">
-      <span className="tf-crest w-full h-[28px] md:h-[30px] text-[8px]" style={{ background: tintFor(entry.homeCode ?? '') }}>{entry.homeCode}</span>
-      <span className="tf-crest w-full h-[28px] md:h-[30px] text-[8px]" style={{ background: tintFor(entry.awayCode ?? '') }}>{entry.awayCode}</span>
+      <Mark code={entry.homeCode} logo={entry.homeLogo} />
+      <Mark code={entry.awayCode} logo={entry.awayLogo} />
     </div>
   );
 }
