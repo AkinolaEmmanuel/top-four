@@ -4,7 +4,6 @@ import { tintFor } from '@/lib/crest';
 import { timeUntilLabel } from '@/lib/format';
 import { MobileNav } from '../MobileNav';
 import { toPredictGroups, ALL_LEAGUES, type PredictEntry } from '@/lib/predict/predict-queue';
-import { pluralise } from '@/lib/format';
 
 /**
  * The to-do list — one component for both platforms.
@@ -109,7 +108,7 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
 }
 
 export function PredictScreen({
-  entries, leagues, league, totalEntries, horizon, openMarkets, laterMarkets, summary,
+  entries, leagues, league, totalEntries, weeks, openMarkets, summary,
   hasLeagues, showMoreHref,
 }: {
   /** The selected league's entries, already windowed. */
@@ -120,12 +119,10 @@ export function PredictScreen({
   league: string;
   /** Everything open in the current filter, which is what the counts say. */
   totalEntries: number;
-  /** Which slice `openMarkets` counts: the week's work, or — when the week has
-   *  none — everything, so the headline is never a misleading zero. */
-  horizon: 'week' | 'all';
+  /** How many weeks ahead the server was asked for, which is what the
+   *  headline counts and what the kicker names. */
+  weeks: number;
   openMarkets: number;
-  /** Markets past the horizon. Zero when the headline already counts them. */
-  laterMarkets: number;
   summary: string;
   hasLeagues: boolean;
   /** Null once the window covers the whole filter. */
@@ -171,18 +168,13 @@ export function PredictScreen({
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(14px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[20px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[26px]">
           <span className="tf-kicker text-[var(--nav-accent)]">
-            {horizon === 'week' ? 'OPEN THIS WEEK' : 'OPEN ACROSS EVERY LEAGUE'}
+            {weeks === 1 ? 'OPEN THIS WEEK' : `OPEN IN THE NEXT ${weeks} WEEKS`}
           </span>
           <div className="flex items-end gap-[10px] mt-[9px]">
             <span className="tf-num font-heading font-bold text-[46px] leading-[0.9] tracking-[-2px]">{openMarkets}</span>
-            <span className="text-[12px] text-[var(--nav-text-faint)] pb-[6px]">
-              {horizon === 'week' ? 'markets to answer' : 'markets still unanswered'}
-            </span>
+            <span className="text-[12px] text-[var(--nav-text-faint)] pb-[6px]">markets to answer</span>
           </div>
-          <div className="text-[11.5px] text-[var(--nav-text-faint)] mt-[8px]">
-            {summary}
-            {laterMarkets > 0 && ` · ${pluralise(laterMarkets, 'market')} open after that`}
-          </div>
+          <div className="text-[11.5px] text-[var(--nav-text-faint)] mt-[8px]">{summary}</div>
         </div>
       </header>
 
@@ -237,8 +229,14 @@ export function PredictScreen({
                 scroll={false}
                 className="tf-tap flex items-center justify-center h-[44px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]"
               >
-                Show more
-                <span className="ml-[7px] tf-num opacity-60">{entries.length} of {totalEntries}</span>
+                {entries.length >= totalEntries ? (
+                  <>Look a week further ahead</>
+                ) : (
+                  <>
+                    Show more
+                    <span className="ml-[7px] tf-num opacity-60">{entries.length} of {totalEntries}</span>
+                  </>
+                )}
               </Link>
             </div>
           )}

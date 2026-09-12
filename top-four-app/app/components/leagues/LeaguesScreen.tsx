@@ -45,7 +45,7 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
     <Link
       href={`/leagues/${entry.id}`}
       className={`tf-tap flex items-center gap-[12px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${isLast ? 'border-b' : ''}
-                  md:grid md:gap-[14px] md:p-[13px_16px] md:grid-cols-[34px_minmax(0,1fr)_96px_84px_84px_84px] md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
+                  md:grid md:gap-[14px] md:p-[13px_16px] md:grid-cols-[34px_minmax(0,1fr)_104px_112px_84px_92px] md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
       style={{ opacity: entry.isPast ? 0.62 : 1 }}
     >
       <span className="tf-crest w-[30px] h-[33px] md:text-[9px]" style={{ background: crestTint(entry.crest) }}>{entry.crest}</span>
@@ -64,12 +64,10 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
           {isPending ? 'Waiting on an admin to approve you' : (
             <>
               {entry.competitions}
-              {entry.unansweredCount > 0 && (
+              {!!entry.unansweredCount && (
                 <span className="md:hidden">
                   {entry.competitions ? ' · ' : ''}
-                  <span className="text-[var(--accent-text)] font-semibold tf-num">
-                    {entry.unansweredCount > 99 ? '99+' : entry.unansweredCount} to predict
-                  </span>
+                  <span className="text-[var(--accent-text)] font-semibold tf-num">{entry.unansweredCount} to predict</span>
                 </span>
               )}
             </>
@@ -87,9 +85,9 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
           something, and the reason the list is worth opening at all. Nothing
           owed reads as a dash rather than a zero. */}
       <span className="hidden md:block text-right">
-        {entry.unansweredCount > 0 ? (
+        {entry.unansweredCount ? (
           <span className="font-heading font-bold text-[11px] tf-num p-[3px_9px] rounded-[6px] bg-[var(--accent-surface)] text-[var(--accent-text)]">
-            {entry.unansweredCount > 99 ? '99+' : entry.unansweredCount}
+            {entry.unansweredCount}
           </span>
         ) : (
           <span className="tf-num text-[13px] text-[var(--text-muted)]">—</span>
@@ -116,7 +114,7 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
   );
 }
 
-function Section({ section }: { section: LeagueSection }) {
+function Section({ section, actionableDays }: { section: LeagueSection; actionableDays: number }) {
   return (
     <section className="mt-[18px] md:mt-[32px] md:first:mt-0">
       <div className="flex items-baseline gap-[8px] md:gap-[10px] p-[0_var(--gutter)_9px] md:p-[0_0_10px] md:border-b md:border-[var(--surface-border-strong)]">
@@ -125,11 +123,14 @@ function Section({ section }: { section: LeagueSection }) {
       </div>
 
       {/* Column headings belong to the wide layout only. */}
-      <div className="hidden md:grid gap-[14px] items-center p-[10px_16px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)] grid-cols-[34px_minmax(0,1fr)_96px_84px_84px_84px]">
+      <div className="hidden md:grid gap-[14px] items-center p-[10px_16px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)] grid-cols-[34px_minmax(0,1fr)_104px_112px_84px_92px]">
         <span />
         <span className="tf-kicker">League</span>
         <span className="tf-kicker text-right">Members</span>
-        <span className="tf-kicker text-right">To predict</span>
+        {/* The heading says the window, because the number is meaningless
+            without it — and it used to be the season's, which is why it read
+            "99+" in every real league. */}
+        <span className="tf-kicker text-right">To predict · {actionableDays}d</span>
         <span className="tf-kicker text-right">Position</span>
         <span className="tf-kicker text-right">Points</span>
       </div>
@@ -141,11 +142,13 @@ function Section({ section }: { section: LeagueSection }) {
   );
 }
 
-export function LeaguesScreen({ leagues, pendingRequests, limit = LEAGUE_LIMIT, used }: {
+export function LeaguesScreen({ leagues, pendingRequests, limit = LEAGUE_LIMIT, used, actionableDays }: {
   leagues: LeagueListItem[];
   pendingRequests: OwnPendingJoinRequest[];
   limit?: number;
   used: number;
+  /** The window "To predict" counts, so the column can say what it means. */
+  actionableDays: number;
 }) {
   const [filter, setFilter] = useState<string>('All');
 
@@ -237,7 +240,7 @@ export function LeaguesScreen({ leagues, pendingRequests, limit = LEAGUE_LIMIT, 
                 </div>
               )}
 
-              {sections.map(section => <Section key={section.key} section={section} />)}
+              {sections.map(section => <Section key={section.key} section={section} actionableDays={actionableDays} />)}
 
               <div className="p-[18px_var(--gutter)_26px] md:p-0 md:mt-[20px] text-[11px] leading-[1.55] text-[var(--text-muted)]">
                 Completed and cancelled leagues stay readable forever and never count towards the twenty. Only leagues still running use a place.

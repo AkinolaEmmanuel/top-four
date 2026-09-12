@@ -2210,6 +2210,7 @@ export interface components {
             standingVersion: number;
         };
         LeagueListItemResponseDto: {
+            actionableUnansweredCount: number | null;
             /** @description League-wide unanswered fixture slots, matching dashboard completeness; excludes custom questions. */
             unansweredCount: number;
             /** @description Active members, including the owner. */
@@ -2228,11 +2229,18 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        LeagueActionableWindowResponseDto: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+        };
         LeagueListResponseDto: {
             items: components["schemas"]["LeagueListItemResponseDto"][];
             unfinishedLeagueCount: number;
             /** @example 20 */
             unfinishedLeagueLimit: number;
+            actionableWindow: components["schemas"]["LeagueActionableWindowResponseDto"] | null;
             nextCursor: string | null;
         };
         LeaguePublicationSummaryResponseDto: {
@@ -3263,8 +3271,21 @@ export interface components {
             state: "upcoming" | "open";
             submissionAllowed: boolean;
         };
+        PredictionDeadlineWindowDto: {
+            /**
+             * Format: date-time
+             * @description Inclusive prediction-deadline boundary in UTC.
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description Exclusive prediction-deadline boundary in UTC.
+             */
+            to: string;
+        };
         PredictionTaskPageDto: {
             items: (components["schemas"]["FixturePredictionTaskDto"] | components["schemas"]["CustomQuestionPredictionTaskDto"])[];
+            deadlineWindow: components["schemas"]["PredictionDeadlineWindowDto"] | null;
             /** Format: date-time */
             serverTime: string;
             nextCursor: string | null;
@@ -4480,6 +4501,10 @@ export interface operations {
     LeagueController_list: {
         parameters: {
             query?: {
+                /** @description Inclusive actionable-prediction deadline. Requires to and an explicit timezone. */
+                from?: string;
+                /** @description Exclusive actionable-prediction deadline. Requires from and an explicit timezone. */
+                to?: string;
                 limit?: number;
                 /** @description Opaque cursor from a previous page. */
                 cursor?: string;
@@ -6695,6 +6720,10 @@ export interface operations {
                 supportedCompetitionId?: string;
                 /** @description Requires supportedCompetitionId and kind=fixture. */
                 roundId?: string;
+                /** @description Inclusive prediction-deadline boundary. Requires to and an explicit timezone. */
+                from?: string;
+                /** @description Exclusive prediction-deadline boundary. Requires from and an explicit timezone. */
+                to?: string;
                 limit?: number;
                 cursor?: string;
             };

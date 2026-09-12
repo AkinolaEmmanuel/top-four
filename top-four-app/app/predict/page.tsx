@@ -5,7 +5,7 @@ import {
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import {
-  openMarketCount, summaryLine, toPredictEntry, byDeadline, splitHorizon, ALL_LEAGUES,
+  openMarketCount, summaryLine, toPredictEntry, byDeadline, ALL_LEAGUES,
 } from '@/lib/predict/predict-queue';
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
@@ -19,9 +19,14 @@ import type { LeaguesPage } from '@/lib/api/leagues';
  * it counts as urgent — so a device with a wrong clock cannot move a fixture
  * between sections.
  *
- * The feed is the whole season and arrives in its own order, so it is sorted by
- * deadline before the row window is taken: forty rows of a five-hundred-row queue
- * are only useful if they are the forty that close first.
+ * The feed now takes a deadline window, so the read is the week rather than the
+ * season — 7 tasks instead of 470. The headline is the sum of what comes back,
+ * which is the same figure the leagues list shows per league over the same
+ * window; before the window existed the client scoped it after the fact and the
+ * whole season still crossed the wire to produce it.
+ *
+ * "Show more" widens the window by a week rather than adding rows, so the
+ * number above the queue and the rows beneath it always describe one span.
  */
 
 type TaskPage = Api<'PredictionTaskPageDto'>;
@@ -29,20 +34,37 @@ type TaskPage = Api<'PredictionTaskPageDto'>;
 /** The largest page the task feed allows, to keep the follow to few round-trips. */
 const TASK_PAGE_SIZE = 100;
 
+/** How far ahead the queue looks by default. */
+const QUEUE_DAYS = 7;
+
+/** A ceiling, so the URL cannot ask for the season back. */
+const MAX_WEEKS = 12;
+
+/** Whole seconds: the API validates both boundaries against a strict pattern. */
+function boundary(atMs: number): string {
+  return new Date(atMs).toISOString().replace(/\.\d+Z$/, 'Z');
+}
+
 /** Rows rendered per request; "Show more" widens this window. */
 const ROW_WINDOW = 40;
 
 export default async function PredictPage({
   searchParams,
 }: {
-  searchParams: { league?: string; show?: string };
+  searchParams: { league?: string; show?: string; weeks?: string };
 }) {
   let tasks: { items: PredictionTask[]; first: TaskPage };
   let leagues: LeaguesPage | null;
 
+  const askedWeeks = Number.parseInt(searchParams.weeks ?? '', 10);
+  const weeks = Number.isFinite(askedWeeks) && askedWeeks > 0 ? Math.min(askedWeeks, MAX_WEEKS) : 1;
+  const now = Date.now();
+  const window = `from=${encodeURIComponent(boundary(now))}`
+    + `&to=${encodeURIComponent(boundary(now + weeks * QUEUE_DAYS * 24 * 60 * 60 * 1000))}`;
+
   try {
     [tasks, leagues] = await Promise.all([
-      serverFetchAllPages<PredictionTask, TaskPage>(`/me/prediction-tasks?limit=${TASK_PAGE_SIZE}`),
+      serverFetchAllPages<PredictionTask, TaskPage>(`/me/prediction-tasks?limit=${TASK_PAGE_SIZE}&${window}`),
       serverFetchOrNull<LeaguesPage>('/leagues'),
     ]);
   } catch (error) {
@@ -51,8 +73,8 @@ export default async function PredictPage({
     throw error;
   }
 
-  const now = Date.parse(tasks.first.serverTime);
-  const entries = tasks.items.map(task => toPredictEntry(task, now)).sort(byDeadline);
+  const serverNow = Date.parse(tasks.first.serverTime);
+  const entries = tasks.items.map(task => toPredictEntry(task, serverNow)).sort(byDeadline);
 
   const leagueOptions = Array.from(
     new Map(entries.map(e => [e.leagueId, e.leagueName])).entries(),
@@ -72,15 +94,17 @@ export default async function PredictPage({
 
   const showMoreQuery = new URLSearchParams({
     ...(selected === ALL_LEAGUES ? {} : { league: selected }),
+    ...(weeks > 1 ? { weeks: String(weeks) } : {}),
     show: String(shown + ROW_WINDOW),
   });
 
-  /* The headline counts the part of the queue a member can act on — what closes
-     inside a week. A league whose season has not started has nothing in that
-     window, and a zero there would read as "you are done" when the opposite is
-     true, so in that case the headline widens to everything and says so. */
-  const { queue, later } = splitHorizon(filtered);
-  const horizon = queue.length > 0 ? 'week' : 'all';
+  /* Two different "more"s, as on the league fixtures list: more rows while the
+     window still holds some, then a wider window once it does not. */
+  const widerQuery = new URLSearchParams({
+    ...(selected === ALL_LEAGUES ? {} : { league: selected }),
+    weeks: String(weeks + 1),
+  });
+
 
   return (
     <PredictScreen
@@ -88,11 +112,12 @@ export default async function PredictPage({
       leagues={leagueOptions}
       league={selected}
       totalEntries={filtered.length}
-      showMoreHref={shown < filtered.length ? `/predict?${showMoreQuery}` : null}
-      horizon={horizon}
-      openMarkets={openMarketCount(horizon === 'week' ? queue : filtered)}
-      laterMarkets={horizon === 'week' ? openMarketCount(later) : 0}
-      summary={summaryLine(filtered, now)}
+      showMoreHref={shown < filtered.length
+        ? `/predict?${showMoreQuery}`
+        : weeks < MAX_WEEKS ? `/predict?${widerQuery}` : null}
+      weeks={weeks}
+      openMarkets={openMarketCount(filtered)}
+      summary={summaryLine(filtered, serverNow)}
       hasLeagues={(leagues?.items.length ?? 0) > 0}
     />
   );

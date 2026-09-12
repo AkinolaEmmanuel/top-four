@@ -32,13 +32,17 @@ export interface LeagueListEntry {
   isPast: boolean;
   memberCount: number;
   /**
-   * Fixture slots still unanswered in this league — the design's "To predict".
+   * What the member can actually answer in this league before the window ends —
+   * the design's "To predict".
    *
-   * The one figure that says which league needs the member next. It excludes
-   * custom questions, which the server counts separately, so the column is
-   * about fixtures only. Zero for a past or pending league, which owes nothing.
+   * The server counts only slots that are open and still submittable, so a
+   * locked or already-answered market never appears here. It is the same figure
+   * the Predict queue sums over the same window, and the two agree exactly.
+   *
+   * Null when the read asked for no window, which is the season-wide count's
+   * territory: a four-figure number that answers a different question.
    */
-  unansweredCount: number;
+  unansweredCount: number | null;
 }
 
 export interface LeagueSection {
@@ -85,7 +89,7 @@ export function toLeagueEntry(league: LeagueListItem): LeagueListEntry {
     points: league.ownStanding?.totalPoints ?? null,
     isPast: section === 'past',
     memberCount: league.memberCount,
-    unansweredCount: section === 'past' ? 0 : league.unansweredCount,
+    unansweredCount: section === 'past' ? 0 : league.actionableUnansweredCount,
   };
 }
 
