@@ -61,7 +61,11 @@ test('home shows the queue and its true size', async ({ page }) => {
   // because only the first page of the task feed was ever fetched. The wide
   // layout says it in the context bar and the narrow one on the "see all" link,
   // so this asserts the fact is on screen rather than where it sits.
-  const total = page.getByText(/\d+ waiting on you|SEE ALL \d+|Everything answered|Nothing else owed/);
+  // Filtered to what is actually on screen: both layouts render both forms, and
+  // the hidden one comes first in the DOM.
+  const total = page
+    .getByText(/\d+ waiting on you|SEE ALL \d+|Everything answered|Nothing else owed/)
+    .filter({ visible: true });
   await expect(total.first()).toBeVisible();
 
   // A bare clock time here reads as kickoff; the queue shows time remaining.
