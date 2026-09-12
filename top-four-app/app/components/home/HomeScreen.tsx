@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { timeUntilLabel } from '@/lib/format';
+import { timeUntilLabel, personInitials } from '@/lib/format';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
@@ -97,39 +97,36 @@ function QueueMark({ entry }: { entry: HomeQueueEntry }) {
 }
 
 function QueueRow({ entry, nowMs }: { entry: HomeQueueEntry; nowMs: number }) {
+  /* One row. The phone's stacked line and the wide table's columns are the same
+     element with `md:` on it — rendering both and hiding one put 40KB of this
+     screen into the document for a width nobody was looking at. */
   return (
-    <>
-      <Link
-        href={entry.href}
-        className="md:hidden flex items-center gap-[11px] py-[11px] border-b border-[var(--surface-border)] last:border-b-0"
-      >
-        <QueueMark entry={entry} />
-        <div className="flex-1 min-w-0">
-          <div className="font-heading font-semibold text-[12.5px] truncate">{entry.title}</div>
-          <div className="text-[9.5px] text-[var(--text-muted)] mt-[3px] truncate">
-            {entry.competition} · {entry.league}
-          </div>
-        </div>
-        <div className="text-right flex-none">
-          <div className="tf-num font-heading font-bold text-[12px]">{timeUntilLabel(entry.deadlineAt, nowMs)}</div>
-          <div className="tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{entry.openLabel}</div>
-        </div>
-      </Link>
+    <Link
+      href={entry.href}
+      className={`flex items-center gap-[11px] py-[11px] border-b border-[var(--surface-border)] last:border-b-0 ${QUEUE_GRID} md:gap-[14px] md:border-b-0 md:px-[10px] md:-mx-[10px] md:py-[13px] md:rounded-[10px] md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
+    >
+      <QueueMark entry={entry} />
 
-      <Link
-        href={entry.href}
-        className={`hidden ${QUEUE_GRID} px-[10px] -mx-[10px] py-[13px] rounded-[10px] hover:bg-[var(--surface-subtle)] transition-colors`}
-      >
-        <QueueMark entry={entry} />
-        <div className="min-w-0">
-          <div className="font-heading font-semibold text-[13.5px] tracking-[-0.2px] truncate">{entry.title}</div>
-          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.competition}</div>
+      <div className="flex-1 md:flex-none min-w-0">
+        <div className="font-heading font-semibold text-[12.5px] md:text-[13.5px] md:tracking-[-0.2px] truncate">{entry.title}</div>
+        <div className="text-[9.5px] md:text-[10.5px] text-[var(--text-muted)] mt-[3px] truncate">
+          <span className="md:hidden">{entry.competition} · {entry.league}</span>
+          <span className="hidden md:inline">{entry.competition}</span>
         </div>
-        <div className="text-[11.5px] text-[var(--text-secondary)] truncate">{entry.league}</div>
-        <div className="tf-num text-right font-heading font-bold text-[12px] text-[var(--text-link)]">{entry.openLabel}</div>
-        <div className="tf-num text-right font-heading font-bold text-[12px]">{timeUntilLabel(entry.deadlineAt, nowMs)}</div>
-      </Link>
-    </>
+      </div>
+
+      <div className="hidden md:block text-[11.5px] text-[var(--text-secondary)] truncate">{entry.league}</div>
+
+      <div className="text-right flex-none md:flex-auto">
+        <div className="md:hidden tf-num font-heading font-bold text-[12px]">{timeUntilLabel(entry.deadlineAt, nowMs)}</div>
+        <div className="md:hidden tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{entry.openLabel}</div>
+        <div className="hidden md:block tf-num font-heading font-bold text-[12px] text-[var(--text-link)]">{entry.openLabel}</div>
+      </div>
+
+      <div className="hidden md:block tf-num text-right font-heading font-bold text-[12px]">
+        {timeUntilLabel(entry.deadlineAt, nowMs)}
+      </div>
+    </Link>
   );
 }
 
@@ -228,7 +225,7 @@ export function HomeScreen({
             )}
           </Link>
           <Link href="/me" className="w-[36px] h-[36px] rounded-full bg-[var(--avatar-surface)] text-[var(--avatar-text)] grid place-items-center font-heading font-bold text-[11.5px]">
-            {displayName.substring(0, 2).toUpperCase() || 'U'}
+            {personInitials(displayName)}
           </Link>
         </div>
       </header>

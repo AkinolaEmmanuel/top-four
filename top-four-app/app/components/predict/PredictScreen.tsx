@@ -44,55 +44,43 @@ function Marks({ entry }: { entry: PredictEntry }) {
   );
 }
 
-/* Written out in full: Tailwind scans source text, so a `md:` class assembled
-   at runtime is one that never exists. */
-const TASK_ROW = 'md:flex md:items-center md:gap-[16px] md:px-[18px] md:py-[15px]';
-
 function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolean; nowMs: number }) {
   /* Time remaining, not a clock. A bare "15:30" in a queue reads as kick-off —
      the same defect as the Home hero once had. The helper falls back to a day
      and time past twenty-four hours, which is the design's own behaviour. */
   const deadline = timeUntilLabel(entry.deadlineAt, nowMs);
 
+  /* One row, not two. This used to render a phone layout and a wide layout and
+     hide one of them, which put half of this screen's markup — 322KB of it —
+     into the document for a width the reader is not on. The columns the width
+     earns appear with `md:`; nothing is duplicated to get them. */
   return (
-    <>
-      <Link
-        href={entry.href}
-        className={`md:hidden flex items-center gap-[13px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${isLast ? 'border-b' : ''} ${entry.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
-      >
-        <Marks entry={entry} />
-        <div className="flex-1 min-w-0">
-          <div className="font-heading font-semibold text-[13px] truncate">{entry.title}</div>
-          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
-        </div>
-        <div className="text-right flex-none">
-          <div className={`font-heading font-bold text-[13px] tf-num ${entry.urgent ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`}>{deadline}</div>
-          <div className="text-[10px] text-[var(--text-link)] mt-[3px] font-bold tf-num">{entry.openLabel}</div>
-        </div>
-      </Link>
+    <Link
+      href={entry.href}
+      className={`flex items-center gap-[13px] md:gap-[16px] p-[13px_var(--gutter)] md:px-[18px] md:py-[15px] border-t border-[var(--surface-border)] ${isLast ? 'border-b md:border-b' : ''} ${entry.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
+    >
+      <Marks entry={entry} />
 
-      {/* Width buys each fact its own column instead of a stacked pair.
-          The design also draws a progress bar here; the task feed carries what
-          is still missing but never the fixture's total, so there is nothing
-          honest to divide by — recorded rather than faked with a full bar. */}
-      <Link
-        href={entry.href}
-        className={`hidden ${TASK_ROW} border-t border-[var(--surface-border)] ${isLast ? 'md:border-b' : ''} ${entry.urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
-      >
-        <Marks entry={entry} />
-        <div className="flex-1 min-w-0">
-          <div className="font-heading font-semibold text-[14px] truncate">{entry.title}</div>
-          <div className="text-[11.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
-        </div>
-        <div className="w-[176px] flex-none text-[11.5px] text-[var(--text-secondary)]">{entry.openLabel} still open</div>
-        <span className={`w-[96px] flex-none text-right font-heading font-bold text-[13px] tf-num ${entry.urgent ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`}>
+      <div className="flex-1 min-w-0">
+        <div className="font-heading font-semibold text-[13px] md:text-[14px] truncate">{entry.title}</div>
+        <div className="text-[10.5px] md:text-[11.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
+      </div>
+
+      <span className="hidden md:block w-[176px] flex-none text-[11.5px] text-[var(--text-secondary)]">
+        {entry.openLabel} still open
+      </span>
+
+      <div className="text-right flex-none md:w-[96px]">
+        <div className={`font-heading font-bold text-[13px] tf-num ${entry.urgent ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`}>
           {deadline}
-        </span>
-        <span className="w-[66px] flex-none h-[31px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[11px]">
-          Answer
-        </span>
-      </Link>
-    </>
+        </div>
+        <div className="md:hidden text-[10px] text-[var(--text-link)] mt-[3px] font-bold tf-num">{entry.openLabel}</div>
+      </div>
+
+      <span className="hidden md:grid w-[66px] h-[31px] flex-none rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] place-items-center font-heading font-bold text-[11px]">
+        Answer
+      </span>
+    </Link>
   );
 }
 

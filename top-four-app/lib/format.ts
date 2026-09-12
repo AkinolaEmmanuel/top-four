@@ -64,3 +64,18 @@ export function lockLabel(deadlineAt: string, nowMs: number = Date.now()): strin
   const time = at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   return sameDay ? time : `${at.toLocaleDateString([], { weekday: 'short' })} ${time}`;
 }
+
+/**
+ * The two letters on someone's avatar.
+ *
+ * First letters of the first two words — "Kolade Amire" is KA, which is what
+ * the design draws and what anybody would write. Taking the first two
+ * characters instead gave KO, and five places were doing that while the
+ * standings and the account menu disagreed with each other.
+ */
+export function personInitials(name: string | null | undefined): string {
+  if (!name) return 'U';
+  const words = name.trim().split(/\s+/).filter(word => /[a-z0-9]/i.test(word));
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return name.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() || 'U';
+}

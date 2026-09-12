@@ -1,4 +1,5 @@
 import type { LeagueListItem, OwnPendingJoinRequest } from '@/lib/api/leagues';
+import { leagueInitials } from '@/lib/leagues/lifecycle';
 import { ordinal, pluralise } from '@/lib/format';
 
 /**
@@ -68,7 +69,7 @@ export function toLeagueEntry(league: LeagueListItem): LeagueListEntry {
   return {
     id: league.id,
     name: league.name,
-    crest: league.name.substring(0, 2).toUpperCase(),
+    crest: leagueInitials(league.name),
     competitions: league.competitions.map(c => c.displayName).join(', '),
     roleLabel: role === 'owner' ? 'Owner' : role === 'admin' ? 'Admin' : null,
     section,
@@ -84,7 +85,7 @@ export function toPendingEntry(request: OwnPendingJoinRequest): LeagueListEntry 
   return {
     id: request.leagueId,
     name: request.leagueName,
-    crest: request.leagueName.substring(0, 2).toUpperCase(),
+    crest: leagueInitials(request.leagueName),
     competitions: '',
     roleLabel: null,
     section: 'pending',

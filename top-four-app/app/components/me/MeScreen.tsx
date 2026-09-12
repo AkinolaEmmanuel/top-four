@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { personInitials } from '@/lib/format';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MobileNav } from '../MobileNav';
@@ -123,7 +124,7 @@ export function MeScreen({
       <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(16px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[22px] md:p-0 md:border-b md:border-[rgba(255,255,255,.1)]">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[26px] md:flex md:items-center md:gap-[20px]">
           <div className="w-[56px] h-[56px] rounded-full bg-[var(--avatar-surface)] text-[var(--avatar-text)] grid place-items-center font-heading font-bold text-[18px] flex-none">
-            {displayName.substring(0, 2).toUpperCase() || 'U'}
+            {personInitials(displayName)}
           </div>
           <div className="mt-[14px] md:mt-0 min-w-0">
             <div className="font-heading font-bold text-[24px] md:text-[26px] leading-[1] tracking-[-0.8px] truncate">{displayName || 'Your account'}</div>
@@ -146,9 +147,13 @@ export function MeScreen({
                   <span className="tf-kicker">Recent form</span>
                   {formLeagueName && <span className="text-[10.5px] text-[var(--text-muted)]">{formLeagueName}</span>}
                 </div>
-                <div className="flex items-end gap-[6px] h-[80px] md:h-[110px] mt-[14px]">
+                {/* A bar keeps a bar's width. With one settled day `flex-1`
+                    stretched it across the whole row, which reads as a loading
+                    block rather than a sparse history — so the row fills from
+                    the left and the bars stay the size of bars. */}
+                <div className="flex items-end justify-start gap-[6px] h-[80px] md:h-[110px] mt-[14px]">
                   {form.map((bar, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-[6px]">
+                    <div key={i} className="flex-1 max-w-[64px] flex flex-col items-center justify-end h-full gap-[6px]">
                       <div
                         className={`w-full rounded-t-[4px] ${bar.corrected ? 'bg-[var(--state-provisional)]' : 'bg-[var(--color-brand)]'}`}
                         style={{ height: `${Math.round((bar.points / peak) * 100)}%`, minHeight: bar.points > 0 ? 3 : 1 }}
@@ -159,7 +164,9 @@ export function MeScreen({
                   ))}
                 </div>
                 <p className="text-[10.5px] text-[var(--text-muted)] mt-[10px] leading-[1.5]">
-                  Points by day. A lighter bar is a day whose settlement was later corrected.
+                  {form.length === 1
+                    ? 'One day has settled so far. A lighter bar is a day whose settlement was later corrected.'
+                    : 'Points by day. A lighter bar is a day whose settlement was later corrected.'}
                 </p>
               </section>
             )}

@@ -55,10 +55,10 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
             </motion.div>
 
             <h2 className="max-w-sm text-3xl font-black leading-tight tracking-tight text-white uppercase font-heading">
-              Create a group. Join a group. Predict with friends.
+              Create a league. Join a league. Predict with friends.
             </h2>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400 font-sans">
-              Predict scorelines, standings, hot takes and let the table or the group settle every argument.
+              Predict scorelines, standings, hot takes and let the table settle every argument.
             </p>
           </div>
 

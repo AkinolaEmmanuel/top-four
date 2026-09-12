@@ -4,10 +4,7 @@ import { useState } from 'react';
 import { ApiError } from '@/lib/api/fetcher';
 import { useRouter } from 'next/navigation';
 import { useEstablishInvitationIntent, useConsumeInvitationIntent, useCancelJoinRequest, useMyLeagues, useLeaveAnyLeague } from '@/hooks/api/useLeagues';
-import { JoinLeagueMobile } from '@/app/components/leagues/JoinLeagueMobile';
-import { JoinLeagueDesktop } from '@/app/components/leagues/JoinLeagueDesktop';
-
-const CLUB: Record<string, string> = { PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f", SS: "#1746a2", FC: "#b7152b" };
+import { JoinLeagueScreen, JOIN_CODE_LENGTH, type JoinOutcome } from '@/app/components/leagues/JoinLeagueScreen';
 
 export default function JoinLeaguePage() {
   const router = useRouter();
@@ -24,58 +21,58 @@ export default function JoinLeaguePage() {
 
   const joinedLeagueName = joinedLeague?.name || joinedLeague?.league?.name || "Your league";
 
-  const OUTCOMES: any = {
+  /*
+   * What to tell a member, and what to leave out.
+   *
+   * Each of these used to carry a `note` explaining how the invitation system
+   * behaves behind the scenes — that an approved request survives the link
+   * being switched off, that the intent is held while an email is verified.
+   * None of it is something the reader can act on, and all of it was written
+   * from the API's point of view rather than theirs.
+   */
+  const OUTCOMES: Record<string, JoinOutcome> = {
     verify: {
-      tone: "var(--color-brand)", icon: "✉",
+      tone: "var(--color-brand)", icon: "\u2709",
       title: "Check your inbox",
-      body: "We sent a verification link. The account exists but is not verified yet, so you are not signed in and the join has not happened.",
+      body: "We sent a verification link. Open it and the join will finish.",
       secondary: "Resend the email", secondaryOff: true,
-      note: "The invitation is still held while you verify."
     },
     pending: {
-      tone: "var(--color-warning)", icon: "◷",
+      tone: "var(--color-warning)", icon: "\u25f7",
       title: "Your request is with the owner",
-      body: "This league approves every join by hand. We will tell you the moment somebody decides — until then you cannot see its fixtures or its table.",
+      body: "This league approves every join by hand. We will tell you the moment somebody decides.",
       primary: "Back to my leagues", secondary: "Withdraw the request",
-      note: "An approved request survives the invitation later being switched off or used up."
     },
     limit: {
       tone: "var(--color-danger)", icon: "!",
       title: "You are in twenty leagues already",
-      body: "Twenty unfinished leagues is the limit. Leagues that have finished do not count and stay in your history, so finishing or leaving one makes room.",
+      body: "Finished leagues do not count, so finishing or leaving one makes room.",
       list: true,
-      primary: "Choose one to leave",
-      note: "Nothing about this invitation is lost. Come back to the link once you have room."
+      primary: "Back to my leagues",
     },
     closed: {
-      tone: "var(--text-muted)", icon: "✕",
+      tone: "var(--text-muted)", icon: "\u2715",
       title: "This league is not taking anyone new",
-      body: "It is already under way and its rules do not allow joining late. That was fixed when the league was published, so it will not change this season.",
+      body: "It is already under way and its rules do not allow joining late.",
       primary: "Enter a different code",
-      note: "Ask whoever invited you whether they run another league you could join."
     },
     dead: {
-      tone: "var(--text-muted)", icon: "⊘",
+      tone: "var(--text-muted)", icon: "\u2298",
       title: "This invitation cannot be used",
-      body: "It has expired, been used up, or been withdrawn. For safety we do not say which, and nothing else about the league is revealed.",
-      primary: "Enter a code instead",
-      note: "Ask whoever invited you for a fresh link."
+      body: "It has expired, been used up, or been withdrawn. Ask whoever invited you for a fresh one.",
+      primary: "Enter a different code",
     },
     welcome: {
-      tone: "var(--color-success)", icon: "✓",
+      tone: "var(--color-success)", icon: "\u2713",
       title: `${joinedLeagueName} is yours to play`,
-      body: "You have joined the league. Fixtures and questions are ready for predictions.",
+      body: "Fixtures and questions are ready for predictions.",
       primary: "Start predicting",
-      note: "You are in. The next round of fixtures will be scored for you."
     }
   };
 
-  const MY_LEAGUES: [string, string, string, string, string, string][] = (myLeaguesData?.items || [])
-    .filter((l) => !['completed', 'archived', 'cancelled'].includes(l.lifecycleState))
-    .map((l) => {
-      const initials = l.name.substring(0, 2).toUpperCase();
-      return [l.name, l.competitions?.[0]?.displayName || 'League', 'Leave', CLUB[initials] || CLUB.PP, initials, l.id];
-    });
+  const MY_LEAGUES = (myLeaguesData?.items || [])
+    .filter(l => !['completed', 'archived', 'cancelled'].includes(l.lifecycleState))
+    .map(l => ({ id: l.id, name: l.name, competition: l.competitions?.[0]?.displayName || 'League' }));
 
   const handleLeaveLeague = (leagueId: string) => {
     if (leaveAnyLeague.isPending) return;
@@ -118,7 +115,7 @@ export default function JoinLeaguePage() {
   const leagueName = concealed ? "This invitation" : (byCode ? "Which league?" : joinedLeagueName);
 
   const handleJoinCode = () => {
-    if (inviteCode.length !== 10 || establishIntent.isPending || consumeIntent.isPending) return;
+    if (inviteCode.length !== JOIN_CODE_LENGTH || establishIntent.isPending || consumeIntent.isPending) return;
     establishIntent.mutate({ joinCode: inviteCode }, {
       onSuccess: (preview) => {
         consumeIntent.mutate(undefined, {
@@ -161,38 +158,24 @@ export default function JoinLeaguePage() {
     });
   };
 
-  const sharedProps = {
-    leagueName,
-    concealed,
-    byCode,
-    chromeRight,
-    joined,
-    dead,
-    INVITE,
-    facts,
-    tags,
-    onOutcome,
-    outcome,
-    setOutcome,
-    o,
-    inviteCode,
-    setInviteCode,
-    joinLeaguePending: establishIntent.isPending || consumeIntent.isPending,
-    secondaryAction: outcome === 'pending' ? handleWithdrawRequest : undefined,
-    onJoinCode: handleJoinCode,
-    onNavigateHome: handleNavigateHome,
-    onLeaveLeague: handleLeaveLeague,
-    MY_LEAGUES
-  };
+  const detail = outcome ? OUTCOMES[outcome] ?? null : null;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden h-[100dvh]">
-        <JoinLeagueMobile {...sharedProps} />
-      </div>
-      <div className="hidden md:flex flex-col flex-1 overflow-hidden h-full">
-        <JoinLeagueDesktop {...sharedProps} />
-      </div>
-    </div>
+    <JoinLeagueScreen
+      outcome={outcome}
+      detail={detail}
+      inviteCode={inviteCode}
+      setInviteCode={setInviteCode}
+      pending={establishIntent.isPending || consumeIntent.isPending}
+      onJoinCode={handleJoinCode}
+      onPrimary={() => {
+        if (outcome === 'welcome') { router.push(joinedLeague?.id ? `/leagues/${joinedLeague.id}` : '/home'); return; }
+        if (outcome === 'closed' || outcome === 'dead') { setOutcome(null); setInviteCode(''); return; }
+        handleNavigateHome();
+      }}
+      onSecondary={outcome === 'pending' ? handleWithdrawRequest : undefined}
+      onLeaveLeague={handleLeaveLeague}
+      myLeagues={MY_LEAGUES}
+    />
   );
 }

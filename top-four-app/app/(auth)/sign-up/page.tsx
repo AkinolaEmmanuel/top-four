@@ -74,7 +74,7 @@ function SignupForm() {
     <AuthShell
       eyebrow="Get started"
       title="Create your account"
-      subtitle="Next you'll create a room, join one, or go global."
+      subtitle="Next you'll create a league or join one with a code."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1.5">

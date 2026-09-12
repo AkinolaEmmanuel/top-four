@@ -1,6 +1,6 @@
 import type { Api } from '@/lib/api/types';
 import { identityTint } from './league-overview';
-import { ordinal } from '@/lib/format';
+import { ordinal, personInitials } from '@/lib/format';
 
 /**
  * The league admin screen's facts, shaped once on the server.
@@ -95,7 +95,7 @@ export function toAdminMembers(
       membershipId: member.id,
       userId: member.userId,
       name,
-      initials: name.substring(0, 2).toUpperCase(),
+      initials: personInitials(name),
       role: member.role,
       roleLabel: member.role.charAt(0).toUpperCase() + member.role.slice(1),
       tint: identityTint(member.id),

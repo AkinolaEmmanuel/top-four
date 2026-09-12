@@ -1,5 +1,6 @@
 import { landedAnswerFor } from './fixture-predict';
 import { MARKET_LABELS } from '@/lib/constants/markets';
+import { personInitials } from '@/lib/format';
 import type { Api } from '@/lib/api/types';
 import type { MemberMarketResult } from '@/lib/api/predictions-fixture';
 
@@ -108,12 +109,6 @@ function landedInWords(
   return null;
 }
 
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase() || '··';
-}
-
 /**
  * One member's answer to one market, in words.
  *
@@ -182,7 +177,7 @@ export function toMemberAnswers(
       membershipId: member.membershipId,
       position: member.position,
       name: member.displayName,
-      initials: initialsOf(member.displayName),
+      initials: personInitials(member.displayName),
       isViewer: member.isViewer,
       answer,
       landed,

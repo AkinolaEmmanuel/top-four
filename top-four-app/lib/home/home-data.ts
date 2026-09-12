@@ -1,4 +1,5 @@
 import type { Api } from '@/lib/api/types';
+import { leagueInitials } from '@/lib/leagues/lifecycle';
 import type { LeagueListItem } from '@/lib/api/leagues';
 import { ordinal, pluralise } from '@/lib/format';
 
@@ -92,7 +93,7 @@ export function toHomeLeague(league: LeagueListItem): HomeLeagueEntry {
   return {
     id: league.id,
     name: league.name,
-    crest: league.name.substring(0, 2).toUpperCase(),
+    crest: leagueInitials(league.name),
     competition: league.competitions[0]?.displayName || 'League',
     standing: league.ownStanding ? ordinal(league.ownStanding.position) : null,
     points: league.ownStanding ? pluralise(league.ownStanding.totalPoints, 'pt') : null,

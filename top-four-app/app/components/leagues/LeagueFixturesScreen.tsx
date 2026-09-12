@@ -28,99 +28,73 @@ const stateTone = (state: FixtureRow['state'], view: FixtureView) => {
  * Upcoming and results answer different questions, so the design gives them
  * different columns rather than one compromise set that suits neither.
  */
-const GRID = 'grid grid-cols-[104px_minmax(0,1fr)_78px_minmax(0,330px)_88px_84px] gap-[16px] items-center';
+const GRID_MD = 'md:grid md:grid-cols-[104px_minmax(0,1fr)_78px_minmax(0,330px)_88px_84px] md:items-center';
 
 const HEADS: Record<FixtureView, [string, string, string]> = {
   upcoming: ['Kick-off', 'Your answers', 'Locks in'],
   results: ['Score', 'What landed', 'Points'],
 };
 
-function StatePill({ row, view }: { row: FixtureRow; view: FixtureView }) {
-  return (
-    <span
-      className={`inline-flex items-center justify-self-start h-[19px] px-[7px] rounded-[4px] font-heading font-bold text-[8.5px] tracking-[0.06em] flex-none ${stateTone(row.state, view)}`}
-      style={{ background: 'var(--surface-subtle)' }}
-    >
-      {stateLabel(row.state, view).toUpperCase()}
-    </span>
-  );
-}
-
-/** Wide screens: one row of the table. */
-function TableRow({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: number }) {
+/**
+ * One fixture, one element.
+ *
+ * The phone stacks the crests beside the names and folds progress and deadline
+ * into the right edge; the width gives each its own column. Rendering both and
+ * hiding one put 328KB — half this screen's markup — into the document for a
+ * width the reader is not on.
+ */
+function Row({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: number }) {
   const urgent = view === 'upcoming' && row.state === 'open';
   return (
     <Link
       href={row.href}
-      className={`${GRID} py-[14px] px-[4px] border-b border-[var(--surface-border)] hover:bg-[var(--surface-subtle)] transition-colors ${urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
+      className={`flex items-center gap-[11px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] last:border-b ${GRID_MD} md:gap-[16px] md:py-[14px] md:px-[4px] md:border-t-0 md:border-b md:last:border-b md:hover:bg-[var(--surface-subtle)] md:transition-colors ${urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
     >
-      <StatePill row={row} view={view} />
+      <span className="hidden md:inline-flex items-center justify-self-start h-[19px] px-[7px] rounded-[4px] font-heading font-bold text-[8.5px] tracking-[0.06em] flex-none bg-[var(--surface-subtle)]">
+        <span className={stateTone(row.state, view)}>{stateLabel(row.state, view).toUpperCase()}</span>
+      </span>
 
-      <div className="min-w-0 flex items-center gap-[10px]">
+      <div className="flex items-center gap-[11px] md:gap-[10px] min-w-0 flex-1 md:flex-none">
         <div className="flex flex-col gap-[3px] flex-none">
-          <TeamCrest code={row.homeCode} logoUrl={row.homeLogo} size={20} />
-          <TeamCrest code={row.awayCode} logoUrl={row.awayLogo} size={20} />
+          <TeamCrest code={row.homeCode} logoUrl={row.homeLogo} size={22} />
+          <TeamCrest code={row.awayCode} logoUrl={row.awayLogo} size={22} />
         </div>
         <div className="min-w-0">
-          <div className="font-heading font-semibold text-[13px] tracking-[-0.1px] truncate">{row.homeName}</div>
-          <div className="font-heading font-semibold text-[13px] tracking-[-0.1px] truncate mt-[3px]">{row.awayName}</div>
+          <div className="font-heading font-semibold text-[13px] md:text-[13px] md:tracking-[-0.1px] truncate">{row.homeName}</div>
+          <div className="font-heading font-semibold text-[13px] md:tracking-[-0.1px] truncate mt-[4px] md:mt-[3px]">{row.awayName}</div>
         </div>
       </div>
 
-      <div className={view === 'results'
-        ? 'text-center font-heading font-bold text-[15px] tracking-[-0.4px] tf-num'
-        : 'text-center font-heading font-semibold text-[12px] text-[var(--text-muted)] tf-num'}>
+      <div className={`flex-none text-center min-w-[54px] md:min-w-0 ${view === 'results'
+        ? 'font-heading font-bold text-[15px] tracking-[-0.4px] tf-num'
+        : 'font-heading font-semibold text-[12px] text-[var(--text-muted)] tf-num'}`}>
         {row.middle}
       </div>
 
-      <div className="text-[11.5px] text-[var(--text-secondary)] truncate">
+      <div className="hidden md:block text-[11.5px] text-[var(--text-secondary)] truncate">
         {view === 'upcoming' ? (row.progress ?? '—') : (row.note ?? '—')}
       </div>
 
-      <div className={view === 'results'
-        ? `text-right font-heading font-bold text-[14px] tf-num ${row.points && row.points !== '0' ? 'text-[var(--success-text)]' : 'text-[var(--text-muted)]'}`
-        : `text-right font-heading font-semibold text-[12px] tf-num ${urgent ? 'text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>
-        {view === 'results'
-          ? (row.points ?? '—')
-          : (row.deadlineAt ? timeUntilLabel(row.deadlineAt, nowMs) : '—')}
+      <div className={`flex-none text-right min-w-[92px] md:min-w-0 ${view === 'results'
+        ? `font-heading font-bold text-[14px] tf-num ${row.points && row.points !== '0' ? 'md:text-[var(--success-text)]' : 'md:text-[var(--text-muted)]'}`
+        : `font-heading font-semibold text-[12px] tf-num ${urgent ? 'md:text-[var(--accent-text-strong)]' : 'md:text-[var(--text-secondary)]'}`}`}>
+        <span className="md:hidden block text-[10.5px] font-normal">
+          <span className={stateTone(row.state, view)}>{stateLabel(row.state, view)}</span>
+        </span>
+        <span className="md:hidden block mt-[3px]">{view === 'results' ? (row.points ?? '') : ''}</span>
+        <span className="hidden md:block">
+          {view === 'results'
+            ? (row.points ?? '—')
+            : (row.deadlineAt ? timeUntilLabel(row.deadlineAt, nowMs) : '—')}
+        </span>
       </div>
 
-      <span className="text-right font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)]">
-        {view === 'results' ? 'REVIEW' : 'ANSWER'}
+      {/* A fixture that has kicked off but is not yet marked finished stays in
+          Upcoming with every market locked. Offering "answer" there sends the
+          reader to a screen with nothing to press. */}
+      <span className={`hidden md:block text-right font-heading font-bold text-[10px] tracking-[0.05em] ${urgent || row.state === 'ready' ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)]'}`}>
+        {view === 'results' ? 'REVIEW' : row.deadlineAt ? 'ANSWER' : 'VIEW'}
       </span>
-    </Link>
-  );
-}
-
-/** Phones: the same fixture as one tappable line. */
-function Row({ row, view }: { row: FixtureRow; view: FixtureView }) {
-  return (
-    <Link
-      href={row.href}
-      className="flex items-center gap-[11px] p-[13px_var(--gutter)] md:px-[8px] border-t border-[var(--surface-border)] last:border-b md:hover:bg-[var(--surface-subtle)] md:transition-colors"
-    >
-      <div className="flex flex-col gap-[3px] flex-none">
-        <TeamCrest code={row.homeCode} logoUrl={row.homeLogo} size={24} />
-        <TeamCrest code={row.awayCode} logoUrl={row.awayLogo} size={24} />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="font-heading font-semibold text-[13px] md:text-[14px] truncate">{row.homeName}</div>
-        <div className="font-heading font-semibold text-[13px] md:text-[14px] truncate mt-[4px]">{row.awayName}</div>
-      </div>
-
-      <div className="flex-none text-center min-w-[54px]">
-        <div className={view === 'results'
-          ? 'font-heading font-bold text-[15px] tracking-[-0.4px] tf-num'
-          : 'font-heading font-semibold text-[12px] text-[var(--text-muted)] tf-num'}>
-          {row.middle}
-        </div>
-      </div>
-
-      <div className="flex-none text-right min-w-[92px] hidden sm:block">
-        <div className={`text-[10.5px] ${stateTone(row.state, view)}`}>{stateLabel(row.state, view)}</div>
-        {row.points && <div className="tf-num font-heading font-bold text-[13px] mt-[3px]">{row.points}</div>}
-      </div>
     </Link>
   );
 }
@@ -212,7 +186,7 @@ export function LeagueFixturesScreen({
             days.map((day, dayIndex) => (
               <section key={day.label} className="mt-[18px] md:mt-[24px]">
                 {dayIndex === 0 && (
-                  <div className={`hidden md:grid ${GRID.replace('grid ', '')} px-[4px] pb-[8px] border-b border-[var(--surface-border-strong)] mb-[6px]`}>
+                  <div className={`hidden ${GRID_MD} md:gap-[16px] px-[4px] pb-[8px] border-b border-[var(--surface-border-strong)] mb-[6px]`}>
                     <span className="tf-kicker">State</span>
                     <span className="tf-kicker">Fixture</span>
                     <span className="tf-kicker text-center">{HEADS[view][0]}</span>
@@ -224,12 +198,7 @@ export function LeagueFixturesScreen({
                 <div className="p-[0_var(--gutter)_9px] md:px-0 md:pb-[10px] md:border-b md:border-[var(--surface-border-strong)]">
                   <span className="tf-kicker text-[var(--text-muted)] md:text-[13px] md:tracking-[-0.1px] md:normal-case md:font-bold md:text-[var(--text-primary)]">{day.label}</span>
                 </div>
-                <div className="hidden md:block">
-                  {day.rows.map(row => <TableRow key={row.id} row={row} view={view} nowMs={nowMs} />)}
-                </div>
-                <div className="md:hidden">
-                  {day.rows.map(row => <Row key={row.id} row={row} view={view} />)}
-                </div>
+                {day.rows.map(row => <Row key={row.id} row={row} view={view} nowMs={nowMs} />)}
               </section>
             ))
           )}

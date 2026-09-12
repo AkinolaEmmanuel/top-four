@@ -1,7 +1,7 @@
 import type { Api } from '@/lib/api/types';
 import type { FixtureResultsResponse } from '@/lib/api/predictions-fixture';
 import { MARKET_LABELS } from '@/lib/constants/markets';
-import { ordinal } from '@/lib/format';
+import { ordinal, personInitials } from '@/lib/format';
 
 /**
  * The league overview's facts, shaped once on the server.
@@ -102,7 +102,7 @@ export function toStandingRows(
       membershipId: entry.membershipId,
       position: entry.position,
       name,
-      initials: name.substring(0, 2).toUpperCase(),
+      initials: personInitials(name),
       points: entry.totalPoints,
       tint: identityTint(entry.membershipId),
       isYou,

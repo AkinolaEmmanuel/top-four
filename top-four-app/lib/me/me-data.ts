@@ -1,4 +1,5 @@
 import type { Api } from '@/lib/api/types';
+import { leagueInitials } from '@/lib/leagues/lifecycle';
 import type { LeagueListItem } from '@/lib/api/leagues';
 import { ordinal, pluralise } from '@/lib/format';
 
@@ -56,7 +57,7 @@ export function toMeLeagueRow(league: LeagueListItem): MeLeagueRow {
   return {
     id: league.id,
     name: league.name,
-    crest: league.name.substring(0, 2).toUpperCase(),
+    crest: leagueInitials(league.name),
     meta: league.ownStanding
       ? `${ordinal(league.ownStanding.position)} of ${pluralise(league.memberCount, 'member')}`
       : league.competitions[0]?.displayName ?? 'No standing yet',

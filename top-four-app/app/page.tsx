@@ -77,7 +77,7 @@ function LoginForm() {
   return (
     <AuthShell
       eyebrow="Welcome back"
-      title="Sign in to your group"
+      title="Sign in to your league"
       subtitle="Enter your details to get back to the leaderboard."
     >
       <form onSubmit={handleSubmit} className="space-y-5">

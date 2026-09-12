@@ -28,7 +28,13 @@ export function lifecycleBadge(state: string): LifecycleBadge {
   };
 }
 
-/** Three letters for the chrome's crest tile, from the league's own name. */
+/**
+ * The two letters on a league's crest tile.
+ *
+ * The one rule, used everywhere a league is drawn — the chrome, the list, Home,
+ * Me and a pending request. Initials beat the first two characters: "Kolade &
+ * Friends League" is KF, not KO, and a member should not meet both.
+ */
 export function leagueInitials(name: string): string {
   const words = name.split(/\s+/).filter(w => /[a-z0-9]/i.test(w));
   if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();

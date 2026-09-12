@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { personInitials } from '@/lib/format';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
@@ -77,7 +78,7 @@ export function DesktopLevelOne() {
 
       <Link href="/me" className="flex items-center gap-[8px] p-[4px_11px_4px_4px] rounded-full bg-[var(--nav-fill)] flex-none cursor-pointer hover:bg-[rgba(255,255,255,0.15)] transition-colors">
         <div className="w-[26px] h-[26px] rounded-full bg-[var(--avatar-surface)] text-[var(--avatar-text)] grid place-items-center font-heading font-bold text-[10px]">
-          {user?.displayName?.substring(0, 2).toUpperCase() || 'U'}
+          {personInitials(user?.displayName)}
         </div>
         <span className="font-heading font-semibold text-[11.5px]">{user?.displayName || 'User'}</span>
         <span className="text-[9px] text-[var(--nav-text-faint)]">▼</span>
