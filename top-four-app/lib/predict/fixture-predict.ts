@@ -311,18 +311,34 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
  * to imply it: a market whose answer does not carry the expected shape is left
  * unhydrated instead of writing `undefined` into the form.
  */
+/**
+ * One stored answer, read into the vocabulary the controls compare against.
+ *
+ * The wire shape is not the control shape — an exact score arrives as
+ * `{homeGoals, awayGoals}` and the steppers hold a pair — so anything reading a
+ * stored answer back has to come through here. The edit trail reads revisions
+ * rather than the current answer and was rendering every one of them as
+ * "No answer" until it did.
+ */
+export function readStoredAnswer(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') return undefined;
+  const answer = value as Record<string, unknown>;
+  if ('outcome' in answer) return answer.outcome;
+  if ('homeGoals' in answer) return [answer.homeGoals, answer.awayGoals];
+  if ('bothScore' in answer) return answer.bothScore ? 'yes' : 'no';
+  if ('selection' in answer) return answer.selection;
+  if ('playerId' in answer) return answer.playerId;
+  return undefined;
+}
+
 export function hydrateAnswers(predictions: OwnFixturePredictions | null): FixtureAnswers {
   if (!predictions) return {};
   const answers: FixtureAnswers = {};
 
   for (const slot of predictions.markets) {
     if (!slot.answer) continue;
-    const value = slot.answer.value;
-    if ('outcome' in value) answers.match_result = value.outcome;
-    else if ('homeGoals' in value) answers.exact_score = [value.homeGoals, value.awayGoals];
-    else if ('bothScore' in value) answers.both_teams_to_score = value.bothScore ? 'yes' : 'no';
-    else if ('selection' in value) answers.total_goals = value.selection;
-    else if ('playerId' in value) answers[slot.marketType] = value.playerId;
+    const read = readStoredAnswer(slot.answer.value);
+    if (read !== undefined) answers[slot.marketType] = read;
   }
 
   if (predictions.lineups.home) answers.home_lineup = predictions.lineups.home.answer.value.playerIds;

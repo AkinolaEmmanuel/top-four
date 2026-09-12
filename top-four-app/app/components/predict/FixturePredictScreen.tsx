@@ -9,6 +9,7 @@ import { LineupPicker } from './LineupPicker';
 import { PlayerPickerPanel } from './PlayerPickerPanel';
 import { MARKET_TYPE, type PickerMarket, type PickerSquad } from '@/lib/predict/player-picker';
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
+import { usePredictionHistory } from '@/hooks/api/usePredictionHistory';
 import { failureMessage } from '@/lib/api/failure';
 import { lockLabel } from '@/lib/format';
 import { Breadcrumb } from '../Breadcrumb';
@@ -18,7 +19,7 @@ import { useTeamColours } from '@/hooks/useTeamColours';
 import {
   carryLabelsFor, progressOf, toAnswerPayload, toCopySummaries,
   type CopyLeagueSummary, type FixtureAnswers, type FixtureMarket, type FixturePhase,
-  answerLabelFor,
+  answerLabelFor, readStoredAnswer,
 } from '@/lib/predict/fixture-predict';
 import type { StandardAnswerValue } from '@/lib/api/predictions-fixture';
 import { pluralise } from '@/lib/format';
@@ -96,6 +97,7 @@ export function FixturePredictScreen({
   const [failed, setFailed] = useState<Record<string, string>>({});
   const [editingLineup, setEditingLineup] = useState<'home' | 'away' | null>(null);
   const [pickingPlayers, setPickingPlayers] = useState<PickerMarket | null>(null);
+  const [openTrail, setOpenTrail] = useState<string | null>(null);
   const [copyView, setCopyView] = useState<'closed' | 'confirm' | 'done'>('closed');
   const [copyReport, setCopyReport] = useState<CopyLeagueSummary[] | null>(null);
   const [now, setNow] = useState(() => Date.parse(serverTime));
@@ -583,6 +585,18 @@ export function FixturePredictScreen({
                     </div>
 
                   </div>
+
+                  {/* The edit trail. Reached from every phase including after
+                      settlement, which is exactly when a member disputing a
+                      score reaches for it. */}
+                  <EditTrail
+                    leagueId={leagueId}
+                    fixtureId={fixtureId}
+                    market={market}
+                    version={marketVersions[market.marketType] ?? 0}
+                    open={openTrail === market.key}
+                    onToggle={() => setOpenTrail(openTrail === market.key ? null : market.key)}
+                  />
                 </div>
               );
             })}
@@ -900,6 +914,66 @@ function PlayerChoices({ market, picked, settled, locked, canAnswer, onPick }: {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Every answer this member has given to one market, newest first.
+ *
+ * Only the top line counted. Earlier answers are kept so a score can be
+ * checked, never re-scored — which is why this stays available after
+ * settlement rather than disappearing with the controls.
+ */
+function EditTrail({ leagueId, fixtureId, market, version, open, onToggle }: {
+  leagueId: string;
+  fixtureId: string;
+  market: FixtureMarket;
+  /** The stored version: N revisions means N − 1 edits. */
+  version: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const history = usePredictionHistory(leagueId, fixtureId, open ? market.marketType : null);
+  const edits = Math.max(0, version - 1);
+
+  return (
+    <div className="px-[var(--gutter)] md:px-0 pb-[14px] md:pb-0 md:pt-[10px]">
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={edits === 0}
+        className={`font-heading font-semibold text-[10.5px] ${edits > 0 ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)] cursor-default'}`}
+      >
+        {edits === 0 ? 'Never changed' : open ? 'Hide edits' : `Edited ${edits}×`}
+      </button>
+
+      {open && (
+        <div className="mt-[9px] border-t border-[var(--surface-border)] pt-[10px]">
+          {history.isPending && <p className="text-[10.5px] text-[var(--text-muted)]">Reading the trail…</p>}
+          {history.isError && (
+            <p role="alert" className="text-[10.5px] text-[var(--danger-text)]">
+              {failureMessage(history.error, 'Could not read the edits.')}
+            </p>
+          )}
+          {history.data?.revisions.map((revision, i) => (
+            <div key={revision.revisionId} className="flex items-baseline gap-[11px] py-[7px]">
+              <span
+                className="w-[7px] h-[7px] rounded-full flex-none"
+                style={{ background: i === 0 ? 'var(--color-brand)' : 'var(--surface-border-strong)' }}
+              />
+              <span className={`text-[12px] ${i === 0 ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+                {answerLabelFor(market, readStoredAnswer((revision.answer as { value?: unknown }).value)) ?? 'No answer'}
+              </span>
+            </div>
+          ))}
+          {history.data && (
+            <p className="text-[10px] leading-[1.6] text-[var(--text-muted)] mt-[6px]">
+              Only the top line counted. Earlier answers are kept so a score can be checked, never re-scored.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

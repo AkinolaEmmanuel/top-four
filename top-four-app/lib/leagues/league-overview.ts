@@ -108,6 +108,25 @@ export function toStandingRows(
   });
 }
 
+/**
+ * The rows either side of the member, not the top of the table.
+ *
+ * The design frames this block around whoever you are chasing: three rows with
+ * the viewer in the middle. Listing the leaders instead shows five strangers in
+ * a league of any size, and the gap line underneath — which is computed against
+ * your actual neighbour — then reads against people you are nowhere near.
+ */
+export function toNeighbourhood(rows: StandingRow[], size = 5): StandingRow[] {
+  const me = rows.findIndex(row => row.isYou);
+  if (me === -1) return rows.slice(0, size);
+
+  const before = Math.floor((size - 1) / 2);
+  // Clamped so the window stays `size` long at either end of the table rather
+  // than shrinking when the member is first or last.
+  const start = Math.max(0, Math.min(me - before, rows.length - size));
+  return rows.slice(start, start + size);
+}
+
 export function toRivalGap(rows: StandingRow[], totalMembers: number): RivalGap {
   const me = rows.find(r => r.isYou);
   if (!me) return { positionLabel: 'Not ranked yet', behind: null, clearOf: null };

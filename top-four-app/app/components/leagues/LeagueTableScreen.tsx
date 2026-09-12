@@ -63,6 +63,7 @@ export function LeagueTableScreen({
   isFinal: boolean;
 }) {
   const [openRow, setOpenRow] = useState<string | null>(null);
+  const ownRow = table.rows.find(row => row.isYou) ?? null;
 
   /* Wide screens spend the width on where the points came from, which is the
      whole question a multi-competition league asks. The phone keeps it in the
@@ -101,12 +102,26 @@ export function LeagueTableScreen({
         <span className="tf-num font-heading font-bold text-[40px] md:text-[46px] leading-[0.88] tracking-[-1.8px]">
           {ownPosition}
         </span>
-        <div className="pb-[5px]">
+        <div className="pb-[5px] flex-1 min-w-0">
           <div className="font-heading font-semibold text-[12.5px]">{ownPoints}</div>
           <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">
             {ownCaption} · {isFinal ? 'final' : 'updated live'}
           </div>
         </div>
+        {/* In a league of any size the member's own row is off-screen the moment
+            the table opens, and hunting for it is the first thing anyone does. */}
+        {ownRow && (
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById(`standing-${ownRow.membershipId}`);
+              el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }}
+            className="flex-none h-[38px] px-[16px] rounded-[10px] bg-[var(--surface-subtle)] font-heading font-bold text-[11px] tracking-[0.05em]"
+          >
+            JUMP TO MY ROW
+          </button>
+        )}
       </section>
 
           {/* Column headings, wide screens only — and only over actual rows;
@@ -134,6 +149,7 @@ export function LeagueTableScreen({
             return (
               <div
                 key={row.membershipId}
+                id={`standing-${row.membershipId}`}
                 className={`border-b border-[var(--surface-border)] ${row.isYou ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : open ? 'bg-[var(--surface-subtle)]' : ''}`}
               >
                 <button

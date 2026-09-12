@@ -11,7 +11,7 @@ import { ordinal } from '@/lib/format';
 import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
 import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
 import {
-  phaseFor, timeUntil, toLastResult, toRivalGap, toStandingRows,
+  phaseFor, timeUntil, toLastResult, toNeighbourhood, toRivalGap, toStandingRows,
   type LastResult, type NextFixture,
 } from '@/lib/leagues/league-overview';
 import type { Api } from '@/lib/api/types';
@@ -215,7 +215,7 @@ async function Overview({ params }: { params: { id: string } }) {
       answered={nextFixture?.answered ?? 0}
       required={nextFixture?.required ?? 0}
       nextFixture={nextFixture}
-      rivals={rows.slice(0, 5)}
+      rivals={toNeighbourhood(rows)}
       gap={toRivalGap(rows, standings?.data.totalActiveMembers ?? rows.length)}
       lastResult={lastResult}
       openQuestions={openQuestions.length}
