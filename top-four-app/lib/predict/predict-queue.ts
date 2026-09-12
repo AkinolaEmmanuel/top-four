@@ -26,6 +26,15 @@ export interface PredictEntry {
   urgent: boolean;
   openCount: number;
   openLabel: string;
+  /**
+   * How far through this fixture the member is — the design's "4 of 8".
+   *
+   * Null for a custom question, which is a single answer and has no progress to
+   * report. Until the task feed carried a total there was nothing to divide by,
+   * so this row could only say what was left.
+   */
+  progress: { answered: number; required: number; actionable: number } | null;
+  progressLabel: string;
   homeCode: string | null;
   awayCode: string | null;
   homeLogo: string | null;
@@ -64,6 +73,19 @@ export function toPredictEntry(task: PredictTask, nowMs: number): PredictEntry {
   const isFixture = task.kind === 'fixture';
   const deadlineAt = isFixture ? task.nextDeadlineAt ?? null : task.question.deadlineAt ?? null;
   const openCount = isFixture ? task.missingPredictions?.length ?? 0 : 1;
+  const completeness = isFixture ? task.predictionCompleteness : null;
+  /*
+   * Three numbers, not two.
+   *
+   * `required - answered` counts every slot still blank; `missingPredictions`
+   * counts only the ones still open. They differ once a market locks — a fixture
+   * whose lineups have closed is 1 of 8 answered with 5 open and 2 that can
+   * never be answered now. Drawing only the first pair gives a bar that cannot
+   * reach its end, which reads as a stuck screen rather than a passed deadline.
+   */
+  const progress = completeness && completeness.required > 0
+    ? { ...completeness, actionable: openCount }
+    : null;
 
   return {
     id: isFixture ? task.leagueFixtureId : task.question.id,
@@ -78,6 +100,12 @@ export function toPredictEntry(task: PredictTask, nowMs: number): PredictEntry {
     urgent: !!deadlineAt && Date.parse(deadlineAt) - nowMs <= URGENT_WITHIN_MS,
     openCount,
     openLabel: openCount > 0 ? pluralise(openCount, 'market') : 'Open',
+    progress,
+    // Progress where the server gives a total, the backlog where it cannot —
+    // a custom question has one answer and nothing to be part-way through.
+    progressLabel: progress
+      ? `${progress.answered} of ${progress.required}`
+      : openCount > 0 ? pluralise(openCount, 'market') : 'Open',
     homeCode: isFixture ? task.homeTeam.code || task.homeTeam.displayName.substring(0, 3).toUpperCase() : null,
     awayCode: isFixture ? task.awayTeam.code || task.awayTeam.displayName.substring(0, 3).toUpperCase() : null,
     homeLogo: isFixture ? task.homeTeam.logoUrl : null,

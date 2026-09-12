@@ -2022,7 +2022,7 @@ export interface components {
             kind: "league" | "cup";
             scope: components["schemas"]["CatalogueCompetitionScopeDto"];
             /** @example https://assets.topfour.app/v1/logos/competition/00000000-0000-4000-8000-000000000001/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png */
-            logoUrl: Record<string, never> | null;
+            logoUrl: string | null;
             readiness: components["schemas"]["CatalogueReadinessDto"];
         };
         CapabilityReadinessDto: {
@@ -2071,9 +2071,9 @@ export interface components {
             /** Format: uuid */
             id: string;
             displayName: string;
-            shortName: Record<string, never> | null;
-            code: Record<string, never> | null;
-            logoUrl: Record<string, never> | null;
+            shortName: string | null;
+            code: string | null;
+            logoUrl: string | null;
         };
         InvitationSettingsDto: {
             /** @default true */
@@ -2131,7 +2131,7 @@ export interface components {
         };
         CreateLeagueDto: {
             name: string;
-            description?: Record<string, never> | null;
+            description?: string | null;
             invitationSettings?: components["schemas"]["InvitationSettingsDto"];
             configuration?: components["schemas"]["LeagueConfigurationDto"];
         };
@@ -2210,6 +2210,8 @@ export interface components {
             standingVersion: number;
         };
         LeagueListItemResponseDto: {
+            /** @description League-wide unanswered fixture slots, matching dashboard completeness; excludes custom questions. */
+            unansweredCount: number;
             /** @description Active members, including the owner. */
             memberCount: number;
             /** Format: uuid */
@@ -2263,6 +2265,25 @@ export interface components {
             competitions: components["schemas"]["LeagueCompetitionSummaryResponseDto"][];
             publication: components["schemas"]["LeaguePublicationSummaryResponseDto"] | null;
         };
+        DashboardRoundDto: {
+            /** Format: uuid */
+            stageId: string;
+            /** Format: uuid */
+            roundId: string;
+        };
+        DashboardCompetitionScopeDto: {
+            /** Format: uuid */
+            supportedCompetitionId: string;
+            slug: string;
+            displayName: string;
+            /** Format: uuid */
+            seasonId: string;
+            seasonLabel: string;
+            /** @enum {string} */
+            kind: "full_season" | "single_round" | "round_range";
+            firstRound: components["schemas"]["DashboardRoundDto"] | null;
+            lastRound: components["schemas"]["DashboardRoundDto"] | null;
+        };
         DashboardMarketStatesDto: {
             open: number;
             locked: number;
@@ -2290,7 +2311,7 @@ export interface components {
             league: {
                 [key: string]: unknown;
             };
-            competitionScopes: Record<string, never>[];
+            competitionScopes: components["schemas"]["DashboardCompetitionScopeDto"][];
             summary: components["schemas"]["LeagueDashboardSummaryDto"];
             ownStanding: {
                 [key: string]: unknown;
@@ -2302,7 +2323,7 @@ export interface components {
         PatchLeagueDto: {
             expectedVersion: number;
             name?: string;
-            description?: Record<string, never> | null;
+            description?: string | null;
             invitationSettings?: components["schemas"]["InvitationSettingsDto"];
         };
         ReplaceLeagueConfigurationDto: {
@@ -2336,14 +2357,14 @@ export interface components {
         };
         CloneLeagueDto: {
             name: string;
-            description?: Record<string, never> | null;
+            description?: string | null;
             invitationSettings?: components["schemas"]["InvitationSettingsDto"];
         };
         CreateInvitationDto: {
             label?: string | null;
             /** @default 168 */
             expiresInHours: number;
-            useLimit?: Record<string, never> | null;
+            useLimit?: number | null;
         };
         InvitationCreatedResponseDto: {
             label: string | null;
@@ -2794,7 +2815,24 @@ export interface components {
         };
         SubmitStandardPredictionDto: {
             expectedVersion: number;
-            answer: Record<string, never>;
+            /** @description Answer shape is selected by the market in the URL. Validated by the existing domain parser. */
+            answer: {
+                /** @enum {string} */
+                outcome: "home" | "draw" | "away";
+            } | {
+                homeGoals: number;
+                awayGoals: number;
+            } | {
+                bothScore: boolean;
+            } | {
+                /** @enum {string} */
+                selection: "over" | "under";
+            } | {
+                /** Format: uuid */
+                playerId: string;
+                /** Format: uuid */
+                snapshotId: string;
+            };
         };
         PredictionSnapshotDto: {
             /** Format: uuid */
@@ -3011,7 +3049,11 @@ export interface components {
         };
         SubmitLineupDto: {
             expectedVersion: number;
-            answer: Record<string, never>;
+            answer?: {
+                /** Format: uuid */
+                snapshotId: string;
+                playerIds: string[];
+            };
         };
         LineupSubmissionDataDto: {
             /** Format: uuid */
@@ -3137,6 +3179,10 @@ export interface components {
         MemberFixtureResultsResponseDto: {
             data: components["schemas"]["MemberFixtureResultsDataDto"];
         };
+        TaskPredictionCompletenessDto: {
+            answered: number;
+            required: number;
+        };
         PredictionTaskLeagueDto: {
             /** Format: uuid */
             id: string;
@@ -3168,6 +3214,7 @@ export interface components {
             deadlineAt: string | null;
         };
         FixturePredictionTaskDto: {
+            predictionCompleteness: components["schemas"]["TaskPredictionCompletenessDto"];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -3353,7 +3400,14 @@ export interface components {
         };
         SubmitCustomAnswerDto: {
             expectedVersion: number;
-            answer: Record<string, never>;
+            /** @description Shape follows the question answerKind; validated by the domain parser. */
+            answer: {
+                value: boolean;
+            } | {
+                option: string;
+            } | {
+                text: string;
+            };
         };
         CustomAnswerMutationDataDto: {
             /** Format: uuid */
@@ -3392,7 +3446,14 @@ export interface components {
             nextCursor: string | null;
         };
         ResolveCustomQuestionDto: {
-            correctAnswer: Record<string, never>;
+            /** @description Shape follows the question answerKind; validated by the domain parser. */
+            correctAnswer: {
+                value: boolean;
+            } | {
+                option: string;
+            } | {
+                acceptedAnswers: string[];
+            };
             reason?: string;
         };
         VoidCustomQuestionDto: {
@@ -3466,13 +3527,13 @@ export interface components {
             /** Format: uuid */
             playerId: string;
             /** Format: uuid */
-            assistPlayerId?: Record<string, never> | null;
+            assistPlayerId?: string | null;
             /** @enum {string} */
             kind: "normal" | "penalty" | "own_goal" | "missed_penalty";
             /** @enum {string} */
             segment: "first_half" | "second_half" | "extra_time_first_half" | "extra_time_second_half" | "penalty_shootout" | "post_match" | "unknown";
-            elapsedMinute?: Record<string, never> | null;
-            stoppageMinute?: Record<string, never> | null;
+            elapsedMinute?: number | null;
+            stoppageMinute?: number | null;
         };
         FactCardDto: {
             /** Format: uuid */
@@ -3483,8 +3544,8 @@ export interface components {
             kind: "yellow" | "second_yellow" | "red";
             /** @enum {string} */
             segment: "first_half" | "second_half" | "extra_time_first_half" | "extra_time_second_half" | "penalty_shootout" | "post_match" | "unknown";
-            elapsedMinute?: Record<string, never> | null;
-            stoppageMinute?: Record<string, never> | null;
+            elapsedMinute?: number | null;
+            stoppageMinute?: number | null;
         };
         FactPlayerDto: {
             /** Format: uuid */
@@ -3497,7 +3558,7 @@ export interface components {
             teamId: string;
             /** Format: uuid */
             playerId: string;
-            minutesPlayed?: Record<string, never> | null;
+            minutesPlayed?: number | null;
         };
         FactSectionCorrectionDto: {
             /** @enum {string} */
@@ -6629,6 +6690,11 @@ export interface operations {
     PredictionTaskController_list: {
         parameters: {
             query?: {
+                kind?: "fixture" | "custom_question";
+                /** @description Requires roundId and kind=fixture. */
+                supportedCompetitionId?: string;
+                /** @description Requires supportedCompetitionId and kind=fixture. */
+                roundId?: string;
                 limit?: number;
                 cursor?: string;
             };
@@ -6646,7 +6712,7 @@ export interface operations {
                     "application/json": components["schemas"]["PredictionTaskPageDto"];
                 };
             };
-            /** @description PREDICTION_TASK_CURSOR_INVALID. */
+            /** @description VALIDATION_FAILED or PREDICTION_TASK_CURSOR_INVALID. */
             400: {
                 headers: {
                     [name: string]: unknown;

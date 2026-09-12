@@ -67,15 +67,38 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
         <div className="text-[10.5px] md:text-[11.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
       </div>
 
-      <span className="hidden md:block w-[176px] flex-none text-[11.5px] text-[var(--text-secondary)]">
-        {entry.openLabel} still open
+      {/* Progress, not backlog. The design leads with how far through you are
+          because that is the number that moves; "8 markets still open" says the
+          same thing about a fixture you have not started and one you have nearly
+          finished. A bar only where there is a total to draw one against. */}
+      <span className="hidden md:flex w-[176px] flex-none items-center gap-[10px] text-[11.5px] text-[var(--text-secondary)]">
+        {entry.progress ? (
+          <>
+            <span className="tf-num flex-none">{entry.progressLabel}</span>
+            <span className="flex-1 h-[4px] rounded-full bg-[var(--surface-border)] overflow-hidden flex">
+              {/* Answered, then what is still open. Whatever is left is a market
+                  that locked unanswered — it stays the track's own colour, so the
+                  bar stops short rather than pretending it can still be filled. */}
+              <span
+                className="block h-full bg-[var(--color-brand)]"
+                style={{ width: `${(entry.progress.answered / entry.progress.required) * 100}%` }}
+              />
+              <span
+                className="block h-full bg-[var(--surface-border-strong)]"
+                style={{ width: `${(entry.progress.actionable / entry.progress.required) * 100}%` }}
+              />
+            </span>
+          </>
+        ) : (
+          <span>{entry.openLabel} still open</span>
+        )}
       </span>
 
       <div className="text-right flex-none md:w-[96px]">
         <div className={`font-heading font-bold text-[13px] tf-num ${entry.urgent ? 'text-[var(--danger-text)]' : 'text-[var(--text-primary)]'}`}>
           {deadline}
         </div>
-        <div className="md:hidden text-[10px] text-[var(--text-link)] mt-[3px] font-bold tf-num">{entry.openLabel}</div>
+        <div className="md:hidden text-[10px] text-[var(--text-link)] mt-[3px] font-bold tf-num">{entry.progressLabel}</div>
       </div>
 
       <span className="hidden md:grid w-[66px] h-[31px] flex-none rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] place-items-center font-heading font-bold text-[11px]">

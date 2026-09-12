@@ -125,7 +125,7 @@ test('league overview shows a real fixture, not the prototype’s', async ({ pag
   await expect(page.getByText(/Tobi|LIV 2 — 1 TOT/)).toHaveCount(0);
 });
 
-test('league fixtures counts the whole league, both segments', async ({ page }) => {
+test('league fixtures shows a week, and its count matches the rows', async ({ page }) => {
   await requireSession(page);
   const id = await firstLeagueId(page);
   await visit(page, `/leagues/${id}/fixtures`);
@@ -135,6 +135,21 @@ test('league fixtures counts the whole league, both segments', async ({ page }) 
   const results = page.getByRole('link', { name: /Results/ });
   await expect(upcoming).toBeVisible();
   await expect(results).toBeVisible();
+
+  // The screen used to list the whole season — 494 fixtures, forty at a time —
+  // under a tab counting the season's remainder. It now shows a week, and the
+  // number on the tab has to be that week rather than the league: a count above
+  // rows it does not describe is how the old screen stopped meaning anything.
+  await expect(page.getByText(/Kicking off in the next/)).toBeVisible();
+
+  const shown = await page.locator('a[href*="/predict/fixture/"]').count();
+  const label = await upcoming.textContent();
+  const counted = Number.parseInt((label ?? '').replace(/\D+/g, ''), 10);
+  expect(Number.isFinite(counted)).toBe(true);
+  // Equal while the week fits in one page, which is the ordinary case; never
+  // fewer rows than claimed, which would mean the tab is counting the season.
+  expect(shown).toBeLessThanOrEqual(counted);
+  expect(counted).toBeLessThanOrEqual(shown + 40);
 
   // Both segments reachable: Results had no path to it at all for a while.
   await visit(page, `/leagues/${id}/fixtures?view=results`);

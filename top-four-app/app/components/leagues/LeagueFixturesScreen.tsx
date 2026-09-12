@@ -100,7 +100,8 @@ function Row({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: 
 }
 
 export function LeagueFixturesScreen({
-  leagueId, leagueName, competition, view, filter, filterCounts, rows, counts, unansweredBadge, showMoreHref,
+  leagueId, leagueName, competition, view, filter, filterCounts, rows, counts, horizon,
+  showMoreHref,
 }: {
   leagueId: string;
   leagueName: string;
@@ -112,7 +113,8 @@ export function LeagueFixturesScreen({
   /** The active view only, already windowed. */
   rows: FixtureRow[];
   counts: FixtureCounts;
-  unansweredBadge: string;
+  /** How far ahead Upcoming is looking, and what that leaves out. */
+  horizon: { weeks: number; beyond: number };
   /** Null once the window covers the whole view. */
   showMoreHref: string | null;
 }) {
@@ -147,6 +149,16 @@ export function LeagueFixturesScreen({
               );
             })}
           </div>
+
+          {/* What span is on screen. The design says "Round 3" here; a league
+              running two competitions has no single round, so this names the
+              window instead — and a member can always see which it is. */}
+          {view === 'upcoming' && (
+            <div className="px-[var(--gutter)] md:px-0 pt-[12px] md:pt-[14px] text-[11.5px] text-[var(--text-muted)]">
+              {horizon.weeks === 1 ? 'Kicking off in the next 7 days' : `Kicking off in the next ${horizon.weeks} weeks`}
+              {horizon.beyond > 0 && ` · ${horizon.beyond} further on`}
+            </div>
+          )}
 
           {view === 'upcoming' && (
             <div className="hidden md:flex items-center gap-[7px] mt-[14px]">
@@ -210,10 +222,22 @@ export function LeagueFixturesScreen({
                 scroll={false}
                 className="tf-tap flex items-center justify-center h-[44px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]"
               >
-                Show more
-                <span className="ml-[7px] tf-num opacity-60">
-                  {rows.length} of {view === 'upcoming' ? counts.upcoming : counts.results}
-                </span>
+                {/* Either widening the page or widening the window; the label
+                    says which, so "Show more" on a full week does not look like
+                    it has nothing left to do. */}
+                {view === 'upcoming' && rows.length >= counts.upcoming ? (
+                  <>
+                    Show the next week
+                    <span className="ml-[7px] tf-num opacity-60">{horizon.beyond} further on</span>
+                  </>
+                ) : (
+                  <>
+                    Show more
+                    <span className="ml-[7px] tf-num opacity-60">
+                      {rows.length} of {view === 'upcoming' ? counts.upcoming : counts.results}
+                    </span>
+                  </>
+                )}
               </Link>
             </div>
           )}

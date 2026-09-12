@@ -18,9 +18,13 @@ import type { ReactElement } from 'react';
  * Five tabs at width, four on a phone.
  *
  * Questions is a tab on desktop and a More row on a phone — the design is
- * explicit that this is a slot problem, not a ranking one: it is member-facing,
- * it carries a badge and it has points riding on it, and the four-slot bottom
- * bar simply ran out of room. Desktop may add tabs; it may never rename one.
+ * explicit that this is a slot problem, not a ranking one: it is member-facing
+ * and it has points riding on it, and the four-slot bottom bar simply ran out
+ * of room. Desktop may add tabs; it may never rename one.
+ *
+ * No tab carries a count. Fixtures used to, from the season-wide unanswered
+ * figure, which read "99+" in any real league and against a screen that now
+ * shows a week. A badge that is always the same is not information.
  */
 export type TabId = 'overview' | 'fixtures' | 'table' | 'questions' | 'more';
 
@@ -78,10 +82,8 @@ function activeFrom(pathname: string, leagueId: string): TabId | null {
   return 'more';
 }
 
-export function LeagueTabs({ leagueId, badge, variant }: {
+export function LeagueTabs({ leagueId, variant }: {
   leagueId: string;
-  /** Unanswered markets, shown on Fixtures. Empty string hides it. */
-  badge?: string;
   /**
    * Which bar to draw. They are separate elements in separate places now — the
    * wide one sits inside the level-two bar beside the league's name, the phone
@@ -91,7 +93,6 @@ export function LeagueTabs({ leagueId, badge, variant }: {
   variant: 'wide' | 'phone';
 }) {
   const active = activeFrom(usePathname() ?? '', leagueId);
-  const badgeFor = (id: TabId) => (id === 'fixtures' ? badge : '');
 
   /*
    * Just the tabs. The bar around them is the level-two bar's job now — this
@@ -105,7 +106,6 @@ export function LeagueTabs({ leagueId, badge, variant }: {
           <div className="flex items-end gap-[2px] h-[45px]">
             {TABS.map(tab => {
               const on = tab.id === active;
-              const count = badgeFor(tab.id);
               return (
                 <Link
                   key={tab.id}
@@ -114,9 +114,6 @@ export function LeagueTabs({ leagueId, badge, variant }: {
                   className={`flex items-center h-full px-[13px] font-heading font-semibold text-[12.5px] border-b-2 ${on ? 'border-[var(--color-brand)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
                   {tab.label}
-                  {count && (
-                    <span className="ml-[7px] min-w-[16px] h-[16px] px-[4px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] inline-grid place-items-center font-bold text-[9px]">{count}</span>
-                  )}
                 </Link>
               );
             })}
@@ -131,7 +128,6 @@ export function LeagueTabs({ leagueId, badge, variant }: {
             // Questions is a wide-screen tab; on a phone it stays a More row, so
             // landing there lights More rather than nothing.
             const on = tab.id === active || (tab.id === 'more' && active === 'questions');
-            const count = badgeFor(tab.id);
             return (
               <Link
                 key={tab.id}
@@ -142,9 +138,6 @@ export function LeagueTabs({ leagueId, badge, variant }: {
               >
                 <div className="w-[19px] h-[19px] grid place-items-center">{ICONS[tab.id]}</div>
                 <span className="mt-[6px] tracking-[0.01em] uppercase">{tab.label}</span>
-                {count && (
-                  <span className="absolute top-[2px] left-[calc(50%+6px)] min-w-[15px] h-[15px] px-[3px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] grid place-items-center font-bold text-[8px]">{count}</span>
-                )}
               </Link>
             );
           })}

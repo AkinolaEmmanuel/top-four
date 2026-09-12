@@ -29,7 +29,7 @@ const PHASE_COPY: Record<LeagueOverviewPhase, { kicker: string; cta: string }> =
 export function LeagueOverviewScreen({
   leagueId, leagueName, lifecycleLabel, memberCount, competition,
   phase, timeToLock, answered, required, nextFixture,
-  rivals, gap, lastResult, openQuestions, questionDeadline, unansweredBadge, marketRules,
+  rivals, gap, lastResult, openQuestions, questionDeadline, marketRules,
 }: {
   leagueId: string;
   leagueName: string;
@@ -46,7 +46,6 @@ export function LeagueOverviewScreen({
   lastResult: LastResult | null;
   openQuestions: number;
   questionDeadline: string | null;
-  unansweredBadge: string;
   /** The league's own scoring, for "one exact score would do it". */
   marketRules: Array<{ label: string; points: number }>;
 }) {

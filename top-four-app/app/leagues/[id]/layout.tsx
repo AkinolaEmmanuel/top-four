@@ -42,7 +42,7 @@ export default async function LeagueLayout({
     throw error;
   }
 
-  const { league, competition, unansweredBadge } = context;
+  const { league, competition } = context;
   const memberLabel = league.memberCount > 0 ? pluralise(league.memberCount, 'member') : '';
   const badge = lifecycleBadge(league.lifecycleState);
 
@@ -83,10 +83,9 @@ export default async function LeagueLayout({
         leagueName={league.name}
         meta={memberLabel ? `${competition} · ${memberLabel}` : competition}
         lifecycleState={league.lifecycleState}
-        unansweredBadge={unansweredBadge}
       />
 
-      <LeagueTabs leagueId={id} badge={unansweredBadge} variant="phone" />
+      <LeagueTabs leagueId={id} variant="phone" />
 
       {/* No column here. Each screen puts its own content in one — see
           LeagueColumn — because a band has to be able to run the full width,

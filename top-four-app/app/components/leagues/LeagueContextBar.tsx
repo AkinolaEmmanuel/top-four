@@ -14,14 +14,13 @@ import { lifecycleBadge, leagueInitials } from '@/lib/leagues/lifecycle';
  * or member count, which it has no reason to have fetched.
  */
 export function LeagueContextBar({
-  leagueId, leagueName, meta, lifecycleState, unansweredBadge, linkName = false,
+  leagueId, leagueName, meta, lifecycleState, linkName = false,
 }: {
   leagueId: string;
   leagueName: string;
   /** Competition, and member count where the screen already knows it. */
   meta: string;
   lifecycleState?: string;
-  unansweredBadge?: string;
   /** True where the bar is context rather than the page you are on. */
   linkName?: boolean;
 }) {
@@ -52,7 +51,7 @@ export function LeagueContextBar({
         )}
         <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap truncate">{meta}</span>
       </div>
-      <LeagueTabs leagueId={leagueId} badge={unansweredBadge} variant="wide" />
+      <LeagueTabs leagueId={leagueId} variant="wide" />
     </div>
   );
 }

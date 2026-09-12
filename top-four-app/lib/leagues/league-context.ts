@@ -12,8 +12,6 @@ import type { Api } from '@/lib/api/types';
 
 export interface LeagueContext {
   league: Api<'LeagueReadResponseDto'>;
-  /** Unanswered markets, capped — a four-digit badge is wider than its tab. */
-  unansweredBadge: string;
   competition: string;
 }
 
@@ -35,11 +33,8 @@ export const getLeagueContext = cache(async (leagueId: string): Promise<LeagueCo
     getLeagueDashboard(leagueId),
   ]);
 
-  const unanswered = dashboard?.data.summary.predictionCompleteness.unanswered ?? 0;
-
   return {
     league,
-    unansweredBadge: unanswered > 0 ? (unanswered > 99 ? '99+' : String(unanswered)) : '',
     competition: league.competitions[0]?.displayName ?? '',
   };
 });

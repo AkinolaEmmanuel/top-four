@@ -179,7 +179,6 @@ async function Overview({ params }: { params: { id: string } }) {
 
   // Markets in this league the member has not answered. Capped for display
   // because a four-digit badge is wider than the tab it sits on.
-  const unanswered = completeness?.unanswered ?? 0;
 
   /* A league that is over does not get the live Overview: its hero counts down
      to a lock that will never come and offers a button for markets that closed
@@ -225,7 +224,6 @@ async function Overview({ params }: { params: { id: string } }) {
         label: MARKET_LABELS[m.marketType] ?? m.marketType,
         points: m.maximumPoints,
       }))}
-      unansweredBadge={unanswered > 0 ? (unanswered > 99 ? '99+' : String(unanswered)) : ''}
     />
   );
 }

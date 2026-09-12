@@ -36,10 +36,20 @@ type ResultsBatch = Api<'MemberFixtureResultsBatchResponseDto'>;
 const AVAILABILITY_PAGE_SIZE = 100;
 
 /**
- * Rows rendered per request. The counts above the list are the league's whole
- * truth, but a season is several hundred fixtures and rendering them all at
- * once produced a multi-megabyte document; "Show more" widens this window.
+ * How far ahead "Upcoming" looks, in days.
+ *
+ * The design's header reads "Round 3" over four fixtures; ours read the whole
+ * season — 494 rows, forty at a time. A round is the wrong unit here because
+ * this league runs two competitions at once, so a single week holds Premier
+ * League round 5 and Champions League league-stage 2 together; scoping by
+ * `roundId` would silently hide one of them. A week holds both.
+ *
+ * "Show more" widens this rather than adding rows, so the count above the list
+ * and the rows beneath it always describe the same span of football.
  */
+const UPCOMING_DAYS = 7;
+
+/** Rows rendered per request, so one very busy week cannot produce a huge document. */
 const ROW_WINDOW = 40;
 
 /** A ceiling, so a cursor that never terminates cannot hang the screen. */
@@ -83,6 +93,12 @@ function requestedRows(show: string | undefined): number {
   return Number.isFinite(requested) && requested > 0 ? requested : ROW_WINDOW;
 }
 
+/** How many weeks of upcoming fixtures to read. Clamped so the URL cannot ask for a season. */
+function requestedWeeks(weeks: string | undefined): number {
+  const asked = Number.parseInt(weeks ?? '', 10);
+  return Number.isFinite(asked) && asked > 0 ? Math.min(asked, 12) : 1;
+}
+
 /**
  * An ISO instant the API will accept.
  *
@@ -101,13 +117,13 @@ function boundary(atMs: number): string {
  * the season to find itself. Before this the screen walked the whole ordered
  * list from August — about five serial round trips to draw one round.
  *
- * The played half is read whole because it is small and because its exact size
- * is what makes both counts true: everything else in the league is still to
- * come. The upcoming half is read only when it is the half on screen.
+ * The played half is read whole because it is small. The upcoming half is a
+ * week, and only when it is the half on screen.
  *
  * One caveat worth knowing: the API excludes fixtures whose kickoff is not yet
  * known from a windowed read, so a fixture awaiting a confirmed time appears in
- * neither window. The counts come from the dashboard, which counts them.
+ * neither half. It is counted in the "further on" figure, which comes from the
+ * dashboard's season total rather than from either window.
  */
 async function readWindow(
   leagueId: string,
@@ -136,10 +152,10 @@ export default function LeagueFixturesPage({
   params, searchParams,
 }: {
   params: { id: string };
-  searchParams: { view?: string; show?: string; filter?: string };
+  searchParams: { view?: string; show?: string; filter?: string; weeks?: string };
 }) {
   return (
-    <Suspense key={`${searchParams.view ?? ''}:${searchParams.filter ?? ''}:${searchParams.show ?? ''}`} fallback={<LeagueContentSkeleton rows={6} />}>
+    <Suspense key={`${searchParams.view ?? ''}:${searchParams.filter ?? ''}:${searchParams.show ?? ''}:${searchParams.weeks ?? ''}`} fallback={<LeagueContentSkeleton rows={6} />}>
       <Fixtures params={params} searchParams={searchParams} />
     </Suspense>
   );
@@ -149,7 +165,7 @@ async function Fixtures({
   params, searchParams,
 }: {
   params: { id: string };
-  searchParams: { view?: string; show?: string; filter?: string };
+  searchParams: { view?: string; show?: string; filter?: string; weeks?: string };
 }) {
   const id = params.id;
 
@@ -158,7 +174,10 @@ async function Fixtures({
   const view: FixtureView | 'either' = searchParams.view === 'results' ? 'results'
     : searchParams.view === 'upcoming' ? 'upcoming' : 'either';
 
-  const now = boundary(Date.now());
+  const nowMs = Date.now();
+  const now = boundary(nowMs);
+  const weeks = requestedWeeks(searchParams.weeks);
+  const horizonEnd = boundary(nowMs + weeks * UPCOMING_DAYS * 24 * 60 * 60 * 1000);
 
   let league: LeagueRead;
   let dashboard: Dashboard | null;
@@ -173,9 +192,11 @@ async function Fixtures({
       readWindow(id, null, now, MAX_PAGES),
       // Only when it is the half on screen, and then one page is enough — the
       // window starts at now and the list is ordered by kickoff.
+      // A week ahead, not the rest of the season. Two pages is ample for any
+      // real week and keeps a pathological one from hanging the screen.
       view === 'results'
         ? Promise.resolve({ items: [], truncated: false })
-        : readWindow(id, now, null, 1),
+        : readWindow(id, now, horizonEnd, 2),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/fixtures`);
@@ -218,7 +239,6 @@ async function Fixtures({
 
   const fixtures = base.map(f => ({ ...f, ...outcomeOf(byFixture.get(f.id)) }));
   const split = splitFixtures(fixtures);
-  const unanswered = dashboard?.data.summary.predictionCompleteness.unanswered ?? 0;
 
   // Opens on whichever half has something in it — a league whose fixtures have
   // all been played should not open on an empty "Upcoming".
@@ -231,8 +251,8 @@ async function Fixtures({
     : 'all';
 
   const inView = shownView === 'upcoming' ? split.upcoming : split.results;
-  // Counted over everything read, not over the window, so a chip's number means
-  // the league rather than the slice already on screen.
+  // Counted over the window that is on screen, so a chip's number and the rows
+  // beneath it describe the same span.
   const filterCounts = Object.fromEntries(FIXTURE_FILTERS.map(f =>
     [f.id, split.upcoming.filter(x => matchesFilter(x.predictionState, f.id)).length])) as Record<FixtureFilter, number>;
   const all = shownView === 'upcoming' ? inView.filter(f => matchesFilter(f.predictionState, filter)) : inView;
@@ -251,20 +271,29 @@ async function Fixtures({
       filterCounts={filterCounts}
       rows={all.slice(0, shown).map(f => toFixtureRow(f, id, shownView))}
       counts={{
-        // Results are exact: that window is read whole. Everything else in the
-        // league is still to come, which is what the dashboard's count minus
-        // them gives — including any fixture whose kickoff is not yet known and
-        // so appears in neither window.
+        // Both counts describe what is actually on screen. Upcoming used to be
+        // the season's remainder — a four-figure number over a page of rows,
+        // which said nothing about the week it was sitting above.
         results: split.results.length,
-        upcoming: Math.max(
-          split.upcoming.length,
-          (dashboard?.data.summary.fixtureCount ?? 0) - split.results.length,
+        upcoming: split.upcoming.length,
+      }}
+      horizon={{
+        weeks,
+        // What the window is leaving out, so widening it is an informed choice
+        // rather than a guess at whether anything is there.
+        beyond: Math.max(
+          0,
+          (dashboard?.data.summary.fixtureCount ?? 0) - split.results.length - split.upcoming.length,
         ),
       }}
-      unansweredBadge={unanswered > 0 ? (unanswered > 99 ? '99+' : String(unanswered)) : ''}
+      /* Two different "more"s. While rows remain inside the window it widens the
+         page; once they are exhausted it widens the window itself, which is what
+         a member wanting next week actually means. */
       showMoreHref={shown < all.length
         ? `/leagues/${id}/fixtures?view=${shownView}&filter=${filter}&show=${shown + ROW_WINDOW}`
-        : null}
+        : shownView === 'upcoming' && weeks < 12
+          ? `/leagues/${id}/fixtures?view=${shownView}&filter=${filter}&weeks=${weeks + 1}`
+          : null}
     />
   );
 }

@@ -31,6 +31,14 @@ export interface LeagueListEntry {
   /** An archived or cancelled league is still readable, drawn quieter. */
   isPast: boolean;
   memberCount: number;
+  /**
+   * Fixture slots still unanswered in this league — the design's "To predict".
+   *
+   * The one figure that says which league needs the member next. It excludes
+   * custom questions, which the server counts separately, so the column is
+   * about fixtures only. Zero for a past or pending league, which owes nothing.
+   */
+  unansweredCount: number;
 }
 
 export interface LeagueSection {
@@ -77,6 +85,7 @@ export function toLeagueEntry(league: LeagueListItem): LeagueListEntry {
     points: league.ownStanding?.totalPoints ?? null,
     isPast: section === 'past',
     memberCount: league.memberCount,
+    unansweredCount: section === 'past' ? 0 : league.unansweredCount,
   };
 }
 
@@ -93,6 +102,7 @@ export function toPendingEntry(request: OwnPendingJoinRequest): LeagueListEntry 
     points: null,
     isPast: false,
     memberCount: 0,
+    unansweredCount: 0,
   };
 }
 
