@@ -13,6 +13,30 @@ const CLUB: Record<string, string> = {
   PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f"
 };
 
+// Fixtures more than this far apart in kickoff time are treated as
+// different gameweeks. Premier League rounds run Fri-Mon then leave a
+// ~5-day gap to the next round's Friday/Saturday kickoffs, so a 4-day gap
+// reliably splits one round from the next without also splitting a single
+// round's own Friday-to-Monday spread.
+const GAMEWEEK_GAP_MS = 4 * 24 * 60 * 60 * 1000;
+
+function clusterByKickoff(rows: any[]): any[][] {
+  const sorted = [...rows].sort((a, b) => a.kickoffMs - b.kickoffMs);
+  const batches: any[][] = [];
+  let current: any[] = [];
+  let lastKickoffMs: number | null = null;
+  for (const row of sorted) {
+    if (lastKickoffMs !== null && row.kickoffMs - lastKickoffMs > GAMEWEEK_GAP_MS) {
+      batches.push(current);
+      current = [];
+    }
+    current.push(row);
+    lastKickoffMs = row.kickoffMs;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
+}
+
 function ordinal(n: number): string {
   const mod100 = n % 100;
   if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
@@ -64,10 +88,19 @@ export default function Home() {
   // row per real match, with a chip per league you can still predict it in.
   // Custom questions aren't grouped -- each is a distinct per-league entity,
   // not a shared fixture, so there is nothing to consolidate.
-  const queue = caught ? [] : (() => {
+  //
+  // Fixture rows are then split into gameweeks by kickoff-time clustering
+  // (see GAMEWEEK_GAP_MS) -- this gameweek's matches are the main list you
+  // can act on right away; anything in a later gameweek is real but not
+  // actionable yet (markets for it may not even be open), so it's held
+  // behind an explicit "next gameweek" reveal instead of bloating the main
+  // list with fixtures nobody can predict this week anyway. Custom
+  // questions have their own deadlines independent of any gameweek, so they
+  // always stay in the main list rather than risk being buried.
+  const { queue, queueNext, queueNextLabel } = caught ? { queue: [], queueNext: [], queueNextLabel: '' } : (() => {
     const items: any[] = tasksData?.items || [];
     const fixtureGroups = new Map<string, any[]>();
-    const rows: any[] = [];
+    const questionRows: any[] = [];
 
     items.forEach((t) => {
       if (t.kind === 'fixture') {
@@ -80,7 +113,7 @@ export default function Home() {
     items.forEach((t) => {
       if (t.kind !== 'custom_question') return;
       const deadlineMs = new Date(t.question?.deadlineAt || 0).getTime();
-      rows.push({
+      questionRows.push({
         match: t.question?.questionText || "Question",
         competition: "Custom Question",
         meta: t.league.name,
@@ -92,6 +125,7 @@ export default function Home() {
       });
     });
 
+    const fixtureRows: any[] = [];
     fixtureGroups.forEach((group, fixtureId) => {
       const first = group[0];
       const homeCode = first.homeTeam.code || first.homeTeam.displayName.substring(0, 3).toUpperCase();
@@ -100,6 +134,7 @@ export default function Home() {
         const ms = new Date(g.nextDeadlineAt || 0).getTime();
         return ms < min ? ms : min;
       }, Infinity);
+      const kickoffMs = first.kickoffAt ? new Date(first.kickoffAt).getTime() : soonestMs;
 
       const leagueOptions = group
         .map((g: any) => {
@@ -120,17 +155,29 @@ export default function Home() {
         homeCode, homeColor: CLUB[homeCode] || '#000', homeLogo: first.homeTeam.logoUrl || null,
         awayCode, awayColor: CLUB[awayCode] || '#000', awayLogo: first.awayTeam.logoUrl || null,
         sortMs: soonestMs,
+        kickoffMs,
       };
 
       if (leagueOptions.length === 1) {
-        rows.push({ ...base, href: leagueOptions[0].href, meta: leagueOptions[0].name, missing: leagueOptions[0].missing });
+        fixtureRows.push({ ...base, href: leagueOptions[0].href, meta: leagueOptions[0].name, missing: leagueOptions[0].missing });
       } else {
-        rows.push({ ...base, meta: `${leagueOptions.length} leagues`, leagueOptions });
+        fixtureRows.push({ ...base, meta: `${leagueOptions.length} leagues`, leagueOptions });
       }
     });
 
-    rows.sort((a, b) => a.sortMs - b.sortMs);
-    return rows;
+    const gameweekBatches = clusterByKickoff(fixtureRows);
+    const thisGameweek = gameweekBatches[0] || [];
+    const laterGameweeks = gameweekBatches.slice(1).flat();
+
+    const queue = [...questionRows, ...thisGameweek].sort((a, b) => a.sortMs - b.sortMs);
+    const queueNext = laterGameweeks.sort((a, b) => a.kickoffMs - b.kickoffMs);
+    const nextKickoffMs = queueNext.length > 0 ? queueNext[0].kickoffMs : null;
+    const queueNextLabel = queueNext.length === 0 ? '' : (
+      `Next gameweek · ${queueNext.length} match${queueNext.length === 1 ? '' : 'es'}` +
+      (nextKickoffMs ? ` · from ${new Date(nextKickoffMs).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : '')
+    );
+
+    return { queue, queueNext, queueNextLabel };
   })();
 
   // Build leagues from API only
@@ -228,10 +275,12 @@ export default function Home() {
       background: caught ? 'transparent' : 'var(--nav-accent)'
     },
 
-    queueKicker: caught ? "Nothing else owed" : "Also waiting on you",
+    queueKicker: caught ? "Nothing else owed" : "This gameweek",
     queueLink: caught ? "" : (taskCount > 5 ? `SEE ALL ${taskCount} →` : ""),
     queue: queue,
     queueClear: caught,
+    queueNext: queueNext,
+    queueNextLabel: queueNextLabel,
     
     // Weekend card — hidden when no real data
     weekendStyle: {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
@@ -25,10 +26,119 @@ function Crest({ logo, code, color, size, fontSize }: { logo?: string | null; co
   return <span className="tf-crest flex-none" style={{ background: color, width: size, height: Math.round(size * 1.06), fontSize }}>{code}</span>;
 }
 
+// Shared between the current-gameweek list and the collapsed next-gameweek
+// reveal, so that section isn't a third copy of this markup.
+function MobileQueueRow({ q }: { q: any }) {
+  if (q.leagueOptions) {
+    return (
+      <div className="flex flex-col gap-[9px] p-[10px_var(--gutter)] border-b border-[var(--surface-border)] last:border-0">
+        <div className="flex items-center gap-[10px]">
+          <div className="flex flex-col gap-[2px]">
+            <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={22} fontSize={7.5} />
+            <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={22} fontSize={7.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-heading font-semibold text-[12.5px] truncate">{q.match}</div>
+            <div className="text-[9.5px] text-[var(--text-muted)] mt-[3px] truncate">{q.competition}</div>
+          </div>
+          <div className="text-right flex-none">
+            <div className="tf-num font-heading font-bold text-[12px] text-[var(--text-primary)]">{q.time}</div>
+            <div className="tf-num text-[10px] text-[var(--text-muted)] mt-[3px] font-bold">{q.meta}</div>
+          </div>
+        </div>
+        <div className="flex gap-[6px] overflow-x-auto">
+          {q.leagueOptions.map((lo: any, j: number) => (
+            <Link
+              key={j}
+              href={lo.href}
+              className="flex-none flex items-center gap-[6px] h-[28px] px-[10px] rounded-full border border-[var(--surface-border-strong)] bg-[var(--surface-card)] whitespace-nowrap"
+            >
+              <span className="font-heading font-semibold text-[10.5px] truncate max-w-[120px]">{lo.name}</span>
+              <span className="font-heading font-bold text-[9px] text-[var(--text-link)]">{lo.missing}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <Link href={q.href || '/predict'} className="flex items-center gap-[10px] p-[10px_var(--gutter)] border-b border-[var(--surface-border)] last:border-0">
+      <div className="flex flex-col gap-[2px]">
+        <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={22} fontSize={7.5} />
+        <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={22} fontSize={7.5} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-heading font-semibold text-[12.5px] truncate">{q.match}</div>
+        <div className="text-[9.5px] text-[var(--text-muted)] mt-[3px] truncate">{q.competition}</div>
+      </div>
+      <div className="text-right flex-none">
+        <div className="tf-num font-heading font-bold text-[12px] text-[var(--text-primary)]">{q.time}</div>
+        <div className="tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{q.missing}</div>
+      </div>
+    </Link>
+  );
+}
+
+// Desktop counterpart of MobileQueueRow, matching the grid layout used by
+// the current-gameweek table.
+function DesktopQueueRow({ q }: { q: any }) {
+  if (q.leagueOptions) {
+    return (
+      <div className="flex flex-col gap-[10px] p-[13px_18px] border-b border-[var(--surface-border)] last:border-0">
+        <div className="grid grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] gap-[14px] items-center">
+          <div className="flex flex-col gap-[2px]">
+            <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={26} fontSize={8.5} />
+            <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={26} fontSize={8.5} />
+          </div>
+          <div className="min-w-0">
+            <div className="font-heading font-semibold text-[13.5px] tracking-[-0.2px] truncate">{q.match}</div>
+            <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{q.competition}</div>
+          </div>
+          <div className="text-[11.5px] text-[var(--text-secondary)] truncate">{q.meta}</div>
+          <div className="tf-num text-right font-heading font-bold text-[12px] text-[var(--text-muted)]">—</div>
+          <div className="tf-num text-right font-heading font-bold text-[13px]">{q.time}</div>
+        </div>
+        <div className="flex flex-wrap gap-[8px] pl-[58px]">
+          {q.leagueOptions.map((lo: any, j: number) => (
+            <Link
+              key={j}
+              href={lo.href}
+              className="flex items-center gap-[8px] h-[30px] px-[12px] rounded-full border border-[var(--surface-border-strong)] bg-[var(--surface-canvas)] hover:bg-[var(--surface-subtle)] transition-colors"
+            >
+              <span className="font-heading font-semibold text-[11.5px]">{lo.name}</span>
+              <span className="font-heading font-bold text-[10px] text-[var(--text-link)]">{lo.missing}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <Link href={q.href || '/predict'} className="grid grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] gap-[14px] items-center p-[13px_18px] cursor-pointer border-b border-[var(--surface-border)] last:border-0 hover:bg-[var(--surface-subtle)] transition-colors">
+      <div className="flex flex-col gap-[2px]">
+        <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={26} fontSize={8.5} />
+        <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={26} fontSize={8.5} />
+      </div>
+      <div className="min-w-0">
+        <div className="font-heading font-semibold text-[13.5px] tracking-[-0.2px] truncate">{q.match}</div>
+        <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{q.competition}</div>
+      </div>
+      <div className="text-[11.5px] text-[var(--text-secondary)] truncate">{q.meta}</div>
+      <div className="tf-num text-right font-heading font-bold text-[12px] text-[var(--text-link)]">{q.missing}</div>
+      <div className="tf-num text-right font-heading font-bold text-[13px]">{q.time}</div>
+    </Link>
+  );
+}
+
 export function HomeScreen({ state, theme, ...props }: any) {
   const isLoading = state === 'loading';
   const isNewUser = state === 'newuser';
   const isReady = !isLoading && !isNewUser;
+  // Next gameweek's fixtures are real but not this week's business -- kept
+  // out of the main list by default and only shown if the viewer explicitly
+  // asks, rather than dumping every future gameweek into view at once.
+  const [showNextGameweek, setShowNextGameweek] = useState(false);
+  const hasNextGameweek = (props.queueNext?.length || 0) > 0;
 
   return (
     <>
@@ -153,53 +263,24 @@ export function HomeScreen({ state, theme, ...props }: any) {
                   <div className="text-[12px] leading-[1.6] text-[var(--text-secondary)]">Nothing else is waiting on you. Every other market in every league is answered.</div>
                 ) : (
                   <div className="flex flex-col">
-                    {props.queue.map((q: any, i: number) => (
-                      q.leagueOptions ? (
-                        <div key={i} className="flex flex-col gap-[9px] p-[10px_var(--gutter)] border-b border-[var(--surface-border)] last:border-0">
-                          <div className="flex items-center gap-[10px]">
-                            <div className="flex flex-col gap-[2px]">
-                              <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={22} fontSize={7.5} />
-                              <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={22} fontSize={7.5} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-heading font-semibold text-[12.5px] truncate">{q.match}</div>
-                              <div className="text-[9.5px] text-[var(--text-muted)] mt-[3px] truncate">{q.competition}</div>
-                            </div>
-                            <div className="text-right flex-none">
-                              <div className="tf-num font-heading font-bold text-[12px] text-[var(--text-primary)]">{q.time}</div>
-                              <div className="tf-num text-[10px] text-[var(--text-muted)] mt-[3px] font-bold">{q.meta}</div>
-                            </div>
-                          </div>
-                          <div className="flex gap-[6px] overflow-x-auto">
-                            {q.leagueOptions.map((lo: any, j: number) => (
-                              <Link
-                                key={j}
-                                href={lo.href}
-                                className="flex-none flex items-center gap-[6px] h-[28px] px-[10px] rounded-full border border-[var(--surface-border-strong)] bg-[var(--surface-card)] whitespace-nowrap"
-                              >
-                                <span className="font-heading font-semibold text-[10.5px] truncate max-w-[120px]">{lo.name}</span>
-                                <span className="font-heading font-bold text-[9px] text-[var(--text-link)]">{lo.missing}</span>
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <Link href={q.href || '/predict'} key={i} className="flex items-center gap-[10px] p-[10px_var(--gutter)] border-b border-[var(--surface-border)] last:border-0">
-                          <div className="flex flex-col gap-[2px]">
-                            <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={22} fontSize={7.5} />
-                            <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={22} fontSize={7.5} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-heading font-semibold text-[12.5px] truncate">{q.match}</div>
-                            <div className="text-[9.5px] text-[var(--text-muted)] mt-[3px] truncate">{q.competition}</div>
-                          </div>
-                          <div className="text-right flex-none">
-                            <div className="tf-num font-heading font-bold text-[12px] text-[var(--text-primary)]">{q.time}</div>
-                            <div className="tf-num text-[10px] text-[var(--text-link)] mt-[3px] font-bold">{q.missing}</div>
-                          </div>
-                        </Link>
-                      )
-                    ))}
+                    {props.queue.map((q: any, i: number) => <MobileQueueRow key={i} q={q} />)}
+                  </div>
+                )}
+
+                {hasNextGameweek && (
+                  <div className="mt-[14px] pt-[14px] border-t border-[var(--surface-border)]">
+                    <div
+                      onClick={() => setShowNextGameweek((v: boolean) => !v)}
+                      className="flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="font-heading font-semibold text-[11.5px] text-[var(--text-secondary)]">{props.queueNextLabel}</span>
+                      <span className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">{showNextGameweek ? 'HIDE' : 'SHOW'}</span>
+                    </div>
+                    {showNextGameweek && (
+                      <div className="flex flex-col mt-[10px]">
+                        {props.queueNext.map((q: any, i: number) => <MobileQueueRow key={i} q={q} />)}
+                      </div>
+                    )}
                   </div>
                 )}
               </section>
@@ -369,51 +450,24 @@ export function HomeScreen({ state, theme, ...props }: any) {
                         <span className="tf-kicker text-right">Still open</span>
                         <span className="tf-kicker text-right">Locks</span>
                       </div>
-                      {props.queue.map((q: any, i: number) => (
-                        q.leagueOptions ? (
-                          <div key={i} className="flex flex-col gap-[10px] p-[13px_18px] border-b border-[var(--surface-border)] last:border-0">
-                            <div className="grid grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] gap-[14px] items-center">
-                              <div className="flex flex-col gap-[2px]">
-                                <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={26} fontSize={8.5} />
-                                <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={26} fontSize={8.5} />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="font-heading font-semibold text-[13.5px] tracking-[-0.2px] truncate">{q.match}</div>
-                                <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{q.competition}</div>
-                              </div>
-                              <div className="text-[11.5px] text-[var(--text-secondary)] truncate">{q.meta}</div>
-                              <div className="tf-num text-right font-heading font-bold text-[12px] text-[var(--text-muted)]">—</div>
-                              <div className="tf-num text-right font-heading font-bold text-[13px]">{q.time}</div>
-                            </div>
-                            <div className="flex flex-wrap gap-[8px] pl-[58px]">
-                              {q.leagueOptions.map((lo: any, j: number) => (
-                                <Link
-                                  key={j}
-                                  href={lo.href}
-                                  className="flex items-center gap-[8px] h-[30px] px-[12px] rounded-full border border-[var(--surface-border-strong)] bg-[var(--surface-canvas)] hover:bg-[var(--surface-subtle)] transition-colors"
-                                >
-                                  <span className="font-heading font-semibold text-[11.5px]">{lo.name}</span>
-                                  <span className="font-heading font-bold text-[10px] text-[var(--text-link)]">{lo.missing}</span>
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <Link href={q.href || '/predict'} key={i} className="grid grid-cols-[44px_minmax(0,1fr)_150px_96px_92px] gap-[14px] items-center p-[13px_18px] cursor-pointer border-b border-[var(--surface-border)] last:border-0 hover:bg-[var(--surface-subtle)] transition-colors">
-                            <div className="flex flex-col gap-[2px]">
-                              <Crest logo={q.homeLogo} code={q.homeCode} color={q.homeColor} size={26} fontSize={8.5} />
-                              <Crest logo={q.awayLogo} code={q.awayCode} color={q.awayColor} size={26} fontSize={8.5} />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-heading font-semibold text-[13.5px] tracking-[-0.2px] truncate">{q.match}</div>
-                              <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{q.competition}</div>
-                            </div>
-                            <div className="text-[11.5px] text-[var(--text-secondary)] truncate">{q.meta}</div>
-                            <div className="tf-num text-right font-heading font-bold text-[12px] text-[var(--text-link)]">{q.missing}</div>
-                            <div className="tf-num text-right font-heading font-bold text-[13px]">{q.time}</div>
-                          </Link>
-                        )
-                      ))}
+                      {props.queue.map((q: any, i: number) => <DesktopQueueRow key={i} q={q} />)}
+                    </div>
+                  )}
+
+                  {hasNextGameweek && (
+                    <div className="mt-[16px] pt-[14px] border-t border-[var(--surface-border)]">
+                      <div
+                        onClick={() => setShowNextGameweek((v: boolean) => !v)}
+                        className="flex items-center justify-between cursor-pointer"
+                      >
+                        <span className="font-heading font-semibold text-[12px] text-[var(--text-secondary)]">{props.queueNextLabel}</span>
+                        <span className="font-heading font-bold text-[10px] tracking-[0.06em] text-[var(--text-link)]">{showNextGameweek ? 'HIDE' : 'SHOW'}</span>
+                      </div>
+                      {showNextGameweek && (
+                        <div className="mt-[10px]">
+                          {props.queueNext.map((q: any, i: number) => <DesktopQueueRow key={i} q={q} />)}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
