@@ -83,9 +83,26 @@ export default async function FixturePredictPage({ params, searchParams }: {
     players: players?.data.players ?? [],
   });
 
-  // Every other league the member is actively in. The copy endpoint decides for
-  // itself which of them hold this match — it takes no target list.
-  const otherLeagues = (leagues?.items ?? []).filter(l => l.id !== leagueId).length;
+  /*
+   * The other leagues a copy could actually reach.
+   *
+   * This counted every other league the member was in, so somebody whose only
+   * other league was a La Liga one was offered the copy on a Premier League
+   * match and got "no other league has this match" back. The endpoint still
+   * picks its own targets — this only decides whether offering is honest.
+   *
+   * Competition is as far as the league list can settle it: it names no season,
+   * so a league on the same competition in a different season stays a maybe.
+   * A draft has no fixtures yet, and a finished one refuses the write.
+   */
+  const COPYABLE_LIFECYCLE = ['published', 'in_progress'];
+  const otherLeagues = (leagues?.items ?? []).filter(other =>
+    other.id !== leagueId
+    && COPYABLE_LIFECYCLE.includes(other.lifecycleState)
+    && other.competitions.some(
+      c => c.supportedCompetitionId === fixture.competition.supportedCompetitionId,
+    ),
+  ).length;
 
   return (
     <FixturePredictScreen
