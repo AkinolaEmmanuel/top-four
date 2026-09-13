@@ -11,6 +11,7 @@ import { splitFixtures, toFixtureRow, matchesFilter, FIXTURE_FILTERS, type Fixtu
 import type { Api } from '@/lib/api/types';
 import type { LeagueFixture } from '@/lib/api/leagues';
 import type { FixtureAvailability, FixtureResultsResponse } from '@/lib/api/predictions-fixture';
+import { MARKET_LABELS } from '@/lib/constants/markets';
 import { landedScoreFor } from '@/lib/predict/fixture-predict';
 
 /**
@@ -69,7 +70,26 @@ function statusOf(fixtureState: string): LeagueFixture['status'] {
   return 'upcoming';
 }
 
-function outcomeOf(result: FixtureResultsResponse | undefined): Pick<LeagueFixture, 'score' | 'pointsAwarded' | 'predictionState'> {
+/**
+ * Which markets actually landed, named.
+ *
+ * The results row has a 330px column for this and it rendered a dash on every
+ * row, because nothing ever set it — the batch read was already being made for
+ * the score and the points, and this was the third thing in it.
+ */
+function landedIn(result: FixtureResultsResponse): string | null {
+  const correct = result.markets.filter(m => m.viewerOutcome?.outcome === 'correct');
+  if (correct.length === 0) return null;
+  const names = correct.map(m => (m.marketType === 'lineup' && m.side
+    ? `${m.side} lineup`
+    : MARKET_LABELS[m.marketType] ?? m.marketType).toLowerCase());
+  // Two names read as a sentence; more than that is a list nobody reads.
+  return names.length <= 2
+    ? names.join(' · ')
+    : `${names.slice(0, 2).join(' · ')} +${names.length - 2} more`;
+}
+
+function outcomeOf(result: FixtureResultsResponse | undefined): Pick<LeagueFixture, 'score' | 'pointsAwarded' | 'predictionState' | 'landed'> {
   if (!result) return {};
   const settled = result.markets.filter(m => m.viewerOutcome !== null);
   const exact = result.markets.find(m => m.marketType === 'exact_score');
@@ -80,6 +100,7 @@ function outcomeOf(result: FixtureResultsResponse | undefined): Pick<LeagueFixtu
     pointsAwarded: settled.length > 0
       ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta ?? 0), 0)
       : undefined,
+    landed: landedIn(result),
     predictionState: settled.length === 0 ? undefined
       : settled.every(m => m.viewerOutcome?.outcome === 'void') ? 'void'
         : settled.every(m => m.viewerOutcome?.outcome === 'correct') ? 'won'

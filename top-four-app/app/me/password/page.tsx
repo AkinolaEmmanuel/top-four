@@ -67,10 +67,11 @@ export default function PasswordPage() {
 
           <div className="mt-[24px] space-y-[18px]">
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="current-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 Current Password
               </label>
               <input 
+                id="current-password"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -80,10 +81,11 @@ export default function PasswordPage() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="new-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 New Password
               </label>
               <input 
+                id="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -96,10 +98,11 @@ export default function PasswordPage() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="confirm-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 Confirm New Password
               </label>
               <input 
+                id="confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

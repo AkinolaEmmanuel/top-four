@@ -103,7 +103,13 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
             <div className="text-[10px] tf-num text-[var(--text-muted)] mt-[3px] md:hidden">{points}</div>
           </>
         ) : (
-          <span className="text-[11.5px] text-[var(--text-muted)]">{isPending ? 'Pending' : 'No standing yet'}</span>
+          /* The wide layout's Position column is 84px — the width a place like
+             "24th" needs — so the long form wrapped onto two lines there and
+             pushed the row taller than its neighbours. The phone has the room. */
+          <span className="text-[11.5px] text-[var(--text-muted)]">
+            <span className="md:hidden">{isPending ? 'Pending' : 'No standing yet'}</span>
+            <span className="hidden md:inline">{isPending ? 'Pending' : '—'}</span>
+          </span>
         )}
       </div>
 

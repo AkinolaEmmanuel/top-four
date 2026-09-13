@@ -1,6 +1,6 @@
 import type { Api } from '@/lib/api/types';
 import { identityTint } from './league-overview';
-import { ordinal, pluralise } from '@/lib/format';
+import { ordinal, pluralise, personInitials } from '@/lib/format';
 
 /**
  * The league table, shaped once on the server.
@@ -55,7 +55,7 @@ export function toTableRows(
       membershipId: entry.membershipId,
       position: entry.position,
       name,
-      initials: name.substring(0, 2).toUpperCase(),
+      initials: personInitials(name),
       points: entry.totalPoints,
       pointsLabel: entry.totalPoints.toLocaleString('en-GB'),
       tint: identityTint(entry.membershipId),

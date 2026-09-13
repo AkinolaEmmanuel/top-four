@@ -70,10 +70,11 @@ export default function EmailPage() {
 
           <div className="mt-[24px] space-y-[18px]">
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="current-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 Current Password (for verification)
               </label>
               <input 
+                id="current-password"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -83,10 +84,11 @@ export default function EmailPage() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="new-email" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 New Email Address
               </label>
               <input 
+                id="new-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

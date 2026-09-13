@@ -127,14 +127,26 @@ export function toAdminInvites(invites: Api<'InvitationMetadataResponseDto'>[]):
   }));
 }
 
+/**
+ * A join request, as an admin can see it.
+ *
+ * UNTYPED UPSTREAM is not the problem here — `JoinRequestResponseDto` is fully
+ * described and simply carries no display name, only `userId`. So an admin
+ * deciding whether to let somebody in cannot see who is asking. This used to
+ * slice that UUID into a name and a pair of initials, which produced things
+ * like "a9627e0b" over the letters "A9" and read as a real person.
+ *
+ * Until the API sends a name, the row says plainly that there isn't one and
+ * shows the short id as an id. Raised on the backend ask.
+ */
 export function toAdminRequests(requests: Api<'JoinRequestResponseDto'>[]): AdminRequest[] {
   return requests.map(request => ({
     id: request.id,
-    name: request.userId.substring(0, 8),
-    initials: request.userId.substring(0, 2).toUpperCase(),
+    name: 'Someone with your link',
+    initials: '?',
     meta: request.createdAt
-      ? `Asked ${new Date(request.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-      : 'Waiting',
+      ? `Asked ${new Date(request.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ref ${request.userId.substring(0, 8)}`
+      : `Waiting · ref ${request.userId.substring(0, 8)}`,
     isPending: request.state === 'pending',
   }));
 }

@@ -81,7 +81,12 @@ export function toFixtureRow(fixture: LeagueFixture, leagueId: string, view: Fix
         ? new Date(fixture.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         : 'TBD'),
     state: fixture.predictionState,
-    points: played ? (fixture.pointsAwarded === undefined ? '0' : `+${fixture.pointsAwarded}`) : null,
+    /* A played fixture that has not been scored yet shows a dash, not a zero.
+       Zero is a result — "you got nothing" — and the two are not the same
+       sentence to somebody waiting on a settlement. */
+    points: played
+      ? (fixture.pointsAwarded === undefined ? '—' : `+${fixture.pointsAwarded}`)
+      : null,
     kickoffAt: fixture.kickoffAt || null,
     progress: typeof fixture.required === 'number' && fixture.required > 0
       ? `${fixture.answered ?? 0} of ${fixture.required}`
@@ -94,6 +99,32 @@ export function toFixtureRow(fixture: LeagueFixture, leagueId: string, view: Fix
       ? `/predict/fixture/${fixture.id}/results?leagueId=${leagueId}`
       : `/predict/fixture/${fixture.id}?leagueId=${leagueId}`,
   };
+}
+
+/**
+ * The state as a chip — one short token, the design's own vocabulary.
+ *
+ * `stateLabel` below is a sentence, and a sentence does not fit a 19px pill in a
+ * 104px column: "Some of it landed" wrapped onto two lines and spilled out of
+ * its own background. The design keeps the prose in the row's note and puts
+ * a token here.
+ */
+export function stateChip(state: LeagueFixture['predictionState'], view: FixtureView): string {
+  if (view === 'results') {
+    switch (state) {
+      case 'won': return 'ALL LANDED';
+      case 'part': return 'PARTIAL';
+      case 'void': return 'VOID';
+      case 'lost': return 'NO POINTS';
+      default: return 'PENDING';
+    }
+  }
+  switch (state) {
+    case 'ready': return 'READY';
+    case 'open': return 'OPEN';
+    case 'syncing': return 'SYNCING';
+    default: return 'TO ANSWER';
+  }
 }
 
 /** What a fixture's prediction state means, in the product's words. */

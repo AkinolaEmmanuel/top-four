@@ -8,6 +8,8 @@ export function MobileNav() {
   const pathname = usePathname() || '';
   const { data: tasksData } = usePredictionTasks();
 
+  // Fixtures and questions needing attention this week — the same window the
+  // Predict headline and the leagues list count over.
   const openTaskCount = tasksData?.items.length || 0;
 
   const tabs = [

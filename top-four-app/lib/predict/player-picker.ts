@@ -1,4 +1,5 @@
 import type { SelectablePlayer } from '@/lib/api/predictions-fixture';
+import { personInitials } from '@/lib/format';
 
 /**
  * The player picker's squad lists, shaped once on the server.
@@ -44,7 +45,7 @@ export const MARKET_COPY: Record<PickerMarket, { title: string; rule: string }> 
 };
 
 function initialsOf(name: string): string {
-  return name.split(' ').map(part => part[0] ?? '').join('').substring(0, 2).toUpperCase();
+  return personInitials(name);
 }
 
 export function toPickerPlayer(player: SelectablePlayer): PickerPlayer {

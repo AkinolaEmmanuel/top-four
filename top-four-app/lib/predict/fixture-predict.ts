@@ -4,7 +4,7 @@ import type {
 } from '@/lib/api/predictions-fixture';
 import type { LeagueRuleset, RulesetMarketType } from '@/lib/api/leagues';
 import { STANDARD_MARKET_TYPES } from '@/lib/constants/markets';
-import { pluralise } from '@/lib/format';
+import { pluralise, personInitials } from '@/lib/format';
 
 /**
  * Everything the fixture screen needs to know, decided once on the server.
@@ -93,7 +93,7 @@ const MARKET_NAMES: Record<string, string> = {
 };
 
 function initialsOf(name: string): string {
-  return name.split(' ').map(part => part[0] ?? '').join('').substring(0, 2).toUpperCase();
+  return personInitials(name);
 }
 
 export function toPlayerOption(player: SelectablePlayer, teamCode: string): PlayerOption {

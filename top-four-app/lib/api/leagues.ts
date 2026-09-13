@@ -406,15 +406,18 @@ export async function leaveLeague(leagueId: string): Promise<void> {
 }
 
 /**
- * Only `summary` is described upstream. UNTYPED UPSTREAM: the dashboard's
- * `league`, `competitionScopes` and `ownStanding` are declared as bare objects,
- * so they generate as open records. The first two are the league's own shapes,
- * already typed in this file; `ownStanding` is the same payload the standings
- * endpoint returns, so it borrows that DTO rather than being guessed again.
+ * `summary` and `competitionScopes` are the server's own types now — the latter
+ * gained `DashboardCompetitionScopeDto` and no longer needs the league's shape
+ * borrowed for it.
+ *
+ * UNTYPED UPSTREAM: `league` and `ownStanding` still publish as objects with no
+ * properties, so they generate as open records. `league` is the league's own
+ * shape, already typed in this file; `ownStanding` is the same payload the
+ * standings endpoint returns, so it borrows that DTO rather than being guessed.
  */
 export interface LeagueDashboard {
   league: League;
-  competitionScopes: LeagueCompetitionScope[];
+  competitionScopes: Api<'DashboardCompetitionScopeDto'>[];
   summary: Api<'LeagueDashboardSummaryDto'>;
   ownStanding: Api<'OwnStandingDataDto'> | null;
 }

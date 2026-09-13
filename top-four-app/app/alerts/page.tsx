@@ -228,7 +228,13 @@ export default function AlertsPage() {
   ];
 
   const headTitle = onPrefs ? "Alert settings" : "Alerts";
-  const headSub = onPrefs ? "What reaches your inbox" : (unreadCount ? `${unreadCount} unread · all leagues` : "All caught up");
+  /* "All caught up" is a conclusion, and it was drawn before the list had
+     loaded — the header said everything was read while the rows beneath it were
+     still skeletons. While the list is loading the header says nothing. */
+  const headSub = onPrefs
+    ? "What reaches your inbox"
+    : notificationsLoading ? ""
+      : unreadCount ? `${unreadCount} unread · all leagues` : "All caught up";
   const headActLabel = onPrefs ? "Done" : "Settings";
 
   return (

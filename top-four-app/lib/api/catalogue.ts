@@ -4,24 +4,15 @@ import type { Api } from './types';
 /**
  * The football catalogue: competitions, their seasons, and a season's squads.
  *
- * UNTYPED UPSTREAM: these DTOs declare their nullable strings with
- * `@ApiProperty({ nullable: true })` and no `type: String`, so the document
- * carries no type and the generated field is `Record<string, never> | null` —
- * a type that permits no value at all. The overlays below restore the string
- * the wire actually carries; delete each one as the backend adds `type: String`.
+ * The server's own types. These carried overlays while the DTOs declared their
+ * nullable strings with `@ApiProperty({ nullable: true })` and no `type: String`
+ * — the document then described a field that permitted no value at all. The
+ * backend added the types, so the overlays are gone.
  */
 
-export type CatalogueCompetition = Omit<Api<'CatalogueCompetitionDto'>, 'logoUrl'> & {
-  logoUrl: string | null;
-};
-
+export type CatalogueCompetition = Api<'CatalogueCompetitionDto'>;
 export type CatalogueSeason = Api<'CatalogueSeasonDto'>;
-
-export type CatalogueTeam = Omit<Api<'CatalogueTeamDto'>, 'shortName' | 'code' | 'logoUrl'> & {
-  shortName: string | null;
-  code: string | null;
-  logoUrl: string | null;
-};
+export type CatalogueTeam = Api<'CatalogueTeamDto'>;
 
 export async function fetchCatalogueCompetitions(): Promise<CatalogueCompetition[]> {
   return apiFetch<CatalogueCompetition[]>('/football/catalogue/competitions');

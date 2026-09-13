@@ -332,7 +332,13 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                 <button type="button"
                   key={s}
                   onClick={() => setStep(s)}
-                  className={`h-[4px] rounded-full cursor-pointer transition-all duration-300 ${w} ${(step === 'done' || parseInt(step) >= i + 1) ? 'bg-[var(--nav-accent)]' : 'bg-white/15'}`}
+                  aria-label={`Step ${s}`}
+                  aria-current={step === s ? 'step' : undefined}
+                  /* 4px of bar, 24px of target. `bg-clip-content` is what keeps
+                     it a hairline: without it the fill paints under the padding
+                     too and the bar renders six times its height. The negative
+                     margin gives the borrowed space back to the layout. */
+                  className={`h-[4px] py-[10px] -my-[10px] box-content bg-clip-content rounded-full cursor-pointer transition-all duration-300 ${w} ${(step === 'done' || parseInt(step) >= i + 1) ? 'bg-[var(--nav-accent)]' : 'bg-white/15'}`}
                 ></button>
               );
             })}
@@ -382,11 +388,12 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
 
               <section className="mt-[24px]">
                 <div className="flex items-baseline justify-between p-[0_var(--gutter)_10px]">
-                  <span className="tf-kicker text-[var(--text-muted)]">LEAGUE NAME</span>
+                  <label htmlFor="league-name" className="tf-kicker text-[var(--text-muted)]">LEAGUE NAME</label>
                   <span className="tf-num text-[10px] text-[var(--text-muted)]">{name.length} / 60</span>
                 </div>
                 <div className="flex items-center gap-[2px] p-[14px_var(--gutter)] border-y border-[var(--surface-border)] bg-[var(--surface-card)] shadow-[inset_3px_0_0_0_var(--color-brand)] focus-within:shadow-[inset_3px_0_0_0_var(--color-brand),inset_0_0_0_1px_var(--color-brand)] transition-shadow">
                   <input 
+                    id="league-name"
                     type="text" 
                     value={name} 
                     onChange={e => setName(e.target.value.substring(0, 60))}
@@ -398,11 +405,12 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
 
               <section className="mt-[22px]">
                 <div className="flex items-baseline justify-between p-[0_var(--gutter)_10px]">
-                  <span className="tf-kicker text-[var(--text-muted)]">DESCRIPTION</span>
+                  <label htmlFor="league-description" className="tf-kicker text-[var(--text-muted)]">DESCRIPTION</label>
                   <span className="text-[10px] text-[var(--text-muted)] uppercase">OPTIONAL</span>
                 </div>
                 <div className="border-y border-[var(--surface-border)] bg-[var(--surface-card)] focus-within:border-[var(--color-brand)] transition-colors">
                   <textarea 
+                    id="league-description"
                     value={description}
                     onChange={e => setDescription(e.target.value.substring(0, 200))}
                     placeholder="Add a description for your league..."

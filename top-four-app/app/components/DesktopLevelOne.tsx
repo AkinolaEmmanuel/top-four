@@ -81,9 +81,12 @@ export function DesktopLevelOne() {
 
       <Link href="/me" className="flex items-center gap-[8px] p-[4px_11px_4px_4px] rounded-full bg-[var(--nav-fill)] flex-none cursor-pointer hover:bg-[rgba(255,255,255,0.15)] transition-colors">
         <div className="w-[26px] h-[26px] rounded-full bg-[var(--avatar-surface)] text-[var(--avatar-text)] grid place-items-center font-heading font-bold text-[10px]">
-          {personInitials(user?.displayName)}
+          {user?.displayName ? personInitials(user.displayName) : ''}
         </div>
-        <span className="font-heading font-semibold text-[11.5px]">{user?.displayName || 'User'}</span>
+        {/* Nothing rather than "User": the name arrives with the session a tick
+            after paint, and a placeholder that looks like a real account is
+            worse than a gap that fills in. */}
+        <span className="font-heading font-semibold text-[11.5px] min-w-[54px]">{user?.displayName ?? ''}</span>
         <span className="text-[9px] text-[var(--nav-text-faint)]">▼</span>
       </Link>
     </div>

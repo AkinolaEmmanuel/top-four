@@ -51,10 +51,11 @@ export default function NamePage() {
 
           <div className="mt-[24px] space-y-[18px]">
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="display-name" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 New Display Name
               </label>
               <input 
+                id="display-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

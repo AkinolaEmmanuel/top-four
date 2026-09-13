@@ -10,6 +10,7 @@ import { HomePayoffSection, HomePayoffSkeleton } from '../components/home/HomePa
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
 import type { LeaguesPage } from '@/lib/api/leagues';
+import { queueWindow } from '@/lib/predict/queue-window';
 
 /**
  * Home, fetched on the server.
@@ -39,7 +40,7 @@ export default async function HomePage() {
 
   try {
     [tasks, leagues, unread, me] = await Promise.all([
-      serverFetchAllPages<PredictionTask, TaskPage>(`/me/prediction-tasks?limit=${TASK_PAGE_SIZE}`),
+      serverFetchAllPages<PredictionTask, TaskPage>(`/me/prediction-tasks?limit=${TASK_PAGE_SIZE}&${queueWindow(Date.now())}`),
       serverFetch<LeaguesPage>('/leagues'),
       serverFetchOrNull<Api<'NotificationUnreadCountResponseDto'>>('/notifications/unread-count'),
       serverFetchOrNull<Api<'CurrentAuthenticationResponseDto'>>('/auth/me'),

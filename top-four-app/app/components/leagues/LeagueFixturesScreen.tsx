@@ -5,7 +5,7 @@ import { timeUntilLabel } from '@/lib/format';
 import { FIXTURE_FILTERS, type FixtureFilter } from '@/lib/leagues/league-fixtures';
 import { tintFor } from '@/lib/crest';
 import Image from 'next/image';
-import { groupByDay, stateLabel, type FixtureCounts, type FixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
+import { groupByDay, stateLabel, stateChip, type FixtureCounts, type FixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
 
 /**
  * The league fixtures list — one component for both platforms.
@@ -51,7 +51,7 @@ function Row({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: 
       className={`flex items-center gap-[11px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] last:border-b ${GRID_MD} md:gap-[16px] md:py-[14px] md:px-[4px] md:border-t-0 md:border-b md:last:border-b md:hover:bg-[var(--surface-subtle)] md:transition-colors ${urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
     >
       <span className="hidden md:inline-flex items-center justify-self-start h-[19px] px-[7px] rounded-[4px] font-heading font-bold text-[8.5px] tracking-[0.06em] flex-none bg-[var(--surface-subtle)]">
-        <span className={stateTone(row.state, view)}>{stateLabel(row.state, view).toUpperCase()}</span>
+        <span className={`${stateTone(row.state, view)} whitespace-nowrap`}>{stateChip(row.state, view)}</span>
       </span>
 
       <div className="flex items-center gap-[11px] md:gap-[10px] min-w-0 flex-1 md:flex-none">

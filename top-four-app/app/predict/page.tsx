@@ -10,6 +10,7 @@ import {
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
 import type { LeaguesPage } from '@/lib/api/leagues';
+import { queueWindow, requestedWeeks, MAX_QUEUE_WEEKS } from '@/lib/predict/queue-window';
 
 /**
  * The to-do list, fetched on the server.
@@ -34,16 +35,7 @@ type TaskPage = Api<'PredictionTaskPageDto'>;
 /** The largest page the task feed allows, to keep the follow to few round-trips. */
 const TASK_PAGE_SIZE = 100;
 
-/** How far ahead the queue looks by default. */
-const QUEUE_DAYS = 7;
 
-/** A ceiling, so the URL cannot ask for the season back. */
-const MAX_WEEKS = 12;
-
-/** Whole seconds: the API validates both boundaries against a strict pattern. */
-function boundary(atMs: number): string {
-  return new Date(atMs).toISOString().replace(/\.\d+Z$/, 'Z');
-}
 
 /** Rows rendered per request; "Show more" widens this window. */
 const ROW_WINDOW = 40;
@@ -56,11 +48,8 @@ export default async function PredictPage({
   let tasks: { items: PredictionTask[]; first: TaskPage };
   let leagues: LeaguesPage | null;
 
-  const askedWeeks = Number.parseInt(searchParams.weeks ?? '', 10);
-  const weeks = Number.isFinite(askedWeeks) && askedWeeks > 0 ? Math.min(askedWeeks, MAX_WEEKS) : 1;
-  const now = Date.now();
-  const window = `from=${encodeURIComponent(boundary(now))}`
-    + `&to=${encodeURIComponent(boundary(now + weeks * QUEUE_DAYS * 24 * 60 * 60 * 1000))}`;
+  const weeks = requestedWeeks(searchParams.weeks);
+  const window = queueWindow(Date.now(), weeks);
 
   try {
     [tasks, leagues] = await Promise.all([
@@ -114,7 +103,7 @@ export default async function PredictPage({
       totalEntries={filtered.length}
       showMoreHref={shown < filtered.length
         ? `/predict?${showMoreQuery}`
-        : weeks < MAX_WEEKS ? `/predict?${widerQuery}` : null}
+        : weeks < MAX_QUEUE_WEEKS ? `/predict?${widerQuery}` : null}
       weeks={weeks}
       openMarkets={openMarketCount(filtered)}
       summary={summaryLine(filtered, serverNow)}
