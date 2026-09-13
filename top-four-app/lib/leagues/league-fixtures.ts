@@ -58,10 +58,28 @@ export interface FixtureCounts {
 
 const PLAYED: ReadonlySet<LeagueFixture['status']> = new Set(['finished', 'voided']);
 
+/** Kickoff order. A fixture without a confirmed time sorts last either way. */
+function byKickoff(a: LeagueFixture, b: LeagueFixture, newestFirst: boolean): number {
+  const at = Date.parse(a.kickoffAt || '');
+  const bt = Date.parse(b.kickoffAt || '');
+  if (!Number.isFinite(at)) return Number.isFinite(bt) ? 1 : 0;
+  if (!Number.isFinite(bt)) return -1;
+  return newestFirst ? bt - at : at - bt;
+}
+
+/**
+ * The two halves, each in the order its own half is read in.
+ *
+ * Upcoming runs forwards — the thing closing soonest is the thing to act on.
+ * Results run backwards, because the fixture a member wants after a weekend is
+ * the one that just finished, not the season opener. Availability returns both
+ * ascending by kickoff, so the results half is reversed here rather than at the
+ * two screens that render it.
+ */
 export function splitFixtures(fixtures: LeagueFixture[]): Record<FixtureView, LeagueFixture[]> {
   return {
-    upcoming: fixtures.filter(f => !PLAYED.has(f.status)),
-    results: fixtures.filter(f => PLAYED.has(f.status)),
+    upcoming: fixtures.filter(f => !PLAYED.has(f.status)).sort((a, b) => byKickoff(a, b, false)),
+    results: fixtures.filter(f => PLAYED.has(f.status)).sort((a, b) => byKickoff(a, b, true)),
   };
 }
 
@@ -116,7 +134,8 @@ export function stateChip(state: LeagueFixture['predictionState'], view: Fixture
       case 'part': return 'PARTIAL';
       case 'void': return 'VOID';
       case 'lost': return 'NO POINTS';
-      default: return 'PENDING';
+      case 'missed': return 'NOT ANSWERED';
+      default: return 'AWAITING RESULT';
     }
   }
   switch (state) {
@@ -135,6 +154,7 @@ export function stateLabel(state: LeagueFixture['predictionState'], view: Fixtur
       case 'part': return 'Some of it landed';
       case 'void': return 'Voided — nobody scored';
       case 'lost': return 'Nothing landed';
+      case 'missed': return 'You did not answer this one';
       default: return 'Not settled yet';
     }
   }

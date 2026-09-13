@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { LeagueColumn } from './LeagueColumn';
 import { TeamCrest } from '../TeamCrest';
-import { timeUntilLabel } from '@/lib/format';
+import { timeUntilLabel, pluralise } from '@/lib/format';
 import { FIXTURE_FILTERS, type FixtureFilter } from '@/lib/leagues/league-fixtures';
 import { tintFor } from '@/lib/crest';
 import Image from 'next/image';
@@ -48,7 +48,10 @@ function Row({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: 
   return (
     <Link
       href={row.href}
-      className={`flex items-center gap-[11px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] last:border-b ${GRID_MD} md:gap-[16px] md:py-[14px] md:px-[4px] md:border-t-0 md:border-b md:last:border-b md:hover:bg-[var(--surface-subtle)] md:transition-colors ${urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
+      /* `last:border-b-0` on both layouts: the final row of a day used to close
+         with a rule, and the next date heading opened with one, so every
+         boundary between groups was drawn twice. The heading is the separator. */
+      className={`flex items-center gap-[11px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${GRID_MD} md:gap-[16px] md:py-[14px] md:px-[4px] md:border-t-0 md:border-b md:last:border-b-0 md:hover:bg-[var(--surface-subtle)] md:transition-colors ${urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
     >
       <span className="hidden md:inline-flex items-center justify-self-start h-[19px] px-[7px] rounded-[4px] font-heading font-bold text-[8.5px] tracking-[0.06em] flex-none bg-[var(--surface-subtle)]">
         <span className={`${stateTone(row.state, view)} whitespace-nowrap`}>{stateChip(row.state, view)}</span>
@@ -185,20 +188,49 @@ export function LeagueFixturesScreen({
 
           {rows.length === 0 ? (
             <div className="p-[60px_30px] text-center">
-              <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">
-                {view === 'upcoming' ? 'No fixtures left to play' : 'Nothing settled yet'}
-              </div>
-              <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px] max-w-[340px] mx-auto">
-                {view === 'upcoming'
-                  ? 'Every fixture in this league has been played. The results are in the other tab.'
-                  : 'Results appear here once a fixture has been played and its markets settle.'}
-              </p>
+              {/* An empty window is not an empty league. This said "every fixture
+                  has been played" while 460 of them sat just beyond the seven
+                  days on screen — so the state that should offer the next week
+                  instead told the reader the season was over. */}
+              {view === 'upcoming' && horizon.beyond > 0 ? (
+                <>
+                  <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">
+                    Nothing kicks off in the next {horizon.weeks === 1 ? '7 days' : `${horizon.weeks} weeks`}
+                  </div>
+                  <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px] max-w-[340px] mx-auto">
+                    {pluralise(horizon.beyond, 'fixture')} further out in this league. Widen the window to
+                    see what is coming.
+                  </p>
+                  {showMoreHref && (
+                    <Link
+                      href={showMoreHref}
+                      scroll={false}
+                      className="tf-tap inline-flex items-center justify-center h-[44px] px-[20px] mt-[18px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]"
+                    >
+                      Look a week further ahead
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">
+                    {view === 'upcoming' ? 'No fixtures left to play' : 'Nothing settled yet'}
+                  </div>
+                  <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px] max-w-[340px] mx-auto">
+                    {view === 'upcoming'
+                      ? 'Every fixture in this league has been played. The results are in the other tab.'
+                      : 'Results appear here once a fixture has been played and its markets settle.'}
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             days.map((day, dayIndex) => (
               <section key={day.label} className="mt-[18px] md:mt-[24px]">
                 {dayIndex === 0 && (
-                  <div className={`hidden ${GRID_MD} md:gap-[16px] px-[4px] pb-[8px] border-b border-[var(--surface-border-strong)] mb-[6px]`}>
+                  /* No rule here. The first day heading draws one a few pixels
+                     below, and two lines that close together read as a mistake. */
+                  <div className={`hidden ${GRID_MD} md:gap-[16px] px-[4px] pb-[8px] mb-[2px]`}>
                     <span className="tf-kicker">State</span>
                     <span className="tf-kicker">Fixture</span>
                     <span className="tf-kicker text-center">{HEADS[view][0]}</span>

@@ -103,7 +103,13 @@ export interface LeagueFixture {
   status: 'upcoming' | 'live' | 'finished' | 'voided';
   score?: { home: number; away: number };
   markets: Array<{ type: string; status: string; }>;
-  predictionState?: 'open' | 'ready' | 'syncing' | 'won' | 'part' | 'lost' | 'void';
+  /**
+   * `missed` is settled with nothing of yours in it; `undefined` is not settled
+   * yet. They looked the same from the client — both arrive as an empty set of
+   * viewer outcomes — and the row said "pending" for both, which told a member
+   * to wait for a result that had already happened without them.
+   */
+  predictionState?: 'open' | 'ready' | 'syncing' | 'won' | 'part' | 'lost' | 'void' | 'missed';
   predictionNote?: string;
   pointsAwarded?: number;
   /** This fixture's own markets, not the league's season. */

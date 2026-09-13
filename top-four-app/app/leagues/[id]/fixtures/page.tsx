@@ -258,7 +258,25 @@ async function Fixtures({
     )));
   const byFixture = new Map(batches.flatMap(b => b?.data ?? []).map(r => [r.leagueFixtureId, r]));
 
-  const fixtures = base.map(f => ({ ...f, ...outcomeOf(byFixture.get(f.id)) }));
+  const fixtures = base.map(f => {
+    const outcome = outcomeOf(byFixture.get(f.id));
+    /*
+     * "Awaiting result" and "you did not answer" are different sentences.
+     *
+     * Both arrive as an empty set of viewer outcomes, and the row used to say
+     * pending for both — telling a member to wait for a result that could never
+     * involve them. Whether they answered is the fact that separates the two,
+     * and settlement state does not: a fixture can sit part-settled for days
+     * while two markets wait on player data, and if the member answered nothing
+     * none of that will ever score for them.
+     */
+    const missed = f.status === 'finished' && (f.answered ?? 0) === 0;
+    return {
+      ...f,
+      ...outcome,
+      predictionState: outcome.predictionState ?? (missed ? 'missed' as const : undefined),
+    };
+  });
   const split = splitFixtures(fixtures);
 
   // Opens on whichever half has something in it — a league whose fixtures have
