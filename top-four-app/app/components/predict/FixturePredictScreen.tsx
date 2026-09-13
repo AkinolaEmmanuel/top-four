@@ -1040,6 +1040,48 @@ function ScoreNote({ picked, landed, settled, locked, homeName, awayName }: {
  * A handful of names, as the design has it, with the rest behind the picker.
  * Listing both full squads put 136 rows on one screen, twice over.
  */
+/** What the market's own verb is, in both directions. */
+const LANDED_COPY: Record<string, { did: string; nobody: string }> = {
+  anytime_goalscorer: { did: 'Scored', nobody: 'Nobody scored' },
+  player_card: { did: 'Booked', nobody: 'Nobody was booked' },
+};
+
+/**
+ * Who actually scored or was booked.
+ *
+ * Only the member's own pick can be marked right or wrong, because several
+ * players can score — so a wrong answer used to end there, saying nothing about
+ * what the right one was. Nothing is drawn while the result is unknown: an
+ * empty list is a claim that nobody did it, and only the settlement can make it.
+ */
+function LandedPlayers({ market }: { market: FixtureMarket }) {
+  const copy = LANDED_COPY[market.marketType];
+  if (!copy || market.landedPlayers === null) return null;
+
+  if (market.landedPlayers.length === 0) {
+    return <div className="text-[11.5px] text-[var(--text-muted)] mt-[7px]">{copy.nobody}.</div>;
+  }
+
+  return (
+    <div className="flex items-center flex-wrap gap-x-[10px] gap-y-[6px] mt-[9px]">
+      <span className="tf-kicker text-[var(--text-muted)] flex-none">{copy.did}</span>
+      {market.landedPlayers.map(player => (
+        <span key={player.id} className="flex items-center gap-[6px] min-w-0">
+          <PlayerFace
+            name={player.name}
+            initials={player.initials}
+            photoUrl={player.photoUrl}
+            size={22}
+            background="var(--surface-subtle)"
+            foreground="var(--text-secondary)"
+          />
+          <span className="font-heading font-semibold text-[12px] text-[var(--text-primary)] truncate">{player.name}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function PlayerChoices({ market, picked, settled, locked, canAnswer, onPick }: {
   market: FixtureMarket;
   picked: string | null;
@@ -1054,6 +1096,7 @@ function PlayerChoices({ market, picked, settled, locked, canAnswer, onPick }: {
     return (
       <div className="text-[12.5px] text-[var(--text-secondary)]">
         {chosen ? chosen.name : <span className="italic text-[var(--text-muted)]">Not answered — no points from this one</span>}
+        {settled && <LandedPlayers market={market} />}
       </div>
     );
   }

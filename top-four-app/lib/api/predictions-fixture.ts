@@ -90,6 +90,9 @@ export type CopyPredictionsResponse = Api<'CopyReportDto'>;
 
 export type MemberMarketResult = Api<'MemberMarketResultDto'>;
 
+/** A player named by a settlement — who scored, who was booked, who started. */
+export type PlayerSummary = Api<'PlayerSummaryDto'>;
+
 export type FixtureResultsResponse = Api<'MemberFixtureResultsDataDto'>;
 
 export async function fetchFixtureAvailability(leagueId: string, fixtureId: string): Promise<FixtureAvailabilitySnapshot> {

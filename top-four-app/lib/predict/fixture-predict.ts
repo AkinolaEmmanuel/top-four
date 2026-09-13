@@ -1,6 +1,6 @@
 import type {
   FixtureAvailability, MemberMarketResult, OwnFixturePredictions,
-  SelectablePlayer, CopyLeagueReport, CopyOutcome,
+  SelectablePlayer, CopyLeagueReport, CopyOutcome, PlayerSummary,
 } from '@/lib/api/predictions-fixture';
 import type { LeagueRuleset, RulesetMarketType } from '@/lib/api/leagues';
 import { STANDARD_MARKET_TYPES } from '@/lib/constants/markets';
@@ -44,6 +44,14 @@ export interface PlayerOption {
   shirtNumber: number | null;
 }
 
+/** A player the settlement says actually scored or was booked. */
+export interface LandedPlayer {
+  id: string;
+  name: string;
+  initials: string;
+  photoUrl: string | null;
+}
+
 export interface FixtureMarket {
   /** `match_result`, or `home_lineup` / `away_lineup`. */
   key: string;
@@ -78,6 +86,15 @@ export interface FixtureMarket {
    * is what the scored pitch says rather than marking everybody wrong.
    */
   startedPlayerIds: string[] | null;
+  /**
+   * Who actually scored or was booked. Empty means the settlement says nobody
+   * did; null means it is not known yet, or this is not a player market.
+   *
+   * `landed` can only mark the member's own pick — several players can score,
+   * so there is no single right tile to highlight. Without these names a wrong
+   * answer said nothing at all about what the right one was.
+   */
+  landedPlayers: LandedPlayer[] | null;
 }
 
 /** The member's in-flight answers, keyed by market key. */
@@ -150,6 +167,33 @@ export function landedAnswerFor(
     return typeof ownPick === 'string' && ids.includes(ownPick) ? ownPick : null;
   }
   return null;
+}
+
+/**
+ * The players a settled market landed on, named.
+ *
+ * Null rather than empty wherever the answer is not known: an empty array is
+ * read on screen as "nobody scored", which is a claim, not an absence. Ids the
+ * server did not name are treated the same way — saying nothing beats saying
+ * the wrong thing.
+ */
+export function landedPlayersFor(
+  resolved: ResolvedAnswer | null | undefined,
+  summaries: readonly PlayerSummary[],
+): LandedPlayer[] | null {
+  if (!resolved || !('playerIds' in resolved) || !Array.isArray(resolved.playerIds)) return null;
+  const ids = new Set(resolved.playerIds.filter((v): v is string => typeof v === 'string'));
+  if (ids.size === 0) return [];
+
+  const named = summaries
+    .filter(player => ids.has(player.playerId))
+    .map(player => ({
+      id: player.playerId,
+      name: player.displayName,
+      initials: initialsOf(player.displayName),
+      photoUrl: player.photoUrl ?? null,
+    }));
+  return named.length > 0 ? named : null;
 }
 
 /**
@@ -284,6 +328,9 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
         landedScore: marketType === 'exact_score' ? landedScoreFor(resolved) : null,
         // Only a lineup lands as eleven players.
         startedPlayerIds: null,
+        landedPlayers: PLAYER_MARKETS.has(marketType)
+          ? landedPlayersFor(resolved, result?.resolvedPlayers ?? [])
+          : null,
       };
     });
 
@@ -316,6 +363,8 @@ export function toFixtureMarkets(input: BuildMarketsInput): FixtureMarket[] {
         landed: null,
         landedScore: null,
         startedPlayerIds: startedFrom(result?.resolvedAnswer ?? null),
+        // A lineup's eleven are drawn on the pitch, not listed as a sentence.
+        landedPlayers: null,
       };
     }),
   ];
