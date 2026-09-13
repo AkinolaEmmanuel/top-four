@@ -2,7 +2,7 @@ import { landedAnswerFor, landedScoreFor, type ResolvedAnswer } from './fixture-
 import { MARKET_LABELS } from '@/lib/constants/markets';
 import { personInitials } from '@/lib/format';
 import type { Api } from '@/lib/api/types';
-import type { MemberMarketResult } from '@/lib/api/predictions-fixture';
+import type { MemberMarketResult, PlayerSummary } from '@/lib/api/predictions-fixture';
 
 /**
  * A settled fixture, as the league sees it.
@@ -120,7 +120,8 @@ export function answerInWords(
   marketType: string,
   homeName: string,
   awayName: string,
-  playerNames: Map<string, string>,
+  /** The server's own name for a player answer. Null on an older prediction. */
+  selectedPlayer: PlayerSummary | null,
   totalGoalsLine: number,
 ): string | null {
   if (value === null || value === undefined || typeof value !== 'object') return null;
@@ -140,7 +141,10 @@ export function answerInWords(
     return answer.over ? `Over ${totalGoalsLine}` : `Under ${totalGoalsLine}`;
   }
   if (typeof answer.playerId === 'string') {
-    return playerNames.get(answer.playerId) ?? 'A player';
+    // The answer itself carries only an id. The name comes from the server
+    // beside it; the screen used to hold a lookup map that nothing ever filled,
+    // so every player answer in the league read "A player".
+    return selectedPlayer?.displayName ?? 'A player';
   }
   return null;
 }
@@ -149,10 +153,7 @@ export function answerInWords(
 export function toMemberAnswers(
   members: RivalMember[],
   market: ResultMarket,
-  context: {
-    homeName: string; awayName: string;
-    playerNames: Map<string, string>; totalGoalsLine: number;
-  },
+  context: { homeName: string; awayName: string; totalGoalsLine: number },
 ): MemberAnswer[] {
   return members.map(member => {
     const slot = member.predictions.find(p => p.marketType === market.marketType);
@@ -160,7 +161,7 @@ export function toMemberAnswers(
       slot?.answer?.value ?? null,
       market.marketType,
       context.homeName, context.awayName,
-      context.playerNames, context.totalGoalsLine,
+      slot?.answer?.selectedPlayer ?? null, context.totalGoalsLine,
     );
 
     // Compared against the landing, not against the viewer's own answer: the

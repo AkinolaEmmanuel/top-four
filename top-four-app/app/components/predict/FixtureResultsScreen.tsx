@@ -52,9 +52,8 @@ export function FixtureResultsScreen({
   const [marketKey, setMarketKey] = useState<string>(markets[0]?.key ?? '');
   const market = markets.find(m => m.key === marketKey) ?? markets[0] ?? null;
 
-  const playerNames = new Map<string, string>();
   const rows = market
-    ? toMemberAnswers(members, market, { homeName, awayName, playerNames, totalGoalsLine: 2.5 })
+    ? toMemberAnswers(members, market, { homeName, awayName, totalGoalsLine: 2.5 })
     : [];
 
   const status = STATUS[phase];
@@ -104,6 +103,22 @@ export function FixtureResultsScreen({
         </section>
 
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px]">
+          {/* The way back to this fixture's own markets.
+              The pair used to link one way only: the fixture offers "SEE
+              EVERYONE'S ANSWERS →", and the only return was the ‹ in the header
+              above, which is `md:hidden` — so on a wide screen this screen was a
+              dead end. Named rather than an arrow, because it says where it goes
+              and mirrors the link that arrives here. */}
+          <div className="flex items-baseline justify-between px-[var(--gutter)] md:px-0 pt-[16px] md:pt-[22px]">
+            <span className="tf-kicker text-[var(--text-muted)]">EVERYONE&apos;S ANSWERS</span>
+            <Link
+              href={backHref}
+              className="font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)]"
+            >
+              ← HOW IT SCORED
+            </Link>
+          </div>
+
           {phase === 'sealed' ? (
             <div className="p-[64px_30px] text-center">
               <h2 className="font-heading font-bold text-[19px] tracking-[-0.3px]">Everyone&apos;s answers stay sealed</h2>
@@ -116,7 +131,7 @@ export function FixtureResultsScreen({
           ) : (
             <>
               {markets.length > 1 && (
-                <div className="tf-scroll flex gap-[7px] p-[16px_var(--gutter)_0] md:px-0 overflow-x-auto">
+                <div className="tf-scroll flex gap-[7px] p-[12px_var(--gutter)_0] md:px-0 overflow-x-auto">
                   {markets.map(m => {
                     const on = m.key === market?.key;
                     return (
