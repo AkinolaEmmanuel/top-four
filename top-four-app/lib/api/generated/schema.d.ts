@@ -2412,8 +2412,26 @@ export interface components {
             /** @enum {string} */
             state: "active" | "expired" | "exhausted" | "revoked";
         };
+        InvitationReadableResponseDto: {
+            label: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            leagueId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            useLimit: number | null;
+            usesConsumed: number;
+            /** @enum {string} */
+            state: "active" | "expired" | "exhausted" | "revoked";
+            currentlyJoinable: boolean;
+            joinCode: string | null;
+            joinUrl: string | null;
+        };
         InvitationResponseDto: {
-            data: components["schemas"]["InvitationMetadataResponseDto"];
+            data: components["schemas"]["InvitationReadableResponseDto"];
         };
         OwnPendingJoinRequestResponseDto: {
             /** Format: uuid */
@@ -2439,7 +2457,7 @@ export interface components {
             nextCursor: string | null;
         };
         InvitationPageResponseDto: {
-            data: components["schemas"]["InvitationMetadataResponseDto"][];
+            data: components["schemas"]["InvitationReadableResponseDto"][];
             nextCursor: string | null;
         };
         MembershipResponseDto: {
@@ -2802,6 +2820,7 @@ export interface components {
             /** Format: uuid */
             playerId: string;
             displayName: string;
+            photoUrl: string | null;
             position: string | null;
             shirtNumber: number | null;
         };
@@ -2847,6 +2866,12 @@ export interface components {
             snapshotId: string;
             version: number | null;
         };
+        PlayerSummaryDto: {
+            /** Format: uuid */
+            playerId: string;
+            displayName: string;
+            photoUrl: string | null;
+        };
         PredictionAnswerResponseDto: {
             value: {
                 /** @enum {string} */
@@ -2866,6 +2891,7 @@ export interface components {
                 snapshotId: string;
             };
             snapshot: components["schemas"]["PredictionSnapshotDto"] | null;
+            selectedPlayer: components["schemas"]["PlayerSummaryDto"] | null;
             /** Format: date-time */
             submittedAt: string;
             rulesetRevision: number;
@@ -2932,6 +2958,7 @@ export interface components {
             /** Format: uuid */
             playerId: string;
             displayName: string;
+            photoUrl: string | null;
             position: string;
             shirtNumber: number | null;
         };
@@ -3025,6 +3052,7 @@ export interface components {
                 snapshotId: string;
             };
             snapshot: components["schemas"]["PredictionSnapshotDto"] | null;
+            selectedPlayer: components["schemas"]["PlayerSummaryDto"] | null;
             /** Format: date-time */
             submittedAt: string;
         };
@@ -3170,6 +3198,7 @@ export interface components {
             finalizedAt: string | null;
             /** @description Shape follows marketType: match_result outcome; exact_score homeGoals/awayGoals; both_teams_to_score bothScore; total_goals goals/line; anytime_goalscorer and player_card playerIds; lineup teamId/playerIds. Null until settled facts are available. */
             resolvedAnswer: (components["schemas"]["ResolvedMatchResultDto"] | components["schemas"]["ResolvedExactScoreDto"] | components["schemas"]["ResolvedBothTeamsScoreDto"] | components["schemas"]["ResolvedTotalGoalsDto"] | components["schemas"]["ResolvedPlayersDto"] | components["schemas"]["ResolvedLineupDto"]) | null;
+            resolvedPlayers: components["schemas"]["PlayerSummaryDto"][];
             viewerOutcome: components["schemas"]["MemberResultOutcomeDto"] | null;
         };
         MemberFixtureResultsDataDto: {
@@ -3300,6 +3329,7 @@ export interface components {
                 snapshotId: string;
                 version: number;
             } | null;
+            selectedPlayer: components["schemas"]["PlayerSummaryDto"] | null;
             /** Format: date-time */
             submittedAt: string;
         };
@@ -3316,6 +3346,7 @@ export interface components {
                 /** Format: uuid */
                 playerId: string;
                 displayName: string;
+                photoUrl: string | null;
                 position: string | null;
                 shirtNumber: number | null;
             }[];
@@ -5009,7 +5040,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description A credential-free invitation page. */
+            /** @description Invitation metadata with retrievable credentials; legacy credentials are null. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5063,7 +5094,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Invitation metadata and its credentials, shown once. */
+            /** @description Invitation metadata and retrievable credentials. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -5121,7 +5152,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Credential-free invitation metadata. */
+            /** @description Invitation metadata and retrievable credentials; legacy credentials are null. */
             200: {
                 headers: {
                     [name: string]: unknown;

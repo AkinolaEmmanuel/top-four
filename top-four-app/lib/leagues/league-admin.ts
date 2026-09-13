@@ -33,6 +33,11 @@ export interface AdminInvite {
   label: string;
   meta: string;
   isActive: boolean;
+  /** The server's own link. Null for links made before the API stored them. */
+  joinUrl: string | null;
+  joinCode: string | null;
+  /** Whether this link would admit somebody right now. Sharing hangs on it. */
+  isJoinable: boolean;
 }
 
 export interface AdminRequest {
@@ -110,7 +115,18 @@ export function toAdminMembers(
   });
 }
 
-export function toAdminInvites(invites: Api<'InvitationMetadataResponseDto'>[]): AdminInvite[] {
+/**
+ * Either shape the API returns an invitation in.
+ *
+ * The list and the detail now carry the credentials back, so a link is no
+ * longer show-once; the create response is the same thing minus
+ * `currentlyJoinable`, which a link made a moment ago always is.
+ */
+type InvitationLike =
+  | Api<'InvitationReadableResponseDto'>
+  | Api<'InvitationCreatedResponseDto'>;
+
+export function toAdminInvites(invites: InvitationLike[]): AdminInvite[] {
   return invites.map(invite => ({
     id: invite.id,
     // The API carries a label per link now; the date is the fallback for the
@@ -120,10 +136,17 @@ export function toAdminInvites(invites: Api<'InvitationMetadataResponseDto'>[]):
         ? `Invite · ${new Date(invite.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
         : 'Invite'),
     meta: [
-      invite.usesConsumed != null ? `${invite.usesConsumed} used` : null,
+      invite.useLimit != null
+        ? `${invite.usesConsumed} of ${invite.useLimit} used`
+        : `${invite.usesConsumed} used`,
       invite.state,
-    ].filter(Boolean).join(' · '),
+    ].join(' · '),
     isActive: invite.state === 'active',
+    // Null on an older invitation, whose credentials were never stored. That is
+    // an ordinary fact about it, not a failure to report.
+    joinUrl: invite.joinUrl ?? null,
+    joinCode: invite.joinCode ?? null,
+    isJoinable: 'currentlyJoinable' in invite ? invite.currentlyJoinable : true,
   }));
 }
 

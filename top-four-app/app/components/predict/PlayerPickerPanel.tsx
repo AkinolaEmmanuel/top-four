@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PlayerFace } from '@/app/components/PlayerFace';
 import { useSubmitPrediction } from '@/hooks/api/useFixturePrediction';
 import { failureMessage } from '@/lib/api/failure';
 import { timeUntilLabel } from '@/lib/format';
@@ -163,9 +164,13 @@ export function PlayerPickerPanel({
                       <span className="hidden md:block w-[22px] text-right flex-none font-heading font-semibold text-[11px] text-[var(--text-muted)] tf-num">
                         {player.shirt ?? '–'}
                       </span>
-                      <span className="w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] text-[var(--text-primary)]" style={{ background: TINTS[i % TINTS.length] }}>
-                        {player.initials}
-                      </span>
+                      <PlayerFace
+                        name={player.name}
+                        initials={player.initials}
+                        photoUrl={player.photoUrl}
+                        size={30}
+                        background={TINTS[i % TINTS.length]}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="font-heading font-semibold text-[13px] truncate">{player.name}</div>
                         <div className="text-[10.5px] text-[var(--text-muted)] mt-[2px]">{playerMeta(player)}</div>

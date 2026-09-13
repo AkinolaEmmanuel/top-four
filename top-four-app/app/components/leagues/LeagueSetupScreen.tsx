@@ -6,6 +6,7 @@ import { Breadcrumb } from '../Breadcrumb';
 import { useCreateLeague, usePublishLeague } from '@/hooks/api/useLeagues';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
+import type { Api } from '@/lib/api/types';
 import {
   buildCreatePayload, summariseSpan, LOCK_PRESETS, MARKET_PRESETS,
   type CompetitionChoice, type LockKind, type MarketType,
@@ -15,10 +16,14 @@ import {
 /** The wizard's five panels plus its confirmation, as the URL-free step state. */
 type Step = '1' | '2' | '3' | '4' | '5' | 'done';
 
-/** Only the field the publish flow reads back off a freshly created invitation. */
-interface InvitationCreated {
-  data?: { joinCode?: string | null } | null;
-}
+/**
+ * A freshly created invitation, as the server returns it.
+ *
+ * Both fields are read: the code is what somebody types, and `joinUrl` is the
+ * link. The link used to be built here as `topfour.app/j/{code}`, which is not
+ * a route TopFour serves — everyone sent one got nowhere.
+ */
+type InvitationCreated = Api<'InvitationCreatedEnvelopeDto'>;
 
 const BRAND = "var(--color-brand)";
 
@@ -53,6 +58,9 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
   const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
   const [createdLeagueName, setCreatedLeagueName] = useState<string>('');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  /** Set when the league published but its first invitation did not. */
+  const [inviteFailed, setInviteFailed] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [copyToast, setCopyToast] = useState(false);
   
@@ -693,7 +701,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                 <div className="font-heading font-bold text-[27px] leading-[1.1] tracking-[-0.9px] mt-[11px]">{createdLeagueName || name} is live</div>
                 <div className="text-[12.5px] leading-[1.6] opacity-85 mt-[9px]">The rules are frozen. Send this to the people you want in — anyone with the link can ask to join.</div>
 
-                {inviteCode ? (
+                {inviteCode && inviteUrl ? (
                   <>
                     <div className="flex gap-[6px] mt-[20px]">
                       {inviteCode.split("").map((ch, i) => (
@@ -701,13 +709,13 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                       ))}
                     </div>
                     <div className="flex items-center gap-[10px] mt-[10px]">
-                      <span className="flex-1 text-[11.5px] opacity-80 whitespace-nowrap overflow-hidden text-ellipsis">topfour.app/j/{inviteCode}</span>
+                      <span className="flex-1 text-[11.5px] opacity-80 whitespace-nowrap overflow-hidden text-ellipsis">{inviteUrl}</span>
                       <button
                         type="button"
                         className="tf-tap font-heading font-bold text-[11px] flex-none"
                         onClick={async () => {
                           try {
-                            await navigator.clipboard.writeText(`https://topfour.app/j/${inviteCode}`);
+                            await navigator.clipboard.writeText(inviteUrl);
                             setCopyToast(true);
                             setTimeout(() => setCopyToast(false), 2000);
                           } catch {}
@@ -723,7 +731,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                     <button type="button"
                       className="tf-tap w-full mt-[16px] h-[48px] rounded-[13px] bg-[var(--tf-white)] text-[var(--tf-green-800)] grid place-items-center font-heading font-bold text-[13.5px]"
                       onClick={async () => {
-                        const url = `https://topfour.app/j/${inviteCode}`;
+                        const url = inviteUrl;
                         const shareData = { title: `Join ${createdLeagueName || name} on TopFour`, url };
                         try {
                           if (navigator.share && navigator.canShare?.(shareData)) {
@@ -739,6 +747,12 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                       Share the invitation
                     </button>
                   </>
+                ) : inviteFailed ? (
+                  /* The league published; only the link did not. Saying so
+                     beats a placeholder that pulses at nothing forever. */
+                  <div className="text-[12.5px] leading-[1.6] mt-[20px] p-[12px_14px] rounded-[11px] bg-[rgba(255,255,255,.12)]">
+                    The league is live, but its first invite link was not made. Create one under Members → Invites.
+                  </div>
                 ) : (
                   <div className="mt-[20px] h-[46px] rounded-[10px] bg-[rgba(255,255,255,.1)] animate-pulse" />
                 )}
@@ -748,8 +762,8 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                 <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">WHAT NOW</div>
                 {[
                   { num: "1", label: "Invite people to join your league", href: null, action: async () => {
-                    if (!inviteCode) return;
-                    const url = `https://topfour.app/j/${inviteCode}`;
+                    if (!inviteUrl) return;
+                    const url = inviteUrl;
                     const shareData = { title: `Join ${createdLeagueName || name} on TopFour`, url };
                     try {
                       if (navigator.share && navigator.canShare?.(shareData)) {
@@ -888,10 +902,13 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ useLimit: 100 }),
                             });
-                            const code = inv?.data?.joinCode ?? null;
-                            if (code) setInviteCode(code);
+                            setInviteCode(inv?.data?.joinCode ?? null);
+                            setInviteUrl(inv?.data?.joinUrl ?? null);
                           } catch {
-                            // invitation creation failed silently; user can still manage from admin
+                            // The league is published either way, so this says
+                            // where to make a link rather than leaving the
+                            // placeholder pulsing at a link that never arrives.
+                            setInviteFailed(true);
                           }
                         },
                         onError: () => {

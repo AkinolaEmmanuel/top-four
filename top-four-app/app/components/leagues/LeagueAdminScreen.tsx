@@ -68,12 +68,14 @@ export function LeagueAdminScreen({
    * The invitation just made, held here rather than refetched.
    *
    * `router.refresh()` on success re-suspended this screen's Suspense boundary,
-   * so the panel unmounted and took the shown-once code with it — which read as
-   * the page reloading and losing the link. The created invitation is already
-   * in the response, so it is kept and prepended to the list instead.
+   * which read as the page reloading the moment the link was made. The created
+   * invitation is already in the response, so it is kept and prepended to the
+   * list instead — the server's own list is a page behind until the next
+   * navigation, and it will carry the same row then.
    */
   const [created, setCreated] = useState<Api<'InvitationCreatedResponseDto'> | null>(null);
-  const [inviteCopied, setInviteCopied] = useState(false);
+  /** Which row's link was just copied, so only that row says so. */
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   /* The server list is a page behind until the next navigation, so the new one
      is prepended here rather than refetched. */
   const shownInvites = created && !invites.some(i => i.id === created.id)
@@ -221,7 +223,7 @@ export function LeagueAdminScreen({
                       createInvite.mutate(100, {
                         onSuccess: result => {
                           setCreated(result.data);
-                          setInviteCopied(false);
+                          setCopiedId(null);
                           say('Invite created');
                         },
                         onError: () => blame('Creating an invite'),
@@ -231,66 +233,86 @@ export function LeagueAdminScreen({
                   >
                     {createInvite.isPending ? 'Creating…' : 'Create an invite link'}
                   </button>
-                  {created && (
-                    <div className="mt-[12px] p-[12px_14px] rounded-[11px] bg-[var(--tf-navy-800)] text-[var(--tf-white)]">
-                      <div className="tf-kicker opacity-70">Shown once — copy it now</div>
+                  <p className="text-[11px] leading-[1.6] text-[var(--text-muted)] mt-[9px]">
+                    Every link below can be copied again whenever you need it.
+                  </p>
+                </div>
+              )}
+              {shownInvites.length === 0
+                ? <p className="p-[40px_30px] text-center text-[12.5px] text-[var(--text-secondary)]">No invite links yet.</p>
+                : shownInvites.map(invite => {
+                  /* A const, so the narrowing survives into the copy handler. */
+                  const link = invite.joinUrl;
+                  return (
+                  <div key={invite.id} className="p-[13px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
+                    <div className="flex items-center gap-[12px]">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-heading font-semibold text-[13px] truncate">{invite.label}</div>
+                        <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{invite.meta}</div>
+                      </div>
+                      {invite.isActive && canManage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFailed(null);
+                            revokeInvite.mutate(invite.id, {
+                              onSuccess: () => { say('Invite revoked'); router.refresh(); },
+                              onError: () => blame('Revoking that invite'),
+                            });
+                          }}
+                          className="font-heading font-bold text-[10.5px] text-[var(--danger-text)] flex-none"
+                        >
+                          REVOKE
+                        </button>
+                      )}
+                    </div>
 
-                      {/* The server's own link, not one built here. It carries the
-                          real domain and the token the join screen expects; the
-                          code below it is for somebody typing it in by hand. */}
-                      <div className="flex items-center gap-[10px] mt-[10px] p-[10px_12px] rounded-[9px] bg-[rgba(255,255,255,0.10)]">
-                        <span className="flex-1 min-w-0 text-[12px] opacity-90 truncate">{created.joinUrl}</span>
+                    {/* The server's own link, not one built here: it carries the
+                        real domain and the token the join screen expects. Shown
+                        on every row because a link nobody can read again is not
+                        an invitation. The code beneath is for typing by hand. */}
+                    {link && invite.isJoinable && (
+                      <div className="flex items-center gap-[10px] mt-[10px] p-[9px_11px] rounded-[9px] bg-[var(--surface-subtle)]">
+                        <span className="flex-1 min-w-0 text-[11.5px] text-[var(--text-secondary)] truncate">{link}</span>
                         <button
                           type="button"
                           onClick={async () => {
                             try {
-                              await navigator.clipboard.writeText(created.joinUrl);
-                              setInviteCopied(true);
-                              setTimeout(() => setInviteCopied(false), 2000);
+                              await navigator.clipboard.writeText(link);
+                              setCopiedId(invite.id);
+                              setTimeout(() => setCopiedId(null), 2000);
                             } catch {
                               // A blocked clipboard leaves the link on screen to
                               // select by hand, which is why it is shown in full.
                             }
                           }}
-                          className="tf-hit font-heading font-bold text-[10.5px] tracking-[0.05em] flex-none"
+                          className="tf-hit font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] flex-none"
                         >
-                          {inviteCopied ? 'COPIED ✓' : 'COPY LINK'}
+                          {copiedId === invite.id ? 'COPIED ✓' : 'COPY LINK'}
                         </button>
                       </div>
-
-                      <div className="tf-kicker opacity-60 mt-[12px]">Or this code</div>
-                      <div className="font-heading font-bold text-[22px] tracking-[2px] mt-[4px] break-all">{created.joinCode}</div>
-
-                      <div className="text-[11px] opacity-75 mt-[10px]">TopFour will not show this link again. Later lists carry the label and its status, never the code.</div>
-                    </div>
-                  )}
-                </div>
-              )}
-              {shownInvites.length === 0
-                ? <p className="p-[40px_30px] text-center text-[12.5px] text-[var(--text-secondary)]">No invite links yet.</p>
-                : shownInvites.map(invite => (
-                  <div key={invite.id} className="flex items-center gap-[12px] p-[13px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-heading font-semibold text-[13px] truncate">{invite.label}</div>
-                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{invite.meta}</div>
-                    </div>
-                    {invite.isActive && canManage && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFailed(null);
-                          revokeInvite.mutate(invite.id, {
-                            onSuccess: () => { say('Invite revoked'); router.refresh(); },
-                            onError: () => blame('Revoking that invite'),
-                          });
-                        }}
-                        className="font-heading font-bold text-[10.5px] text-[var(--danger-text)] flex-none"
-                      >
-                        REVOKE
-                      </button>
+                    )}
+                    {invite.joinCode && invite.isJoinable && (
+                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[6px]">
+                        Or the code <span className="font-heading font-bold tracking-[1px] text-[var(--text-secondary)]">{invite.joinCode}</span>
+                      </div>
+                    )}
+                    {/* Two separate facts, and neither is an error: a link that
+                        has stopped working, and an older one whose credentials
+                        the API never stored. */}
+                    {!invite.isJoinable && (
+                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[8px]">
+                        This link no longer lets anyone in, so it cannot be shared.
+                      </div>
+                    )}
+                    {invite.isJoinable && !link && (
+                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[8px]">
+                        Made before TopFour kept links — create a new one to share.
+                      </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
             </div>
           )}
 

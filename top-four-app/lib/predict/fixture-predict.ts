@@ -33,6 +33,8 @@ export interface PlayerOption {
   /** "ARS 7" — the club and shirt number, trimmed when there is no number. */
   meta: string;
   initials: string;
+  /** Null until the player's catalogue entry carries an accepted photo. */
+  photoUrl: string | null;
   /**
    * The catalogue's own position. Carried because the lineup picker buckets by
    * it: without it every player looked like a midfielder, so a goalkeeper
@@ -103,6 +105,7 @@ export function toPlayerOption(player: SelectablePlayer, teamCode: string): Play
     name: player.displayName,
     meta: `${teamCode} ${player.shirtNumber ?? ''}`.trim(),
     initials: initialsOf(player.displayName),
+    photoUrl: player.photoUrl ?? null,
     position: player.position ?? null,
     shirtNumber: player.shirtNumber ?? null,
   };

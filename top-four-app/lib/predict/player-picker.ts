@@ -18,6 +18,8 @@ export interface PickerPlayer {
   shirt: number | null;
   position: string | null;
   initials: string;
+  /** Null until the player's catalogue entry carries an accepted photo. */
+  photoUrl: string | null;
   side: 'home' | 'away';
 }
 
@@ -55,6 +57,7 @@ export function toPickerPlayer(player: SelectablePlayer): PickerPlayer {
     shirt: player.shirtNumber,
     position: player.position,
     initials: initialsOf(player.displayName),
+    photoUrl: player.photoUrl ?? null,
     side: player.side === 'away' ? 'away' : 'home',
   };
 }

@@ -16,6 +16,7 @@ import { fetchOwnPredictions } from '@/lib/api/predictions-fixture';
 import { lockLabel } from '@/lib/format';
 import { Breadcrumb } from '../Breadcrumb';
 import { TeamCrest } from '../TeamCrest';
+import { PlayerFace } from '../PlayerFace';
 import { heroGradient } from '@/lib/crest-colour';
 import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import {
@@ -1074,9 +1075,14 @@ function PlayerChoices({ market, picked, settled, locked, canAnswer, onPick }: {
             onClick={() => onPick(player.id)}
             className={`flex items-center gap-[10px] min-h-[46px] rounded-[11px] p-[7px_11px] text-left ${canAnswer ? 'cursor-pointer' : 'cursor-default'} ${isMine ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border border-[var(--surface-border-strong)] bg-transparent'}`}
           >
-            <span className={`w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] ${isMine ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)]' : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)]'}`}>
-              {player.initials}
-            </span>
+            <PlayerFace
+              name={player.name}
+              initials={player.initials}
+              photoUrl={player.photoUrl}
+              size={30}
+              background={isMine ? 'var(--brand-fill)' : 'var(--surface-subtle)'}
+              foreground={isMine ? 'var(--color-on-brand)' : 'var(--text-secondary)'}
+            />
             <span className={`flex-1 min-w-0 font-heading ${isMine ? 'font-bold' : 'font-semibold'} text-[13px] truncate`}>{player.name}</span>
             <span className="text-[10.5px] text-[var(--text-muted)] flex-none">{player.meta}</span>
             <span className={`flex-none text-[13px] text-[var(--color-brand)] ${isMine ? '' : 'invisible'}`}>✓</span>
