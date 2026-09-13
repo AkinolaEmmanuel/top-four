@@ -139,7 +139,8 @@ function boundary(atMs: number): string {
  * list from August — about five serial round trips to draw one round.
  *
  * The played half is read whole because it is small. The upcoming half is a
- * week, and only when it is the half on screen.
+ * week, and is read whichever half is showing: the tab that counts it is on
+ * screen either way.
  *
  * One caveat worth knowing: the API excludes fixtures whose kickoff is not yet
  * known from a windowed read, so a fixture awaiting a confirmed time appears in
@@ -213,11 +214,16 @@ async function Fixtures({
       readWindow(id, null, now, MAX_PAGES),
       // Only when it is the half on screen, and then one page is enough — the
       // window starts at now and the list is ordered by kickoff.
-      // A week ahead, not the rest of the season. Two pages is ample for any
-      // real week and keeps a pathological one from hanging the screen.
-      view === 'results'
-        ? Promise.resolve({ items: [], truncated: false })
-        : readWindow(id, now, horizonEnd, 2),
+      /*
+       * A week ahead, not the rest of the season — two pages is ample for any
+       * real week and keeps a pathological one from hanging the screen.
+       *
+       * Read on both views, not just when Upcoming is the half on screen. The
+       * tab above the list counts what this returns, so skipping it on Results
+       * made the Upcoming tab read 0 in a league with a full week of fixtures.
+       * Skipping was worth it when this was a season; a week is one call.
+       */
+      readWindow(id, now, horizonEnd, 2),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/fixtures`);

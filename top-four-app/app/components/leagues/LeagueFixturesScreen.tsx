@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { LeagueColumn } from './LeagueColumn';
 import { TeamCrest } from '../TeamCrest';
-import { timeUntilLabel, pluralise } from '@/lib/format';
+import { timeUntilLabel } from '@/lib/format';
 import { FIXTURE_FILTERS, type FixtureFilter } from '@/lib/leagues/league-fixtures';
 import { tintFor } from '@/lib/crest';
 import Image from 'next/image';
@@ -197,10 +197,6 @@ export function LeagueFixturesScreen({
                   <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">
                     Nothing kicks off in the next {horizon.weeks === 1 ? '7 days' : `${horizon.weeks} weeks`}
                   </div>
-                  <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px] max-w-[340px] mx-auto">
-                    {pluralise(horizon.beyond, 'fixture')} further out in this league. Widen the window to
-                    see what is coming.
-                  </p>
                   {showMoreHref && (
                     <Link
                       href={showMoreHref}
@@ -247,7 +243,9 @@ export function LeagueFixturesScreen({
             ))
           )}
 
-          {showMoreHref && (
+          {/* Only below a list. With no rows the empty state above already makes
+              the offer, and two identical controls on one screen is a puzzle. */}
+          {showMoreHref && rows.length > 0 && (
             <div className="px-[var(--gutter)] md:px-0 pt-[18px]">
               <Link
                 href={showMoreHref}
