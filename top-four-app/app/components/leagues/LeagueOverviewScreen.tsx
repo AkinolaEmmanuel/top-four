@@ -125,7 +125,7 @@ export function LeagueOverviewScreen({
               <span className="tf-kicker text-[var(--text-muted)]">
                 {gap.behind ? `You are chasing ${gap.behind.name}` : gap.positionLabel}
               </span>
-              <Link href={`/leagues/${leagueId}/table`} className="font-heading font-bold text-[10px] text-[var(--text-link)]">FULL TABLE →</Link>
+              <Link href={`/leagues/${leagueId}/table`} className="tf-hit font-heading font-bold text-[10px] text-[var(--text-link)]">FULL TABLE →</Link>
             </div>
 
             {rivals.map(rival => (

@@ -63,6 +63,19 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .tf-tap { cursor: pointer; }
+
+/*
+ * A 24px hit area on a control that is drawn smaller.
+ *
+ * The padding grows the touchable box; the matching negative margin hands the
+ * space straight back to the layout, so the control looks identical and is
+ * merely easier to hit. A 14px "SEE ALL →" becomes 24px of target without
+ * moving the pixel it sits on.
+ *
+ * Only for controls with no background or border of their own — on those the
+ * padding would be visible and this is the wrong tool.
+ */
+.tf-hit { padding: 6px 7px; margin: -6px -7px; }
 .tf-kicker { font: 700 9.5px/1 'DM Sans', sans-serif; letter-spacing: .13em; text-transform: uppercase; }
 
 .tf-chip {

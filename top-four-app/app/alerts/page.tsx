@@ -253,18 +253,23 @@ export default function AlertsPage() {
         </header>
 
         {onList && (
-          <div className="flex-none flex items-center gap-[8px] py-[16px] overflow-x-auto">
-            {filters.map(f => (
-              <button type="button" key={f.label} onClick={() => { setFilter(f.label); setView('list'); }} className={f.style}>
-                {f.label}<span className={f.countStyle}>{f.count}</span>
-              </button>
-            ))}
+          <div className="flex-none flex items-center gap-[10px] py-[16px]">
+            {/* The chips scroll; the action does not. They shared one scrolling
+                row, so on a 390px phone "Mark all read" sat 41px past the right
+                edge and had to be found by dragging the filters sideways. */}
+            <div className="tf-scroll flex items-center gap-[8px] overflow-x-auto flex-1 min-w-0">
+              {filters.map(f => (
+                <button type="button" key={f.label} onClick={() => { setFilter(f.label); setView('list'); }} className={f.style}>
+                  {f.label}<span className={f.countStyle}>{f.count}</span>
+                </button>
+              ))}
+            </div>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={() => markAllReadMutation.mutate()}
                 disabled={markAllReadMutation.isPending}
-                className="flex-none ml-auto font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer whitespace-nowrap disabled:opacity-50"
+                className="tf-hit flex-none font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] cursor-pointer whitespace-nowrap disabled:opacity-50"
               >
                 {markAllReadMutation.isPending ? 'MARKING…' : 'MARK ALL READ'}
               </button>
@@ -330,7 +335,7 @@ export default function AlertsPage() {
                           <span className="text-[10.5px] text-[var(--text-muted)]">{r.when}</span>
                           <span className="flex-1"></span>
                           {r.href && (
-                            <Link href={r.href} className="font-heading font-bold text-[10.5px] text-[var(--text-link)] flex-none">{r.action} →</Link>
+                            <Link href={r.href} className="tf-hit font-heading font-bold text-[10.5px] text-[var(--text-link)] flex-none">{r.action} →</Link>
                           )}
                         </div>
                       </div>

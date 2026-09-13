@@ -193,7 +193,7 @@ export function PredictScreen({
                     scroll={false}
                     className="tf-tap flex items-center h-[32px] px-[13px] rounded-full cursor-pointer whitespace-nowrap flex-none font-heading font-semibold text-[11.5px]"
                     style={on
-                      ? { background: 'var(--color-brand)', color: 'var(--color-on-brand)' }
+                      ? { background: 'var(--brand-fill)', color: 'var(--color-on-brand)' }
                       : { border: '1px solid var(--surface-border-strong)', color: 'var(--text-secondary)' }}
                   >
                     {option.name}

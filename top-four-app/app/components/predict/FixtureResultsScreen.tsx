@@ -156,8 +156,11 @@ export function FixtureResultsScreen({
                     {row.position}
                   </span>
                   <span
-                    className="w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] text-[var(--text-primary)]"
-                    style={{ background: row.isViewer ? 'var(--color-brand)' : `var(--ident-${row.position % 8})` }}
+                    /* The viewer's own disc is a filled brand circle, so it
+                       takes the fill token and its on-colour. `--color-brand` is
+                       a tint: white on it reads at 2.18 in dark mode. */
+                    className={`w-[30px] h-[30px] rounded-full flex-none grid place-items-center font-heading font-bold text-[10px] ${row.isViewer ? 'text-[var(--color-on-brand)]' : 'text-[var(--text-primary)]'}`}
+                    style={{ background: row.isViewer ? 'var(--brand-fill)' : `var(--ident-${row.position % 8})` }}
                   >
                     {row.initials}
                   </span>

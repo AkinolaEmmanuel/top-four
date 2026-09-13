@@ -93,7 +93,7 @@ function PayoffBlock({ payoff }: { payoff: HomePayoff }) {
 
         <div className="flex flex-col gap-[9px] mt-[15px]">
           {payoff.rows.map(row => (
-            <Link key={row.href} href={row.href} className="flex items-center gap-[10px]">
+            <Link key={row.href} href={row.href} className="tf-hit flex items-center gap-[10px]">
               <span
                 className={`w-[18px] h-[18px] rounded-full flex-none grid place-items-center font-heading font-bold text-[9px] ${
                   row.won

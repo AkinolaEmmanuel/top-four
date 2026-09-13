@@ -75,7 +75,7 @@ function Editable({ label, value, note, kind, pending, onSave }: {
           <button
             type="button"
             onClick={() => { setDraft(value); setEditing(true); }}
-            className="font-heading font-bold text-[10.5px] text-[var(--text-link)] flex-none"
+            className="tf-hit font-heading font-bold text-[10.5px] text-[var(--text-link)] flex-none"
           >
             EDIT
           </button>

@@ -35,7 +35,7 @@ export default function NamePage() {
       <div className="max-w-[700px] w-full mx-auto p-[24px_20px] md:p-[40px_32px] flex flex-col gap-[24px]">
         {/* Header / Breadcrumbs */}
         <div className="flex items-center gap-[12px] pb-[16px] border-b border-[var(--surface-border)]">
-          <Link href="/me" className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-[6px] transition-colors">
+          <Link href="/me" className="tf-hit text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-[6px] transition-colors">
             <span>‹</span> Account Settings
           </Link>
           <span className="text-[var(--surface-border-strong)]">/</span>

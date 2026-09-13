@@ -93,7 +93,7 @@ export function PlayerPickerPanel({
             </p>
           </div>
           <span className="font-heading font-bold text-[11px] text-[var(--text-link)] flex-none">{price}</span>
-          <button type="button" aria-label="Close" onClick={onClose} className="text-[22px] leading-none text-[var(--text-muted)] flex-none">×</button>
+          <button type="button" aria-label="Close" onClick={onClose} className="w-[32px] h-[32px] -mr-[6px] grid place-items-center text-[22px] leading-none text-[var(--text-muted)] flex-none">×</button>
         </div>
       )}
 

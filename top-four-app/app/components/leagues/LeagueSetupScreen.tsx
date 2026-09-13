@@ -708,8 +708,12 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                         {copyToast ? 'COPIED ✓' : 'COPY'}
                       </button>
                     </div>
+                    {/* `w-full` matters here: the design draws this as a block
+                        div, and a button does not stretch the same way — without
+                        it the control shrank to its own text and sat as a small
+                        pill in the corner of a full-width panel. */}
                     <button type="button"
-                      className="tf-tap mt-[16px] h-[48px] rounded-[13px] bg-[var(--tf-white)] text-[var(--tf-green-800)] grid place-items-center font-heading font-bold text-[13.5px]"
+                      className="tf-tap w-full mt-[16px] h-[48px] rounded-[13px] bg-[var(--tf-white)] text-[var(--tf-green-800)] grid place-items-center font-heading font-bold text-[13.5px]"
                       onClick={async () => {
                         const url = `https://topfour.app/j/${inviteCode}`;
                         const shareData = { title: `Join ${createdLeagueName || name} on TopFour`, url };
@@ -724,7 +728,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                         } catch {}
                       }}
                     >
-                    Share the invitation
+                      Share the invitation
                     </button>
                   </>
                 ) : (

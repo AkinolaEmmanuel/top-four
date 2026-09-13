@@ -313,7 +313,7 @@ export function HomeScreen({
             <div className="flex items-baseline justify-between mb-[12px]">
               <span className="tf-kicker">{caught ? 'Nothing else owed' : 'Also waiting on you'}</span>
               {queueCount > queue.length && (
-                <Link href="/predict" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {queueCount} →</Link>
+                <Link href="/predict" className="tf-hit font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {queueCount} →</Link>
               )}
             </div>
 
@@ -339,7 +339,7 @@ export function HomeScreen({
             <section className="pt-[24px] md:pt-0 border-t-[6px] md:border-t-0 border-[var(--surface-subtle)]">
               <div className="flex items-baseline justify-between px-[var(--gutter)] md:px-0 mb-[10px]">
                 <span className="tf-kicker">Where you stand</span>
-                <Link href="/leagues" className="font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {leagues.length} →</Link>
+                <Link href="/leagues" className="tf-hit font-heading font-bold text-[9px] tracking-[0.06em] text-[var(--text-link)]">SEE ALL {leagues.length} →</Link>
               </div>
               <div className="md:px-0">
                 {leagues.map(entry => <LeagueRow key={entry.id} entry={entry} />)}

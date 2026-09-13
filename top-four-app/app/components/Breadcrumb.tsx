@@ -42,7 +42,7 @@ export function Breadcrumb({ trail, tone = 'light' }: { trail: Crumb[]; tone?: '
             {crumb.href ? (
               <Link
                 href={crumb.href}
-                className={`truncate transition-colors ${dark ? 'text-[var(--nav-text-quiet)] hover:text-[var(--nav-text)]' : 'hover:text-[var(--text-link)]'}`}
+                className={`tf-hit truncate transition-colors ${dark ? 'text-[var(--nav-text-quiet)] hover:text-[var(--nav-text)]' : 'hover:text-[var(--text-link)]'}`}
               >
                 {crumb.label}
               </Link>

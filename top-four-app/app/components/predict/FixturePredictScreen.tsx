@@ -629,7 +629,7 @@ export function FixturePredictScreen({
                             <button
                               type="button"
                               onClick={() => setPickingPlayers(market.marketType === 'player_card' ? 'card' : 'scorer')}
-                              className="inline-block mt-[9px] font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-link)]"
+                              className="tf-hit inline-block mt-[9px] font-heading font-bold text-[9.5px] tracking-[0.05em] text-[var(--text-link)]"
                             >
                               SEARCH ALL PLAYERS →
                             </button>
@@ -977,7 +977,7 @@ export function FixturePredictScreen({
           <div className="bg-[var(--surface-canvas)] w-full max-w-[500px] h-full md:h-auto rounded-[16px] overflow-hidden flex flex-col md:max-h-[86vh]">
             <div className="flex justify-between items-center p-[16px] border-b border-[var(--surface-border)]">
               <h2 className="font-heading font-bold text-[18px]">{editingLineup === 'home' ? homeName : awayName} Starting XI</h2>
-              <button type="button" aria-label="Close" onClick={() => setEditingLineup(null)} className="text-[24px] text-[var(--text-muted)]">×</button>
+              <button type="button" aria-label="Close" onClick={() => setEditingLineup(null)} className="w-[32px] h-[32px] -mr-[6px] grid place-items-center text-[24px] leading-none text-[var(--text-muted)]">×</button>
             </div>
             {/* The picker manages its own column, so this only gives it the
                 space that is left. Scrolling here would take Save with it. */}
@@ -1112,7 +1112,7 @@ function EditTrail({ leagueId, fixtureId, market, version, open, onToggle }: {
         type="button"
         onClick={onToggle}
         disabled={edits === 0}
-        className={`font-heading font-semibold text-[10.5px] ${edits > 0 ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)] cursor-default'}`}
+        className={`tf-hit font-heading font-semibold text-[10.5px] ${edits > 0 ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)] cursor-default'}`}
       >
         {edits === 0 ? 'Never changed' : open ? 'Hide edits' : `Edited ${edits}×`}
       </button>
