@@ -10,6 +10,9 @@ import {
   useCloneLeague, useArchiveLeague, useCancelLeague,
 } from '@/hooks/api/useLeagues';
 import type { AdminAction, AdminInvite, AdminMember, AdminRequest, AdminTab, LifecycleStep, MemberRole } from '@/lib/leagues/league-admin';
+import { toAdminInvites } from '@/lib/leagues/league-admin';
+import type { Api } from '@/lib/api/types';
+
 
 /**
  * League admin — one component for both platforms.
@@ -61,7 +64,21 @@ export function LeagueAdminScreen({
   const [confirmText, setConfirmText] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
-  const [newInviteCode, setNewInviteCode] = useState<string | null>(null);
+  /*
+   * The invitation just made, held here rather than refetched.
+   *
+   * `router.refresh()` on success re-suspended this screen's Suspense boundary,
+   * so the panel unmounted and took the shown-once code with it — which read as
+   * the page reloading and losing the link. The created invitation is already
+   * in the response, so it is kept and prepended to the list instead.
+   */
+  const [created, setCreated] = useState<Api<'InvitationCreatedResponseDto'> | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  /* The server list is a page behind until the next navigation, so the new one
+     is prepended here rather than refetched. */
+  const shownInvites = created && !invites.some(i => i.id === created.id)
+    ? [...toAdminInvites([created]), ...invites]
+    : invites;
 
   const updateRole = useUpdateMemberRole(leagueId);
   const removeMember = useRemoveMember(leagueId);
@@ -202,7 +219,11 @@ export function LeagueAdminScreen({
                     onClick={() => {
                       setFailed(null);
                       createInvite.mutate(100, {
-                        onSuccess: created => { setNewInviteCode(created.data.joinCode ?? null); say('Invite created'); router.refresh(); },
+                        onSuccess: result => {
+                          setCreated(result.data);
+                          setInviteCopied(false);
+                          say('Invite created');
+                        },
                         onError: () => blame('Creating an invite'),
                       });
                     }}
@@ -210,18 +231,44 @@ export function LeagueAdminScreen({
                   >
                     {createInvite.isPending ? 'Creating…' : 'Create an invite link'}
                   </button>
-                  {newInviteCode && (
+                  {created && (
                     <div className="mt-[12px] p-[12px_14px] rounded-[11px] bg-[var(--tf-navy-800)] text-[var(--tf-white)]">
-                      <div className="tf-kicker opacity-70">SHOWN ONCE — COPY IT NOW</div>
-                      <div className="font-heading font-bold text-[26px] tracking-[2px] mt-[8px]">{newInviteCode}</div>
-                      <div className="text-[11px] opacity-75 mt-[8px]">TopFour will not show this code again. Later lists carry the label and its status, never the code.</div>
+                      <div className="tf-kicker opacity-70">Shown once — copy it now</div>
+
+                      {/* The server's own link, not one built here. It carries the
+                          real domain and the token the join screen expects; the
+                          code below it is for somebody typing it in by hand. */}
+                      <div className="flex items-center gap-[10px] mt-[10px] p-[10px_12px] rounded-[9px] bg-[rgba(255,255,255,0.10)]">
+                        <span className="flex-1 min-w-0 text-[12px] opacity-90 truncate">{created.joinUrl}</span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(created.joinUrl);
+                              setInviteCopied(true);
+                              setTimeout(() => setInviteCopied(false), 2000);
+                            } catch {
+                              // A blocked clipboard leaves the link on screen to
+                              // select by hand, which is why it is shown in full.
+                            }
+                          }}
+                          className="tf-hit font-heading font-bold text-[10.5px] tracking-[0.05em] flex-none"
+                        >
+                          {inviteCopied ? 'COPIED ✓' : 'COPY LINK'}
+                        </button>
+                      </div>
+
+                      <div className="tf-kicker opacity-60 mt-[12px]">Or this code</div>
+                      <div className="font-heading font-bold text-[22px] tracking-[2px] mt-[4px] break-all">{created.joinCode}</div>
+
+                      <div className="text-[11px] opacity-75 mt-[10px]">TopFour will not show this link again. Later lists carry the label and its status, never the code.</div>
                     </div>
                   )}
                 </div>
               )}
-              {invites.length === 0
+              {shownInvites.length === 0
                 ? <p className="p-[40px_30px] text-center text-[12.5px] text-[var(--text-secondary)]">No invite links yet.</p>
-                : invites.map(invite => (
+                : shownInvites.map(invite => (
                   <div key={invite.id} className="flex items-center gap-[12px] p-[13px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
                     <div className="flex-1 min-w-0">
                       <div className="font-heading font-semibold text-[13px] truncate">{invite.label}</div>
