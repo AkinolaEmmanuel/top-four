@@ -277,10 +277,21 @@ async function Fixtures({
      * none of that will ever score for them.
      */
     const missed = f.status === 'finished' && (f.answered ?? 0) === 0;
+    /*
+     * A postponed, cancelled or abandoned fixture is void on the fixture's own
+     * status, before any market settles.
+     *
+     * Void was only ever reached by every settled market resolving void, so a
+     * match called off before anything settled had no outcomes at all and read
+     * "Awaiting result" — waiting forever on a game that will not be played.
+     */
+    const voided = f.status === 'voided';
     return {
       ...f,
       ...outcome,
-      predictionState: outcome.predictionState ?? (missed ? 'missed' as const : undefined),
+      predictionState: voided
+        ? 'void' as const
+        : outcome.predictionState ?? (missed ? 'missed' as const : undefined),
     };
   });
   const split = splitFixtures(fixtures);

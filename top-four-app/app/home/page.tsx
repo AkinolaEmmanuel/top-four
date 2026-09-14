@@ -9,7 +9,7 @@ import { toHomeLeague, toQueueEntry } from '@/lib/home/home-data';
 import { HomePayoffSection, HomePayoffSkeleton } from '../components/home/HomePayoff';
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
-import type { LeaguesPage } from '@/lib/api/leagues';
+import type { LeagueListItem, LeaguesPage } from '@/lib/api/leagues';
 import { queueWindow } from '@/lib/predict/queue-window';
 
 /**
@@ -34,14 +34,16 @@ const HOME_QUEUE_ROWS = 5;
 
 export default async function HomePage() {
   let tasks: { items: PredictionTask[]; first: TaskPage };
-  let leagues: LeaguesPage;
+  /* Every page: 20 per page, and archived leagues do not count against the
+     twenty-league cap, so an old account can hold more than one page. */
+  let leagues: { items: LeagueListItem[] };
   let unread: Api<'NotificationUnreadCountResponseDto'> | null;
   let me: Api<'CurrentAuthenticationResponseDto'> | null;
 
   try {
     [tasks, leagues, unread, me] = await Promise.all([
       serverFetchAllPages<PredictionTask, TaskPage>(`/me/prediction-tasks?limit=${TASK_PAGE_SIZE}&${queueWindow(Date.now())}`),
-      serverFetch<LeaguesPage>('/leagues'),
+      serverFetchAllPages<LeagueListItem, LeaguesPage>('/leagues'),
       serverFetchOrNull<Api<'NotificationUnreadCountResponseDto'>>('/notifications/unread-count'),
       serverFetchOrNull<Api<'CurrentAuthenticationResponseDto'>>('/auth/me'),
     ]);

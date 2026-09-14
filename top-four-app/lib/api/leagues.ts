@@ -33,9 +33,39 @@ export type League = Omit<Api<'LeagueReadResponseDto'>, 'competitions'> & {
 export type LeagueListItem = Api<'LeagueListItemResponseDto'>;
 export type LeaguesPage = Api<'LeagueListResponseDto'>;
 
-export async function fetchMyLeagues(cursor?: string): Promise<LeaguesPage> {
+async function fetchMyLeaguesPage(cursor?: string): Promise<LeaguesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   return apiFetch<LeaguesPage>(`/leagues${query}`);
+}
+
+/**
+ * Every league the member is in, following the cursor to the end.
+ *
+ * The list is twenty per page — the same twenty that caps *unfinished* leagues,
+ * but completed, cancelled and archived ones do not count against that cap, so
+ * a long-running account holds more than one page. Callers group and count the
+ * whole set client-side, and this used to hand back only the first page, so
+ * anything past twenty was invisible with nothing to say it was missing.
+ *
+ * Bounded, because an unbounded follow is a denial of service against our own
+ * API if a cursor ever stops terminating. `nextCursor` is reported as the page
+ * envelope found it, so a caller can tell a complete list from a stopped one.
+ */
+const MAX_LEAGUE_PAGES = 10;
+
+export async function fetchMyLeagues(): Promise<LeaguesPage> {
+  const first = await fetchMyLeaguesPage();
+  const items = [...first.items];
+  let cursor = first.nextCursor;
+
+  for (let page = 1; cursor && page < MAX_LEAGUE_PAGES; page++) {
+    const next = await fetchMyLeaguesPage(cursor);
+    items.push(...next.items);
+    cursor = next.nextCursor;
+  }
+
+  if (cursor) console.warn(`[fetchMyLeagues] stopped at ${MAX_LEAGUE_PAGES} pages; more remain`);
+  return { ...first, items, nextCursor: cursor };
 }
 
 /**

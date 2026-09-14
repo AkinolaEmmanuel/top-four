@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
 import { MeScreen } from '../components/me/MeScreen';
-import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import { primaryLeague, toFormBars, toMeLeagueRow, totalPointsAcross } from '@/lib/me/me-data';
 import type { Api } from '@/lib/api/types';
-import type { LeaguesPage } from '@/lib/api/leagues';
+import type { LeagueListItem, LeaguesPage } from '@/lib/api/leagues';
 
 /**
  * The account screen, fetched on the server.
@@ -19,13 +21,15 @@ type History = Api<'PointsHistoryPageResponseDto'>;
 
 export default async function MePage() {
   let me: Me;
-  let leagues: LeaguesPage | null;
+  /* Every page: 20 per page, and archived leagues do not count against the
+     twenty-league cap, so an old account can hold more than one page. */
+  let leagues: { items: LeagueListItem[] };
   let preferences: Preferences | null;
 
   try {
     [me, leagues, preferences] = await Promise.all([
       serverFetch<Me>('/auth/me'),
-      serverFetchOrNull<LeaguesPage>('/leagues'),
+      serverFetchAllPagesOrEmpty<LeagueListItem, LeaguesPage>('/leagues'),
       serverFetchOrNull<Preferences>('/me/notification-preferences'),
     ]);
   } catch (error) {
@@ -34,7 +38,7 @@ export default async function MePage() {
     throw error;
   }
 
-  const items = leagues?.items ?? [];
+  const items = leagues.items;
   const chartLeague = primaryLeague(items);
 
   const history = chartLeague

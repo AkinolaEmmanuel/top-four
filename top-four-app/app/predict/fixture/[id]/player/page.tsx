@@ -1,11 +1,13 @@
 import { notFound, redirect } from 'next/navigation';
 import { PlayerPickerScreen } from '../../../../components/predict/PlayerPickerScreen';
-import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import { MARKET_TYPE, toSquads, type PickerMarket } from '@/lib/predict/player-picker';
 import { pluralise } from '@/lib/format';
 import type { Api } from '@/lib/api/types';
-import type { LeaguesPage } from '@/lib/api/leagues';
+import type { LeagueListItem, LeaguesPage } from '@/lib/api/leagues';
 import type { FixtureAvailability, OwnFixturePredictions, SelectablePlayer, SnapshotRef } from '@/lib/api/predictions-fixture';
 
 /**
@@ -34,7 +36,9 @@ export default async function PlayerPickerPage({ params, searchParams }: {
   let predictions: Predictions | null;
   let players: Players | null;
   let ruleset: { ruleset?: Api<'LeagueRulesetResponseDto'> } | null;
-  let leagues: LeaguesPage | null;
+  /* Every page: 20 per page, and archived leagues do not count against the
+     twenty-league cap, so an old account can hold more than one page. */
+  let leagues: { items: LeagueListItem[] };
 
   try {
     [availability, predictions, players, ruleset, leagues] = await Promise.all([
@@ -44,7 +48,7 @@ export default async function PlayerPickerPage({ params, searchParams }: {
       // one call is complete rather than the default page's first fifty.
       serverFetchOrNull<Players>(`/leagues/${leagueId}/fixtures/${fixtureId}/selectable-players?limit=200`),
       serverFetchOrNull<{ ruleset?: Api<'LeagueRulesetResponseDto'> }>(`/leagues/${leagueId}`),
-      serverFetchOrNull<LeaguesPage>('/leagues'),
+      serverFetchAllPagesOrEmpty<LeagueListItem, LeaguesPage>('/leagues'),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=${encodeURIComponent(backHref)}`);
@@ -75,7 +79,7 @@ export default async function PlayerPickerPage({ params, searchParams }: {
       expectedVersion={slot?.version ?? 0}
       snapshotId={players?.data.snapshot?.snapshotId ?? null}
       price={priced?.enabled ? pluralise(priced.points, 'pt') : ''}
-      leagueName={leagues?.items.find(l => l.id === leagueId)?.name ?? ''}
+      leagueName={leagues.items.find(l => l.id === leagueId)?.name ?? ''}
       backHref={backHref}
     />
   );

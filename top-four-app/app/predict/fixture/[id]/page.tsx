@@ -1,13 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
 import { FixturePredictScreen } from '../../../components/predict/FixturePredictScreen';
-import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import { toSquads } from '@/lib/predict/player-picker';
 import {
   fixturePhaseOf, hydrateAnswers, pointsAtStake, pointsEarned, toFixtureMarkets,
 } from '@/lib/predict/fixture-predict';
 import type { Api } from '@/lib/api/types';
-import type { LeaguesPage } from '@/lib/api/leagues';
+import type { LeagueListItem, LeaguesPage } from '@/lib/api/leagues';
 import type {
   FixtureAvailability, FixtureResultsResponse, OwnFixturePredictions,
   SelectablePlayer, SnapshotRef,
@@ -43,7 +45,9 @@ export default async function FixturePredictPage({ params, searchParams }: {
   let players: Players | null;
   let results: Results | null;
   let league: Api<'LeagueReadResponseDto'> | null;
-  let leagues: LeaguesPage | null;
+  /* Every page of it: the list is 20 per page and archived leagues do not count
+     against the twenty-league cap, so an old account can hold more. */
+  let leagues: { items: LeagueListItem[] };
 
   try {
     [availability, predictions, players, results, league, leagues] = await Promise.all([
@@ -52,7 +56,7 @@ export default async function FixturePredictPage({ params, searchParams }: {
       serverFetchOrNull<Players>(`/leagues/${leagueId}/fixtures/${fixtureId}/selectable-players?limit=200`),
       serverFetchOrNull<Results>(`/leagues/${leagueId}/fixtures/${fixtureId}/results`),
       serverFetchOrNull<Api<'LeagueReadResponseDto'>>(`/leagues/${leagueId}`),
-      serverFetchOrNull<LeaguesPage>('/leagues'),
+      serverFetchAllPagesOrEmpty<LeagueListItem, LeaguesPage>('/leagues'),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=${encodeURIComponent(here)}`);
@@ -93,12 +97,16 @@ export default async function FixturePredictPage({ params, searchParams }: {
    *
    * Competition is as far as the league list can settle it: it names no season,
    * so a league on the same competition in a different season stays a maybe.
-   * A draft has no fixtures yet, and a finished one refuses the write.
+   *
+   * A draft is the only lifecycle excluded. Cancelled and archived leagues look
+   * finished but are still written to — the copy service targets every league
+   * the member belongs to, historical ones included, and reports each market's
+   * refusal rather than skipping the league. Verified against the running
+   * endpoint. A draft has no published fixtures to copy into.
    */
-  const COPYABLE_LIFECYCLE = ['published', 'in_progress'];
-  const otherLeagues = (leagues?.items ?? []).filter(other =>
+  const otherLeagues = leagues.items.filter(other =>
     other.id !== leagueId
-    && COPYABLE_LIFECYCLE.includes(other.lifecycleState)
+    && other.lifecycleState !== 'draft'
     && other.competitions.some(
       c => c.supportedCompetitionId === fixture.competition.supportedCompetitionId,
     ),
