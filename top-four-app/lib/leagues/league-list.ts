@@ -16,7 +16,7 @@ import { ordinal, pluralise } from '@/lib/format';
 export type LeagueSectionKey = 'playing' | 'draft' | 'pending' | 'past';
 
 /** Above this the exact figure stops informing and starts alarming. */
-const UNANSWERED_SHOWN_UP_TO = 6;
+const UNANSWERED_SHOWN_UP_TO = 10;
 
 /**
  * What a league is owed, said without a wall of digits.

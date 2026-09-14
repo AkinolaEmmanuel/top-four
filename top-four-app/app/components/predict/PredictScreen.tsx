@@ -146,7 +146,7 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
 }
 
 export function PredictScreen({
-  entries, leagues, league, totalEntries, weeks, openMarkets, summary,
+  entries, leagues, league, totalEntries, weeks, summary,
   hasLeagues, showMoreHref,
 }: {
   /** The selected league's entries, already windowed. */
@@ -160,7 +160,6 @@ export function PredictScreen({
   /** How many weeks ahead the server was asked for, which is what the
    *  headline counts and what the kicker names. */
   weeks: number;
-  openMarkets: number;
   summary: string;
   hasLeagues: boolean;
   /** Null once the window covers the whole filter. */
@@ -208,9 +207,15 @@ export function PredictScreen({
           <span className="tf-kicker text-[var(--nav-accent)]">
             {weeks === 1 ? 'OPEN THIS WEEK' : `OPEN IN THE NEXT ${weeks} WEEKS`}
           </span>
+          {/* Matches, not markets. The hero counted every unanswered market —
+              474 of them — which is the same work the thirty rows below
+              describe, said in a way that reads as hopeless. The market total
+              keeps its place in the line beneath, where it informs instead of
+              looming. "Waiting on you" is Home's phrase for this same count,
+              and covers the questions in it as well as the matches. */}
           <div className="flex items-end gap-[10px] mt-[9px]">
-            <span className="tf-num font-heading font-bold text-[46px] leading-[0.9] tracking-[-2px]">{openMarkets}</span>
-            <span className="text-[12px] text-[var(--nav-text-faint)] pb-[6px]">markets to answer</span>
+            <span className="tf-num font-heading font-bold text-[46px] leading-[0.9] tracking-[-2px]">{totalEntries}</span>
+            <span className="text-[12px] text-[var(--nav-text-faint)] pb-[6px]">waiting on you</span>
           </div>
           <div className="text-[11.5px] text-[var(--nav-text-faint)] mt-[8px]">{summary}</div>
         </div>

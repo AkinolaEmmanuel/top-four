@@ -1,5 +1,5 @@
 import type { Api } from '@/lib/api/types';
-import { pluralise } from '@/lib/format';
+import { pluralise, countdownLabel } from '@/lib/format';
 
 /**
  * The to-do list's facts, shaped once on the server.
@@ -222,7 +222,12 @@ export function byDeadline(a: PredictEntry, b: PredictEntry): number {
 /** The line under the headline number: how many leagues, and when the next lock is. */
 export function summaryLine(entries: PredictEntry[], nowMs: number): string {
   const leagues = new Set(entries.flatMap(e => e.leagues.map(l => l.id))).size;
+  const markets = openMarketCount(entries);
+  // The market total belongs here rather than in the headline: it is worth
+  // knowing and useless as a hero. "474 markets to answer" reads as a backlog
+  // nobody could clear, when it is really this week's thirty matches.
   const parts = [pluralise(leagues, 'league')];
+  if (markets > 0) parts.push(pluralise(markets, 'market'));
 
   const soonest = entries
     .map(e => e.deadlineAt)
@@ -234,9 +239,7 @@ export function summaryLine(entries: PredictEntry[], nowMs: number): string {
     if (ms <= 0) {
       parts.push('next locks any moment');
     } else {
-      const h = Math.floor(ms / 3600000);
-      const m = Math.floor((ms % 3600000) / 60000);
-      parts.push(`next locks in ${h > 0 ? `${h}h ${m}m` : `${m}m`}`);
+      parts.push(`next locks in ${countdownLabel(ms)}`);
     }
   }
 

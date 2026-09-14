@@ -5,7 +5,7 @@ import {
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import {
-  openMarketCount, summaryLine, toPredictEntries, byDeadline, ALL_LEAGUES,
+  summaryLine, toPredictEntries, byDeadline, ALL_LEAGUES,
 } from '@/lib/predict/predict-queue';
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
@@ -110,7 +110,6 @@ export default async function PredictPage({
         ? `/predict?${showMoreQuery}`
         : weeks < MAX_QUEUE_WEEKS ? `/predict?${widerQuery}` : null}
       weeks={weeks}
-      openMarkets={openMarketCount(filtered)}
       summary={summaryLine(filtered, serverNow)}
       hasLeagues={(leagues?.items.length ?? 0) > 0}
     />
