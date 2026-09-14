@@ -15,6 +15,21 @@ import { ordinal, pluralise } from '@/lib/format';
 
 export type LeagueSectionKey = 'playing' | 'draft' | 'pending' | 'past';
 
+/** Above this the exact figure stops informing and starts alarming. */
+const UNANSWERED_SHOWN_UP_TO = 10;
+
+/**
+ * What a league is owed, said without a wall of digits.
+ *
+ * The figure counts markets, not fixtures, so a couple of unplayed weekends
+ * reads as "234 to predict" — a number that tells a member they are hopelessly
+ * behind rather than that there is work to do. Past a handful the exact count
+ * is not the point, so it stops counting.
+ */
+export function unansweredLabel(count: number): string {
+  return count > UNANSWERED_SHOWN_UP_TO ? `${UNANSWERED_SHOWN_UP_TO}+` : String(count);
+}
+
 export interface LeagueListEntry {
   id: string;
   name: string;

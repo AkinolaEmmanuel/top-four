@@ -8,9 +8,17 @@ export function MobileNav() {
   const pathname = usePathname() || '';
   const { data: tasksData } = usePredictionTasks();
 
-  // Fixtures and questions needing attention this week — the same window the
-  // Predict headline and the leagues list count over.
-  const openTaskCount = tasksData?.items.length || 0;
+  /*
+   * Matches and questions needing attention this week — counted the way the
+   * Predict screen lists them.
+   *
+   * The feed is keyed per (league, fixture), so this counted a match in two
+   * leagues twice: the badge promised 60 where the screen behind it showed 30.
+   * A badge is a claim about the screen it sits on, so it counts the same rows.
+   */
+  const openTaskCount = new Set(
+    (tasksData?.items ?? []).map(t => (t.kind === 'fixture' ? t.fixtureId : t.question.id)),
+  ).size;
 
   const tabs = [
     { label: "HOME", ic: "home", path: "/home", badge: "" },

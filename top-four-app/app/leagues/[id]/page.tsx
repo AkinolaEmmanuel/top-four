@@ -174,7 +174,19 @@ async function Overview({ params }: { params: { id: string } }) {
   );
 
   const completeness = dashboard?.data.summary.predictionCompleteness;
-  const deadlineAt = dashboard?.data.summary.nextFixtureDeadlineAt ?? null;
+  /*
+   * The clock the hero shows must belong to the fixture the hero names.
+   *
+   * It counted down to the dashboard's next lock, which is the league's soonest
+   * deadline whatever it belongs to — including a fixture already fully
+   * answered, which has no task and so is never the one named. That put
+   * "4h 29m until Brentford v Chelsea closes" on screen while Brentford v
+   * Chelsea was four days out. The named fixture's own deadline wins; the
+   * league-wide one is the fallback for when nothing is outstanding.
+   */
+  const deadlineAt = (nextTask?.kind === 'fixture' ? nextTask.nextDeadlineAt : null)
+    ?? dashboard?.data.summary.nextFixtureDeadlineAt
+    ?? null;
   const openQuestions = questions.items.filter(q => q.phase === 'open');
 
   // Markets in this league the member has not answered. Capped for display

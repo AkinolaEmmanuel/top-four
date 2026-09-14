@@ -1,6 +1,7 @@
 import type { Api } from '@/lib/api/types';
 import type { FixtureResultsResponse } from '@/lib/api/predictions-fixture';
 import { MARKET_LABELS } from '@/lib/constants/markets';
+import { countdownLabel } from '@/lib/format';
 import { ordinal, personInitials } from '@/lib/format';
 
 /**
@@ -185,9 +186,7 @@ export function timeUntil(deadlineAt: string | null, nowMs: number): string {
   if (!deadlineAt) return '—';
   const diff = Date.parse(deadlineAt) - nowMs;
   if (diff <= 0) return '0m';
-  const h = Math.floor(diff / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+  return countdownLabel(diff);
 }
 
 export function phaseFor(

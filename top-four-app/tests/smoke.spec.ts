@@ -94,18 +94,19 @@ test('predict counts the markets a member can act on, and says which', async ({ 
   if (await empty.isVisible().catch(() => false)) return;
 
   /* The headline used to sum the whole season — thousands of markets, most of
-     them months away. It now counts what closes inside a week, and a league
-     with nothing in that window falls back to the whole queue. Either is fine;
-     what must never happen is the kicker naming one window and the subtitle
-     the other, which is how the number stopped meaning anything the first time. */
-  const thisWeek = page.getByText('OPEN THIS WEEK');
-  const scoped = await thisWeek.isVisible().catch(() => false);
+     them months away. It counts what closes inside the named window, and counts
+     the rows below it rather than their markets: "474 markets to answer" says
+     the same thing as thirty rows in a way nobody can act on.
 
-  await expect(page.getByText(scoped ? 'markets to answer' : 'markets still unanswered')).toBeVisible();
-  await expect(page.getByText(scoped ? 'OPEN THIS WEEK' : 'OPEN ACROSS EVERY LEAGUE')).toBeVisible();
+     What must never happen is the kicker naming one window and the figure
+     measuring another, which is how this number stopped meaning anything the
+     first time. */
+  await expect(page.getByText(/OPEN (THIS WEEK|IN THE NEXT \d+ WEEKS)/)).toBeVisible();
+  await expect(page.getByText('waiting on you')).toBeVisible();
 
-  // Whatever the window, the figure beside it is a number.
+  // The figure beside it is a number, and the line under it says of what.
   await expect(page.getByText(/^\d+$/).first()).toBeVisible();
+  await expect(page.getByText(/\d+ leagues?/)).toBeVisible();
 });
 
 test('me renders the account', async ({ page }) => {

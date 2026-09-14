@@ -3,7 +3,10 @@ import Link from 'next/link';
 import { tintFor } from '@/lib/crest';
 import { timeUntilLabel } from '@/lib/format';
 import { MobileNav } from '../MobileNav';
-import { toPredictGroups, ALL_LEAGUES, type PredictEntry } from '@/lib/predict/predict-queue';
+import {
+  toPredictGroups, ALL_LEAGUES,
+  type PredictEntry, type PredictEntryLeague,
+} from '@/lib/predict/predict-queue';
 
 /**
  * The to-do list — one component for both platforms.
@@ -44,6 +47,25 @@ function Marks({ entry }: { entry: PredictEntry }) {
   );
 }
 
+/**
+ * One league the match is outstanding in, carrying that league's own progress.
+ *
+ * The progress is on the chip rather than behind it because it is the reason
+ * the rows were separate: two leagues on one match are rarely equally answered,
+ * and a single figure would be true of neither.
+ */
+function LeagueChip({ league }: { league: PredictEntryLeague }) {
+  return (
+    <Link
+      href={league.href}
+      className="inline-flex items-center gap-[6px] max-w-[190px] font-heading font-semibold text-[10px] px-[9px] py-[6px] rounded-[6px] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] hover:border-[var(--color-brand)] hover:text-[var(--text-link)] transition-colors"
+    >
+      <span className="truncate">{league.name}</span>
+      <span className="tf-num flex-none text-[var(--text-muted)]">{league.progressLabel}</span>
+    </Link>
+  );
+}
+
 function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolean; nowMs: number }) {
   /* Time remaining, not a clock. A bare "15:30" in a queue reads as kick-off —
      the same defect as the Home hero once had. The helper falls back to a day
@@ -54,16 +76,28 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
      hide one of them, which put half of this screen's markup — 322KB of it —
      into the document for a width the reader is not on. The columns the width
      earns appear with `md:`; nothing is duplicated to get them. */
-  return (
-    <Link
-      href={entry.href}
-      className={`flex items-center gap-[13px] md:gap-[16px] p-[13px_var(--gutter)] md:px-[18px] md:py-[15px] border-t border-[var(--surface-border)] ${isLast ? 'border-b md:border-b' : ''} ${entry.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
-    >
+  /* Shared across leagues, the row cannot be one link: each chip is a link of
+     its own, and a link inside a link is neither valid nor reachable by
+     keyboard. The title becomes the primary target and takes whichever locks
+     first — the same league the Answer button goes to. */
+  const shared = entry.leagues.length > 1;
+  const rowClass = `flex items-center gap-[13px] md:gap-[16px] p-[13px_var(--gutter)] md:px-[18px] md:py-[15px] border-t border-[var(--surface-border)] ${isLast ? 'border-b md:border-b' : ''} ${entry.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} md:hover:bg-[var(--surface-subtle)] md:transition-colors`;
+
+  const body = (
+    <>
       <Marks entry={entry} />
 
       <div className="flex-1 min-w-0">
-        <div className="font-heading font-semibold text-[13px] md:text-[14px] truncate">{entry.title}</div>
-        <div className="text-[10.5px] md:text-[11.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagueName}</div>
+        <div className="font-heading font-semibold text-[13px] md:text-[14px] truncate">
+          {shared ? <Link href={entry.href} className="hover:underline">{entry.title}</Link> : entry.title}
+        </div>
+        {shared ? (
+          <div className="flex flex-wrap gap-[5px] mt-[5px]">
+            {entry.leagues.map(l => <LeagueChip key={l.id} league={l} />)}
+          </div>
+        ) : (
+          <div className="text-[10.5px] md:text-[11.5px] text-[var(--text-muted)] mt-[3px] truncate">{entry.leagues[0].name}</div>
+        )}
       </div>
 
       {/* Progress, not backlog. The design leads with how far through you are
@@ -103,12 +137,16 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
       <span className="hidden md:grid w-[66px] h-[31px] flex-none rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] place-items-center font-heading font-bold text-[11px]">
         Answer
       </span>
-    </Link>
+    </>
   );
+
+  return shared
+    ? <div className={rowClass}>{body}</div>
+    : <Link href={entry.href} className={rowClass}>{body}</Link>;
 }
 
 export function PredictScreen({
-  entries, leagues, league, totalEntries, weeks, openMarkets, summary,
+  entries, leagues, league, totalEntries, weeks, summary,
   hasLeagues, showMoreHref,
 }: {
   /** The selected league's entries, already windowed. */
@@ -122,7 +160,6 @@ export function PredictScreen({
   /** How many weeks ahead the server was asked for, which is what the
    *  headline counts and what the kicker names. */
   weeks: number;
-  openMarkets: number;
   summary: string;
   hasLeagues: boolean;
   /** Null once the window covers the whole filter. */
@@ -170,9 +207,15 @@ export function PredictScreen({
           <span className="tf-kicker text-[var(--nav-accent)]">
             {weeks === 1 ? 'OPEN THIS WEEK' : `OPEN IN THE NEXT ${weeks} WEEKS`}
           </span>
+          {/* Matches, not markets. The hero counted every unanswered market —
+              474 of them — which is the same work the thirty rows below
+              describe, said in a way that reads as hopeless. The market total
+              keeps its place in the line beneath, where it informs instead of
+              looming. "Waiting on you" is Home's phrase for this same count,
+              and covers the questions in it as well as the matches. */}
           <div className="flex items-end gap-[10px] mt-[9px]">
-            <span className="tf-num font-heading font-bold text-[46px] leading-[0.9] tracking-[-2px]">{openMarkets}</span>
-            <span className="text-[12px] text-[var(--nav-text-faint)] pb-[6px]">markets to answer</span>
+            <span className="tf-num font-heading font-bold text-[46px] leading-[0.9] tracking-[-2px]">{totalEntries}</span>
+            <span className="text-[12px] text-[var(--nav-text-faint)] pb-[6px]">waiting on you</span>
           </div>
           <div className="text-[11.5px] text-[var(--nav-text-faint)] mt-[8px]">{summary}</div>
         </div>
