@@ -111,11 +111,12 @@ export function toFixtureRow(fixture: LeagueFixture, leagueId: string, view: Fix
       : null,
     note: played ? (fixture.landed ?? null) : (fixture.predictionNote ?? null),
     deadlineAt: fixture.deadlineAt ?? null,
-    // A played fixture opens on what the league answered, not on controls that
-    // can no longer be used.
-    href: played
-      ? `/predict/fixture/${fixture.id}/results?leagueId=${leagueId}`
-      : `/predict/fixture/${fixture.id}?leagueId=${leagueId}`,
+    /* Played or not, a fixture opens on the member's own answers.
+       It used to open a played one straight onto the league-wide comparison,
+       which answers "how did everyone do" before "how did I do" — and a member
+       tapping their own result wants their own markets, their points and what
+       actually landed. The comparison is one link away from there. */
+    href: `/predict/fixture/${fixture.id}?leagueId=${leagueId}`,
   };
 }
 
