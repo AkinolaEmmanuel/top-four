@@ -490,7 +490,7 @@ export function FixturePredictScreen({
                   href={`/predict/fixture/${fixtureId}/results?leagueId=${leagueId}`}
                   className="font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)]"
                 >
-                  SEE EVERYONE&apos;S ANSWERS →
+                  HOW OTHERS DID →
                 </Link>
               )}
               <span className="tf-num font-heading font-bold text-[10px] text-[var(--text-muted)]">

@@ -97,7 +97,9 @@ export function toPayoff(fixtures: PayoffFixture[]): HomePayoff | null {
           label: `${fixture.homeName} ${score} ${fixture.awayName} · ${best ? marketLabel(best) : 'nothing landed'}`,
           points: points > 0 ? `+${points}` : String(points),
           won: !!best,
-          href: `/predict/fixture/${fixture.leagueFixtureId}/results?leagueId=${fixture.leagueId}`,
+          // The member's own breakdown, as everywhere else a settled fixture is
+          // opened. The league-wide comparison is one link on from there.
+          href: `/predict/fixture/${fixture.leagueFixtureId}?leagueId=${fixture.leagueId}`,
         },
       };
     })

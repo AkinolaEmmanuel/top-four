@@ -162,7 +162,7 @@ export function LeagueOverviewScreen({
             <section className="p-[22px_var(--gutter)_0] md:p-0">
               {lastResult ? (
                 <Link
-                  href={`/predict/fixture/${lastResult.leagueFixtureId}/results?leagueId=${leagueId}`}
+                  href={`/predict/fixture/${lastResult.leagueFixtureId}?leagueId=${leagueId}`}
                   className="block rounded-[12px] p-[18px] text-[var(--tf-white)]"
                   style={{ background: lastResult.outcome === 'won' ? 'var(--tf-green-800)' : 'var(--tf-navy-800)' }}
                 >

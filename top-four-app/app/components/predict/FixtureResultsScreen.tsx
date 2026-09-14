@@ -104,13 +104,14 @@ export function FixtureResultsScreen({
 
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px]">
           {/* The way back to this fixture's own markets.
-              The pair used to link one way only: the fixture offers "SEE
-              EVERYONE'S ANSWERS →", and the only return was the ‹ in the header
-              above, which is `md:hidden` — so on a wide screen this screen was a
-              dead end. Named rather than an arrow, because it says where it goes
-              and mirrors the link that arrives here. */}
+              This screen is now the second step rather than the first — a
+              played fixture opens on the member's own result and reaches this
+              from there — so the return has to be obvious. The ‹ in the header
+              above is `md:hidden`, which left this a dead end on a wide screen.
+              Named rather than an arrow, because it says where it goes and
+              mirrors the link that arrives here. */}
           <div className="flex items-baseline justify-between px-[var(--gutter)] md:px-0 pt-[16px] md:pt-[22px]">
-            <span className="tf-kicker text-[var(--text-muted)]">EVERYONE&apos;S ANSWERS</span>
+            <span className="tf-kicker text-[var(--text-muted)]">HOW OTHERS DID</span>
             <Link
               href={backHref}
               className="font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)]"
