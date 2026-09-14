@@ -5,7 +5,7 @@ import {
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
 import {
-  openMarketCount, summaryLine, toPredictEntry, byDeadline, ALL_LEAGUES,
+  openMarketCount, summaryLine, toPredictEntries, byDeadline, ALL_LEAGUES,
 } from '@/lib/predict/predict-queue';
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
@@ -63,10 +63,9 @@ export default async function PredictPage({
   }
 
   const serverNow = Date.parse(tasks.first.serverTime);
-  const entries = tasks.items.map(task => toPredictEntry(task, serverNow)).sort(byDeadline);
 
   const leagueOptions = Array.from(
-    new Map(entries.map(e => [e.leagueId, e.leagueName])).entries(),
+    new Map(tasks.items.map(t => [t.league.id, t.league.name])).entries(),
   ).map(([id, name]) => ({ id, name }));
 
   // Matches on the league's id rather than a name prefix — two leagues can
@@ -74,7 +73,13 @@ export default async function PredictPage({
   const selected = searchParams.league && leagueOptions.some(l => l.id === searchParams.league)
     ? searchParams.league
     : ALL_LEAGUES;
-  const filtered = selected === ALL_LEAGUES ? entries : entries.filter(e => e.leagueId === selected);
+
+  /* Filter first, then group. Narrowed to one league every row has exactly one,
+     which is this screen exactly as it was; only "All" can pair them up. */
+  const visible = selected === ALL_LEAGUES
+    ? tasks.items
+    : tasks.items.filter(t => t.league.id === selected);
+  const filtered = toPredictEntries(visible, serverNow).sort(byDeadline);
 
   const requested = Number.parseInt(searchParams.show ?? '', 10);
   const shown = Number.isFinite(requested) && requested > 0

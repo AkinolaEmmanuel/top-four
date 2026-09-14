@@ -14,12 +14,28 @@ import { pluralise } from '@/lib/format';
 export type PredictTask = Api<'PredictionTaskPageDto'>['items'][number];
 export type PredictBucket = 'today' | 'week' | 'later';
 
+/** One league a task is outstanding in, with that league's own progress. */
+export interface PredictEntryLeague {
+  id: string;
+  name: string;
+  href: string;
+  deadlineAt: string | null;
+  /** This league's own "1 of 8" — two leagues on one match rarely agree. */
+  progressLabel: string;
+}
+
 export interface PredictEntry {
   id: string;
   kind: 'fixture' | 'custom_question';
   title: string;
-  leagueId: string;
-  leagueName: string;
+  /**
+   * Every league this same match is outstanding in, soonest deadline first.
+   *
+   * The feed is keyed per (league, fixture), so one match filled a row per
+   * league. Grouped, the row still has to carry each league's own progress:
+   * answering in one does not advance the other, and the two numbers differ.
+   */
+  leagues: PredictEntryLeague[];
   deadlineAt: string | null;
   bucket: PredictBucket;
   /** True inside the last two hours, which the screen draws in red. */
@@ -88,13 +104,23 @@ export function toPredictEntry(task: PredictTask, nowMs: number): PredictEntry {
     : null;
 
   return {
-    id: isFixture ? task.leagueFixtureId : task.question.id,
+    // The real match, not the per-league row, so two leagues running it group.
+    id: isFixture ? task.fixtureId : task.question.id,
     kind: isFixture ? 'fixture' : 'custom_question',
     title: isFixture
       ? `${task.homeTeam.displayName} v ${task.awayTeam.displayName}`
       : task.question.questionText,
-    leagueId: task.league.id,
-    leagueName: task.league.name,
+    leagues: [{
+      id: task.league.id,
+      name: task.league.name,
+      href: isFixture
+        ? `/predict/fixture/${task.leagueFixtureId}?leagueId=${task.league.id}`
+        : `/leagues/${task.league.id}/questions`,
+      deadlineAt,
+      progressLabel: progress
+        ? `${progress.answered} of ${progress.required}`
+        : openCount > 0 ? pluralise(openCount, 'market') : 'Open',
+    }],
     deadlineAt,
     bucket: bucketFor(deadlineAt, nowMs),
     urgent: !!deadlineAt && Date.parse(deadlineAt) - nowMs <= URGENT_WITHIN_MS,
@@ -114,6 +140,63 @@ export function toPredictEntry(task: PredictTask, nowMs: number): PredictEntry {
       ? `/predict/fixture/${task.leagueFixtureId}?leagueId=${task.league.id}`
       : `/leagues/${task.league.id}/questions`,
   };
+}
+
+/** Sorts null last: a task with no deadline cannot be the soonest. */
+function soonest(a: string | null, b: string | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return Date.parse(a) - Date.parse(b);
+}
+
+/**
+ * The queue, one row per real match.
+ *
+ * A custom question belongs to one league and is never shared, so questions are
+ * left alone. Fixtures group on the canonical `fixtureId`; the row then counts
+ * down to whichever league locks first and links there, and its bar sums the
+ * markets across them all — the per-league figures stay on the chips.
+ *
+ * Feed this the tasks the league filter has already kept. Filtered to one
+ * league every row has exactly one, which is the screen as it was.
+ */
+export function toPredictEntries(tasks: PredictTask[], nowMs: number): PredictEntry[] {
+  const byId = new Map<string, PredictEntry>();
+
+  for (const task of tasks) {
+    const entry = toPredictEntry(task, nowMs);
+    const existing = task.kind === 'fixture' ? byId.get(entry.id) : undefined;
+    if (!existing) {
+      byId.set(entry.id, entry);
+      continue;
+    }
+    if (existing.leagues.some(l => l.id === entry.leagues[0].id)) continue;
+
+    existing.leagues = [...existing.leagues, ...entry.leagues]
+      .sort((a, b) => soonest(a.deadlineAt, b.deadlineAt));
+    existing.openCount += entry.openCount;
+    existing.openLabel = existing.openCount > 0 ? pluralise(existing.openCount, 'market') : 'Open';
+
+    // The bar spans every league, so it reads as the work left on this match.
+    if (existing.progress && entry.progress) {
+      existing.progress = {
+        answered: existing.progress.answered + entry.progress.answered,
+        required: existing.progress.required + entry.progress.required,
+        actionable: existing.progress.actionable + entry.progress.actionable,
+      };
+      existing.progressLabel = `${existing.progress.answered} of ${existing.progress.required}`;
+    }
+
+    // The row follows whichever locks first, and says so.
+    const first = existing.leagues[0];
+    existing.deadlineAt = first.deadlineAt;
+    existing.href = first.href;
+    existing.bucket = bucketFor(first.deadlineAt, nowMs);
+    existing.urgent = !!first.deadlineAt && Date.parse(first.deadlineAt) - nowMs <= URGENT_WITHIN_MS;
+  }
+
+  return [...byId.values()];
 }
 
 /** Groups in the order the screen shows them, empty ones dropped. */
@@ -138,7 +221,7 @@ export function byDeadline(a: PredictEntry, b: PredictEntry): number {
 
 /** The line under the headline number: how many leagues, and when the next lock is. */
 export function summaryLine(entries: PredictEntry[], nowMs: number): string {
-  const leagues = new Set(entries.map(e => e.leagueId)).size;
+  const leagues = new Set(entries.flatMap(e => e.leagues.map(l => l.id))).size;
   const parts = [pluralise(leagues, 'league')];
 
   const soonest = entries
