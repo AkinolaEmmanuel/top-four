@@ -1,149 +1,50 @@
 import { apiFetch } from './fetcher';
+import type { Api } from './types';
 
-export interface FixtureAvailabilityTeam {
-  id: string;
-  displayName: string;
-  shortName: string;
-  code: string;
-  logoUrl: string | null;
-}
+/**
+ * The server's own types throughout. The shapes this file used to hand-write —
+ * the teams, the per-market availability, and the whole of `/predictions/me` —
+ * were declared as bare objects upstream and generated as `Record<string,
+ * never>`; the API now describes all of them, so the guesses are gone.
+ *
+ * Adopting them narrowed two things the hand-written versions had wrong:
+ * `code` and `shortName` are nullable, and `marketType`/`state` are enums
+ * rather than open strings.
+ */
 
-export interface FixtureMarketAvailability {
-  marketType: string;
-  enabled: boolean;
-  state: string;
-  reasonCode: string;
-  submissionAllowed: boolean;
-  replacementAllowed: boolean;
-  deadlineAt: string | null;
-}
+export type FixtureAvailabilityTeam = Api<'AvailabilityTeamDto'>;
+export type FixtureMarketAvailability = Api<'AvailabilityMarketDto'>;
+export type FixtureAvailability = Api<'AvailabilityFixtureDto'>;
 
-export interface FixtureAvailability {
-  leagueFixtureId: string;
-  fixtureId: string;
-  fixtureState: string;
-  kickoff: { state: string; at: string | null; revisionNumber: number };
-  homeTeam: FixtureAvailabilityTeam;
-  awayTeam: FixtureAvailabilityTeam;
-  hasOpenMarkets: boolean;
-  nextDeadlineAt: string | null;
-  marketStateCounts: Record<string, number>;
-  predictionCompleteness: { required: number; answered: number; unanswered: number; complete: boolean };
-  markets: FixtureMarketAvailability[];
+/**
+ * `serverTime` travels with the fixture because every deadline on the screen is
+ * measured against it — the browser's clock can be wrong by minutes, and a
+ * market that reads open when the server has closed it costs the member points.
+ */
+export interface FixtureAvailabilitySnapshot {
+  fixture: FixtureAvailability;
   serverTime: string;
 }
 
-export interface KickoffBasis {
-  state: string;
-  at: string | null;
-  revisionNumber: number;
-}
+export type KickoffBasis = Api<'PredictionKickoffDto'>;
+export type SnapshotRef = Api<'PredictionSnapshotDto'>;
 
-export interface SnapshotRef {
-  snapshotId: string;
-  version: number;
-}
+/**
+ * The stored answer's value, as a union of the per-market shapes rather than
+ * one interface of optional fields — so reading `homeGoals` off a match_result
+ * answer is now a type error instead of `undefined` at runtime.
+ */
+export type StandardAnswerValue = Api<'PredictionAnswerResponseDto'>['value'];
 
-// The real per-market answer value. Only the fields relevant to `marketType`
-// are present; callers narrow on marketType before reading fields.
-export interface StandardAnswerValue {
-  outcome?: 'home' | 'draw' | 'away';
-  homeGoals?: number;
-  awayGoals?: number;
-  bothScore?: boolean;
-  selection?: 'over' | 'under';
-  playerId?: string;
-  snapshotId?: string;
-}
-
-export interface StoredStandardAnswer {
-  value: StandardAnswerValue;
-  rulesetRevision: number;
-  deadlineAt: string;
-  kickoff: KickoffBasis;
-  snapshot: SnapshotRef | null;
-  submittedAt: string;
-}
-
-export interface PredictionMarketSlot {
-  marketType: 'match_result' | 'exact_score' | 'both_teams_to_score' | 'total_goals' | 'anytime_goalscorer' | 'player_card';
-  enabled: boolean;
-  state: string;
-  reasonCode: string;
-  submissionAllowed: boolean;
-  replacementAllowed: boolean;
-  deadlineAt: string | null;
-  snapshot: SnapshotRef | null;
-  answered: boolean;
-  predictionId: string | null;
-  version: number | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-  answer: StoredStandardAnswer | null;
-}
-
-export interface PredictionCompleteness {
-  scope: string;
-  enabledMarketCount: number;
-  answeredCount: number;
-  unansweredCount: number;
-  unansweredMarketTypes: string[];
-  allEnabledMarketsAnswered: boolean;
-}
-
-export interface LineupAnswerValue {
-  playerIds: string[];
-  snapshotId: string;
-}
-
-export interface LineupPlayerView {
-  playerId: string;
-  displayName: string;
-  position: string;
-  shirtNumber: number | null;
-}
-
-export interface StoredLineupAnswer {
-  value: LineupAnswerValue;
-  players: LineupPlayerView[];
-  rulesetRevision: number;
-  deadlineAt: string;
-  kickoff: KickoffBasis;
-  snapshot: SnapshotRef;
-  submittedAt: string;
-}
-
-export interface OwnLineupSide {
-  predictionId: string;
-  version: number;
-  createdAt: string;
-  updatedAt: string;
-  answer: StoredLineupAnswer;
-}
-
-export interface OwnLineups {
-  enabled: boolean;
-  state: string;
-  reasonCode: string;
-  submissionAllowed: boolean;
-  replacementAllowed: boolean;
-  deadlineAt: string | null;
-  snapshot: SnapshotRef | null;
-  home: OwnLineupSide | null;
-  away: OwnLineupSide | null;
-  bothAnswered: boolean;
-}
-
-export interface OwnFixturePredictions {
-  leagueFixtureId: string;
-  fixtureId: string;
-  membershipId: string;
-  rulesetRevision: number;
-  kickoff: KickoffBasis;
-  markets: PredictionMarketSlot[];
-  completeness: PredictionCompleteness;
-  lineups: OwnLineups;
-}
+export type StoredStandardAnswer = Api<'PredictionAnswerResponseDto'>;
+export type PredictionMarketSlot = Api<'OwnPredictionMarketDto'>;
+export type PredictionCompleteness = Api<'PredictionCompletenessDto'>;
+export type LineupAnswerValue = Api<'LineupValueDto'>;
+export type LineupPlayerView = Api<'LineupPlayerResponseDto'>;
+export type StoredLineupAnswer = Api<'LineupAnswerResponseDto'>;
+export type OwnLineupSide = Api<'OwnLineupSideDto'>;
+export type OwnLineups = Api<'OwnLineupsDto'>;
+export type OwnFixturePredictions = Api<'OwnFixturePredictionsDataDto'>;
 
 export interface PredictionSubmission {
   leagueFixtureId: string;
@@ -167,70 +68,36 @@ export interface LineupSubmission {
   answer: StoredLineupAnswer;
 }
 
-export interface SelectablePlayer {
-  playerId: string;
-  teamId: string;
-  displayName: string;
-  shirtNumber: number | null;
-  position: string | null;
-  side: 'home' | 'away';
-}
+export type SelectablePlayer = Api<'SelectablePlayerDto'>;
 
 export interface SelectablePlayersResponse {
   snapshot: SnapshotRef | null;
   players: SelectablePlayer[];
 }
 
-// Matches the backend's real CopyReport exactly -- the previous shape here
-// (targets: [{leagueId, leagueName, outcome, note}]) never matched what the
-// endpoint actually returns and was never read by anything, since the UI
-// built its "done" screen entirely from local checkbox state instead.
-export type CopyAnswerOutcome =
-  | 'copied' | 'replaced' | 'unchanged' | 'locked' | 'not_enabled'
-  | 'league_closed' | 'changed_elsewhere' | 'no_longer_member'
-  | 'snapshot_unavailable' | 'player_unavailable' | 'line_differs';
+/**
+ * What copying reports back — the server's own types now.
+ *
+ * These were hand-written while the copy route published a description and no
+ * response type. It publishes one, so the hand-written shapes are gone and the
+ * enums below are the server's rather than a transcription of them: `answer`
+ * was `string` here and is a closed set upstream.
+ */
+export type CopiedAnswer = Api<'CopiedAnswerDto'>;
+export type CopyOutcome = CopiedAnswer['outcome'];
+export type CopyLeagueReport = Api<'CopyLeagueReportDto'>;
+export type CopyPredictionsResponse = Api<'CopyReportDto'>;
 
-export interface CopiedAnswer {
-  answer: string;
-  outcome: CopyAnswerOutcome;
-}
+export type MemberMarketResult = Api<'MemberMarketResultDto'>;
 
-export interface CopyLeagueReport {
-  leagueId: string;
-  leagueName: string;
-  answers: CopiedAnswer[];
-}
+/** A player named by a settlement — who scored, who was booked, who started. */
+export type PlayerSummary = Api<'PlayerSummaryDto'>;
 
-export interface CopyPredictionsResponse {
-  copied: number;
-  leagues: CopyLeagueReport[];
-  truncated: boolean;
-}
+export type FixtureResultsResponse = Api<'MemberFixtureResultsDataDto'>;
 
-export interface MemberMarketResult {
-  settlementId: string | null;
-  marketType: string;
-  side: 'home' | 'away' | null;
-  state: string;
-  reasonCode: string;
-  status: string | null;
-  version: number | null;
-  decidedAt: string | null;
-  finalizedAt: string | null;
-  resolvedAnswer: Record<string, unknown> | null;
-  viewerOutcome: { outcome: 'correct' | 'incorrect' | 'void'; correctStarters: number | null; pointsDelta: number; predictionRevisionId: string } | null;
-}
-
-export interface FixtureResultsResponse {
-  leagueFixtureId: string;
-  fixtureId: string;
-  correctionUpdating: boolean;
-  markets: MemberMarketResult[];
-}
-
-export async function fetchFixtureAvailability(leagueId: string, fixtureId: string): Promise<FixtureAvailability> {
+export async function fetchFixtureAvailability(leagueId: string, fixtureId: string): Promise<FixtureAvailabilitySnapshot> {
   const response = await apiFetch<{ data: FixtureAvailability; serverTime: string }>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`);
-  return { ...response.data, serverTime: response.serverTime };
+  return { fixture: response.data, serverTime: response.serverTime };
 }
 
 export async function fetchOwnPredictions(leagueId: string, fixtureId: string): Promise<OwnFixturePredictions> {
@@ -261,15 +128,13 @@ export async function submitLineupPrediction(leagueId: string, fixtureId: string
   return response.data;
 }
 
-// Copies into *every* other league the caller actively belongs to that has
-// this same fixture -- the endpoint takes no target list, so there is no
-// way to copy into a chosen subset. Wrapped in `{ data }` like every other
-// endpoint in this file, unlike the previous version of this function.
 export async function copyFixturePredictions(leagueId: string, fixtureId: string): Promise<CopyPredictionsResponse> {
-  const response = await apiFetch<{ data: CopyPredictionsResponse }>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/copy`, {
-    method: 'POST',
-    body: JSON.stringify({})
-  });
+  // The route takes no body and no target list: it copies into every other
+  // league the member is actively in that includes this match.
+  const response = await apiFetch<{ data: CopyPredictionsResponse }>(
+    `/leagues/${leagueId}/fixtures/${fixtureId}/predictions/copy`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
   return response.data;
 }
 
@@ -278,40 +143,15 @@ export async function fetchFixtureResults(leagueId: string, fixtureId: string): 
   return response.data;
 }
 
-// Batch form of fetchFixtureResults -- one request for up to 50 fixtures
-// instead of one request per finished fixture. The backend caps a single
-// call at 50 ids, so a page with more finished fixtures than that is split
-// into multiple batched calls rather than falling back to per-fixture ones.
-export async function fetchFixturesResultsBatch(leagueId: string, fixtureIds: string[]): Promise<FixtureResultsResponse[]> {
-  if (fixtureIds.length === 0) return [];
-  const CHUNK = 50;
-  const results: FixtureResultsResponse[] = [];
-  for (let i = 0; i < fixtureIds.length; i += CHUNK) {
-    const chunk = fixtureIds.slice(i, i + CHUNK);
-    const query = chunk.map((id) => `leagueFixtureIds=${encodeURIComponent(id)}`).join('&');
-    const response = await apiFetch<{ data: FixtureResultsResponse[] }>(`/leagues/${leagueId}/fixtures/results?${query}`);
-    results.push(...response.data);
-  }
-  return results;
-}
-
-export interface PredictionRevision {
-  revisionId: string;
-  version: number;
-  previousRevisionId: string | null;
-  answer: StoredStandardAnswer;
-}
-
-export interface PredictionHistoryResponse {
-  marketType: string;
-  predictionId: string | null;
-  revisions: PredictionRevision[];
-}
-
-// Standard markets only (match_result, exact_score, both_teams_to_score,
-// total_goals, anytime_goalscorer, player_card) -- lineup keeps its own
-// atomic submission model with no per-revision history endpoint.
-export async function fetchPredictionHistory(leagueId: string, fixtureId: string, marketType: string): Promise<PredictionHistoryResponse> {
-  const response = await apiFetch<{ data: PredictionHistoryResponse }>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/me/history?marketType=${encodeURIComponent(marketType)}`);
+/**
+ * Results for several fixtures in one read. The per-fixture call above is still
+ * right for a single fixture; this exists because the league fixtures list needs
+ * every finished fixture's outcome at once, and used to ask for them one request
+ * at a time.
+ */
+export async function fetchFixtureResultsBatch(leagueId: string, leagueFixtureIds: string[]): Promise<FixtureResultsResponse[]> {
+  if (leagueFixtureIds.length === 0) return [];
+  const query = leagueFixtureIds.map(id => `leagueFixtureIds=${encodeURIComponent(id)}`).join('&');
+  const response = await apiFetch<Api<'MemberFixtureResultsBatchResponseDto'>>(`/leagues/${leagueId}/fixtures/results?${query}`);
   return response.data;
 }

@@ -1,337 +1,95 @@
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { notFound, redirect } from 'next/navigation';
 import { LeagueRulesScreen } from '../../../components/leagues/LeagueRulesScreen';
-import { useLeague, useUpdateLeague } from '@/hooks/api/useLeagues';
-import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
+import { serverFetch, serverFetchOrNull, NotAuthenticatedError } from '@/lib/api/server-fetch';
+import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague } from '@/lib/leagues/league-context';
+import {
+  lateJoinLabel, lockMinutes, maxPointsNote, maxPointsPerFixture,
+  toMarketRules, toTiebreakerLabels, type CompetitionRule,
+} from '@/lib/leagues/league-rules';
+import type { Api } from '@/lib/api/types';
+import type { CatalogueSeason } from '@/lib/api/catalogue';
+
+/**
+ * The league rules, fetched on the server.
+ *
+ * Everything except the season labels comes from the league read itself. A
+ * scope's round bounds are stage and round ids rather than round numbers, so a
+ * partial season is described by its kind — printing the ids gave
+ * "Rounds [object Object]–[object Object]".
+ */
+
+type LeagueRead = Api<'LeagueReadResponseDto'>;
+type Preferences = Api<'NotificationPreferencesResponseDto'>;
+
+const SCOPE_LABELS: Record<string, string> = {
+  full_season: 'Full season',
+  single_round: 'One round',
+  round_range: 'Part of the season',
+};
 
 export default function LeagueRulesPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const { data: league, isLoading: leagueLoading, isError: leagueError, refetch: refetchLeague } = useLeague(params.id);
-  const updateLeagueMutation = useUpdateLeague(params.id);
-  const { data: notifPrefs } = useNotificationPreferences();
-  const updateNotifPrefs = useUpdateNotificationPreferences();
+  return (
+    <Suspense fallback={<LeagueContentSkeleton rows={5} />}>
+      <Rules params={params} />
+    </Suspense>
+  );
+}
 
-  const flash = (msg: string) => window.alert(msg);
+async function Rules({ params }: { params: { id: string } }) {
+  const id = params.id;
 
-  const handleEditName = () => {
-    if (league?.version == null) return;
-    const next = window.prompt('League name', leagueName);
-    if (next === null || !next.trim() || next.trim() === leagueName) return;
-    updateLeagueMutation.mutate({ expectedVersion: league.version, name: next.trim() }, {
-      onError: () => flash("Couldn't update the name"),
-    });
-  };
+  let league: LeagueRead;
+  let preferences: Preferences | null;
 
-  const handleEditDescription = () => {
-    if (league?.version == null) return;
-    const next = window.prompt('League description', league?.description || '');
-    if (next === null || next.trim() === (league?.description || '')) return;
-    updateLeagueMutation.mutate({ expectedVersion: league.version, description: next.trim() || null }, {
-      onError: () => flash("Couldn't update the description"),
-    });
-  };
+  try {
+    [league, preferences] = await Promise.all([
+      getLeague(id),
+      serverFetchOrNull<Preferences>('/me/notification-preferences'),
+    ]);
+  } catch (error) {
+    if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/rules`);
+    if (error instanceof ApiError && error.status === 401) redirect(`/?redirect=/leagues/${id}/rules`);
+    if (error instanceof ApiError && (error.status === 403 || error.status === 404)) notFound();
+    throw error;
+  }
 
-  const handleToggleInvites = () => {
-    if (league?.version == null) return;
-    const nextEnabled = league?.invitationSettings?.enabled === false;
-    updateLeagueMutation.mutate({ expectedVersion: league.version, invitationSettings: { enabled: nextEnabled } }, {
-      onError: () => flash("Couldn't update invitation links"),
-    });
-  };
+  const scopes = league.ruleset?.competitionScopes ?? [];
+  const named = new Map(league.competitions.map(c => [c.supportedCompetitionId, c.displayName]));
 
-  const handleToggleApproval = () => {
-    if (league?.version == null) return;
-    const nextRequired = !league?.invitationSettings?.joinApprovalRequired;
-    updateLeagueMutation.mutate({ expectedVersion: league.version, invitationSettings: { joinApprovalRequired: nextRequired } }, {
-      onError: () => flash("Couldn't update the approval setting"),
-    });
-  };
-
-  const handleToggleReminder = () => {
-    updateNotifPrefs.mutate({ roundReminder: !notifPrefs?.roundReminder }, {
-      onError: () => flash("Couldn't update your reminder setting"),
-    });
-  };
-
-  // The app is dark-only (see app/layout.tsx); this was dead state with no
-  // real toggle anywhere.
-  const theme = 'dark';
-  const [screen] = useState<'rules' | 'settings' | 'participant'>('rules');
-
-  const isLoading = leagueLoading;
-  // A real fetch error and "loaded fine, but there's no such league" are
-  // different situations with different, already-written copy below -- but
-  // the selector picking between them was `isTerminal ? "error" : "error"`,
-  // so "notfound" was unreachable dead code and a genuinely-missing or
-  // inaccessible league always got the generic "check your connection"
-  // message instead of its own honest explanation.
-  const notFound = !isLoading && !league && !leagueError;
-  const isTerminal = !!leagueError || notFound;
-  const isReady = !isLoading && !isTerminal;
-
-  const role = league?.membership?.role || 'participant';
-  const isOwner = role === 'owner';
-  const participant = role === 'participant';
-  const isRules = screen === "rules";
-
-  const leagueName = league?.name || 'League';
-  const createdDate = league?.createdAt
-    ? new Date(league.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-    : '12 August';
-
-  const LINE = "flex items-center gap-[12px] p-[16px_var(--gutter)] border-b border-[var(--surface-border)] last:border-b-0";
-  const frozen = (title: string, value: string, note?: string) => ({ cls: LINE, locked: true, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "", chevron: false });
-  const editable = (title: string, value: string, note?: string, onClick?: () => void) => ({ cls: `${LINE}${onClick ? ' cursor-pointer' : ''}`, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: onClick ? "text-[var(--text-link)]" : "", chevron: !!onClick, onClick });
-  const readonly = (title: string, value: string, note?: string) => ({ cls: LINE, locked: false, title, value, note: note || "", hasNote: !!note, titleColor: "var(--text-primary)", valStyle: "", chevron: false });
-
-  // Market and tiebreaker display names, keyed by the real ruleset's market
-  // type strings — the ruleset itself carries no labels, only types and points.
-  const MARKET_INFO: Record<string, { label: string; note: string; color: string; perPlayer?: boolean }> = {
-    match_result: { label: "Match result", note: "Home, draw or away", color: "var(--cat-1)" },
-    exact_score: { label: "Exact score", note: "Both teams' goals", color: "var(--cat-6)" },
-    both_teams_to_score: { label: "Both teams to score", note: "Yes or no", color: "var(--cat-2)" },
-    total_goals: { label: "Total goals", note: `Over or under ${league?.ruleset?.totalGoalsLine ?? 2.5}`, color: "var(--cat-4)" },
-    anytime_goalscorer: { label: "Anytime goalscorer", note: "Extra time counts; shootouts and own goals do not", color: "var(--cat-3)" },
-    player_card: { label: "Player card", note: "Yellow, second yellow or straight red, if the player appears", color: "var(--cat-5)" },
-    lineup: { label: "Starting lineups", note: "Both elevens, 22 points at most", color: "var(--cat-7)", perPlayer: true }
-  };
-  const TIEBREAK_LABELS: Record<string, string> = {
-    match_result: "Match results correct", exact_score: "Exact scores correct",
-    both_teams_to_score: "Both teams to score, correct", total_goals: "Total goals, correct",
-    anytime_goalscorer: "Anytime goalscorers correct", player_card: "Player cards correct",
-    lineup: "Lineup players correct"
-  };
-
-  const rulesetMarkets = league?.ruleset?.markets || [];
-  const rulesetTiebreakers = league?.ruleset?.tiebreakers || [];
-  const enabledMarkets = rulesetMarkets.filter(m => m.enabled);
-  const maxPoints = enabledMarkets.reduce((a, m) => a + m.points * (MARKET_INFO[m.marketType]?.perPlayer ? 22 : 1), 0);
-
-  // Competitions from real league
-  const compsFromLeague = league?.competitions?.length
-    ? league.competitions.map(c => frozen(
-        c.displayName,
-        c.kind === 'full_season' ? "Full season" : (c.firstRound && c.lastRound ? `Rounds ${c.firstRound}–${c.lastRound}` : "Partial season"),
-        c.seasonLabel
-      ))
-    : [];
-
-  const lockMinutes = league?.ruleset?.standardLock?.offsetMinutes ?? 5;
-
-  const RULES = [
-    { label: "Competitions", hasIntro: true, intro: "Chosen once, at publication. A league cannot gain or lose a competition afterwards.", lines: compsFromLeague },
-    { label: "Markets and points", hasIntro: true, intro: "Every enabled market and what a correct answer is worth.", lines: rulesetMarkets.filter(m => m.enabled).map(m => {
-      const info = MARKET_INFO[m.marketType] || { label: m.marketType, note: "" };
-      return frozen(info.label, info.perPlayer ? `${m.points} pt per starter` : `${m.points} ${m.points === 1 ? 'pt' : 'pts'}`, info.note);
-    }) },
-    { label: "Timing and joining", hasIntro: false, intro: "", lines: [
-      frozen("Standard lock", `${lockMinutes} minutes before`, "Applies to every market except the lineups"),
-      frozen("Lineup lock", "2 hours before", "Fixed by TopFour — the standard lock never applies to it"),
-      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_at_start' ? "Closes when the league starts" : "Permitted", "A late member starts on zero and cannot answer locked matches")
-    ]},
-    { label: "Tiebreakers", hasIntro: true, intro: "Applied in order when totals are equal. Members who tie on all of them share a position.", lines: rulesetTiebreakers.map((t, i) => frozen(`${i + 1} · ${TIEBREAK_LABELS[t] || t}`, "")) }
-  ];
-
-  const memberCount = league?.memberCount ?? 1;
-
-  const OWNER = [
-    { label: "League", hasIntro: true, intro: "These stay editable for the life of the league.", lines: [
-      editable("Name", leagueName, undefined, handleEditName),
-      editable("Description", league?.description || "No description", undefined, handleEditDescription),
-      readonly("Crest colour", "Brand")
-    ]},
-    { label: "Joining", hasIntro: false, intro: "", lines: [
-      editable("Invitation links", league?.invitationSettings?.enabled === false ? "Off" : "On", "Anyone with a link can request to join", handleToggleInvites),
-      editable("Approve new members", league?.invitationSettings?.joinApprovalRequired ? "Required" : "Automatic", "You or an admin approves every request", handleToggleApproval),
-      readonly("Members", `${memberCount} members`)
-    ]},
-    { label: "Notifications", hasIntro: true, intro: "Applies to your own email only. Other members choose their own.", lines: [
-      editable("Deadline reminders", notifPrefs?.roundReminder === false ? "Off" : "On", "We never promise a send time", handleToggleReminder),
-      readonly("Results and corrections", "On")
-    ]},
-    { label: "Frozen at publication", hasIntro: true, intro: `Locked on ${createdDate}. Cloning the league is the only way to play these rules differently.`, lines: [
-      frozen("Competitions", `${league?.competitions?.length || 0} selected`),
-      frozen("Markets and points", `${enabledMarkets.length} enabled · ${maxPoints} max`),
-      frozen("Standard lock", `${lockMinutes} minutes before`),
-      frozen("Late joining", league?.ruleset?.lateJoinPolicy === 'close_at_start' ? "Closes when the league starts" : "Permitted"),
-      frozen("Tiebreakers", `${rulesetTiebreakers.length} in order`)
-    ]}
-  ];
-
-  const PARTICIPANT = [
-    { label: "Your notifications", hasIntro: true, intro: "The only settings a participant controls. Everything else belongs to the owner.", lines: [
-      editable("Deadline reminders", notifPrefs?.roundReminder === false ? "Off" : "On", undefined, handleToggleReminder),
-      readonly("Results and corrections", "On")
-    ]},
-    { label: "This league", hasIntro: true, intro: "Read-only for you. The owner can change the first three; nothing can change the rest.", lines: [
-      readonly("Name", leagueName),
-      readonly("Approve new members", league?.invitationSettings?.joinApprovalRequired ? "Required" : "Automatic"),
-      readonly("Members", String(memberCount)),
-      frozen("Markets and points", `${enabledMarkets.length} enabled · ${maxPoints} max`),
-      frozen("Standard lock", `${lockMinutes} minutes before`)
-    ]}
-  ];
-
-  const sections = isRules ? RULES : (isOwner ? OWNER : PARTICIPANT);
-
-  const TERM = {
-    notfound: ["ghost", "var(--text-muted)", "Not found, or no longer available", "This league either does not exist or is not one you can see. TopFour does not say which — that distinction would itself leak who is in which league.", "BACK TO MY LEAGUES"],
-    error: ["warning", "var(--warn-text)", "The rules didn't load", "Check your connection and try again. Nothing about the league has changed.", "RETRY"]
-  }[notFound ? "notfound" : "error"];
-
-  const IconMap: Record<string, any> = {
-    lock: (size: number) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <rect x="5" y="10.5" width="14" height="9.5" rx="2" />
-        <path d="M8.4 10.5V8a3.6 3.6 0 0 1 7.2 0v2.5" />
-      </svg>
-    ),
-    back: (size: number) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <path d="M14.5 5 8 12l6.5 7" />
-      </svg>
-    ),
-    warning: (size: number) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <path d="M12 3 2.8 20h18.4L12 3Z" />
-        <path d="M12 9v4.5M12 17h.01" />
-      </svg>
-    ),
-    ghost: (size: number) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <circle cx="12" cy="12" r="8.5" />
-        <path d="M9 9.5h.01M15 9.5h.01M9 15.2c1.8-1.4 4.2-1.4 6 0" />
-      </svg>
-    )
-  };
-
-  const headTitle = isRules ? "League rules" : "League settings";
-  const headSub = isRules ? `${leagueName} · frozen ${createdDate}` : `${leagueName} · ${isOwner ? "owner" : "participant"}`;
-  
-  const frozenText = isRules
-    ? "Everything here was fixed when the league was published. It cannot be changed for this league — cloning creates a new one with different rules."
-    : (isOwner ? "Name, joining and notifications stay editable. The scoring rules below the padlock froze at publication."
-               : "You can change your own reminders. The rest is the owner's, and the scoring rules are nobody's — they froze at publication.");
-
-  const showMaxPoints = isReady && isRules;
-  const showDanger = isReady && isOwner;
-
-  const dangerLinesMobile = [
-    { title: "Clone this league", note: "A fresh draft with these rules, ready to change. Members do not carry over." },
-    { title: "Archive this league", note: "Hidden from active views. History is kept and stays readable." },
-    { title: "Cancel this league", note: "Permanent. Started fixtures settle, everything still open is voided." }
-  ];
-
-  const footNote = isRules ? "Shown to every member, in the same words. Nobody plays to different rules." : "Changes save one at a time and take effect immediately.";
-
-  // --- Desktop Specific Logic — same real ruleset data, desktop layout ---
-  const MARKETS = rulesetMarkets.map(m => {
-    const info = MARKET_INFO[m.marketType] || { label: m.marketType, note: "", color: "var(--cat-1)" };
-    return { name: info.label, note: m.enabled ? info.note : "Not run in this league", pts: m.points, off: !m.enabled, perPlayer: !!info.perPlayer, color: info.color };
-  });
-
-  const COMPS = league?.competitions?.map(c => ({
-    abbr: c.displayName.substring(0, 3).toUpperCase(),
-    name: c.displayName,
-    scope: [c.kind === 'full_season' ? "Whole season" : (c.firstRound && c.lastRound ? `Rounds ${c.firstRound}–${c.lastRound}` : "Partial season"), c.seasonLabel].filter(Boolean).join(' · ')
-  })) || [];
-
-  const enabled = MARKETS.filter(m => !m.off);
-  const maxPointsDesktop = maxPoints;
-
-  const marketsDesktop = MARKETS.map((m, i, a) => ({
-    name: m.name, note: m.note,
-    nameColor: m.off ? "var(--text-muted)" : "var(--text-primary)",
-    pts: m.off ? "off" : (m.perPlayer ? m.pts + " × 22" : m.pts + (m.pts === 1 ? " pt" : " pts")),
-    ptsStyle: { flex: "none", font: "700 13px 'DM Sans',sans-serif", fontVariantNumeric: "tabular-nums", color: m.off ? "var(--text-muted)" : "var(--text-primary)" },
-    swatchStyle: { width: "9px", height: "32px", borderRadius: "3px", flex: "none", background: m.color, opacity: m.off ? 0.35 : 1 },
-    rowStyle: { display: "flex", alignItems: "center", gap: "13px", padding: "13px 18px", borderBottom: i === a.length - 1 ? "none" : "1px solid var(--surface-border)", opacity: m.off ? 0.65 : 1 }
+  const competitions: CompetitionRule[] = await Promise.all(scopes.map(async scope => {
+    const seasons = await serverFetchOrNull<CatalogueSeason[]>(
+      `/football/catalogue/competitions/${scope.supportedCompetitionId}/seasons`,
+      { revalidate: 3600 },
+    );
+    return {
+      name: named.get(scope.supportedCompetitionId) ?? 'Competition',
+      scope: SCOPE_LABELS[scope.kind] ?? 'Part of the season',
+      season: seasons?.find(s => s.id === scope.seasonId)?.label ?? '',
+    };
   }));
 
-  const tiebreakersDesktop = [
-    { n: "1", label: "Total points" },
-    ...rulesetTiebreakers.map((t, i) => ({ n: String(i + 2), label: TIEBREAK_LABELS[t] || t }))
-  ];
-
-  const deadlinesDesktop = [
-    { label: "Standard lock", value: `${lockMinutes} min`, note: "before each kick-off" },
-    { label: "Lineups", value: "2 hours", note: "always, whatever the standard lock is" },
-    { label: "Custom questions", value: "Per question", note: "set when the question is written" }
-  ];
-
-  const dangerLinesDesktop = [
-    { label: "Complete the league", action: "Complete", note: "Available once every fixture and question has settled. Points stay readable forever." },
-    { label: "Cancel the league", action: "Cancel", note: "Voids every prediction and every point. Only for a league that should never have run.", danger: true },
-    { label: "Archive the league", action: "Archive", note: "Hides it from active lists after completion. Nothing is deleted." }
-  ].map(d => ({
-    label: d.label, note: d.note, action: d.action,
-    btnStyle: { flex: "none", padding: "0 16px", height: "38px", borderRadius: "10px", display: "grid", placeItems: "center", font: "600 11.5px 'DM Sans',sans-serif", cursor: "pointer", border: d.danger ? "1px solid var(--color-danger)" : "1px solid var(--surface-border-strong)", color: d.danger ? "var(--danger-text)" : "inherit" }
-  }));
-
-  const editableDesktop = [
-    { label: "League name and description", note: "Members see the change immediately", onClick: () => { handleEditName(); handleEditDescription(); } },
-    { label: "Invitation links", note: league?.invitationSettings?.enabled === false ? "Currently off" : "Currently on", onClick: handleToggleInvites },
-    { label: "Admins", note: "Promote or demote members", onClick: () => router.push(`/leagues/${params.id}/admin`) },
-    { label: "Approval for new members", note: league?.invitationSettings?.joinApprovalRequired ? "Currently on" : "Currently off", onClick: handleToggleApproval }
-  ];
-
-  const tabItem = (label: string, on: boolean) => ({
-    label, style: { padding: '0 13px', height: '43px', display: 'flex', alignItems: 'center', fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' }
-  });
-
-  const TERM_ICON_DESKTOP = IconMap[TERM[0] as string] ? IconMap[TERM[0] as string](40) : null;
-
-  // Real max-points explanation, shared by both layouts. Mobile used to
-  // hardcode a literal "40" for the hero number and a matching hardcoded
-  // breakdown sentence ("2 result + 5 score + 1 both teams + ... + 22
-  // lineup") regardless of the league's actual enabled markets and point
-  // values -- maxPoints/maxNote were computed for Desktop only and never
-  // even passed to Mobile's props.
-  const maxNote = (() => {
-    const flat = enabled.filter(m => !m.perPlayer);
-    const lineup = enabled.find(m => m.perPlayer);
-    const off = MARKETS.filter(m => m.off).map(m => m.name);
-    const parts = [`${flat.length} ${flat.length === 1 ? 'market' : 'markets'} at ${flat.reduce((a, m) => a + m.pts, 0)} points`];
-    if (lineup) parts.push(`plus twenty-two lineup places at ${lineup.pts} each — both elevens`);
-    let note = parts.join(', ') + '.';
-    if (off.length) note += ` ${off.join(', ')} ${off.length === 1 ? 'is' : 'are'} not run here.`;
-    return note;
-  })();
-
-  // "RETRY" and "BACK TO MY LEAGUES" both used to be a no-op () => {} on
-  // both platforms regardless of which terminal state was showing.
-  const retryAction = notFound ? () => router.push('/leagues') : () => refetchLeague();
-
-  const props = {
-    theme, params, isLoading, isTerminal, isReady, isRules, isOwner,
-    IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
-    footNote, retry: retryAction,
-    leagueName,
-    maxPoints: String(maxPointsDesktop), maxNote,
-
-    // Mobile-specific
-    sections, showDanger, dangerLinesMobile,
-
-    // Desktop-specific
-    showContext: !isTerminal,
-    roleLine: participant ? "You play in this league" : isOwner ? "You own this league" : "You are an admin",
-    contextTabs: [tabItem("Overview", false), tabItem("Fixtures", false), tabItem("Table", false), tabItem("Questions", false), tabItem("More", true)],
-    skeletons: [{ w: "58%" }, { w: "70%" }, { w: "46%" }, { w: "64%" }],
-    termIcon: TERM_ICON_DESKTOP, termIconColor: TERM[1], termTitle: TERM[2], termBody: TERM[3], termAction: TERM[4],
-    termActionStyle: { marginTop: "24px", padding: "0 22px", height: "48px", borderRadius: "13px", border: "1px solid var(--surface-border-strong)", background: "var(--surface-card)", display: "grid", placeItems: "center", font: "700 12.5px 'DM Sans',sans-serif", cursor: "pointer" },
-    heroStyle: { flex: "none", background: "var(--nav-surface)", color: "var(--nav-text)", padding: "24px 0 26px", borderBottom: "1px solid rgba(255,255,255,.1)" },
-    showFrozenBanner: true, lockIcon: IconMap.lock(16),
-    markets: marketsDesktop, tiebreakers: tiebreakersDesktop,
-    comps: COMPS.map(c => ({ abbr: c.abbr, name: c.name, scope: c.scope, abbrStyle: { width: "38px", height: "28px", borderRadius: "8px", flex: "none", display: "grid", placeItems: "center", font: "700 9.5px 'DM Sans',sans-serif", background: "var(--surface-subtle)", color: "var(--text-secondary)" } })),
-    deadlines: deadlinesDesktop, showDangerDesktop: isOwner, dangerLinesDesktop,
-    showEditable: isOwner, editable: editableDesktop, showLeave: participant,
-  };
+  const role = league.membership?.role;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <LeagueRulesScreen {...props} />
-    </div>
+    <LeagueRulesScreen
+      leagueId={id}
+      leagueName={league.name}
+      description={league.description ?? ''}
+      version={league.version}
+      canEdit={role === 'owner' || role === 'admin'}
+      markets={toMarketRules(league.ruleset)}
+      competitions={competitions}
+      maxPoints={maxPointsPerFixture(league.ruleset)}
+      maxNote={maxPointsNote(league.ruleset)}
+      tiebreakers={toTiebreakerLabels(league.ruleset)}
+      lockMinutes={lockMinutes(league.ruleset)}
+      lateJoin={lateJoinLabel(league.ruleset)}
+      invitationsOn={league.invitationSettings?.enabled !== false}
+      approvalRequired={!!league.invitationSettings?.joinApprovalRequired}
+      remindersOn={preferences?.data.round_reminder !== false}
+    />
   );
 }

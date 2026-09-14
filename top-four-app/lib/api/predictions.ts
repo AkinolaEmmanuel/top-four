@@ -1,73 +1,27 @@
 import { apiFetch } from './fetcher';
+import type { Api } from './types';
+import { queueWindow } from '@/lib/predict/queue-window';
 
-export interface MissingPredictionTask {
-  marketType: string;
-  side?: string;
-  expectedVersion: number;
-  state: string;
-  submissionAllowed: boolean;
-  deadlineAt: string | null;
-}
-
-export interface FixturePredictionTask {
-  kind: 'fixture';
-  league: { id: string; name: string };
-  leagueFixtureId: string;
-  fixtureId: string;
-  kickoffAt: string | null;
-  competition: { id: string; slug: string; displayName: string };
-  homeTeam: { id: string; displayName: string; code: string | null; logoUrl: string | null };
-  awayTeam: { id: string; displayName: string; code: string | null; logoUrl: string | null };
-  nextDeadlineAt: string | null;
-  missingPredictions: MissingPredictionTask[];
-}
-
-export interface CustomQuestionPredictionTask {
-  kind: 'custom_question';
-  league: { id: string; name: string };
-  question: {
-    id: string;
-    answerKind: string;
-    expectedVersion: number;
-    questionText: string;
-    resolutionCriteria: string;
-    points: number;
-    opensAt: string;
-    deadlineAt: string;
-    outcomeAt: string;
-    options: string[];
-  };
-  state: 'upcoming' | 'open';
-  submissionAllowed: boolean;
-}
-
+export type MissingPredictionTask = Api<'MissingPredictionTaskDto'>;
+export type FixturePredictionTask = Api<'FixturePredictionTaskDto'>;
+export type CustomQuestionPredictionTask = Api<'CustomQuestionPredictionTaskDto'>;
 export type PredictionTask = FixturePredictionTask | CustomQuestionPredictionTask;
 
-export interface PredictionTaskPage {
-  items: PredictionTask[];
-  serverTime: string;
-  nextCursor: string | null;
+export type PredictionTaskPage = Api<'PredictionTaskPageDto'>;
+
+/**
+ * The tab badge's read: this week, not the season.
+ *
+ * Unwindowed this returned one arbitrary page of a season-long feed, so the
+ * badge showed "20" — the page size — while Predict said 200 and Home said 800.
+ * The badge counts fixtures and questions needing attention in the same week
+ * every other figure is measured over.
+ */
+export async function fetchPredictionTasks(cursor?: string): Promise<PredictionTaskPage> {
+  const parts = [queueWindow(Date.now()), `limit=${TASK_BADGE_LIMIT}`];
+  if (cursor) parts.push(`cursor=${encodeURIComponent(cursor)}`);
+  return apiFetch<PredictionTaskPage>(`/me/prediction-tasks?${parts.join('&')}`);
 }
 
-async function fetchPredictionTasksPage(cursor?: string): Promise<PredictionTaskPage> {
-  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-  return apiFetch<PredictionTaskPage>(`/me/prediction-tasks${query}`);
-}
-
-// Paginated at 20 per page, and this used to only ever fetch the first page.
-// This list is a user's actionable to-do (unanswered markets across every
-// unfinished league they're in), not history -- a member in several active
-// leagues each with a few unanswered fixtures over a busy weekend can easily
-// clear 20 items, and anything past that was silently invisible on the
-// Predict tab and the Home page's queue with no sign anything was missing.
-export async function fetchPredictionTasks(): Promise<PredictionTaskPage> {
-  const first = await fetchPredictionTasksPage();
-  const items = [...first.items];
-  let cursor = first.nextCursor;
-  while (cursor) {
-    const page = await fetchPredictionTasksPage(cursor);
-    items.push(...page.items);
-    cursor = page.nextCursor;
-  }
-  return { items, serverTime: first.serverTime, nextCursor: null };
-}
+/** Enough to count a busy week; the badge caps its display well below this. */
+const TASK_BADGE_LIMIT = 100;

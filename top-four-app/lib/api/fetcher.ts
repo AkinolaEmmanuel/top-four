@@ -14,16 +14,63 @@ export function generateIdempotencyKey(): string {
   return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
 }
 
-export class ApiError extends Error {
-  public status: number;
-  public data: any;
+/**
+ * The problem body the API returns with every failure.
+ *
+ * `requestId` is the only identifier a member is ever shown, and only on an
+ * unexpected failure — it is what lets us find this exact request. `detail` is
+ * for logs, never for the screen.
+ */
+export interface ApiProblem {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+  code?: string;
+  requestId?: string;
+  errors?: Array<{ field?: string; messages?: string[] }>;
+}
 
-  constructor(status: number, message: string, data?: any) {
+export class ApiError extends Error {
+  public readonly status: number;
+  public readonly problem: ApiProblem | undefined;
+  /**
+   * Seconds from `Retry-After`, when the server sent one. Carried because a
+   * rate limit has to be waited out for exactly that long — guessing an
+   * interval, or retrying in the background, is what the limit exists to stop.
+   */
+  public readonly retryAfterSeconds: number | undefined;
+
+  constructor(status: number, message: string, problem?: unknown, retryAfterSeconds?: number) {
     super(message);
     this.status = status;
-    this.data = data;
+    this.problem = isApiProblem(problem) ? problem : undefined;
+    this.retryAfterSeconds = retryAfterSeconds;
     this.name = 'ApiError';
   }
+
+  /** The reference the unexpected-failure screen quotes, when the API sent one. */
+  public get requestId(): string | undefined {
+    return this.problem?.requestId;
+  }
+
+  /** The machine-readable cause, for branching on a specific failure. */
+  public get code(): string | undefined {
+    return this.problem?.code;
+  }
+}
+
+function isApiProblem(value: unknown): value is ApiProblem {
+  return typeof value === 'object' && value !== null;
+}
+
+/** `Retry-After` in seconds. The HTTP-date form is not used by this API. */
+function retryAfterFrom(response: Response): number | undefined {
+  const header = response.headers.get('Retry-After');
+  if (!header) return undefined;
+  const seconds = Number.parseInt(header, 10);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined;
 }
 
 let cachedCsrfToken: string | null = null;
@@ -95,7 +142,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
     data = await response.json();
   } catch (err) {
     if (!response.ok) {
-      throw new ApiError(response.status, response.statusText);
+      throw new ApiError(response.status, response.statusText, undefined, retryAfterFrom(response));
     }
     return {} as T;
   }
@@ -105,16 +152,24 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}, r
 
     // Append field-specific validation errors if present
     if (data?.errors && Array.isArray(data.errors)) {
-      const fieldErrors = data.errors.map((e: any) => e.messages?.join(', ')).filter(Boolean);
+      // The body is whatever the server sent, so each entry is narrowed here
+      // rather than trusted to have the shape the happy path expects.
+      const fieldErrors = (data.errors as unknown[])
+        .map(entry => {
+          const messages = (entry as { messages?: unknown })?.messages;
+          return Array.isArray(messages) ? messages.join(', ') : '';
+        })
+        .filter(Boolean);
       if (fieldErrors.length > 0) {
-        errorMessage += ' ' + fieldErrors.join('; ');
+          errorMessage += ' ' + fieldErrors.join('; ');
       }
     }
 
     throw new ApiError(
       response.status,
       errorMessage,
-      data
+      data,
+      retryAfterFrom(response),
     );
   }
 

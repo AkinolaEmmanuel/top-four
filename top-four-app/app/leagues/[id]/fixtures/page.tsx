@@ -1,268 +1,355 @@
-'use client';
-
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { notFound, redirect } from 'next/navigation';
 import { LeagueFixturesScreen } from '../../../components/leagues/LeagueFixturesScreen';
-import { useLeagueFixturesInfinite, useLeague } from '@/hooks/api/useLeagues';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
+import { ApiError } from '@/lib/api/fetcher';
+import { LeagueContentSkeleton } from '@/app/components/leagues/LeagueContentSkeleton';
+import { getLeague, getLeagueDashboard } from '@/lib/leagues/league-context';
+import { splitFixtures, toFixtureRow, matchesFilter, FIXTURE_FILTERS, type FixtureView, type FixtureFilter } from '@/lib/leagues/league-fixtures';
+import type { Api } from '@/lib/api/types';
+import type { LeagueFixture } from '@/lib/api/leagues';
+import type { FixtureAvailability, FixtureResultsResponse } from '@/lib/api/predictions-fixture';
+import { MARKET_LABELS } from '@/lib/constants/markets';
+import { landedScoreFor } from '@/lib/predict/fixture-predict';
 
-const CLUB: Record<string, string> = { ARS: "#c8182f", CHE: "#1746a2", LIV: "#b7152b", TOT: "#17233d", MCI: "#559ac7", EVE: "#153c85", MUN: "#d1262f", NEW: "#20242a" };
+/**
+ * The league fixtures list, fetched on the server.
+ *
+ * Availability describes every fixture's markets but never their outcome, so a
+ * played fixture's score and points come from the results read. That is one
+ * batched call for all of them — it used to be one call per finished fixture.
+ *
+ * Availability is paginated, and every page of it is read: the Upcoming and
+ * Results counts are counts of the league, not of the first twenty rows.
+ */
 
+type LeagueRead = Api<'LeagueReadResponseDto'>;
+type Dashboard = Api<'LeagueDashboardResponseDto'>;
+type ResultsBatch = Api<'MemberFixtureResultsBatchResponseDto'>;
 
+/**
+ * The largest page the availability endpoint allows. A season across two
+ * competitions is a few hundred fixtures, so this keeps the paginated read to a
+ * handful of round-trips rather than tens of them.
+ */
+const AVAILABILITY_PAGE_SIZE = 100;
 
-export default function LeagueFixturesPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const {
-    data: fixturesData, isLoading: fixturesLoading,
-    fetchNextPage, hasNextPage, isFetchingNextPage,
-  } = useLeagueFixturesInfinite(params.id);
-  const { data: league } = useLeague(params.id);
-  // The app is dark-only (see app/layout.tsx); this was dead state with no
-  // real toggle anywhere.
-  const theme = 'dark';
-  const setTheme = () => {};
-  const [state, setState] = useState<'upcoming' | 'results' | 'empty' | 'loading'>('upcoming');
-  const [filter, setFilter] = useState("All");
+/**
+ * How far ahead "Upcoming" looks, in days.
+ *
+ * The design's header reads "Round 3" over four fixtures; ours read the whole
+ * season — 494 rows, forty at a time. A round is the wrong unit here because
+ * this league runs two competitions at once, so a single week holds Premier
+ * League round 5 and Champions League league-stage 2 together; scoping by
+ * `roundId` would silently hide one of them. A week holds both.
+ *
+ * "Show more" widens this rather than adding rows, so the count above the list
+ * and the rows beneath it always describe the same span of football.
+ */
+const UPCOMING_DAYS = 7;
 
-  const st = state;
-  const isLoading = st === "loading" || fixturesLoading, isEmpty = st === "empty";
-  const results = st === "results";
-  const showList = !isLoading && !isEmpty;
+/** Rows rendered per request, so one very busy week cannot produce a huge document. */
+const ROW_WINDOW = 40;
 
-  const STATE_DEF: Record<string, string[]> = {
-    open: ["OPEN", "bg-[var(--accent-surface)] text-[var(--accent-text)]", "background:var(--accent-surface);color:var(--accent-text)"],
-    ready: ["READY", "bg-[var(--success-surface)] text-[var(--success-text)]", "background:var(--success-surface);color:var(--success-text)"],
-    syncing: ["SYNCING", "bg-[var(--surface-subtle)] text-[var(--text-muted)]", "background:var(--surface-subtle);color:var(--text-muted)"],
-    won: ["EXACT SCORE", "bg-[var(--tf-green-800)] text-[var(--tf-white)]", "background:var(--tf-green-800);color:var(--tf-white)"],
-    part: ["PARTIAL", "bg-[var(--surface-subtle)] text-[var(--text-secondary)]", "background:var(--surface-subtle);color:var(--text-secondary)"],
-    lost: ["NO POINTS", "bg-[var(--surface-subtle)] text-[var(--text-muted)]", "background:var(--surface-subtle);color:var(--text-muted)"],
-    void: ["VOID", "border border-dashed border-[var(--surface-border-strong)] text-[var(--text-muted)]", "border:1px dashed var(--surface-border-strong);color:var(--text-muted)"]
+/** A ceiling, so a cursor that never terminates cannot hang the screen. */
+const MAX_PAGES = 10;
+
+/** The batch results endpoint accepts fifty ids per call and rejects more. */
+const RESULTS_BATCH_SIZE = 50;
+
+const PLAYED_STATES = ['finished', 'awarded', 'walkover'];
+const VOIDED_STATES = ['postponed', 'cancelled', 'abandoned'];
+const LIVE_STATES = ['live', 'suspended', 'interrupted', 'under_review'];
+
+function statusOf(fixtureState: string): LeagueFixture['status'] {
+  if (PLAYED_STATES.includes(fixtureState)) return 'finished';
+  if (VOIDED_STATES.includes(fixtureState)) return 'voided';
+  if (LIVE_STATES.includes(fixtureState)) return 'live';
+  return 'upcoming';
+}
+
+/**
+ * Which markets actually landed, named.
+ *
+ * The results row has a 330px column for this and it rendered a dash on every
+ * row, because nothing ever set it — the batch read was already being made for
+ * the score and the points, and this was the third thing in it.
+ */
+function landedIn(result: FixtureResultsResponse): string | null {
+  const correct = result.markets.filter(m => m.viewerOutcome?.outcome === 'correct');
+  if (correct.length === 0) return null;
+  const names = correct.map(m => (m.marketType === 'lineup' && m.side
+    ? `${m.side} lineup`
+    : MARKET_LABELS[m.marketType] ?? m.marketType).toLowerCase());
+  // Two names read as a sentence; more than that is a list nobody reads.
+  return names.length <= 2
+    ? names.join(' · ')
+    : `${names.slice(0, 2).join(' · ')} +${names.length - 2} more`;
+}
+
+function outcomeOf(result: FixtureResultsResponse | undefined): Pick<LeagueFixture, 'score' | 'pointsAwarded' | 'predictionState' | 'landed'> {
+  if (!result) return {};
+  const settled = result.markets.filter(m => m.viewerOutcome !== null);
+  const exact = result.markets.find(m => m.marketType === 'exact_score');
+  const score = landedScoreFor(exact?.resolvedAnswer);
+
+  return {
+    score: score ? { home: score[0], away: score[1] } : undefined,
+    pointsAwarded: settled.length > 0
+      ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta ?? 0), 0)
+      : undefined,
+    landed: landedIn(result),
+    predictionState: settled.length === 0 ? undefined
+      : settled.every(m => m.viewerOutcome?.outcome === 'void') ? 'void'
+        : settled.every(m => m.viewerOutcome?.outcome === 'correct') ? 'won'
+          : settled.some(m => m.viewerOutcome?.outcome === 'correct') ? 'part' : 'lost',
   };
+}
 
-  const apiFixtures = fixturesData?.pages.flatMap((p) => p.items) || [];
-  const upcomingFixtures = apiFixtures.filter(f => f.status === 'upcoming' || f.status === 'live');
-  const pastFixtures = apiFixtures.filter(f => f.status === 'finished' || f.status === 'voided');
+/** How many rows this request will draw, so the read knows when it has enough. */
+function requestedRows(show: string | undefined): number {
+  const requested = Number.parseInt(show ?? '', 10);
+  return Number.isFinite(requested) && requested > 0 ? requested : ROW_WINDOW;
+}
 
-  const UPCOMING = upcomingFixtures.length > 0 ? [{
-    group: "Upcoming Fixtures",
-    note: "",
-    rows: upcomingFixtures.map(f => ({
-      id: f.id,
-      home: f.homeTeam, hc: f.homeTeamCode, hLogo: f.homeTeamLogoUrl, away: f.awayTeam, ac: f.awayTeamCode, aLogo: f.awayTeamLogoUrl,
-      mid: f.kickoffAt ? new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "TBD",
-      state: f.predictionState || "open",
-      note: f.predictionNote || "", action: "Predict", right: "—", urgent: false
-    }))
-  }] : [];
+/** How many weeks of upcoming fixtures to read. Clamped so the URL cannot ask for a season. */
+function requestedWeeks(weeks: string | undefined): number {
+  const asked = Number.parseInt(weeks ?? '', 10);
+  return Number.isFinite(asked) && asked > 0 ? Math.min(asked, 12) : 1;
+}
 
-  const RESULTS = pastFixtures.length > 0 ? [{
-    group: "Past Fixtures",
-    note: "",
-    rows: pastFixtures.map(f => ({
-      id: f.id,
-      home: f.homeTeam, hc: f.homeTeamCode, hLogo: f.homeTeamLogoUrl, away: f.awayTeam, ac: f.awayTeamCode, aLogo: f.awayTeamLogoUrl,
-      mid: f.score ? `${f.score.home} — ${f.score.away}` : "—",
-      state: f.predictionState || "lost",
-      note: f.predictionNote || "", action: "See result", points: f.pointsAwarded ? `+${f.pointsAwarded}` : "0", right: f.pointsAwarded ? `+${f.pointsAwarded}` : "0"
-    }))
-  }] : [];
+/**
+ * An ISO instant the API will accept.
+ *
+ * Its `from`/`to` are validated against an explicit-timezone pattern that
+ * rejects the six-digit fractional seconds some clocks produce, so the instant
+ * is trimmed to whole seconds rather than passed straight from `toISOString`.
+ */
+function boundary(atMs: number): string {
+  return new Date(atMs).toISOString().replace(/\.\d+Z$/, 'Z');
+}
 
-  const src = results ? RESULTS : UPCOMING;
-  
-  // Mobile filtering logic
-  const groupsMobile = src.map(g => ({
-    label: g.group, note: g.note,
-    rows: g.rows.filter(r => {
-      if (results || filter === "All") return true;
-      if (filter === "Unanswered") return r.state === "open";
-      if (filter === "Open") return r.state === "open" || r.state === "ready";
-      if (filter === "Locked") return r.state === "syncing";
-      return true;
-    }).map((r: any, i, a) => {
-      const s = STATE_DEF[r.state];
-      return {
-        home: r.home, away: r.away, homeCode: r.hc, awayCode: r.ac,
-        homeColor: CLUB[r.hc], awayColor: CLUB[r.ac],
-        homeLogo: r.hLogo, awayLogo: r.aLogo,
-        mid: r.mid,
-        midStyle: results ? "font-heading font-bold text-[15px] tracking-[-0.4px]" : "font-heading font-semibold text-[12px] text-[var(--text-muted)]",
-        teamStyle: "font-heading font-semibold text-[13.5px] tracking-[-0.1px] whitespace-nowrap overflow-hidden text-ellipsis min-w-0",
-        state: s[0],
-        stateStyle: `inline-flex items-center h-[19px] px-[7px] rounded-[4px] font-heading font-bold text-[8.5px] tracking-[0.06em] flex-none ${s[1]}`,
-        note: results ? `${r.note} · ${r.points}` : r.note,
-        action: r.action,
-        actionStyle: "font-heading font-bold text-[10px] text-[var(--text-link)] flex-none",
-        rowStyle: `p-[14px_var(--gutter)] border-t border-[var(--surface-border)] ${i === a.length - 1 ? 'border-b' : ''} ${r.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`,
-        onClick: () => router.push(`/predict/fixture/${r.id}?leagueId=${params.id}`)
-      };
-    })
-  })).filter(g => g.rows.length > 0);
+/**
+ * Reads the two halves of this screen separately, each as its own window.
+ *
+ * Availability now takes a kickoff window, so neither half has to page through
+ * the season to find itself. Before this the screen walked the whole ordered
+ * list from August — about five serial round trips to draw one round.
+ *
+ * The played half is read whole because it is small. The upcoming half is a
+ * week, and is read whichever half is showing: the tab that counts it is on
+ * screen either way.
+ *
+ * One caveat worth knowing: the API excludes fixtures whose kickoff is not yet
+ * known from a windowed read, so a fixture awaiting a confirmed time appears in
+ * neither half. It is counted in the "further on" figure, which comes from the
+ * dashboard's season total rather than from either window.
+ */
+async function readWindow(
+  leagueId: string,
+  from: string | null,
+  to: string | null,
+  maxPages: number,
+): Promise<{ items: FixtureAvailability[]; truncated: boolean }> {
+  const items: FixtureAvailability[] = [];
+  let cursor: string | null = null;
 
-  // Desktop filtering logic
-  const desktopRowGridStyle = { display: 'grid' as const, gridTemplateColumns: results ? '104px minmax(0,1fr) 78px minmax(0,330px) 68px 84px' : '104px minmax(0,1fr) 78px minmax(0,330px) 88px 84px', gap: '16px', alignItems: 'center' as const };
-  const groupsDesktop = src.map(g => ({
-    label: g.group, note: g.note,
-    rows: g.rows.filter(r => {
-      if (results || filter === "All") return true;
-      if (filter === "Unanswered") return r.state === "open";
-      if (filter === "Open") return r.state === "open" || r.state === "ready";
-      if (filter === "Locked") return r.state === "syncing";
-      return true;
-    }).map((r: any, i, a) => {
-      const s = STATE_DEF[r.state];
-      return {
-        home: r.home, away: r.away, homeCode: r.hc, awayCode: r.ac,
-        homeColor: CLUB[r.hc], awayColor: CLUB[r.ac],
-        homeLogo: r.hLogo, awayLogo: r.aLogo,
-        mid: r.mid,
-        midStyle: results ? { textAlign: 'center', font: "700 15px 'DM Sans',sans-serif", letterSpacing: '-.4px' } : { textAlign: 'center', font: "600 12px 'DM Sans',sans-serif", color: 'var(--text-muted)' },
-        teamStyle: { font: "600 13px 'DM Sans',sans-serif", letterSpacing: '-.1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 },
-        state: s[0],
-        stateStyle: { display: 'inline-flex', alignItems: 'center', justifySelf: 'start', height: '19px', padding: '0 7px', borderRadius: '4px', font: "700 8.5px 'DM Sans',sans-serif", letterSpacing: '.06em', flex: 'none', ...Object.fromEntries(s[2].split(';').map(x => x.split(':')).filter(x => x.length === 2).map(([k,v]) => [k.replace(/-([a-z])/g, g => g[1].toUpperCase()), v])) },
-        note: r.note,
-        right: r.right,
-        rightStyle: { textAlign: 'right', font: results ? "700 14px 'DM Sans',sans-serif" : "600 12px 'DM Sans',sans-serif", color: results ? (r.right === "0" || r.right === "—" ? "var(--text-muted)" : "var(--success-text)") : (r.urgent ? "var(--accent-text-strong)" : "var(--text-secondary)") },
-        action: r.action,
-        actionStyle: { textAlign: 'right', font: "700 10px 'DM Sans',sans-serif", letterSpacing: '.05em', color: 'var(--text-link)', cursor: 'pointer' },
-        rowStyle: { ...desktopRowGridStyle, padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', background: r.urgent ? 'var(--accent-surface)' : 'transparent', boxShadow: r.urgent ? 'inset 3px 0 0 0 var(--color-brand)' : 'none', cursor: 'pointer' },
-        onClick: () => router.push(`/predict/fixture/${r.id}?leagueId=${params.id}`)
-      };
-    })
-  })).filter(g => g.rows.length > 0);
+  for (let page = 0; page < maxPages; page++) {
+    const url: string = `/leagues/${leagueId}/fixtures/availability?limit=${AVAILABILITY_PAGE_SIZE}`
+      + (from ? `&from=${encodeURIComponent(from)}` : '')
+      + (to ? `&to=${encodeURIComponent(to)}` : '')
+      + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '');
+    const response = await serverFetch<{ data: FixtureAvailability[]; nextCursor: string | null }>(url);
+    items.push(...response.data);
+    cursor = response.nextCursor;
+    if (!cursor) break;
+  }
 
+  return { items, truncated: cursor !== null };
+}
 
-  const segStyleMobile = (on: boolean) => `box-border flex-1 flex items-center justify-center gap-[7px] h-[38px] rounded-t-[9px] cursor-pointer font-heading font-bold text-[11.5px] ${on ? 'bg-[var(--surface-canvas)] text-[var(--text-primary)] border border-b-0 border-[var(--surface-border-strong)] pb-[1px]' : 'text-[var(--nav-text-faint)]'}`;
-  const segStyleDesktop = (on: boolean) => ({ display: 'flex', alignItems: 'center', gap: '8px', height: '38px', padding: '0 20px', borderRadius: '10px', cursor: 'pointer', font: "700 13px 'DM Sans',sans-serif", background: on ? 'var(--surface-card)' : 'transparent', color: on ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: on ? 'var(--elev-1)' : 'none' });
-  
-  const segmentsMobile = [
-    { id: "upcoming", label: "Upcoming", count: String(upcomingFixtures.length) },
-    { id: "results", label: "Results", count: String(pastFixtures.length) }
-  ].map(s => ({
-    label: s.label, count: s.count,
-    pick: () => { setState(s.id as any); setFilter("All"); },
-    style: segStyleMobile(results ? s.id === "results" : s.id === "upcoming"),
-    countStyle: "font-[tabular-nums] opacity-55 font-semibold"
+export default function LeagueFixturesPage({
+  params, searchParams,
+}: {
+  params: { id: string };
+  searchParams: { view?: string; show?: string; filter?: string; weeks?: string };
+}) {
+  return (
+    <Suspense key={`${searchParams.view ?? ''}:${searchParams.filter ?? ''}:${searchParams.show ?? ''}:${searchParams.weeks ?? ''}`} fallback={<LeagueContentSkeleton rows={6} />}>
+      <Fixtures params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function Fixtures({
+  params, searchParams,
+}: {
+  params: { id: string };
+  searchParams: { view?: string; show?: string; filter?: string; weeks?: string };
+}) {
+  const id = params.id;
+
+  /* Which half to read. "either" means the URL did not say, and the answer
+     depends on what comes back — so the read has to cover both. */
+  const view: FixtureView | 'either' = searchParams.view === 'results' ? 'results'
+    : searchParams.view === 'upcoming' ? 'upcoming' : 'either';
+
+  const nowMs = Date.now();
+  const now = boundary(nowMs);
+  const weeks = requestedWeeks(searchParams.weeks);
+  const horizonEnd = boundary(nowMs + weeks * UPCOMING_DAYS * 24 * 60 * 60 * 1000);
+
+  let league: LeagueRead;
+  let dashboard: Dashboard | null;
+  let played: { items: FixtureAvailability[]; truncated: boolean };
+  let upcoming: { items: FixtureAvailability[]; truncated: boolean };
+
+  try {
+    [league, dashboard, played, upcoming] = await Promise.all([
+      getLeague(id),
+      getLeagueDashboard(id),
+      // Always: small, complete, and the exact size is what makes both counts true.
+      readWindow(id, null, now, MAX_PAGES),
+      // Only when it is the half on screen, and then one page is enough — the
+      // window starts at now and the list is ordered by kickoff.
+      /*
+       * A week ahead, not the rest of the season — two pages is ample for any
+       * real week and keeps a pathological one from hanging the screen.
+       *
+       * Read on both views, not just when Upcoming is the half on screen. The
+       * tab above the list counts what this returns, so skipping it on Results
+       * made the Upcoming tab read 0 in a league with a full week of fixtures.
+       * Skipping was worth it when this was a season; a week is one call.
+       */
+      readWindow(id, now, horizonEnd, 2),
+    ]);
+  } catch (error) {
+    if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/fixtures`);
+    if (error instanceof ApiError && error.status === 401) redirect(`/?redirect=/leagues/${id}/fixtures`);
+    if (error instanceof ApiError && (error.status === 403 || error.status === 404)) notFound();
+    throw error;
+  }
+
+  const base: LeagueFixture[] = [...played.items, ...upcoming.items].map(f => ({
+    id: f.leagueFixtureId,
+    leagueId: id,
+    homeTeam: f.homeTeam?.displayName || 'Home',
+    homeTeamCode: f.homeTeam?.code || 'HOM',
+    homeTeamLogoUrl: f.homeTeam?.logoUrl || null,
+    awayTeam: f.awayTeam?.displayName || 'Away',
+    awayTeamCode: f.awayTeam?.code || 'AWA',
+    awayTeamLogoUrl: f.awayTeam?.logoUrl || null,
+    kickoffAt: f.kickoff?.at || '',
+    status: statusOf(f.fixtureState),
+    markets: [],
+    predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
+    // The two columns the design gives this table and the phone folds into one
+    // line of note text: what is answered, and when the first market closes.
+    answered: f.predictionCompleteness?.answered,
+    required: f.predictionCompleteness?.required,
+    deadlineAt: f.nextDeadlineAt ?? null,
   }));
 
-  const segmentsDesktop = [
-    { id: "upcoming", label: "Upcoming", count: String(upcomingFixtures.length) },
-    { id: "results", label: "Results", count: String(pastFixtures.length) }
-  ].map(s => ({
-    label: s.label, count: s.count,
-    pick: () => { setState(s.id as any); setFilter("All"); },
-    style: segStyleDesktop(results ? s.id === "results" : s.id === "upcoming"),
-    countStyle: { fontVariantNumeric: 'tabular-nums', opacity: 0.55, fontWeight: 600 }
-  }));
+  const playedIds = base.filter(f => f.status === 'finished').map(f => f.id);
+  const chunks: string[][] = [];
+  for (let i = 0; i < playedIds.length; i += RESULTS_BATCH_SIZE) {
+    chunks.push(playedIds.slice(i, i + RESULTS_BATCH_SIZE));
+  }
 
-  // The context-tab badge (not the in-page filter counts below, which are
-  // scoped to whichever of Upcoming/Results is active) always reflects
-  // unanswered upcoming fixtures -- the same "needs your attention" signal
-  // the Overview screen's own Fixtures tab badge already uses correctly.
-  const unansweredUpcomingCount = upcomingFixtures.filter(f => f.predictionState === 'open' || !f.predictionState).length;
+  const batches = await Promise.all(chunks.map(chunk =>
+    serverFetchOrNull<ResultsBatch>(
+      `/leagues/${id}/fixtures/results?${chunk.map(x => `leagueFixtureIds=${encodeURIComponent(x)}`).join('&')}`,
+    )));
+  const byFixture = new Map(batches.flatMap(b => b?.data ?? []).map(r => [r.leagueFixtureId, r]));
 
-  const dynamicCounts = useMemo(() => {
-    const all = results ? pastFixtures : upcomingFixtures;
+  const fixtures = base.map(f => {
+    const outcome = outcomeOf(byFixture.get(f.id));
+    /*
+     * "Awaiting result" and "you did not answer" are different sentences.
+     *
+     * Both arrive as an empty set of viewer outcomes, and the row used to say
+     * pending for both — telling a member to wait for a result that could never
+     * involve them. Whether they answered is the fact that separates the two,
+     * and settlement state does not: a fixture can sit part-settled for days
+     * while two markets wait on player data, and if the member answered nothing
+     * none of that will ever score for them.
+     */
+    const missed = f.status === 'finished' && (f.answered ?? 0) === 0;
+    /*
+     * A postponed, cancelled or abandoned fixture is void on the fixture's own
+     * status, before any market settles.
+     *
+     * Void was only ever reached by every settled market resolving void, so a
+     * match called off before anything settled had no outcomes at all and read
+     * "Awaiting result" — waiting forever on a game that will not be played.
+     */
+    const voided = f.status === 'voided';
     return {
-      All: String(all.length),
-      Unanswered: String(all.filter(f => f.predictionState === 'open' || !f.predictionState).length),
-      Open: String(all.filter(f => f.predictionState === 'open' || f.predictionState === 'ready' || !f.predictionState).length),
-      Locked: String(all.filter(f => f.status === 'live').length)
-    };
-  }, [upcomingFixtures, pastFixtures, results]);
-  const counts: Record<string, string> = dynamicCounts;
-  const filtersMobile = ["All", "Unanswered", "Open", "Locked"].map(f => {
-    const on = filter === f;
-    return {
-      label: f, count: counts[f], pick: () => setFilter(f),
-      style: `flex items-center h-[32px] px-[12px] rounded-full cursor-pointer whitespace-nowrap flex-none font-heading font-semibold text-[11.5px] ${on ? 'bg-[var(--text-primary)] text-[var(--surface-canvas)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-secondary)]'}`,
-      countStyle: `ml-[6px] font-[tabular-nums] opacity-${on ? '70' : '55'}`
+      ...f,
+      ...outcome,
+      predictionState: voided
+        ? 'void' as const
+        : outcome.predictionState ?? (missed ? 'missed' as const : undefined),
     };
   });
+  const split = splitFixtures(fixtures);
 
-  const filtersDesktop = ["All", "Unanswered", "Open", "Locked"].map(f => {
-    const on = filter === f;
-    return {
-      label: f, count: counts[f], pick: () => setFilter(f),
-      style: { display: 'flex', alignItems: 'center', height: '32px', padding: '0 13px', borderRadius: '999px', cursor: 'pointer', whiteSpace: 'nowrap', flex: 'none', font: "600 11.5px 'DM Sans',sans-serif", background: on ? 'var(--text-primary)' : 'transparent', color: on ? 'var(--surface-canvas)' : 'var(--text-secondary)', border: on ? 'none' : '1px solid var(--surface-border-strong)' },
-      countStyle: { marginLeft: '6px', fontVariantNumeric: 'tabular-nums', opacity: on ? 0.7 : 0.55 }
-    };
-  });
+  // Opens on whichever half has something in it — a league whose fixtures have
+  // all been played should not open on an empty "Upcoming".
+  const shownView: FixtureView = view === 'either'
+    ? (split.upcoming.length > 0 ? 'upcoming' : 'results')
+    : view;
 
-  const leagueName = league?.name || '';
-  const competitionName = league?.competitions?.[0]?.displayName || '';
-  const headSub = results ? `${pastFixtures.length} settled${competitionName ? ' · ' + competitionName : ''}` : `${leagueName}${competitionName ? ' · ' + competitionName : ''}`;
-  const emptyTitle = "No fixtures on this day";
-  const emptyBody = "Nothing in this league's competitions is scheduled here. Try another day — the league itself is fine.";
-  const loadMore = isFetchingNextPage ? "LOADING…" : results ? "LOAD EARLIER RESULTS" : "LOAD LATER FIXTURES";
-  const showLoadMore = !!hasNextPage;
-  const loadMoreAction = () => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); };
-  const footNote = results
-    ? "A voided market scores nothing for everyone, not only for you. Provisional results become final once review closes."
-    : "Lineups lock two hours before kick-off, everything else at the whistle. A fixture can be part-locked, which is why a row can be open and closed at once.";
+  const filter: FixtureFilter = FIXTURE_FILTERS.some(f => f.id === searchParams.filter)
+    ? searchParams.filter as FixtureFilter
+    : 'all';
 
-  const IconMap: Record<string, any> = {
-    overview: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z" />
-        <path d="M9.5 20v-6h5v6" />
-      </svg>
-    ),
-    ball: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <circle cx="12" cy="12" r="8" />
-        <path d="m12 8 3.4 2.5-1.3 4h-4.2l-1.3-4L12 8Z" />
-      </svg>
-    ),
-    table: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
-        <path d="M5 19V11M12 19V5M19 19V8" />
-      </svg>
-    ),
-    more: () => (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" strokeWidth="0" style={{ display: 'block' }}>
-        <path d="M5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
-      </svg>
-    )
-  };
-
-  // Was hardcoded to a literal "2" regardless of how many fixtures actually
-  // need an answer -- Desktop's equivalent context-tab badge already used
-  // the real unansweredUpcomingCount, computed above.
-  const tabs = [
-    { label: "OVERVIEW", ic: "overview", on: false, b: "" },
-    { label: "FIXTURES", ic: "ball", on: true, b: showList && !results && unansweredUpcomingCount > 0 ? String(unansweredUpcomingCount) : "" },
-    { label: "TABLE", ic: "table", on: false, b: "" },
-    { label: "MORE", ic: "more", on: false, b: "" }
-  ];
-
-  const tabItem = (label: string, on: boolean, badge: string) => ({
-    label, badge: badge || "",
-    style: { display: 'flex', alignItems: 'center', padding: '0 13px', height: '43px', fontFamily: "'DM Sans',sans-serif", fontWeight: 600, fontSize: '12.5px', cursor: 'pointer', borderBottom: `2px solid ${on ? 'var(--color-brand)' : 'transparent'}`, color: on ? 'var(--text-primary)' : 'var(--text-muted)' },
-    badgeStyle: badge ? { marginLeft: '7px', minWidth: '16px', height: '16px', padding: '0 4px', borderRadius: '8px', background: 'var(--color-danger)', color: 'var(--color-on-brand)', display: 'inline-grid', placeItems: 'center', font: "700 9px 'DM Sans',sans-serif" } : { display: 'none' }
-  });
-
-  const props = {
-    theme, params, st, isLoading, isEmpty, showList, results,
-    headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
-    leagueName: league?.name, memberCount: league?.memberCount,
-
-    // Mobile-specific
-    segmentsMobile, filtersMobile, groupsMobile, IconMap, tabs,
-
-    // Desktop-specific
-    contextTabs: [tabItem("Overview", false, ""), tabItem("Fixtures", true, unansweredUpcomingCount > 0 ? String(unansweredUpcomingCount) : ""), tabItem("Table", false, ""), tabItem("Questions", false, ""), tabItem("More", false, "")],
-    segmentsDesktop, showFilters: showList && !results, filtersDesktop,
-    skeletons: [{ w: "260px" }, { w: "210px" }, { w: "280px" }, { w: "190px" }, { w: "250px" }, { w: "220px" }],
-    chipSkeletons: ["58px", "96px", "72px", "78px"].map(w => ({ w })),
-    skeletonRowStyle: { padding: '14px 4px', borderBottom: '1px solid var(--surface-border)', ...desktopRowGridStyle },
-    headRowStyle: { ...desktopRowGridStyle, padding: '10px 4px', position: 'sticky' as const, top: 0, zIndex: 1, background: 'var(--surface-canvas)', borderBottom: '1px solid var(--surface-border-strong)' },
-    groupsDesktop,
-    footNoteStyle: { marginTop: '26px', paddingTop: '18px', borderTop: '1px solid var(--surface-border)', fontSize: '11.5px', lineHeight: 1.6, color: 'var(--text-muted)', maxWidth: '78ch' },
-    colMid: results ? "Score" : "Kick-off", colNote: results ? "What landed" : "Your answers", colRight: results ? "Points" : "Locks in",
-  };
+  const inView = shownView === 'upcoming' ? split.upcoming : split.results;
+  // Counted over the window that is on screen, so a chip's number and the rows
+  // beneath it describe the same span.
+  const filterCounts = Object.fromEntries(FIXTURE_FILTERS.map(f =>
+    [f.id, split.upcoming.filter(x => matchesFilter(x.predictionState, f.id)).length])) as Record<FixtureFilter, number>;
+  const all = shownView === 'upcoming' ? inView.filter(f => matchesFilter(f.predictionState, filter)) : inView;
+  const requested = Number.parseInt(searchParams.show ?? '', 10);
+  const shown = Number.isFinite(requested) && requested > 0
+    ? Math.min(requested, all.length)
+    : Math.min(ROW_WINDOW, all.length);
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <LeagueFixturesScreen {...props} />
-    </div>
+    <LeagueFixturesScreen
+      leagueId={id}
+      leagueName={league.name}
+      competition={league.competitions[0]?.displayName ?? ''}
+      view={shownView}
+      filter={filter}
+      filterCounts={filterCounts}
+      rows={all.slice(0, shown).map(f => toFixtureRow(f, id, shownView))}
+      counts={{
+        // Both counts describe what is actually on screen. Upcoming used to be
+        // the season's remainder — a four-figure number over a page of rows,
+        // which said nothing about the week it was sitting above.
+        results: split.results.length,
+        upcoming: split.upcoming.length,
+      }}
+      horizon={{
+        weeks,
+        // What the window is leaving out, so widening it is an informed choice
+        // rather than a guess at whether anything is there.
+        beyond: Math.max(
+          0,
+          (dashboard?.data.summary.fixtureCount ?? 0) - split.results.length - split.upcoming.length,
+        ),
+      }}
+      /* Two different "more"s. While rows remain inside the window it widens the
+         page; once they are exhausted it widens the window itself, which is what
+         a member wanting next week actually means. */
+      showMoreHref={shown < all.length
+        ? `/leagues/${id}/fixtures?view=${shownView}&filter=${filter}&show=${shown + ROW_WINDOW}`
+        : shownView === 'upcoming' && weeks < 12
+          ? `/leagues/${id}/fixtures?view=${shownView}&filter=${filter}&weeks=${weeks + 1}`
+          : null}
+    />
   );
 }

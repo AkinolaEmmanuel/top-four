@@ -7,14 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "codegen:fetch-spec": "node scripts/fetch-openapi-spec.mjs",
-    "codegen:api": "openapi-typescript openapi/schema.json -o lib/api/generated/schema.d.ts",
-    "codegen": "npm run codegen:fetch-spec && npm run codegen:api"
+    "api:types": "node scripts/generate-api-types.mjs",
+    "test:smoke": "playwright test"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@tanstack/react-query": "^5.101.4",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.1",
@@ -25,10 +21,13 @@
     "tailwind-merge": "^2.5.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20.14.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
     "openapi-typescript": "^7.13.0",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",

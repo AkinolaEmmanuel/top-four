@@ -1,139 +1,65 @@
-'use client';
-
-import { useState, useMemo } from 'react';
+import { redirect } from 'next/navigation';
 import { LeaguesScreen } from '../components/leagues/LeaguesScreen';
-import { useMyLeagues, useOwnPendingJoinRequests, useCancelJoinRequest } from '@/hooks/api/useLeagues';
+import {
+  serverFetch, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
+import type { Api } from '@/lib/api/types';
+import { ApiError } from '@/lib/api/fetcher';
+import { runningLeagueCount } from '@/lib/leagues/league-list';
+import type { LeaguesPage as LeaguesPageData, OwnPendingJoinRequest } from '@/lib/api/leagues';
 
-const CLUB: Record<string, string> = {
-  PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f", E28: "#667085",
-  SF: "#b45309", A24: "#0e7a5f", O24: "#7f56d9", SS: "#1746a2",
-  FC: "#b7152b", UN: "#0e7a5f", NB: "#7f56d9", WW: "#c8182f"
-};
+/**
+ * A Server Component: the leagues list is read-only, so it is fetched here
+ * rather than after the bundle has loaded and a hook has run. The screen below
+ * is a Client Component only for its filter.
+ *
+ * The middleware turns away a visitor with no session cookie at all. A cookie
+ * that is present but no longer valid only fails here, at the API — so that is
+ * caught too and sent to sign in. Letting it raise would show a 500 to someone
+ * whose session simply expired.
+ */
+/**
+ * How far ahead "To predict" looks.
+ *
+ * The column used to carry the season's unanswered count — 3881 in a real
+ * league, capped to "99+" on screen, and useless for the question it exists to
+ * answer. The windowed count is what a member can actually act on before next
+ * week, and it is the same figure the Predict queue sums.
+ */
+const ACTIONABLE_DAYS = 7;
 
-export default function LeaguesPage() {
-  const { data: leaguesData, isLoading: leaguesLoading } = useMyLeagues();
-  const { data: ownPendingRequests } = useOwnPendingJoinRequests();
-  const cancelJoinRequestMutation = useCancelJoinRequest();
+/** Whole seconds: the API validates the boundary against a strict pattern. */
+function boundary(atMs: number): string {
+  return new Date(atMs).toISOString().replace(/\.\d+Z$/, 'Z');
+}
 
-  const [state, setState] = useState<'live' | 'capacity' | 'loading' | 'empty'>('live');
-  // The app is dark-only (see app/layout.tsx); this was dead state with no
-  // real toggle anywhere.
-  const theme = 'dark';
-  const setTheme = () => {};
-  const [filter, setFilter] = useState('All');
+export default async function LeaguesPage() {
+  const now = Date.now();
+  const window = `from=${encodeURIComponent(boundary(now))}`
+    + `&to=${encodeURIComponent(boundary(now + ACTIONABLE_DAYS * 24 * 60 * 60 * 1000))}`;
 
-  const pendingJoinRequests = (ownPendingRequests || []).filter(r => r.state === 'pending');
-
-  const isLoading = leaguesLoading || state === "loading";
-  // GET /leagues only ever returns active memberships, so a league you're
-  // still waiting to be approved into never shows up in leaguesData -- it's
-  // only reachable via the separate own-pending-requests endpoint. A user
-  // with zero active leagues but one pending request still has something to
-  // show, so the empty state must account for both.
-  const isEmpty = (leaguesData && leaguesData.items.length === 0 && pendingJoinRequests.length === 0) || state === "empty";
-  const isReady = !isLoading && !isEmpty;
-  const hasFilters = isReady;
-
-  const SECTIONS = [["Playing", "playing"], ["Draft", "draft"], ["Waiting on approval", "pending"], ["Past", "past"]];
-  const visible = SECTIONS.filter(([label]) => filter === "All" || filter === label || (filter === "Pending" && label === "Waiting on approval"));
-
-  const rowMap = (r: any, i: number, a: any[]) => ({
-    id: r.id, crest: r.crest, crestBg: r.bg, name: r.name, meta: r.meta,
-    role: r.role || "", value: r.value, sub: r.sub || "", action: r.action, muted: r.muted,
-    pending: !!r.pending, onWithdraw: r.onWithdraw,
-    isLast: i === a.length - 1
-  });
-
-  const leagues = useMemo(() => {
-    const cats: Record<string, any[]> = { playing: [], draft: [], pending: [], past: [] };
-
-    // Pending join requests come from a separate endpoint -- the leagues a
-    // user is waiting to be approved into never appear in leaguesData at
-    // all, since GET /leagues only returns active memberships.
-    cats.pending = pendingJoinRequests.map(r => ({
-      id: r.leagueId,
-      crest: r.leagueName.substring(0, 2).toUpperCase(),
-      bg: CLUB[r.leagueName.substring(0, 2).toUpperCase()] || "#0879bf",
-      name: r.leagueName,
-      meta: 'Pending approval',
-      role: '',
-      value: 'Withdraw',
-      sub: '',
-      action: true,
-      muted: false,
-      pending: true,
-      onWithdraw: () => {
-        const ok = window.confirm(`Withdraw your request to join ${r.leagueName}?`);
-        if (!ok) return;
-        cancelJoinRequestMutation.mutate({ leagueId: r.leagueId, requestId: r.id });
-      }
-    }));
-
-    if (!leaguesData) return cats;
-
-    leaguesData.items.forEach(league => {
-      const item = {
-        id: league.id,
-        crest: league.name.substring(0, 2).toUpperCase(),
-        bg: CLUB[league.name.substring(0, 2).toUpperCase()] || "#0879bf",
-        name: league.name,
-        meta: league.competitions?.map(c => c.displayName).join(', ') || '',
-        role: (league.membership?.role === 'admin' || league.membership?.role === 'owner') ? 'Admin' : '',
-        value: league.ownStanding ? league.ownStanding.position : "-",
-        // Was a hardcoded "pts" label with no actual number attached to it --
-        // every league's Points column read the literal word "pts" instead
-        // of a real total. ownStanding carries `totalPoints`, not `points`.
-        sub: league.ownStanding ? `${league.ownStanding.totalPoints} pts` : "",
-        action: (league.membership?.role === 'admin' || league.membership?.role === 'owner') ? "Manage" : "Leave",
-        muted: league.lifecycleState === 'archived' || league.lifecycleState === 'cancelled'
-      };
-
-      if (league.lifecycleState === 'draft') {
-        cats.draft.push(item);
-      } else if (league.lifecycleState === 'published' || league.lifecycleState === 'in_progress' || league.lifecycleState === 'completed') {
-        cats.playing.push(item);
-      } else if (league.lifecycleState === 'archived' || league.lifecycleState === 'cancelled') {
-        cats.past.push(item);
-      } else {
-        cats.playing.push(item);
-      }
-    });
-    return cats;
-  }, [leaguesData, pendingJoinRequests, cancelJoinRequestMutation]);
-
-  const groups = visible.map(([label, key]) => ({
-    label, count: String(leagues[key].length),
-    rows: leagues[key].map(rowMap)
-  })).filter(g => g.rows.length > 0);
-
-  const n = { playing: leagues.playing.length, draft: leagues.draft.length, pending: leagues.pending.length, past: leagues.past.length };
-  const counts: Record<string, string> = {
-    All: String(n.playing + n.draft + n.pending + n.past),
-    Playing: String(n.playing),
-    Draft: String(n.draft),
-    Pending: String(n.pending),
-    Past: String(n.past)
-  };
-
-  const used = leaguesData?.unfinishedLeagueCount ?? (n.playing + n.draft);
-  const limit = leaguesData?.unfinishedLeagueLimit ?? 20;
-  const filters = ["All", "Playing", "Draft", "Pending", "Past"].map(f => {
-    const on = filter === f;
-    return { label: f, count: counts[f], pick: () => setFilter(f), on };
-  });
-
-  const atCapacity = used >= limit;
-  const capacityLabel = used === 0 ? "No leagues joined" : `${used} of ${limit} places used`;
-  const skeletons = [{ w: "62%" }, { w: "48%" }, { w: "71%" }, { w: "55%" }, { w: "66%" }];
-
-  const sharedProps = {
-    theme, filter, filters, groups, isLoading, isEmpty, isReady,
-    atCapacity, capacityLabel, skeletons
-  };
+  let data: LeaguesPageData;
+  let pending: OwnPendingJoinRequest[];
+  try {
+    // A pending request lives outside the leagues list — the member is not a
+    // member yet — so it is a separate read, folded into the same sections.
+    [data, pending] = await Promise.all([
+      serverFetch<LeaguesPageData>(`/leagues?${window}`),
+      serverFetchAllPagesOrEmpty<OwnPendingJoinRequest>('/me/join-requests').then(r => r.items),
+    ]);
+  } catch (error) {
+    if (error instanceof NotAuthenticatedError) redirect('/?redirect=/leagues');
+    if (error instanceof ApiError && error.status === 401) redirect('/?redirect=/leagues');
+    throw error;
+  }
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <LeaguesScreen {...sharedProps} />
-    </div>
+    <LeaguesScreen
+      leagues={data.items}
+      actionableDays={ACTIONABLE_DAYS}
+      pendingRequests={pending}
+      used={runningLeagueCount(data.items)}
+      limit={data.unfinishedLeagueLimit}
+    />
   );
 }

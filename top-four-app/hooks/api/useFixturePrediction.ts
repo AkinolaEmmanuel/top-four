@@ -4,28 +4,35 @@ import {
   fetchOwnPredictions,
   fetchSelectablePlayers,
   fetchFixtureResults,
-  fetchPredictionHistory,
   submitPrediction,
   submitLineupPrediction,
   copyFixturePredictions,
   StandardAnswerValue,
 } from '@/lib/api/predictions-fixture';
 
+/**
+ * Availability alone, for screens that need one fixture's completeness without
+ * its predictions, players and results. Shares `useFixtureData`'s query key, so
+ * opening the fixture afterwards reuses this rather than refetching.
+ */
+export function useFixtureAvailability(leagueId: string, fixtureId: string) {
+  return useQuery({
+    queryKey: ['fixture-availability', leagueId, fixtureId],
+    queryFn: () => fetchFixtureAvailability(leagueId, fixtureId),
+    enabled: !!leagueId && !!fixtureId,
+  });
+}
+
+/**
+ * One fixture's settled markets on their own, for screens that want a result
+ * without the availability, predictions and squad that `useFixtureData` pulls.
+ * The key is the one `useFixtureData` uses, so the two share a single read.
+ */
 export function useFixtureResults(leagueId: string, fixtureId: string) {
   return useQuery({
     queryKey: ['fixture-results', leagueId, fixtureId],
     queryFn: () => fetchFixtureResults(leagueId, fixtureId),
     enabled: !!leagueId && !!fixtureId,
-  });
-}
-
-// marketType is null while no market's history panel is open -- fetched
-// lazily on expand rather than once per market up front.
-export function useMarketHistory(leagueId: string, fixtureId: string, marketType: string | null) {
-  return useQuery({
-    queryKey: ['fixture-predictions', leagueId, fixtureId, 'history', marketType],
-    queryFn: () => fetchPredictionHistory(leagueId, fixtureId, marketType as string),
-    enabled: !!leagueId && !!fixtureId && !!marketType,
   });
 }
 
@@ -55,7 +62,8 @@ export function useFixtureData(leagueId: string, fixtureId: string) {
   });
 
   return {
-    availability: availabilityQuery.data,
+    availability: availabilityQuery.data?.fixture,
+    serverTime: availabilityQuery.data?.serverTime,
     predictions: predictionsQuery.data,
     selectablePlayers: selectablePlayersQuery.data,
     results: resultsQuery.data,

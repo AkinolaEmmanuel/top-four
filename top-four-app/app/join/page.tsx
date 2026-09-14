@@ -26,7 +26,7 @@ export default function InviteTokenLinkPage() {
   if (token === null) {
     return (
       <AuthShell eyebrow="Invitation" title="This link is missing its token" subtitle="Ask whoever invited you for a fresh link.">
-        <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 transition-colors">
+        <Link href="/home" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors">
           Go to my leagues
         </Link>
       </AuthShell>

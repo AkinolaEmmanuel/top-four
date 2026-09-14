@@ -8,6 +8,8 @@ export function MobileNav() {
   const pathname = usePathname() || '';
   const { data: tasksData } = usePredictionTasks();
 
+  // Fixtures and questions needing attention this week — the same window the
+  // Predict headline and the leagues list count over.
   const openTaskCount = tasksData?.items.length || 0;
 
   const tabs = [
@@ -52,7 +54,10 @@ export function MobileNav() {
         const isActive = t.path === '/home' 
           ? pathname === '/home'
           : pathname.startsWith(t.path) || (t.path === '/leagues' && pathname.startsWith('/fixtures'));
-        const color = isActive ? 'var(--text-primary)' : 'var(--nav-text-quiet)';
+        /* `--nav-text-quiet` is white — it belongs on the dark nav band, and
+           this bar sits on `--surface-card`. In light mode every inactive label
+           was white on white, so three of the four tabs were invisible. */
+        const color = isActive ? 'var(--color-brand)' : 'var(--text-muted)';
 
         return (
           <Link href={t.path} key={i} className="relative flex flex-col items-center justify-center font-heading font-semibold text-[9px] leading-[1]" style={{ color }}>

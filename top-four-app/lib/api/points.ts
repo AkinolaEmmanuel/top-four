@@ -1,71 +1,24 @@
 import { apiFetch } from './fetcher';
+import type { Api } from './types';
 
-export interface StandingCompetitionPoints {
-  supportedCompetitionId: string;
-  points: number;
-}
-
-export interface StandingMarketPoints {
-  marketType: string;
-  points: number;
-}
-
-export interface StandingEntry {
-  position: number;
-  membershipId: string;
-  displayName: string;
-  totalPoints: number;
-  counters: Record<string, number>;
-  competitionPoints: StandingCompetitionPoints[];
-  customQuestionPoints: number;
-}
-
-export interface StandingsPage {
-  page: number;
-  pageSize: number;
-  totalActiveMembers: number;
-  standingVersion: number;
-  entries: StandingEntry[];
-}
-
-export interface OwnStanding {
-  standingVersion: number;
-  position: number;
-  membershipId: string;
-  totalPoints: number;
-  counters: Record<string, number>;
-  competitionPoints: StandingCompetitionPoints[];
-  marketPoints: StandingMarketPoints[];
-  customQuestionPoints: number;
-}
+export type StandingCompetitionPoints = Api<'StandingCompetitionPointsDto'>;
+export type StandingMarketPoints = Api<'StandingMarketPointsDto'>;
+export type StandingEntry = Api<'StandingEntryDto'>;
+export type StandingsPage = Api<'StandingsPageDataDto'>;
+export type OwnStanding = Api<'OwnStandingDataDto'>;
 
 export async function fetchStandings(leagueId: string, page: number = 1, pageSize: number = 50): Promise<StandingsPage> {
-  const response = await apiFetch<{ data: StandingsPage }>(`/leagues/${leagueId}/standings?page=${page}&pageSize=${pageSize}`);
+  const response = await apiFetch<Api<'StandingsPageResponseDto'>>(`/leagues/${leagueId}/standings?page=${page}&pageSize=${pageSize}`);
   return response.data;
 }
 
 export async function fetchOwnStanding(leagueId: string): Promise<OwnStanding> {
-  const response = await apiFetch<{ data: OwnStanding }>(`/leagues/${leagueId}/standings/me`);
+  const response = await apiFetch<Api<'OwnStandingResponseDto'>>(`/leagues/${leagueId}/standings/me`);
   return response.data;
 }
 
-export interface PointsHistoryItem {
-  pointsEntryId: string;
-  delta: number;
-  kind: string;
-  reason: string;
-  occurredAt: string;
-  sourceKind: 'fixture' | 'custom_question';
-  leagueFixtureId: string | null;
-  customQuestionId: string | null;
-  marketType: string | null;
-  side: string | null;
-}
-
-export interface PointsHistoryPage {
-  data: PointsHistoryItem[];
-  nextCursor: string | null;
-}
+export type PointsHistoryItem = Api<'PointsHistoryItemDto'>;
+export type PointsHistoryPage = Api<'PointsHistoryPageResponseDto'>;
 
 export async function fetchOwnPointsHistory(leagueId: string, limit: number = 40): Promise<PointsHistoryPage> {
   return apiFetch<PointsHistoryPage>(`/leagues/${leagueId}/standings/me/history?limit=${limit}`);

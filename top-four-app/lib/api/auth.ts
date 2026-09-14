@@ -1,14 +1,16 @@
-import { apiFetch, setCsrfToken, generateIdempotencyKey } from './fetcher';
+import { apiFetch, setCsrfToken, generateIdempotencyKey, ApiError } from './fetcher';
+import type { Api } from './types';
 
-export interface UserProfile {
-  id: string;
-  email: string;
-  displayName: string;
-  avatarUrl?: string | null;
-  signInMethods?: string[];
+/**
+ * The account as the app holds it: the server's authenticated user, plus the
+ * two facts `/auth/me` returns beside it and this module folds in. Both are
+ * optional because only that endpoint carries them — a register or sign-in
+ * response has the user alone.
+ */
+export type UserProfile = Api<'AuthenticatedUserDto'> & {
+  signInMethods?: Api<'CurrentAuthenticationResponseDto'>['signInMethods'];
   isOperator?: boolean;
-  emailVerified?: boolean;
-}
+};
 
 export async function signUp(input: {
   email: string;
@@ -75,19 +77,21 @@ export async function signOut(): Promise<void> {
 
 export async function fetchCurrentProfile(): Promise<UserProfile | null> {
   try {
-    const data = await apiFetch<{ user: UserProfile; csrfToken: string; isOperator: boolean; signInMethods: string[] }>('/auth/me');
+    const data = await apiFetch<Api<'CurrentAuthenticationResponseDto'>>('/auth/me');
     
     if (data.csrfToken) {
       setCsrfToken(data.csrfToken);
     }
 
     return { ...data.user, signInMethods: data.signInMethods, isOperator: data.isOperator };
-  } catch (err: any) {
-    // Return null when unauthenticated (401)
-    if (err.status === 401) {
+  } catch (error) {
+    // Not signed in is an answer, not a failure. Anything else is a real error
+    // and must keep propagating — including a non-ApiError, which would
+    // otherwise be swallowed by a bare `.status` read.
+    if (error instanceof ApiError && error.status === 401) {
       return null;
     }
-    throw err;
+    throw error;
   }
 }
 

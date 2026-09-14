@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 import { DesktopLevelOne } from './components/DesktopLevelOne';
 import { AuthProvider } from '@/context/auth-context';
 import { ReactQueryProvider } from '@/context/query-provider';
+import { THEME_INIT_SCRIPT } from '@/lib/theme';
 
 export default function RootLayout({
   children,
@@ -16,8 +17,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] antialiased flex flex-col md:h-[100dvh]">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Runs before paint, so a stored dark choice does not flash white. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      {/* The viewport is the page. Screens bound their own scroll region, so the
+          body must not grow past the fold — when it did, the root tab bar sat
+          209px below it on a 812px phone and the app had no visible navigation. */}
+      <body className="h-[100dvh] overflow-hidden bg-[var(--surface-canvas)] text-[var(--text-primary)] antialiased flex flex-col">
         <ReactQueryProvider>
           <AuthProvider>
             <DesktopLevelOne />

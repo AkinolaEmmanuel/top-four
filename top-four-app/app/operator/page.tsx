@@ -13,6 +13,10 @@ import {
   useRequestFixtureFactsRefresh, useRequestFixturePlayersRefresh,
 } from '@/hooks/api/useOperator';
 import { SETTLE_REASON_CODES, VOID_REASON_CODES } from '@/lib/api/operator';
+import type {
+  SettlementReviewItem, FactConflictItem, ProviderIssueItem, ExhaustedJobItem,
+  FailedNotificationItem, ProviderTarget,
+} from '@/lib/api/operator';
 
 type QueueId = 'settlement' | 'late' | 'conflicts' | 'provider' | 'jobs' | 'notifications';
 
@@ -47,7 +51,22 @@ function ageShort(iso: string | null): string {
 
 const short = (id: string | null | undefined) => id ? id.slice(0, 8) : '—';
 
-function formatTarget(t: any): string {
+/**
+ * A row in whichever queue is on screen, carrying the queue it came from.
+ *
+ * Six endpoints return six unrelated shapes into one table. The tag is what
+ * lets the compiler follow which is which — the pane used to read every field
+ * off `any`, so a renamed field on any of the six would have reached the
+ * operator as a blank cell rather than a build failure.
+ */
+type OperatorRow =
+  | (SettlementReviewItem & { queue: 'settlement' | 'late' })
+  | (FactConflictItem & { queue: 'conflicts' })
+  | (ProviderIssueItem & { queue: 'provider' })
+  | (ExhaustedJobItem & { queue: 'jobs' })
+  | (FailedNotificationItem & { queue: 'notifications' });
+
+function formatTarget(t: ProviderTarget | null | undefined): string {
   if (!t) return '—';
   if (t.kind === 'competition') return `Competition ${short(t.competitionId)}`;
   if (t.kind === 'season') return `Season ${short(t.seasonId)}`;
@@ -57,7 +76,6 @@ function formatTarget(t: any): string {
 }
 
 export default function OperatorConsolePage() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [queue, setQueue] = useState<QueueId>('settlement');
   const [tool, setTool] = useState<'consistency' | 'refresh' | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -98,7 +116,9 @@ export default function OperatorConsolePage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const settlementItems = settlements.data?.items || [];
+  // Memoised because the `|| []` produces a fresh array on every render, which
+  // would re-run both filters below each time regardless of whether data moved.
+  const settlementItems = useMemo(() => settlements.data?.items || [], [settlements.data]);
   const settlementRows = useMemo(() => settlementItems.filter(s => s.state === 'pending_review'), [settlementItems]);
   const lateRows = useMemo(() => settlementItems.filter(s => s.state !== 'pending_review'), [settlementItems]);
 
@@ -111,24 +131,20 @@ export default function OperatorConsolePage() {
     notifications: notifications.isLoading,
   };
 
-  const rawItemsByQueue: Record<QueueId, any[]> = {
-    settlement: settlementRows,
-    late: lateRows,
-    conflicts: conflicts.data?.items || [],
-    provider: providerIssues.data?.items || [],
-    jobs: jobs.data?.items || [],
-    notifications: notifications.data?.items || [],
+  const rawItemsByQueue: Record<QueueId, OperatorRow[]> = {
+    settlement: settlementRows.map(item => ({ ...item, queue: 'settlement' as const })),
+    late: lateRows.map(item => ({ ...item, queue: 'late' as const })),
+    conflicts: (conflicts.data?.items || []).map(item => ({ ...item, queue: 'conflicts' as const })),
+    provider: (providerIssues.data?.items || []).map(item => ({ ...item, queue: 'provider' as const })),
+    jobs: (jobs.data?.items || []).map(item => ({ ...item, queue: 'jobs' as const })),
+    notifications: (notifications.data?.items || []).map(item => ({ ...item, queue: 'notifications' as const })),
   };
 
-  const rowId = (q: QueueId, item: any): string =>
-    q === 'settlement' || q === 'late' ? item.id
-      : q === 'conflicts' ? item.id
-      : q === 'provider' ? item.issueId
-      : q === 'jobs' ? item.id
-      : item.id;
+  const rowId = (item: OperatorRow): string =>
+    item.queue === 'provider' ? item.issueId : item.id;
 
-  const toCols = (q: QueueId, item: any): [string, string, string, string] => {
-    switch (q) {
+  const toCols = (item: OperatorRow): [string, string, string, string] => {
+    switch (item.queue) {
       case 'settlement':
       case 'late':
         return [ageShort(item.updatedAt), `${short(item.leagueFixtureId)} · ${item.marketType}${item.side ? ` (${item.side})` : ''}`, item.reasonCode, `v${item.version}`];
@@ -163,7 +179,7 @@ export default function OperatorConsolePage() {
   const qid = queue;
   const rowsData = tool ? [] : rawItemsByQueue[qid];
   const isReady = !isLoadingByQueue[qid];
-  const row = selected != null ? rowsData.find(r => rowId(qid, r) === selected) : null;
+  const row = selected != null ? rowsData.find(r => rowId(r) === selected) ?? null : null;
   const currentQueue = queues.find(q => q.id === queue);
 
   useEffect(() => {
@@ -187,29 +203,29 @@ export default function OperatorConsolePage() {
 
   const canAct = (): boolean => {
     if (!row) return false;
-    if (queue === 'conflicts') return conflictNote.trim().length > 0;
-    if (queue === 'provider') return !!row.retryable;
+    if (row.queue === 'conflicts') return conflictNote.trim().length > 0;
+    if (row.queue === 'provider') return !!row.retryable;
     return true;
   };
 
   const commit = useCallback(() => {
     if (!row) return;
-    if (queue === 'settlement' || queue === 'late') {
+    if (row.queue === 'settlement' || row.queue === 'late') {
       resolveSettlement.mutate({ settlementId: row.id, expectedVersion: row.version, action: settleAction, reasonCode: settleReason }, {
         onSuccess: () => { setConfirm(false); setSelected(null); flash('Decision recorded'); },
         onError: () => { setConfirm(false); flash('Could not record that decision — it may have changed since you opened it'); }
       });
-    } else if (queue === 'conflicts') {
+    } else if (row.queue === 'conflicts') {
       keepFacts.mutate({ conflictId: row.id, note: conflictNote }, {
         onSuccess: () => { setConfirm(false); setSelected(null); setConflictNote(''); flash('Kept current facts'); },
         onError: () => { setConfirm(false); flash('Could not resolve that conflict'); }
       });
-    } else if (queue === 'provider') {
+    } else if (row.queue === 'provider') {
       retryProvider.mutate({ issueKind: row.issueKind, issueId: row.issueId }, {
         onSuccess: () => { setConfirm(false); setSelected(null); flash('Retry enqueued'); },
         onError: () => { setConfirm(false); flash('Could not retry that issue'); }
       });
-    } else if (queue === 'jobs') {
+    } else if (row.queue === 'jobs') {
       retryJob.mutate(row.id, {
         onSuccess: () => { setConfirm(false); setSelected(null); flash('Job rescheduled'); },
         onError: () => { setConfirm(false); flash('Could not retry that job'); }
@@ -247,27 +263,19 @@ export default function OperatorConsolePage() {
       <div className="min-h-[100dvh] grid place-items-center font-['Sora',sans-serif] p-[24px]">
         <div className="max-w-[380px] flex flex-col items-center text-center gap-[8px]">
           <div className="font-heading font-bold text-[18px]">Operator access required</div>
-          <div className="text-[13px] text-[var(--text-secondary)] leading-[1.5]">This account isn't flagged as an operator, so the platform admin API refuses these routes. Sign in with an operator account to use this console.</div>
+          <div className="text-[13px] text-[var(--text-secondary)] leading-[1.5]">This account isn&apos;t flagged as an operator, so the platform admin API refuses these routes. Sign in with an operator account to use this console.</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-[100dvh] box-border p-[32px] flex flex-col gap-[16px] items-center font-['Sora',sans-serif] bg-[var(--dev-backdrop)] ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className="min-h-[100dvh] box-border p-[32px] flex flex-col gap-[16px] items-center font-['Sora',sans-serif] bg-[var(--dev-backdrop)]">
 
       <div className="w-[1280px] flex items-end gap-[22px]">
         <div className="flex-1 flex flex-col gap-[4px]">
           <div className="font-heading font-bold text-[20px] tracking-[-0.2px] text-[var(--dev-strong)]">Operator console</div>
           <div className="text-[12px] text-[var(--dev-quiet)]">Six review queues plus two per-fixture/league admin tools, wired straight to the platform API. <strong>Esc</strong> closes a decision.</div>
-        </div>
-        <div className="flex gap-[5px] flex-none">
-          {[
-            { id: "light", label: "Light" },
-            { id: "dark", label: "Dark" }
-          ].map(t => (
-            <div key={t.id} onClick={() => setTheme(t.id as any)} className={`p-[8px_12px] rounded-[9px] text-[12px] font-heading font-semibold cursor-pointer border ${theme === t.id ? 'border-[var(--dev-strong)] bg-[var(--dev-strong)] text-[var(--dev-card)]' : 'border-[var(--dev-field)] bg-[var(--dev-card)] text-[var(--dev-text)]'}`}>{t.label}</div>
-          ))}
         </div>
       </div>
 
@@ -287,23 +295,23 @@ export default function OperatorConsolePage() {
             {queues.map(q => {
               const on = !tool && q.id === queue;
               return (
-                <div key={q.id} onClick={() => { setQueue(q.id); setTool(null); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
+                <button type="button" key={q.id} onClick={() => { setQueue(q.id); setTool(null); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                   <span className={`flex-1 text-[12.5px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>{q.label}</span>
                   <span className={`font-heading font-semibold text-[11.5px] font-tabular-nums ${q.danger ? 'text-[var(--danger-text)]' : on ? 'text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>{q.count}</span>
-                </div>
+                </button>
               );
             })}
 
             <div className="p-[18px_16px_8px] text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Tools</div>
-            {[
+            {([
               { id: "consistency", label: "League consistency" },
-              { id: "refresh", label: "Fact refresh" }
-            ].map(t => {
+              { id: "refresh", label: "Fact refresh" },
+            ] as const).map(t => {
               const on = tool === t.id;
               return (
-                <div key={t.id} onClick={() => { setTool(t.id as any); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
+                <button type="button" key={t.id} onClick={() => { setTool(t.id); setSelected(null); setConfirm(false); }} className={`flex items-center gap-[9px] p-[9px_16px] cursor-pointer border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                   <span className={`flex-1 text-[12.5px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : 'text-[var(--text-secondary)]'}`}>{t.label}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -342,7 +350,7 @@ export default function OperatorConsolePage() {
                         {consistency.isLoading ? (
                           <div className="text-[12px] text-[var(--text-muted)]">Loading…</div>
                         ) : consistency.isError ? (
-                          <div className="text-[12px] text-[var(--danger-text)]">Couldn't load a consistency report for that league.</div>
+                          <div className="text-[12px] text-[var(--danger-text)]">Couldn&apos;t load a consistency report for that league.</div>
                         ) : (
                           <div className="flex flex-col gap-[6px]">
                             {[
@@ -363,8 +371,8 @@ export default function OperatorConsolePage() {
                           </div>
                         )}
                         <div className="flex gap-[8px]">
-                          <div onClick={() => rebuildStandings.mutate(consistencyLeagueId, { onSuccess: () => flash('Standings rebuild enqueued'), onError: () => flash('Could not enqueue a rebuild') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Rebuild standings</div>
-                          <div onClick={() => recheckCompletion.mutate(consistencyLeagueId, { onSuccess: () => flash('Completion recheck enqueued'), onError: () => flash('Could not enqueue a recheck') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Recheck completion</div>
+                          <button type="button" onClick={() => rebuildStandings.mutate(consistencyLeagueId, { onSuccess: () => flash('Standings rebuild enqueued'), onError: () => flash('Could not enqueue a rebuild') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Rebuild standings</button>
+                          <button type="button" onClick={() => recheckCompletion.mutate(consistencyLeagueId, { onSuccess: () => flash('Completion recheck enqueued'), onError: () => flash('Could not enqueue a recheck') })} className="flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Recheck completion</button>
                         </div>
                       </div>
                     )}
@@ -374,11 +382,11 @@ export default function OperatorConsolePage() {
                     <div className="max-w-[560px] flex flex-col gap-[10px]">
                       <label className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Canonical fixture ID</label>
                       <input value={refreshFixtureId} onChange={e => setRefreshFixtureId(e.target.value.trim())} placeholder="uuid" className="h-[38px] px-[12px] rounded-[9px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] text-[12.5px] font-mono" />
-                      <div className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">This is the football fixture's canonical ID, not a specific league's copy of it. Queues a provider re-sync of official facts or squad participation.</div>
+                      <div className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">This is the football fixture&apos;s canonical ID, not a specific league&apos;s copy of it. Queues a provider re-sync of official facts or squad participation.</div>
                     </div>
                     <div className="max-w-[560px] flex gap-[8px]">
-                      <div onClick={() => refreshFixtureId && refreshFacts.mutate(refreshFixtureId, { onSuccess: () => flash('Facts refresh queued'), onError: () => flash('Could not queue a facts refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh facts</div>
-                      <div onClick={() => refreshFixtureId && refreshPlayers.mutate(refreshFixtureId, { onSuccess: () => flash('Squad refresh queued'), onError: () => flash('Could not queue a squad refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh players</div>
+                      <button type="button" onClick={() => refreshFixtureId && refreshFacts.mutate(refreshFixtureId, { onSuccess: () => flash('Facts refresh queued'), onError: () => flash('Could not queue a facts refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh facts</button>
+                      <button type="button" onClick={() => refreshFixtureId && refreshPlayers.mutate(refreshFixtureId, { onSuccess: () => flash('Squad refresh queued'), onError: () => flash('Could not queue a squad refresh') })} className={`flex-1 min-h-[44px] box-border border border-[var(--surface-border-strong)] rounded-[10px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px] ${!refreshFixtureId ? 'opacity-40 pointer-events-none' : ''}`}>Refresh players</button>
                     </div>
                   </div>
                 ) : (
@@ -393,17 +401,17 @@ export default function OperatorConsolePage() {
                         <div className="p-[60px_30px] flex flex-col gap-[6px] items-center text-center">
                           <div className="font-heading font-semibold text-[14px] text-[var(--text-muted)]">Loading…</div>
                         </div>
-                      ) : rowsData.map((r: any) => {
-                        const id = rowId(qid, r);
+                      ) : rowsData.map(r => {
+                        const id = rowId(r);
                         const on = id === selected;
-                        const cols = toCols(qid, r);
+                        const cols = toCols(r);
                         return (
-                          <div key={id} onClick={() => setSelected(id)} className={`flex gap-[12px] items-center p-[12px_20px] cursor-pointer border-b border-[var(--surface-border)] border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
+                          <button type="button" key={id} onClick={() => setSelected(id)} className={`flex gap-[12px] items-center p-[12px_20px] cursor-pointer border-b border-[var(--surface-border)] border-l-[3px] ${on ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-transparent'}`}>
                             <span className={`w-[70px] flex-none font-heading font-tabular-nums text-[12px] font-semibold text-[var(--text-primary)]`}>{cols[0]}</span>
                             <span className={`flex-1 min-w-0 text-[12px] whitespace-nowrap overflow-hidden text-ellipsis ${on ? 'font-heading font-semibold' : ''}`}>{cols[1]}</span>
                             <span className="w-[190px] flex-none text-[11.5px] text-[var(--text-secondary)] whitespace-nowrap overflow-hidden text-ellipsis">{cols[2]}</span>
                             <span className={`w-[76px] flex-none text-right text-[11.5px] font-tabular-nums ${on ? 'font-heading font-semibold' : ''}`}>{cols[3]}</span>
-                          </div>
+                          </button>
                         );
                       })}
                       {isReady && rowsData.length === 0 && (
@@ -426,11 +434,11 @@ export default function OperatorConsolePage() {
                           <div className="font-heading font-semibold text-[14px]">Decision</div>
                           <div className="text-[11px] text-[var(--text-secondary)] whitespace-nowrap overflow-hidden text-ellipsis">{currentQueue?.label}</div>
                         </div>
-                        <div onClick={() => setSelected(null)} className="w-[26px] h-[26px] flex-none rounded-full border border-[var(--surface-border-strong)] flex justify-center items-center text-[12px] text-[var(--text-secondary)] cursor-pointer">×</div>
+                        <button type="button" onClick={() => setSelected(null)} className="w-[26px] h-[26px] flex-none rounded-full border border-[var(--surface-border-strong)] flex justify-center items-center text-[12px] text-[var(--text-secondary)] cursor-pointer">×</button>
                       </div>
                       <div className="tf-scroll flex-1 overflow-y-auto flex flex-col gap-[14px] p-[14px_18px]">
 
-                        {(queue === 'settlement' || queue === 'late') && (
+                        {(row.queue === 'settlement' || row.queue === 'late') && (
                           <>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
@@ -450,16 +458,16 @@ export default function OperatorConsolePage() {
                             </div>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Action</div>
-                              {[
+                              {([
                                 { id: "settle_current_facts", label: "Settle on current facts" },
-                                { id: "void", label: "Void this market" }
-                              ].map(a => {
+                                { id: "void", label: "Void this market" },
+                              ] as const).map(a => {
                                 const on = settleAction === a.id;
                                 return (
-                                  <div key={a.id} onClick={() => setSettleAction(a.id as any)} className={`flex items-center gap-[10px] p-[11px_13px] rounded-[10px] cursor-pointer min-h-[44px] box-border ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border border-[var(--surface-border-strong)] bg-[var(--surface-card)]'}`}>
+                                  <button type="button" key={a.id} onClick={() => setSettleAction(a.id)} className={`flex items-center gap-[10px] p-[11px_13px] rounded-[10px] cursor-pointer min-h-[44px] box-border ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border border-[var(--surface-border-strong)] bg-[var(--surface-card)]'}`}>
                                     <span className={`w-[14px] h-[14px] rounded-full flex-none box-border ${on ? 'bg-[var(--color-brand)] border-[3px] border-[var(--surface-card)] shadow-[0_0_0_1px_var(--color-brand)]' : 'border border-[var(--surface-border-strong)]'}`}></span>
                                     <span className={`flex-1 text-[12px] ${on ? 'font-heading font-semibold text-[var(--accent-text-strong)]' : ''}`}>{a.label}</span>
-                                  </div>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -468,16 +476,16 @@ export default function OperatorConsolePage() {
                               {(settleAction === 'settle_current_facts' ? SETTLE_REASON_CODES : VOID_REASON_CODES).map(c => {
                                 const on = settleReason === c;
                                 return (
-                                  <div key={c} onClick={() => setSettleReason(c)} className={`font-mono text-[11px] p-[9px_12px] rounded-[9px] cursor-pointer min-h-[36px] box-border flex items-center ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)] text-[var(--accent-text-strong)]' : 'border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)]'}`}>
+                                  <button type="button" key={c} onClick={() => setSettleReason(c)} className={`font-mono text-[11px] p-[9px_12px] rounded-[9px] cursor-pointer min-h-[36px] box-border flex items-center ${on ? 'border border-[var(--color-brand)] bg-[var(--accent-surface)] text-[var(--accent-text-strong)]' : 'border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)]'}`}>
                                     {c}
-                                  </div>
+                                  </button>
                                 );
                               })}
                             </div>
                           </>
                         )}
 
-                        {queue === 'conflicts' && (
+                        {row.queue === 'conflicts' && (
                           <>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
@@ -490,7 +498,7 @@ export default function OperatorConsolePage() {
                               <pre className="text-[10.5px] leading-[1.5] bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-[8px] p-[10px] overflow-x-auto whitespace-pre-wrap break-words">{JSON.stringify(row.candidate, null, 2)}</pre>
                             </div>
                             <div className="p-[11px_13px] rounded-[10px] bg-[var(--surface-card)] border border-[var(--surface-border)]">
-                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">The provider's facts conflict with a protected manual fact. Keeping the current facts resolves this without changing anything.</span>
+                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5]">The provider&apos;s facts conflict with a protected manual fact. Keeping the current facts resolves this without changing anything.</span>
                             </div>
                             <div className="flex flex-col gap-[8px]">
                               <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Note</div>
@@ -499,7 +507,7 @@ export default function OperatorConsolePage() {
                           </>
                         )}
 
-                        {queue === 'provider' && (
+                        {row.queue === 'provider' && (
                           <div className="flex flex-col gap-[8px]">
                             <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
                             {[
@@ -520,7 +528,7 @@ export default function OperatorConsolePage() {
                           </div>
                         )}
 
-                        {queue === 'jobs' && (
+                        {row.queue === 'jobs' && (
                           <div className="flex flex-col gap-[8px]">
                             <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
                             {[
@@ -537,7 +545,7 @@ export default function OperatorConsolePage() {
                           </div>
                         )}
 
-                        {queue === 'notifications' && (
+                        {row.queue === 'notifications' && (
                           <div className="flex flex-col gap-[8px]">
                             <div className="text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Evidence</div>
                             {[
@@ -557,7 +565,7 @@ export default function OperatorConsolePage() {
 
                       </div>
                       <div className="flex-none flex flex-col gap-[8px] p-[14px_18px] border-t border-[var(--surface-border)]">
-                        <div onClick={() => canAct() && setConfirm(true)} className={`min-h-[44px] rounded-[11px] flex justify-center items-center font-heading font-semibold text-[13px] text-white ${!canAct() ? 'opacity-40 pointer-events-none bg-[var(--surface-border-strong)]' : (queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'cursor-pointer bg-[var(--color-danger)]' : 'cursor-pointer bg-[var(--brand-fill)]'}`}>{actionLabel()}</div>
+                        <button type="button" onClick={() => canAct() && setConfirm(true)} className={`min-h-[44px] rounded-[11px] flex justify-center items-center font-heading font-semibold text-[13px] text-white ${!canAct() ? 'opacity-40 pointer-events-none bg-[var(--surface-border-strong)]' : (queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'cursor-pointer bg-[var(--color-danger)]' : 'cursor-pointer bg-[var(--brand-fill)]'}`}>{actionLabel()}</button>
                         <div className="text-[10.5px] text-[var(--text-secondary)] text-center">One more step before anything is written.</div>
                       </div>
                     </div>
@@ -580,11 +588,11 @@ export default function OperatorConsolePage() {
             <div className="font-mono text-[10px] tracking-[0.09em] uppercase text-[var(--text-secondary)]">Confirm step</div>
             <div className="font-heading font-semibold text-[15.5px] leading-[1.35]">{actionLabel()}?</div>
             <div className="flex gap-[8px]">
-              <div onClick={() => setConfirm(false)} className="flex-1 min-h-[44px] border border-[var(--surface-border-strong)] rounded-[11px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Cancel</div>
-              <div onClick={commit} className={`flex-1 min-h-[44px] rounded-[11px] flex justify-center items-center gap-[8px] font-heading font-semibold text-[12.5px] text-white ${isBusy ? 'opacity-60 pointer-events-none' : 'cursor-pointer'} ${(queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
+              <button type="button" onClick={() => setConfirm(false)} className="flex-1 min-h-[44px] border border-[var(--surface-border-strong)] rounded-[11px] flex justify-center items-center cursor-pointer font-heading font-semibold text-[12.5px]">Cancel</button>
+              <button type="button" onClick={commit} className={`flex-1 min-h-[44px] rounded-[11px] flex justify-center items-center gap-[8px] font-heading font-semibold text-[12.5px] text-white ${isBusy ? 'opacity-60 pointer-events-none' : 'cursor-pointer'} ${(queue === 'settlement' || queue === 'late') && settleAction === 'void' ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
                 <span>{isBusy ? 'Working…' : 'Confirm'}</span>
                 <span className="font-mono text-[10px] opacity-75">⌘↵</span>
-              </div>
+              </button>
             </div>
           </div>
         </div>

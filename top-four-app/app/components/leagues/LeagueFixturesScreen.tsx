@@ -1,282 +1,276 @@
-'use client';
-
 import Link from 'next/link';
+import { LeagueColumn } from './LeagueColumn';
+import { TeamCrest } from '../TeamCrest';
+import { timeUntilLabel } from '@/lib/format';
+import { FIXTURE_FILTERS, type FixtureFilter } from '@/lib/leagues/league-fixtures';
+import { tintFor } from '@/lib/crest';
 import Image from 'next/image';
+import { groupByDay, stateLabel, stateChip, type FixtureCounts, type FixtureRow, type FixtureView } from '@/lib/leagues/league-fixtures';
 
-function Crest({ logo, code, color, size = 26 }: { logo?: string | null; code: string; color: string; size?: number }) {
-  const h = Math.round(size * 1.08);
-  if (logo) {
-    return (
-      <span className="tf-crest relative overflow-hidden bg-white flex-none" style={{ width: size, height: h }}>
-        <Image src={logo} alt={code} fill sizes={`${size}px`} className="object-contain p-[2px]" />
-      </span>
-    );
-  }
-  return <span className="tf-crest flex-none" style={{ width: size, height: h, fontSize: size < 24 ? 9 : 9, background: color }}>{code}</span>;
-}
+/**
+ * The league fixtures list — one component for both platforms.
+ *
+ * Two views on the same data: what is coming, and what has been played. The
+ * switch lives in the URL rather than in local state, so a season's worth of
+ * rows never has to be shipped to the browser just to let a tab toggle: only
+ * the view being looked at is rendered, a window at a time.
+ */
 
-// Desktop's own top nav (rootNav/avatarInitials/avatarName) was dead --
-// DesktopLevelOne in the root layout is the real one, this never rendered.
-// The context tab bar (Overview/Fixtures/Table/More) here is legitimately
-// page-scoped chrome, not the global nav, so it stays as its own thing on
-// both layouts rather than becoming a shared component.
-export function LeagueFixturesScreen({
-  theme, params, st, isLoading, isEmpty, showList, results,
-  headSub, emptyTitle, emptyBody, loadMore, showLoadMore, loadMoreAction, footNote,
-  leagueName, memberCount,
-  segmentsMobile, filtersMobile, groupsMobile, IconMap, tabs,
-  contextTabs, segmentsDesktop, showFilters, filtersDesktop,
-  skeletons, chipSkeletons, skeletonRowStyle, headRowStyle, groupsDesktop,
-  footNoteStyle, colMid, colNote, colRight,
-}: any) {
+
+/** Green once something landed, muted when nothing did or nothing is settled. */
+const stateTone = (state: FixtureRow['state'], view: FixtureView) => {
+  if (view !== 'results') return state === 'ready' ? 'text-[var(--success-text)]' : 'text-[var(--text-muted)]';
+  return state === 'won' || state === 'part' ? 'text-[var(--success-text)]' : 'text-[var(--text-muted)]';
+};
+
+
+/**
+ * Upcoming and results answer different questions, so the design gives them
+ * different columns rather than one compromise set that suits neither.
+ */
+const GRID_MD = 'md:grid md:grid-cols-[104px_minmax(0,1fr)_78px_minmax(0,330px)_88px_84px] md:items-center';
+
+const HEADS: Record<FixtureView, [string, string, string]> = {
+  upcoming: ['Kick-off', 'Your answers', 'Locks in'],
+  results: ['Score', 'What landed', 'Points'],
+};
+
+/**
+ * One fixture, one element.
+ *
+ * The phone stacks the crests beside the names and folds progress and deadline
+ * into the right edge; the width gives each its own column. Rendering both and
+ * hiding one put 328KB — half this screen's markup — into the document for a
+ * width the reader is not on.
+ */
+function Row({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: number }) {
+  const urgent = view === 'upcoming' && row.state === 'open';
   return (
-    <>
-      {/* ============ MOBILE ============ */}
-      <div className={`md:hidden flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
-        <header className="bg-[var(--nav-surface)] text-[var(--nav-text)] p-[8px_var(--gutter)_0] flex-none">
-          <div className="flex items-center gap-[11px]">
-            <Link href={`/leagues/${params.id}`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
-            <div className="min-w-0 flex-1">
-              <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px]">Fixtures</div>
-              <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
-            </div>
-            <div className="tf-tap w-[40px] h-[40px] grid place-items-center text-[var(--nav-text-quiet)] flex-none text-[15px]">⌕</div>
-          </div>
+    <Link
+      href={row.href}
+      /* `last:border-b-0` on both layouts: the final row of a day used to close
+         with a rule, and the next date heading opened with one, so every
+         boundary between groups was drawn twice. The heading is the separator. */
+      className={`flex items-center gap-[11px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${GRID_MD} md:gap-[16px] md:py-[14px] md:px-[4px] md:border-t-0 md:border-b md:last:border-b-0 md:hover:bg-[var(--surface-subtle)] md:transition-colors ${urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
+    >
+      <span className="hidden md:inline-flex items-center justify-self-start h-[19px] px-[7px] rounded-[4px] font-heading font-bold text-[8.5px] tracking-[0.06em] flex-none bg-[var(--surface-subtle)]">
+        <span className={`${stateTone(row.state, view)} whitespace-nowrap`}>{stateChip(row.state, view)}</span>
+      </span>
 
-          <div className="flex gap-[2px] mt-[14px] shadow-[inset_0_-1px_0_0_var(--surface-border-strong)]">
-            {segmentsMobile.map((s: any, i: number) => (
-              <div key={i} onClick={s.pick} className={s.style}>{s.label}<span className={s.countStyle}>{s.count}</span></div>
-            ))}
-          </div>
-        </header>
-
-        {showList && !results && (
-          <div className="tf-scroll flex-none flex gap-[6px] p-[12px_var(--gutter)] overflow-x-auto bg-[var(--surface-canvas)] border-b border-[var(--surface-border)]">
-            {filtersMobile.map((f: any, i: number) => (
-              <div key={i} onClick={f.pick} className={f.style}>{f.label}<span className={f.countStyle}>{f.count}</span></div>
-            ))}
-          </div>
-        )}
-
-        <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
-
-          {isLoading && (
-            <div>
-              {[{ w: "64%" }, { w: "52%" }, { w: "71%" }, { w: "58%" }, { w: "66%" }, { w: "48%" }].map((s, i) => (
-                <div key={i} className="p-[15px_var(--gutter)] border-b border-[var(--surface-border)]">
-                  <div className="h-[11px] rounded-full bg-[var(--surface-subtle)]" style={{ width: s.w }}></div>
-                  <div className="h-[9px] rounded-full bg-[var(--surface-subtle)] w-[44%] mt-[9px]"></div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {isEmpty && (
-            <div className="p-[70px_30px] flex flex-col items-center text-center">
-              <div className="font-heading font-bold text-[21px] leading-[1.2] tracking-[-0.5px]">{emptyTitle}</div>
-              <div className="text-[13px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[280px]">{emptyBody}</div>
-            </div>
-          )}
-
-          {showList && (
-            <div>
-              {groupsMobile.map((g: any, i: number) => (
-                <section key={i}>
-                  <div className="flex items-baseline justify-between p-[16px_var(--gutter)_9px]">
-                    <span className="tf-kicker text-[var(--text-muted)]">{g.label}</span>
-                    <span className="text-[10.5px] text-[var(--text-muted)]">{g.note}</span>
-                  </div>
-                  {g.rows.map((f: any, j: number) => (
-                    <div key={j} onClick={f.onClick} className={`tf-tap ${f.rowStyle}`}>
-                      <div className="flex items-center gap-[11px]">
-                        <div className="flex-1 flex items-center gap-[8px] min-w-0">
-                          <Crest logo={f.homeLogo} code={f.homeCode} color={f.homeColor} />
-                          <span className={f.teamStyle}>{f.home}</span>
-                        </div>
-                        <div className="flex-none text-center min-w-[44px]">
-                          <div className={`tf-num ${f.midStyle}`}>{f.mid}</div>
-                        </div>
-                        <div className="flex-1 flex items-center gap-[8px] justify-end min-w-0">
-                          <span className={`${f.teamStyle} text-right`}>{f.away}</span>
-                          <Crest logo={f.awayLogo} code={f.awayCode} color={f.awayColor} />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-[9px] mt-[11px]">
-                        <span className={f.stateStyle}>{f.state}</span>
-                        <span className="text-[10.5px] text-[var(--text-muted)] flex-1 min-w-0">{f.note}</span>
-                        <span className={f.actionStyle}>{f.action} →</span>
-                      </div>
-                    </div>
-                  ))}
-                </section>
-              ))}
-              <div className="p-[16px_var(--gutter)_24px]">
-                {showLoadMore && (
-                  <div onClick={loadMoreAction} className="tf-tap p-[13px] rounded-[11px] border border-[var(--surface-border-strong)] text-center font-heading font-bold text-[10.5px] text-[var(--text-link)]">{loadMore}</div>
-                )}
-                <div className="text-[11px] leading-[1.55] text-[var(--text-muted)] mt-[14px]">{footNote}</div>
-              </div>
-            </div>
-          )}
-
-        </main>
-
-        <nav className="flex-none bg-[var(--surface-card)] border-t border-[var(--surface-border)] grid grid-cols-4 p-[7px_7px_8px] min-h-[66px]">
-          {tabs.map((t: any, i: number) => {
-            const RenderIcon = IconMap[t.ic];
-            const route = t.label === 'OVERVIEW' ? `/leagues/${params.id}` : `/leagues/${params.id}/${t.label.toLowerCase()}`;
-            return (
-              <Link href={route} key={i} className="relative flex flex-col items-center justify-center font-heading font-semibold text-[9px] leading-[1]" style={{ color: t.on ? 'var(--color-brand)' : 'var(--text-muted)' }}>
-                <div className="w-[19px] h-[19px] grid place-items-center"><RenderIcon /></div>
-                <span className="mt-[6px] tracking-[0.01em]">{t.label}</span>
-                {t.b && (
-                  <span className="absolute top-[2px] left-[calc(50%+6px)] min-w-[15px] h-[15px] px-[3px] rounded-[8px] bg-[var(--color-danger)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[8px]">
-                    {t.b}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+      <div className="flex items-center gap-[11px] md:gap-[10px] min-w-0 flex-1 md:flex-none">
+        <div className="flex flex-col gap-[3px] flex-none">
+          <TeamCrest code={row.homeCode} logoUrl={row.homeLogo} size={22} />
+          <TeamCrest code={row.awayCode} logoUrl={row.awayLogo} size={22} />
+        </div>
+        <div className="min-w-0">
+          <div className="font-heading font-semibold text-[13px] md:text-[13px] md:tracking-[-0.1px] truncate">{row.homeName}</div>
+          <div className="font-heading font-semibold text-[13px] md:tracking-[-0.1px] truncate mt-[4px] md:mt-[3px]">{row.awayName}</div>
+        </div>
       </div>
 
-      {/* ============ DESKTOP ============ */}
-      <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>
+      <div className={`flex-none text-center min-w-[54px] md:min-w-0 ${view === 'results'
+        ? 'font-heading font-bold text-[15px] tracking-[-0.4px] tf-num'
+        : 'font-heading font-semibold text-[12px] text-[var(--text-muted)] tf-num'}`}>
+        {row.middle}
+      </div>
 
-        <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[20px] px-[24px] h-[54px]">
-          <div className="flex items-center gap-[10px] pb-[11px]">
-            <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">{leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG'}</span>
-            <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">{leagueName || 'League'}</span>
-            {memberCount && <span className="text-[11px] text-[var(--text-muted)]">{memberCount} members</span>}
-          </div>
-          <div className="flex items-center gap-[2px] ml-auto">
-            {contextTabs.map((t: any, i: number) => {
-              const leagueId = params?.id || '';
-              const route = t.label === 'Overview' ? `/leagues/${leagueId}` : `/leagues/${leagueId}/${t.label.toLowerCase()}`;
+      <div className="hidden md:block text-[11.5px] text-[var(--text-secondary)] truncate">
+        {view === 'upcoming' ? (row.progress ?? '—') : (row.note ?? '—')}
+      </div>
+
+      <div className={`flex-none text-right min-w-[92px] md:min-w-0 ${view === 'results'
+        ? `font-heading font-bold text-[14px] tf-num ${row.points && row.points !== '0' ? 'md:text-[var(--success-text)]' : 'md:text-[var(--text-muted)]'}`
+        : `font-heading font-semibold text-[12px] tf-num ${urgent ? 'md:text-[var(--accent-text-strong)]' : 'md:text-[var(--text-secondary)]'}`}`}>
+        <span className="md:hidden block text-[10.5px] font-normal">
+          <span className={stateTone(row.state, view)}>{stateLabel(row.state, view)}</span>
+        </span>
+        <span className="md:hidden block mt-[3px]">{view === 'results' ? (row.points ?? '') : ''}</span>
+        <span className="hidden md:block">
+          {view === 'results'
+            ? (row.points ?? '—')
+            : (row.deadlineAt ? timeUntilLabel(row.deadlineAt, nowMs) : '—')}
+        </span>
+      </div>
+
+      {/* A fixture that has kicked off but is not yet marked finished stays in
+          Upcoming with every market locked. Offering "answer" there sends the
+          reader to a screen with nothing to press. */}
+      <span className={`hidden md:block text-right font-heading font-bold text-[10px] tracking-[0.05em] ${urgent || row.state === 'ready' ? 'text-[var(--text-link)]' : 'text-[var(--text-muted)]'}`}>
+        {view === 'results' ? 'REVIEW' : row.deadlineAt ? 'ANSWER' : 'VIEW'}
+      </span>
+    </Link>
+  );
+}
+
+export function LeagueFixturesScreen({
+  leagueId, leagueName, competition, view, filter, filterCounts, rows, counts, horizon,
+  showMoreHref,
+}: {
+  leagueId: string;
+  leagueName: string;
+  competition: string;
+  view: FixtureView;
+  filter: FixtureFilter;
+  /** Counted over the whole upcoming half, not the window on screen. */
+  filterCounts: Record<FixtureFilter, number>;
+  /** The active view only, already windowed. */
+  rows: FixtureRow[];
+  counts: FixtureCounts;
+  /** How far ahead Upcoming is looking, and what that leaves out. */
+  horizon: { weeks: number; beyond: number };
+  /** Null once the window covers the whole view. */
+  showMoreHref: string | null;
+}) {
+  const days = groupByDay(rows);
+  // One clock for the whole table, so every "locks in" is measured from the
+  // same instant rather than drifting a row at a time.
+  const nowMs = Date.now();
+
+  return (
+    <LeagueColumn className="md:pt-[20px]">
+
+
+
+
+          <div className="flex gap-[6px] p-[12px_var(--gutter)] md:px-0 md:pt-0 border-b border-[var(--surface-border)] md:border-b-0">
+            {([['upcoming', 'Upcoming', counts.upcoming], ['results', 'Results', counts.results]] as const).map(([id, label, count]) => {
+              const on = view === id;
               return (
-                <Link href={route} key={i} style={t.style}>{t.label}<span style={t.badgeStyle}>{t.badge}</span></Link>
+                <Link
+                  key={id}
+                  href={`/leagues/${leagueId}/fixtures?view=${id}`}
+                  aria-current={on ? 'page' : undefined}
+                  scroll={false}
+                  className="tf-tap flex items-center h-[34px] px-[14px] rounded-full cursor-pointer whitespace-nowrap font-heading font-semibold text-[12px]"
+                  style={on
+                    ? { background: 'var(--text-primary)', color: 'var(--surface-canvas)' }
+                    : { border: '1px solid var(--surface-border-strong)', color: 'var(--text-secondary)' }}
+                >
+                  {label}
+                  <span className="ml-[7px] tf-num" style={{ opacity: on ? 0.7 : 0.55 }}>{count}</span>
+                </Link>
               );
             })}
           </div>
-        </div>
 
-        <div className="tf-scroll flex-1 overflow-y-auto">
-          <div className="max-w-[1080px] mx-auto px-[24px] pb-[30px]">
-
-            <div className="flex items-end gap-[16px] mt-[24px]">
-              <div className="flex-1">
-                <div className="font-heading font-bold text-[24px] leading-[1.15] tracking-[-0.6px]">Fixtures</div>
-                <div className="text-[12.5px] text-[var(--text-secondary)] mt-[5px]">{headSub}</div>
-              </div>
+          {/* What span is on screen. The design says "Round 3" here; a league
+              running two competitions has no single round, so this names the
+              window instead — and a member can always see which it is. */}
+          {view === 'upcoming' && (
+            <div className="px-[var(--gutter)] md:px-0 pt-[12px] md:pt-[14px] text-[11.5px] text-[var(--text-muted)]">
+              {horizon.weeks === 1 ? 'Kicking off in the next 7 days' : `Kicking off in the next ${horizon.weeks} weeks`}
+              {horizon.beyond > 0 && ` · ${horizon.beyond} further on`}
             </div>
+          )}
 
-            <div className="flex items-center gap-[4px] p-[3px] rounded-[12px] bg-[var(--surface-subtle)] mt-[20px] w-max">
-              {segmentsDesktop.map((s: any, i: number) => (
-                <div key={i} onClick={s.pick} style={s.style}>{s.label}<span style={s.countStyle}>{s.count}</span></div>
-              ))}
+          {view === 'upcoming' && (
+            <div className="hidden md:flex items-center gap-[7px] mt-[14px]">
+              {FIXTURE_FILTERS.map(f => {
+                const on = filter === f.id;
+                return (
+                  <Link
+                    key={f.id}
+                    href={`/leagues/${leagueId}/fixtures?view=upcoming&filter=${f.id}`}
+                    aria-current={on ? 'page' : undefined}
+                    scroll={false}
+                    className="flex items-center h-[32px] px-[13px] rounded-full whitespace-nowrap flex-none font-heading font-semibold text-[11.5px]"
+                    style={on
+                      ? { background: 'var(--text-primary)', color: 'var(--surface-canvas)' }
+                      : { border: '1px solid var(--surface-border-strong)', color: 'var(--text-secondary)' }}
+                  >
+                    {f.label}
+                    <span className="ml-[6px] tf-num" style={{ opacity: on ? 0.7 : 0.55 }}>{filterCounts[f.id]}</span>
+                  </Link>
+                );
+              })}
             </div>
+          )}
 
-            {showFilters && (
-              <div className="flex items-center gap-[7px] mt-[14px]">
-                {filtersDesktop.map((f: any, i: number) => (
-                  <div key={i} onClick={f.pick} style={f.style}>{f.label}<span style={f.countStyle}>{f.count}</span></div>
-                ))}
-              </div>
-            )}
-
-            {isLoading && (
-              <div>
-                <div className="flex items-center gap-[7px] mt-[14px]">
-                  {chipSkeletons.map((c: any, i: number) => (
-                    <div key={i} className="h-[30px] rounded-full bg-[var(--surface-subtle)]" style={{ width: c.w }}></div>
-                  ))}
-                </div>
-                <div className="mt-[18px]">
-                  <div style={headRowStyle}>
+          {rows.length === 0 ? (
+            <div className="p-[60px_30px] text-center">
+              {/* An empty window is not an empty league. This said "every fixture
+                  has been played" while 460 of them sat just beyond the seven
+                  days on screen — so the state that should offer the next week
+                  instead told the reader the season was over. */}
+              {view === 'upcoming' && horizon.beyond > 0 ? (
+                <>
+                  <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">
+                    Nothing kicks off in the next {horizon.weeks === 1 ? '7 days' : `${horizon.weeks} weeks`}
+                  </div>
+                  {showMoreHref && (
+                    <Link
+                      href={showMoreHref}
+                      scroll={false}
+                      className="tf-tap inline-flex items-center justify-center h-[44px] px-[20px] mt-[18px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]"
+                    >
+                      Look a week further ahead
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">
+                    {view === 'upcoming' ? 'No fixtures left to play' : 'Nothing settled yet'}
+                  </div>
+                  <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px] max-w-[340px] mx-auto">
+                    {view === 'upcoming'
+                      ? 'Every fixture in this league has been played. The results are in the other tab.'
+                      : 'Results appear here once a fixture has been played and its markets settle.'}
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            days.map((day, dayIndex) => (
+              <section key={day.label} className="mt-[18px] md:mt-[24px]">
+                {dayIndex === 0 && (
+                  /* No rule here. The first day heading draws one a few pixels
+                     below, and two lines that close together read as a mistake. */
+                  <div className={`hidden ${GRID_MD} md:gap-[16px] px-[4px] pb-[8px] mb-[2px]`}>
                     <span className="tf-kicker">State</span>
                     <span className="tf-kicker">Fixture</span>
-                    <span className="tf-kicker text-center">{colMid}</span>
-                    <span className="tf-kicker">{colNote}</span>
-                    <span className="tf-kicker text-right">{colRight}</span>
-                    <span></span>
-                  </div>
-                  {skeletons.map((s: any, i: number) => (
-                    <div key={i} style={skeletonRowStyle}>
-                      <div className="w-[62px] h-[20px] rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                      <div className="flex items-center gap-[9px] min-w-0">
-                        <div className="w-[26px] h-[28px] flex-none rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                        <div className="h-[12px] flex-1 max-w-[100%] rounded-[6px] bg-[var(--surface-subtle)]" style={{ maxWidth: s.w }}></div>
-                        <div className="w-[26px] h-[28px] flex-none rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                      </div>
-                      <div className="h-[11px] w-[40px] justify-self-center rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                      <div className="h-[11px] w-[70%] rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                      <div className="h-[11px] w-[52px] justify-self-end rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                      <div className="h-[11px] w-[46px] justify-self-end rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {isEmpty && (
-              <div className="py-[150px] px-[30px] flex flex-col items-center text-center">
-                <div className="w-[56px] h-[56px] rounded-full bg-[var(--surface-subtle)] grid place-items-center text-[22px] text-[var(--text-muted)]">◇</div>
-                <div className="font-heading font-bold text-[26px] leading-[1.15] tracking-[-0.7px] mt-[22px]">{emptyTitle}</div>
-                <div className="text-[13.5px] leading-[1.6] text-[var(--text-secondary)] mt-[11px] max-w-[420px]">{emptyBody}</div>
-              </div>
-            )}
-
-            {showList && (
-              <div className="animate-[tfin_0.16s_ease]">
-                <div className="mt-[18px]">
-                  <div style={headRowStyle}>
-                    <span className="tf-kicker">State</span>
-                    <span className="tf-kicker">Fixture</span>
-                    <span className="tf-kicker text-center">{colMid}</span>
-                    <span className="tf-kicker">{colNote}</span>
-                    <span className="tf-kicker text-right">{colRight}</span>
-                    <span></span>
-                  </div>
-
-                  {groupsDesktop.map((g: any, i: number) => (
-                    <div key={i}>
-                      <div className="flex items-baseline gap-[8px] p-[20px_4px_8px] border-b border-[var(--surface-border)]">
-                        <span className="tf-kicker text-[var(--text-secondary)]">{g.label}</span>
-                        <span className="text-[10.5px] text-[var(--text-muted)]">{g.note}</span>
-                      </div>
-                      {g.rows.map((r: any, j: number) => (
-                        <div key={j} style={r.rowStyle} onClick={r.onClick}>
-                          <span style={r.stateStyle}>{r.state}</span>
-                          <div className="flex items-center gap-[9px] min-w-0">
-                            <Crest logo={r.homeLogo} code={r.homeCode} color={r.homeColor} size={22} />
-                            <span style={r.teamStyle}>{r.home}</span>
-                            <span className="text-[10px] text-[var(--text-muted)] flex-none">v</span>
-                            <span style={r.teamStyle}>{r.away}</span>
-                            <Crest logo={r.awayLogo} code={r.awayCode} color={r.awayColor} size={22} />
-                          </div>
-                          <span className="tf-num" style={r.midStyle}>{r.mid}</span>
-                          <span className="text-[11.5px] leading-[1.45] text-[var(--text-secondary)] min-w-0">{r.note}</span>
-                          <span className="tf-num" style={r.rightStyle}>{r.right}</span>
-                          <span style={r.actionStyle}>{r.action}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-
-                {showLoadMore && (
-                  <div className="grid place-items-center mt-[20px]">
-                    <span onClick={loadMoreAction} className="font-heading font-bold text-[10.5px] tracking-[0.07em] text-[var(--text-link)] cursor-pointer">{loadMore}</span>
+                    <span className="tf-kicker text-center">{HEADS[view][0]}</span>
+                    <span className="tf-kicker">{HEADS[view][1]}</span>
+                    <span className="tf-kicker text-right">{HEADS[view][2]}</span>
+                    <span />
                   </div>
                 )}
+                <div className="p-[0_var(--gutter)_9px] md:px-0 md:pb-[10px] md:border-b md:border-[var(--surface-border-strong)]">
+                  <span className="tf-kicker text-[var(--text-muted)] md:text-[13px] md:tracking-[-0.1px] md:normal-case md:font-bold md:text-[var(--text-primary)]">{day.label}</span>
+                </div>
+                {day.rows.map(row => <Row key={row.id} row={row} view={view} nowMs={nowMs} />)}
+              </section>
+            ))
+          )}
 
-                <div style={footNoteStyle}>{footNote}</div>
-              </div>
-            )}
-
-          </div>
-        </div>
-      </div>
-    </>
+          {/* Only below a list. With no rows the empty state above already makes
+              the offer, and two identical controls on one screen is a puzzle. */}
+          {showMoreHref && rows.length > 0 && (
+            <div className="px-[var(--gutter)] md:px-0 pt-[18px]">
+              <Link
+                href={showMoreHref}
+                scroll={false}
+                className="tf-tap flex items-center justify-center h-[44px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]"
+              >
+                {/* Either widening the page or widening the window; the label
+                    says which, so "Show more" on a full week does not look like
+                    it has nothing left to do. */}
+                {view === 'upcoming' && rows.length >= counts.upcoming ? (
+                  <>
+                    Show the next week
+                    <span className="ml-[7px] tf-num opacity-60">{horizon.beyond} further on</span>
+                  </>
+                ) : (
+                  <>
+                    Show more
+                    <span className="ml-[7px] tf-num opacity-60">
+                      {rows.length} of {view === 'upcoming' ? counts.upcoming : counts.results}
+                    </span>
+                  </>
+                )}
+              </Link>
+            </div>
+          )}
+    </LeagueColumn>
   );
 }

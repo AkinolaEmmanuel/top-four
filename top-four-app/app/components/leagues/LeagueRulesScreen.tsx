@@ -1,333 +1,243 @@
 'use client';
 
+import { useState } from 'react';
+import { LeagueColumn } from './LeagueColumn';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useUpdateLeague } from '@/hooks/api/useLeagues';
+import { useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
+import type { CompetitionRule, MarketRule } from '@/lib/leagues/league-rules';
 
-// Merged from LeagueRulesMobile/LeagueRulesDesktop. Desktop's own top nav
-// (rootNav/avatarInitials/avatarName) was dead -- DesktopLevelOne in the
-// root layout is the real one. Two real bugs found and fixed here:
-//
-// 1. Mobile's "points from one match, at most" hero hardcoded a literal
-//    "40" plus a matching hardcoded breakdown sentence ("2 result + 5
-//    score + ... + 22 lineup"), regardless of the league's actual enabled
-//    markets and point values -- maxPoints/maxNote were computed for
-//    Desktop only and never even reached Mobile's props. Both platforms
-//    now share the same real computation.
-// 2. The terminal-state selector was `isTerminal ? "error" : "error"` --
-//    both branches identical, so the distinct "not found" copy (with its
-//    own "BACK TO MY LEAGUES" action) was unreachable dead code; a
-//    genuinely missing or inaccessible league always showed the generic
-//    "check your connection" message instead. Both "RETRY" and "BACK TO
-//    MY LEAGUES" were also a no-op () => {} regardless of which was shown.
-export function LeagueRulesScreen({
-  theme, params, isLoading, isTerminal, isReady, isOwner,
-  IconMap, TERM, headTitle, headSub, frozenText, showMaxPoints,
-  footNote, retry, leagueName, maxPoints, maxNote,
-  sections, showDanger, dangerLinesMobile,
-  showContext, roleLine, contextTabs, skeletons,
-  termIcon, termIconColor, termTitle, termBody, termAction, termActionStyle,
-  heroStyle, showFrozenBanner, lockIcon,
-  markets, tiebreakers, comps, deadlines, showDangerDesktop, dangerLinesDesktop,
-  showEditable, editable, showLeave,
-}: any) {
+/**
+ * The league rules — one component for both platforms.
+ *
+ * Most of this is frozen and read-only. The settings an owner or admin can
+ * still change are edited in place: the old screen collected a new league name
+ * with `window.prompt` and reported failures with `window.alert`.
+ */
+
+function Frozen({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <>
-      {/* ============ MOBILE ============ */}
-      <div className={`md:hidden flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
-        <header className="bg-[var(--nav-surface)] text-[var(--nav-text)] p-[10px_var(--gutter)_18px] flex-none">
-          <div className="flex items-center gap-[11px]">
-            <Link href={`/leagues/${params.id}/more`} className="tf-tap w-[44px] h-[44px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)]">
-              {IconMap.back(18)}
-            </Link>
-            <div className="min-w-0 flex-1">
-              <div className="font-heading font-[650] text-[18px] leading-[1.1] tracking-[-0.3px]">{headTitle}</div>
-              <div className="font-heading font-medium text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
-            </div>
-          </div>
-
-          {showMaxPoints && (
-            <div className="flex items-end gap-[12px] mt-[18px]">
-              <div className="tf-num font-heading font-bold text-[44px] leading-[0.9] tracking-[-1.8px]">{maxPoints}</div>
-              <div className="pb-[5px] min-w-0">
-                <div className="font-heading font-semibold text-[11.5px]">points from one match, at most</div>
-                <div className="text-[10.5px] leading-[1.45] text-[var(--nav-text-faint)] mt-[3px]">{maxNote}</div>
-              </div>
-            </div>
-          )}
-
-          {isReady && (
-            <div className="mt-[16px] p-[12px_13px] rounded-[11px] bg-[rgba(255,255,255,0.08)] border border-[var(--nav-border)] flex items-start gap-[10px]">
-              <span className="text-[var(--nav-accent)] flex-none mt-[1px]">{IconMap.lock(16)}</span>
-              <span className="font-heading font-medium text-[11.5px] leading-[1.5] text-[var(--nav-text-quiet)]">{frozenText}</span>
-            </div>
-          )}
-        </header>
-
-        <main className="tf-scroll flex-1 overflow-auto pb-[26px]">
-          {isLoading && (
-            <div className="p-[22px_var(--gutter)] flex flex-col gap-[26px]">
-              {[{ w: "72%" }, { w: "58%" }, { w: "66%" }, { w: "49%" }, { w: "70%" }].map((s, i) => (
-                <div key={i} className="flex flex-col gap-[9px]">
-                  <div className="h-[9px] w-[32%] rounded-[4px] bg-[var(--surface-subtle)]"></div>
-                  <div className="h-[12px] rounded-[4px] bg-[var(--surface-subtle)]" style={{ width: s.w }}></div>
-                  <div className="h-[9px] w-[56%] rounded-[4px] bg-[var(--surface-subtle)]"></div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {isTerminal && (
-            <div className="p-[56px_30px] flex flex-col items-center text-center">
-              <div style={{ color: TERM[1] as string }}>{IconMap[TERM[0]](34)}</div>
-              <div className="font-heading font-bold text-[21px] leading-[1.15] tracking-[-0.4px] mt-[22px]">{TERM[2]}</div>
-              <div className="text-[13.5px] leading-[1.6] text-[var(--text-secondary)] mt-[11px] max-w-[284px]">{TERM[3]}</div>
-              <div onClick={retry} className="tf-tap mt-[24px] min-h-[47px] px-[22px] border border-[var(--surface-border-strong)] rounded-[13px] bg-[var(--surface-card)] text-[var(--text-primary)] font-heading font-bold text-[12.5px] flex items-center cursor-pointer">{TERM[4]}</div>
-            </div>
-          )}
-
-          {isReady && (
-            <div>
-              {sections.map((sec: any, i: number) => (
-                <div key={i}>
-                  <div className="p-[20px_var(--gutter)_8px] font-heading font-bold text-[10px] leading-[1] tracking-[0.12em] uppercase text-[var(--text-muted)]">{sec.label}</div>
-                  {sec.hasIntro && (
-                    <div className="p-[0_var(--gutter)_10px] text-[11.5px] leading-[1.55] text-[var(--text-muted)]">{sec.intro}</div>
-                  )}
-                  <div className="border-y border-[var(--surface-border)]">
-                    {sec.lines.map((l: any, j: number) => (
-                      <div key={j} className={l.cls} onClick={l.onClick}>
-                        {l.locked && <span className="w-[15px] h-[15px] flex-none text-[var(--text-muted)]">{IconMap.lock(15)}</span>}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-heading font-semibold text-[13px] leading-[1.25]" style={{ color: l.titleColor }}>{l.title}</div>
-                          {l.hasNote && <div className="text-[10.5px] leading-[1.45] text-[var(--text-muted)] mt-[4px]">{l.note}</div>}
-                        </div>
-                        <span className={`font-heading font-semibold text-[12.5px] leading-[1.3] text-[var(--text-secondary)] text-right flex-none max-w-[150px] ${l.valStyle}`}>{l.value}</span>
-                        {l.chevron && <span className="text-[var(--text-muted)] font-heading font-semibold text-[15px] flex-none">›</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {showDanger && (
-                <div>
-                  <div className="p-[20px_var(--gutter)_8px] font-heading font-bold text-[10px] leading-[1] tracking-[0.12em] uppercase text-[var(--danger-text)]">Ending the league</div>
-                  <div className="border-y border-[var(--surface-border)]">
-                    {dangerLinesMobile.map((d: any, i: number) => (
-                      <div key={i} className="tf-tap flex items-center gap-[12px] p-[16px_var(--gutter)] border-b border-[var(--surface-border)] last:border-b-0 cursor-pointer">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-heading font-semibold text-[13px] leading-[1.25] text-[var(--danger-text)]">{d.title}</div>
-                          <div className="text-[10.5px] leading-[1.45] text-[var(--text-muted)] mt-[4px]">{d.note}</div>
-                        </div>
-                        <span className="text-[var(--text-muted)] font-heading font-semibold text-[15px] flex-none">›</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="p-[18px_var(--gutter)_8px] text-[11px] leading-[1.6] text-[var(--text-muted)] text-center">{footNote}</div>
-            </div>
-          )}
-        </main>
+    <div className="flex items-start gap-[12px] p-[14px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
+      <div className="flex-1 min-w-0">
+        <div className="font-heading font-semibold text-[13px]">{label}</div>
+        {note && <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{note}</div>}
       </div>
+      <div className="text-[12.5px] text-[var(--text-secondary)] text-right flex-none max-w-[45%]">{value}</div>
+    </div>
+  );
+}
 
-      {/* ============ DESKTOP ============ */}
-      <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>
+/** A setting that can still change: a short text field, or an on/off switch. */
+function Editable({ label, value, note, kind, pending, onSave }: {
+  label: string;
+  value: string;
+  note?: string;
+  kind: 'text' | 'switch';
+  pending: boolean;
+  onSave: (next: string | boolean) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const on = value === 'On' || value === 'Required';
 
-        {showContext && (
-          <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[20px] px-[24px] h-[54px]">
-            <div className="flex items-center gap-[10px] pb-[11px]">
-              <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">{leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG'}</span>
-              <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">{leagueName || 'League'}</span>
-              <span className="text-[11px] text-[var(--text-muted)]">{roleLine}</span>
-            </div>
-            <div className="flex items-center gap-[2px] ml-auto">
-              {contextTabs.map((t: any, i: number) => {
-                const leagueId = params?.id || '';
-                const route = t.label === 'Overview' ? `/leagues/${leagueId}` : `/leagues/${leagueId}/${t.label.toLowerCase()}`;
-                return (
-                  <Link href={route} key={i} style={t.style}>{t.label}</Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="tf-scroll flex-1 overflow-y-auto">
-          <div className="max-w-[1080px] mx-auto px-[24px] pb-[30px]">
-
-            {isLoading && (
-              <div>
-                <div className="bg-[var(--nav-surface)] py-[24px] pb-[26px]">
-                  <div className="flex items-end gap-[20px]">
-                    <div className="w-[96px] h-[48px] rounded-[10px] bg-[rgba(255,255,255,0.13)]"></div>
-                    <div className="flex-1 flex flex-col gap-[9px] pb-[4px]">
-                      <div className="w-[210px] h-[12px] rounded-full bg-[rgba(255,255,255,0.12)]"></div>
-                      <div className="w-[46%] h-[10px] rounded-full bg-[rgba(255,255,255,0.08)]"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="pt-[22px] grid grid-cols-[minmax(0,1fr)_360px] gap-[18px] items-start">
-                  <div>
-                    {skeletons.map((s: any, i: number) => (
-                      <div key={i} className="py-[15px] px-[4px] border-b border-[var(--surface-border)] flex items-center gap-[14px]">
-                        <div className="h-[12px] flex-1 max-w-[100%] rounded-[6px] bg-[var(--surface-subtle)]" style={{ maxWidth: s.w }}></div>
-                        <div className="h-[11px] w-[48px] rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <div className="h-[11px] w-[120px] rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                    <div className="h-[9px] w-[80%] mt-[12px] rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                    <div className="h-[9px] w-[66%] mt-[8px] rounded-[6px] bg-[var(--surface-subtle)]"></div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {isTerminal && (
-              <div className="py-[120px] px-[30px] flex flex-col items-center text-center">
-                <div style={{ color: termIconColor }}>{termIcon}</div>
-                <div className="font-heading font-bold text-[26px] leading-[1.15] tracking-[-0.5px] mt-[20px]">{termTitle}</div>
-                <div className="text-[14px] leading-[1.55] text-[var(--text-secondary)] mt-[11px] max-w-[460px]">{termBody}</div>
-                <div onClick={retry} style={termActionStyle}>{termAction}</div>
-              </div>
-            )}
-
-            {isReady && (
-              <div>
-                {showMaxPoints && (
-                  <div style={heroStyle}>
-                    <div className="flex items-end gap-[20px]">
-                      <span className="font-heading font-bold text-[56px] leading-[0.86] tracking-[-2.4px] font-tabular-nums">{maxPoints}</span>
-                      <div className="flex-1 min-w-0 pb-[5px]">
-                        <div className="font-heading font-semibold text-[13.5px]">points from one match, at most</div>
-                        <div className="text-[11.5px] leading-[1.5] text-[var(--nav-text-faint)] mt-[4px] max-w-[64ch]">{maxNote}</div>
-                      </div>
-                    </div>
-                    {showFrozenBanner && (
-                      <div className="flex items-center gap-[12px] mt-[18px] pt-[15px] border-t border-[var(--nav-border)]">
-                        <span className="text-[var(--nav-text-faint)] flex-none">{lockIcon}</span>
-                        <div className="flex-1 text-[12px] leading-[1.5] text-[var(--nav-text-faint)]">{frozenText}</div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-[18px] mt-[22px] items-start">
-                  <div className="flex flex-col gap-[16px]">
-                    <div>
-                      <div className="px-[4px] pb-[12px] border-b border-[var(--surface-border-strong)]">
-                        <div className="font-heading font-bold text-[14px]">Scoring</div>
-                        <div className="text-[11.5px] text-[var(--text-muted)] mt-[4px]">Frozen when the league was published</div>
-                      </div>
-                      {markets.map((m: any, i: number) => (
-                        <div key={i} style={m.rowStyle}>
-                          <span style={m.swatchStyle}></span>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-heading font-semibold text-[13.5px]" style={{ color: m.nameColor }}>{m.name}</div>
-                            <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">{m.note}</div>
-                          </div>
-                          <span style={m.ptsStyle}>{m.pts}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="pt-[22px] mt-[22px] border-t border-[var(--surface-border)]">
-                      <div className="font-heading font-bold text-[14px]">Tiebreakers, in order</div>
-                      <div className="text-[11.5px] text-[var(--text-muted)] mt-[4px]">Applied top down. Anything not listed never separates two members.</div>
-                      <div className="grid grid-cols-2 gap-[9px] mt-[14px]">
-                        {tiebreakers.map((t: any, i: number) => (
-                          <div key={i} className="flex items-center gap-[11px] p-[11px_13px] rounded-[11px] bg-[var(--surface-subtle)]">
-                            <span className="font-semibold text-[11px] font-[ui-monospace,Menlo,monospace] text-[var(--text-muted)] flex-none">{t.n}</span>
-                            <span className="text-[12px]">{t.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {showDangerDesktop && (
-                      <div className="pt-[22px] mt-[22px] border-t border-[var(--surface-border)]">
-                        <div className="font-heading font-bold text-[14px] text-[var(--danger-text)]">Ending this league</div>
-                        <div className="flex flex-col gap-[12px] mt-[12px]">
-                          {dangerLinesDesktop.map((d: any, i: number) => (
-                            <div key={i} className="flex items-start gap-[14px] pt-[12px] border-t border-[var(--surface-border)]">
-                              <div className="flex-1 min-w-0">
-                                <div className="font-heading font-semibold text-[13px]">{d.label}</div>
-                                <div className="text-[11.5px] text-[var(--text-muted)] leading-[1.5] mt-[3px]">{d.note}</div>
-                              </div>
-                              <div style={d.btnStyle}>{d.action}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {showLeave && (
-                      <div className="pt-[22px] mt-[22px] border-t border-[var(--surface-border)]">
-                        <div className="font-heading font-bold text-[14px] text-[var(--danger-text)]">Leaving</div>
-                        <div className="text-[12px] text-[var(--text-secondary)] leading-[1.55] mt-[6px] max-w-[60ch]">Your points and answers stay in the table — leaving stops you playing on, it does not remove what you already did. You would need a fresh invitation to come back.</div>
-                        <div className="mt-[14px] px-[18px] h-[42px] w-[180px] rounded-[11px] border border-[var(--color-danger)] text-[var(--danger-text)] grid place-items-center font-heading font-semibold text-[12.5px] cursor-pointer">Leave this league</div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-[16px]">
-                    <div className="pb-[20px] border-b border-[var(--surface-border)]">
-                      <div className="font-heading font-bold text-[14px]">Deadlines</div>
-                      <div className="mt-[11px]">
-                        {deadlines.map((d: any, i: number) => (
-                          <div key={i} className="flex items-baseline justify-between gap-[12px] py-[11px] border-t border-[var(--surface-border)]">
-                            <div className="min-w-0">
-                              <div className="text-[12.5px]">{d.label}</div>
-                              <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{d.note}</div>
-                            </div>
-                            <span className="font-heading font-semibold text-[12.5px] flex-none text-right">{d.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pb-[20px] border-b border-[var(--surface-border)]">
-                      <div className="font-heading font-bold text-[14px]">Competitions</div>
-                      <div className="flex flex-col gap-[9px] mt-[12px]">
-                        {comps.map((c: any, i: number) => (
-                          <div key={i} className="flex items-center gap-[11px]">
-                            <span style={c.abbrStyle}>{c.abbr}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[12.5px] whitespace-nowrap overflow-hidden text-ellipsis">{c.name}</div>
-                              <div className="text-[10.5px] text-[var(--text-muted)] mt-[2px]">{c.scope}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {showEditable && (
-                      <div className="pb-[20px] border-b border-[var(--surface-border)]">
-                        <div className="font-heading font-bold text-[14px]">Still editable</div>
-                        <div className="flex flex-col mt-[6px]">
-                          {editable.map((e: any, i: number) => (
-                            <div key={i} onClick={e.onClick} className="flex items-center gap-[12px] py-[12px] border-t border-[var(--surface-border)] cursor-pointer">
-                              <div className="flex-1 min-w-0">
-                                <div className="font-heading font-semibold text-[12.5px]">{e.label}</div>
-                                <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{e.note}</div>
-                              </div>
-                              <span className="text-[15px] text-[var(--text-muted)]">›</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="text-[11.5px] text-[var(--text-muted)] leading-[1.55] mt-[18px] max-w-[78ch]">{footNote}</div>
-              </div>
-            )}
-          </div>
+  if (kind === 'switch') {
+    return (
+      <div className="flex items-center gap-[12px] p-[14px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
+        <div className="flex-1 min-w-0">
+          <div className="font-heading font-semibold text-[13px]">{label}</div>
+          {note && <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{note}</div>}
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label={label}
+          disabled={pending}
+          onClick={() => onSave(!on)}
+          className={`w-[44px] h-[26px] rounded-full flex-none relative transition-colors ${pending ? 'opacity-55' : 'cursor-pointer'}`}
+          style={{ background: on ? 'var(--color-brand)' : 'var(--surface-border-strong)' }}
+        >
+          <span className="absolute top-[3px] w-[20px] h-[20px] rounded-full bg-[var(--tf-white)] transition-[left]" style={{ left: on ? '21px' : '3px' }} />
+        </button>
       </div>
-    </>
+    );
+  }
+
+  return (
+    <div className="p-[14px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
+      <div className="flex items-center gap-[12px]">
+        <div className="flex-1 min-w-0">
+          <div className="font-heading font-semibold text-[13px]">{label}</div>
+          {!editing && <div className="text-[12.5px] text-[var(--text-secondary)] mt-[3px] truncate">{value}</div>}
+        </div>
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => { setDraft(value); setEditing(true); }}
+            className="tf-hit font-heading font-bold text-[10.5px] text-[var(--text-link)] flex-none"
+          >
+            EDIT
+          </button>
+        )}
+      </div>
+
+      {editing && (
+        <form
+          className="flex items-center gap-[8px] mt-[10px]"
+          onSubmit={e => { e.preventDefault(); setEditing(false); if (draft.trim() !== value) onSave(draft.trim()); }}
+        >
+          <input
+            autoFocus
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            aria-label={label}
+            className="flex-1 h-[40px] px-[12px] rounded-[10px] border border-[var(--surface-border-strong)] bg-[var(--surface-canvas)] text-[13px] text-[var(--text-primary)]"
+          />
+          <button type="submit" disabled={pending} className="h-[40px] px-[14px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[12px]">Save</button>
+          <button type="button" onClick={() => setEditing(false)} className="h-[40px] px-[12px] rounded-[10px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12px]">Cancel</button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+export function LeagueRulesScreen({
+  leagueId, leagueName, description, version, canEdit, markets, competitions,
+  maxPoints, maxNote, tiebreakers, lockMinutes, lateJoin,
+  invitationsOn, approvalRequired, remindersOn,
+}: {
+  leagueId: string;
+  leagueName: string;
+  description: string;
+  version: number;
+  canEdit: boolean;
+  markets: MarketRule[];
+  competitions: CompetitionRule[];
+  maxPoints: number;
+  maxNote: string;
+  tiebreakers: string[];
+  lockMinutes: number;
+  lateJoin: string;
+  invitationsOn: boolean;
+  approvalRequired: boolean;
+  remindersOn: boolean;
+}) {
+  const router = useRouter();
+  const updateLeague = useUpdateLeague(leagueId);
+  const updatePreferences = useUpdateNotificationPreferences();
+  const [failed, setFailed] = useState<string | null>(null);
+
+  const save = (payload: Parameters<typeof updateLeague.mutate>[0], what: string) => {
+    setFailed(null);
+    updateLeague.mutate(payload, {
+      onSuccess: () => router.refresh(),
+      onError: () => setFailed(`${what} did not save — nothing was changed.`),
+    });
+  };
+
+  return (
+    <LeagueColumn className="md:pt-[20px]">
+
+
+
+
+          {/* The number the screen exists to justify, before the prose that
+              explains it. This opened on the paragraph, with the figure buried
+              in a table further down. */}
+          <section className="flex items-end gap-[12px] p-[16px_var(--gutter)_0] md:px-[6px]">
+            <span className="tf-num font-heading font-bold text-[40px] md:text-[46px] leading-[0.88] tracking-[-1.8px]">
+              {maxPoints}
+            </span>
+            <div className="pb-[5px]">
+              <div className="font-heading font-semibold text-[12.5px]">points from one match, at most</div>
+              <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{maxNote}</div>
+            </div>
+          </section>
+
+          {/* The frozen warning is the screen's one rule, not a footnote. */}
+          <div className="m-[16px_var(--gutter)] md:mx-[6px] p-[13px_15px] rounded-[12px] bg-[var(--nav-surface)] text-[var(--nav-text)]">
+            <p className="text-[11.5px] leading-[1.6]">
+              These froze when the league was published. Members answered under them, so they cannot
+              change while it runs.
+            </p>
+          </div>
+
+          <section className="mt-[8px]">
+            <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Competitions</div>
+            {competitions.length === 0
+              ? <p className="px-[var(--gutter)] md:px-[6px] text-[12px] text-[var(--text-secondary)]">No competitions on this league.</p>
+              : competitions.map(c => <Frozen key={c.name} label={c.name} value={c.season} note={c.scope} />)}
+          </section>
+
+          <section className="mt-[22px]">
+            <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Markets and points</div>
+            {markets.filter(m => m.enabled).map(m => <Frozen key={m.marketType} label={m.label} value={m.price} note={m.note} />)}
+            {markets.some(m => !m.enabled) && (
+              <p className="p-[12px_var(--gutter)] md:px-[6px] text-[11px] text-[var(--text-muted)]">
+                Not run here: {markets.filter(m => !m.enabled).map(m => m.label).join(', ')}.
+              </p>
+            )}
+          </section>
+
+          <section className="mt-[22px]">
+            <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Timing and joining</div>
+            <Frozen label="Standard lock" value={`${lockMinutes} minutes before`} note="Applies to every market except the lineups" />
+            <Frozen label="Lineup lock" value="2 hours before" note="Fixed by TopFour — the standard lock never applies to it" />
+            <Frozen label="Custom questions" value="Per question" note="Set when the question is written, and locked once somebody answers" />
+            <Frozen label="Late joining" value={lateJoin} note="A late member starts on zero and cannot answer locked matches" />
+          </section>
+
+          <section className="mt-[22px]">
+            <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Tiebreakers</div>
+            {tiebreakers.map((label, i) => <Frozen key={label} label={`${i + 1} · ${label}`} value="" />)}
+          </section>
+
+          {canEdit && (
+            <section className="mt-[26px]">
+              <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Still changeable</div>
+              <Editable
+                label="Name" value={leagueName} kind="text" pending={updateLeague.isPending}
+                onSave={next => save({ expectedVersion: version, name: String(next) }, 'The name')}
+              />
+              <Editable
+                label="Description" value={description || 'No description'} kind="text" pending={updateLeague.isPending}
+                onSave={next => save({ expectedVersion: version, description: String(next) || null }, 'The description')}
+              />
+              <Editable
+                label="Invitation links" value={invitationsOn ? 'On' : 'Off'} kind="switch" pending={updateLeague.isPending}
+                note="Anyone with a link can request to join"
+                onSave={next => save({ expectedVersion: version, invitationSettings: { enabled: Boolean(next) } }, 'That setting')}
+              />
+              <Editable
+                label="Approve new members" value={approvalRequired ? 'Required' : 'Automatic'} kind="switch" pending={updateLeague.isPending}
+                note="You or an admin approves every request"
+                onSave={next => save({ expectedVersion: version, invitationSettings: { joinApprovalRequired: Boolean(next) } }, 'That setting')}
+              />
+            </section>
+          )}
+
+          <section className="mt-[22px]">
+            <div className="tf-kicker px-[var(--gutter)] md:px-[6px] pb-[8px] text-[var(--text-muted)]">Your reminders</div>
+            <Editable
+              label="Deadline reminders" value={remindersOn ? 'On' : 'Off'} kind="switch"
+              pending={updatePreferences.isPending}
+              note="We never promise a send time"
+              onSave={next => {
+                setFailed(null);
+                updatePreferences.mutate({ roundReminder: Boolean(next) }, {
+                  onSuccess: () => router.refresh(),
+                  onError: () => setFailed('That setting did not save — nothing was changed.'),
+                });
+              }}
+            />
+          </section>
+
+          {failed && <p role="alert" className="px-[var(--gutter)] md:px-[6px] pt-[14px] text-[11.5px] text-[var(--danger-text)]">{failed}</p>}
+
+          <p className="p-[20px_var(--gutter)_26px] md:px-[6px] text-[11px] leading-[1.6] text-[var(--text-muted)]">
+            Changing anything frozen would mean members had answered under different rules. That is why the only route is completing this league and starting another.
+          </p>
+    </LeagueColumn>
   );
 }

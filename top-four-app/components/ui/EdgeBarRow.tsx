@@ -24,7 +24,7 @@ export default function EdgeBarRow({
   };
 
   return (
-    <div
+    <button type="button"
       onClick={onClick}
       className={`w-full bg-[var(--surface-card)] border-b border-[var(--surface-border)] p-3.5 flex items-center justify-between transition-colors hover:bg-white/5 cursor-pointer ${edgeColors[obligation]}`}
     >
@@ -42,6 +42,6 @@ export default function EdgeBarRow({
         )}
       </div>
       {children}
-    </div>
+    </button>
   );
 }

@@ -1,58 +1,46 @@
 'use client';
 
-import { useEffect } from 'react';
-
+/**
+ * The last resort: a failure in the root layout itself.
+ *
+ * This replaces the whole document, so it cannot use the app's chrome or its
+ * tokens — the stylesheet is part of what may have failed. Everything here is
+ * self-contained and deliberately plain.
+ */
 export default function GlobalError({
-  error,
-  reset,
+  error, reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error(error);
-  }, [error]);
-
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          minHeight: '100dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '24px',
-          background: '#0b0d10',
-          color: '#f4f5f6',
-          fontFamily: "'DM Sans', system-ui, sans-serif",
-        }}
-      >
-        <h1 style={{ fontSize: '19px', fontWeight: 700, margin: 0 }}>
-          TopFour hit a problem
-        </h1>
-        <p style={{ fontSize: '13px', color: '#9aa0a8', marginTop: '8px', maxWidth: '360px', lineHeight: 1.5 }}>
-          Something went wrong loading the app itself. Reloading usually fixes it.
-        </p>
-        <button
-          onClick={reset}
-          style={{
-            marginTop: '22px',
-            height: '42px',
-            padding: '0 20px',
-            borderRadius: '11px',
-            border: 'none',
-            background: '#45bceb',
-            color: '#04121a',
-            fontWeight: 700,
-            fontSize: '13px',
-            cursor: 'pointer',
-          }}
-        >
-          Try again
-        </button>
+      <body style={{ margin: 0, background: '#09111d', color: '#f3f6fa', fontFamily: "'Sora', system-ui, sans-serif" }}>
+        <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24 }}>
+          <div style={{ maxWidth: 420, textAlign: 'center' }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', margin: 0 }}>
+              Something went wrong at our end
+            </h1>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6, color: '#b3bdca', marginTop: 10 }}>
+              This one is not your connection and not anything you did. Nothing you had saved is affected.
+            </p>
+            {error.digest && (
+              <p style={{ fontSize: 11.5, color: '#9aa6b5', marginTop: 18, fontFamily: 'ui-monospace, monospace' }}>
+                Reference {error.digest}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={reset}
+              style={{
+                marginTop: 22, height: 48, padding: '0 24px', borderRadius: 12, border: 'none',
+                background: '#087bb8', color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
       </body>
     </html>
   );

@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Breadcrumb } from '../../components/Breadcrumb';
 import { useChangePassword } from '@/hooks/api/useAccount';
+import { failureMessage } from '@/lib/api/failure';
 
 export default function PasswordPage() {
   const router = useRouter();
@@ -37,19 +39,19 @@ export default function PasswordPage() {
           setSuccess(true);
           setTimeout(() => router.push('/me'), 1500);
         },
-        onError: (err: any) => {
-          setError(err.message || 'Failed to update password');
-        }
+        onError: error => setError(failureMessage(error, 'Failed to update password.')),
       }
     );
   };
 
   return (
-    <div className="flex-1 bg-[var(--surface-canvas)] flex flex-col min-h-0 text-[var(--text-primary)] font-['Sora',sans-serif] overflow-y-auto">
+    <div className="flex-1 bg-[var(--surface-canvas)] flex flex-col min-h-0 text-[var(--text-primary)] font-['Sora',sans-serif] overflow-hidden">
+      <Breadcrumb trail={[{ label: 'Me', href: '/me' }, { label: 'Password' }]} />
+      <div className="flex-1 min-h-0 overflow-y-auto tf-scroll">
       <div className="max-w-[700px] w-full mx-auto p-[24px_20px] md:p-[40px_32px] flex flex-col gap-[24px]">
         {/* Header / Breadcrumbs */}
         <div className="flex items-center gap-[12px] pb-[16px] border-b border-[var(--surface-border)]">
-          <Link href="/me" className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-[6px] transition-colors">
+          <Link href="/me" className="tf-hit text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-[6px] transition-colors">
             <span>‹</span> Account Settings
           </Link>
           <span className="text-[var(--surface-border-strong)]">/</span>
@@ -65,10 +67,11 @@ export default function PasswordPage() {
 
           <div className="mt-[24px] space-y-[18px]">
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="current-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 Current Password
               </label>
               <input 
+                id="current-password"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -78,10 +81,11 @@ export default function PasswordPage() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="new-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 New Password
               </label>
               <input 
+                id="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -94,10 +98,11 @@ export default function PasswordPage() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="confirm-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 Confirm New Password
               </label>
               <input 
+                id="confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -122,7 +127,7 @@ export default function PasswordPage() {
               <button 
                 onClick={handleSave}
                 disabled={!newPassword.trim() || changePassword.isPending}
-                className="h-[46px] px-[24px] rounded-[11px] bg-[var(--color-brand)] hover:bg-[var(--color-brand)]/90 text-white font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)] disabled:opacity-50 transition-all cursor-pointer"
+                className="h-[46px] px-[24px] rounded-[11px] bg-[var(--brand-fill)] hover:bg-[var(--color-brand-hover)] text-white font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)] disabled:opacity-50 transition-all cursor-pointer"
               >
                 {changePassword.isPending ? 'Updating...' : 'Update Password'}
               </button>
@@ -136,6 +141,7 @@ export default function PasswordPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -1,187 +1,66 @@
-'use client';
-
-import { useState } from 'react';
+import { redirect } from 'next/navigation';
 import { MeScreen } from '../components/me/MeScreen';
-import { useAuth } from '@/context/auth-context';
-import { useMyLeagues } from '@/hooks/api/useLeagues';
-import { useOwnPointsHistory } from '@/hooks/api/usePoints';
+import {
+  serverFetch, serverFetchOrNull, serverFetchAllPagesOrEmpty, NotAuthenticatedError,
+} from '@/lib/api/server-fetch';
+import { ApiError } from '@/lib/api/fetcher';
+import { primaryLeague, toFormBars, toMeLeagueRow, totalPointsAcross } from '@/lib/me/me-data';
+import type { Api } from '@/lib/api/types';
+import type { LeagueListItem, LeaguesPage } from '@/lib/api/leagues';
 
-import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/api/useNotifications';
+/**
+ * The account screen, fetched on the server.
+ *
+ * The form chart needs a league before it can be read, so that one read is
+ * dependent; everything else runs together.
+ */
 
-const CLUB: Record<string, string> = { PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f", SS: "#1746a2", FC: "#b7152b", UN: "#0e7a5f", NB: "#7f56d9", WW: "#c8182f" };
+type Me = Api<'CurrentAuthenticationResponseDto'>;
+type Preferences = Api<'NotificationPreferencesResponseDto'>;
+type History = Api<'PointsHistoryPageResponseDto'>;
 
-function ordinal(n: number): string {
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
-  switch (n % 10) {
-    case 1: return `${n}st`;
-    case 2: return `${n}nd`;
-    case 3: return `${n}rd`;
-    default: return `${n}th`;
+export default async function MePage() {
+  let me: Me;
+  /* Every page: 20 per page, and archived leagues do not count against the
+     twenty-league cap, so an old account can hold more than one page. */
+  let leagues: { items: LeagueListItem[] };
+  let preferences: Preferences | null;
+
+  try {
+    [me, leagues, preferences] = await Promise.all([
+      serverFetch<Me>('/auth/me'),
+      serverFetchAllPagesOrEmpty<LeagueListItem, LeaguesPage>('/leagues'),
+      serverFetchOrNull<Preferences>('/me/notification-preferences'),
+    ]);
+  } catch (error) {
+    if (error instanceof NotAuthenticatedError) redirect('/?redirect=/me');
+    if (error instanceof ApiError && error.status === 401) redirect('/?redirect=/me');
+    throw error;
   }
-}
 
-export default function MePage() {
-  const { user, signOut, isLoading: authLoading } = useAuth();
-  const { data: leaguesData } = useMyLeagues();
-  const { data: prefData } = useNotificationPreferences();
-  const { mutate: updatePref } = useUpdateNotificationPreferences();
+  const items = leagues.items;
+  const chartLeague = primaryLeague(items);
 
-  // The app is dark-only (see app/layout.tsx); this was dead state with no
-  // real toggle anywhere.
-  const theme = 'dark';
-  const setTheme = () => {};
-
-  const prefs = {
-    reminders: prefData?.roundReminder ?? true,
-    questions: prefData?.customQuestionAdmin ?? true,
-  };
-
-  const setPrefs = (update: any) => {
-    let newPrefs;
-    if (typeof update === 'function') {
-      newPrefs = update(prefs);
-    } else {
-      newPrefs = { ...prefs, ...update };
-    }
-    updatePref({
-      roundReminder: newPrefs.reminders,
-      customQuestionAdmin: newPrefs.questions,
-    });
-  };
-
-  const emailUnverified = user ? user.emailVerified === false : false;
-  const noGoogle = !!user?.signInMethods && !user.signInMethods.includes('google');
-
-  // The points-history endpoint is per-league, but this screen is
-  // account-wide -- show the user's most recently active league's form
-  // rather than nothing at all. Ledger entries carry no explicit "round"
-  // number, so group by calendar day as a reasonable stand-in (fixtures in
-  // the same round cluster on the same day or weekend).
-  const primaryLeague = leaguesData?.items.find(l => l.lifecycleState === 'in_progress' || l.lifecycleState === 'published')
-    || leaguesData?.items[0];
-  const { data: historyPage } = useOwnPointsHistory(primaryLeague?.id || '');
-
-  const HISTORY = (() => {
-    if (!historyPage?.data?.length) return [] as { label: string; v: number; corrected?: boolean }[];
-    const byDay = new Map<string, { v: number; corrected: boolean }>();
-    for (const entry of historyPage.data) {
-      const day = new Date(entry.occurredAt).toISOString().slice(0, 10);
-      const existing = byDay.get(day) || { v: 0, corrected: false };
-      existing.v += entry.delta;
-      if (entry.kind === 'correction') existing.corrected = true;
-      byDay.set(day, existing);
-    }
-    return Array.from(byDay.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-10)
-      .map(([day, { v, corrected }]) => ({
-        label: new Date(day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-        v: Math.max(v, 0), corrected
-      }));
-  })();
-
-  const max = HISTORY.length > 0 ? Math.max(...HISTORY.map(h => h.v)) : 1;
-  // Mobile chart (70px max height)
-  const chartMobile = HISTORY.map(h => ({
-    label: h.label, corrected: h.corrected,
-    barStyle: `w-full rounded-t-[4px] ${h.corrected ? 'bg-[var(--state-provisional)]' : 'bg-[var(--color-brand)]'}`,
-    height: Math.round(h.v / max * 70)
-  }));
-  // Desktop chart (150px max height, show values)
-  const chartDesktop = HISTORY.map(h => ({
-    label: h.label, corrected: h.corrected, value: String(h.v),
-    barStyle: `w-full rounded-t-[5px] ${h.corrected ? 'bg-[var(--state-provisional)]' : 'bg-[var(--color-brand)]'}`,
-    barHeight: Math.round(h.v / max * 110)
-  }));
-
-  const liveLeagues = leaguesData?.items.map((l, i, a) => ({
-    id: l.id,
-    crest: l.name.substring(0, 2).toUpperCase(),
-    bg: CLUB[l.name.substring(0, 2).toUpperCase()] || CLUB.PP,
-    name: l.name,
-    // The league-list endpoint's ownStanding carries position/points only --
-    // no member count, and fetching each league's dashboard just for this
-    // subtitle would be an N-request cost for a cosmetic line. Show the real
-    // position on its own rather than pairing it with a fake or expensive
-    // denominator.
-    meta: l.ownStanding?.position ? ordinal(l.ownStanding.position) : (l.competitions?.length ? l.competitions[0].displayName : ''),
-    points: String(l.ownStanding?.totalPoints || '-'),
-    isLast: i === a.length - 1
-  }));
-
-  const leagues = liveLeagues || [];
-  const totalPoints = (leaguesData?.items || []).reduce((sum, l) => sum + (l.ownStanding?.totalPoints || 0), 0);
-  const leagueCount = leaguesData?.items.length || 0;
-
-  const emailDisplay = user?.email || "";
-  const nameDisplay = user?.displayName || "";
-
-  const ACCOUNT = [
-    { title: "Display name", note: `${nameDisplay} · shown on every leaderboard`, href: "/me/name" },
-    { title: "Change password", note: "Needs your current one. This session stays open, others do not.", href: "/me/password" },
-    { title: "Email address", note: emailUnverified ? `${emailDisplay} · not yet verified` : `${emailDisplay} · verified`, badge: emailUnverified ? "UNVERIFIED" : "", tone: emailUnverified ? "warn" : "", href: "/me/email" },
-    { title: "Google", note: noGoogle ? "Not linked · sign in with your password only" : `Linked to ${emailDisplay}` }
-  ];
-
-  const EMAILS = [
-    { title: "Account security", note: "Sign-ins, password and email changes. Always sent.", locked: true }
-  ];
-
-  const DANGER = [
-    { title: "Sign out", note: "This device only. Your other sessions stay signed in.", action: signOut }
-  ];
-
-  const mkRow = (r: any, i: number, a: any[]) => {
-    const hasSwitch = !!r.toggle || r.locked;
-    const on = r.locked ? true : !!prefs[r.toggle as keyof typeof prefs];
-    return {
-      title: r.title, note: r.note, badge: r.badge || "",
-      titleColor: r.tone === "danger" ? "var(--danger-text)" : r.locked ? "var(--text-muted)" : "var(--text-primary)",
-      hasSwitch, on, toggleId: r.toggle, locked: r.locked,
-      action: r.action, href: r.href,
-      isLast: i === a.length - 1
-    };
-  };
-
-  const groups = [
-    { label: "ACCOUNT", labelColor: "var(--text-muted)", rows: ACCOUNT.map(mkRow) },
-    { label: "SIGNING OUT", labelColor: "var(--text-muted)", rows: DANGER.map(mkRow) }
-  ];
-
-  // Desktop-specific row formatters
-  const accountRows = ACCOUNT.map((r: any) => ({
-    title: r.title, note: r.note, badge: r.badge || "",
-    titleColor: r.tone === "danger" ? "var(--danger-text)" : "var(--text-primary)", href: r.href
-  }));
-
-  const emailPrefs = EMAILS.map((r: any) => {
-    const on = r.locked ? true : !!prefs[r.toggle as keyof typeof prefs];
-    return {
-      label: r.title, note: r.note, on, locked: r.locked, toggleId: r.toggle,
-      color: r.locked ? "var(--text-muted)" : "var(--text-primary)"
-    };
-  });
+  const history = chartLeague
+    ? await serverFetchOrNull<History>(`/leagues/${chartLeague.id}/standings/me/history?limit=40`)
+    : null;
 
   return (
-    <div className="flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative">
-      <MeScreen
-        user={user}
-        theme={theme}
-        isLoading={authLoading}
-        prefs={prefs}
-        setPrefs={setPrefs}
-        chartMobile={chartMobile}
-        chartDesktop={chartDesktop}
-        leagues={leagues}
-        totalPoints={totalPoints}
-        leagueCount={leagueCount}
-        groups={groups}
-        accountRows={accountRows}
-        emailPrefs={emailPrefs}
-        emailUnverified={emailUnverified}
-        signOut={signOut}
-      />
-    </div>
+    <MeScreen
+      displayName={me.user.displayName}
+      email={me.user.email}
+      emailVerified={me.user.emailVerified}
+      hasGoogle={me.signInMethods.includes('google')}
+      leagues={items.map(toMeLeagueRow)}
+      totalPoints={totalPointsAcross(items)}
+      form={toFormBars(history?.data ?? [])}
+      formLeagueName={chartLeague?.name ?? null}
+      preferences={{
+        // Both default on, which is what the API does for an account that has
+        // never changed them.
+        roundReminder: preferences?.data.round_reminder ?? true,
+        customQuestionAdmin: preferences?.data.custom_question_admin ?? true,
+      }}
+    />
   );
 }

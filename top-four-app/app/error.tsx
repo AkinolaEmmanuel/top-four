@@ -1,46 +1,84 @@
 'use client';
 
-import { useEffect } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { ProblemState } from './components/ProblemState';
+import { ApiError } from '@/lib/api/fetcher';
 
-export default function Error({
-  error,
-  reset,
+/**
+ * The unexpected-failure boundary.
+ *
+ * Two states, because the commonest reason a page throws is that the device
+ * lost its connection, and telling someone "something went wrong at our end"
+ * when their wifi dropped is simply wrong.
+ *
+ * The reference is the API's `requestId` where we have one; Next.js strips the
+ * details off server-side errors in production and leaves only `digest`, so
+ * that stands in when it does. Neither is the raw `detail` string, which stays
+ * in the logs where it belongs.
+ */
+export default function AppError({
+  error, reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [offline, setOffline] = useState(false);
+
   useEffect(() => {
-    console.error(error);
+    // Read at mount rather than during render: navigator is not there on the
+    // server, and the value can change while this screen is open.
+    const sync = () => setOffline(!navigator.onLine);
+    sync();
+    window.addEventListener('online', sync);
+    window.addEventListener('offline', sync);
+    return () => {
+      window.removeEventListener('online', sync);
+      window.removeEventListener('offline', sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    console.error('[unhandled]', error);
   }, [error]);
 
+  if (offline) {
+    return (
+      <ProblemState
+        icon="cloud"
+        title="You're offline"
+        body="TopFour needs a connection. Predictions are never queued to send later — a deadline could pass while an answer sat on your phone, and you would believe it was in."
+      >
+        <RetryButton onRetry={reset} label="Try again" />
+      </ProblemState>
+    );
+  }
+
+  // `digest` lives on the boundary's own error object, so it is read before
+  // narrowing to ApiError drops the intersection.
+  const digest = error.digest;
+  const reference = error instanceof ApiError ? error.requestId ?? digest : digest;
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] px-6 text-center bg-[var(--surface-canvas)] text-[var(--text-primary)]">
-      <div className="w-14 h-14 rounded-full bg-[rgba(239,68,68,0.1)] border border-[var(--color-danger)] grid place-items-center mb-5">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger-text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 9v4" />
-          <path d="M12 17h.01" />
-          <circle cx="12" cy="12" r="9" />
-        </svg>
-      </div>
-      <h1 className="font-heading font-bold text-[19px] tracking-[-0.3px]">Something went wrong</h1>
-      <p className="text-[13px] text-[var(--text-secondary)] mt-[8px] max-w-[360px] leading-[1.5]">
-        That page hit an unexpected error. It's on our side, not yours — try again, or head back home.
-      </p>
-      <div className="flex items-center gap-[10px] mt-[22px]">
-        <button
-          onClick={reset}
-          className="h-[42px] px-[20px] rounded-[11px] bg-[var(--color-brand)] hover:bg-[var(--color-brand)]/90 text-white font-heading font-bold text-[13px] transition-colors cursor-pointer"
-        >
-          Try again
-        </button>
-        <Link
-          href="/home"
-          className="h-[42px] px-[20px] grid place-items-center rounded-[11px] border border-[var(--surface-border-strong)] hover:bg-[var(--surface-subtle)] font-heading font-semibold text-[13px] text-[var(--text-secondary)] transition-colors"
-        >
-          Go home
-        </Link>
-      </div>
-    </div>
+    <ProblemState
+      icon="warn"
+      tone="warn"
+      title="Something went wrong at our end"
+      body="This one is not your connection and not anything you did. Nothing you had saved is affected. If it keeps happening, quoting the reference below lets us find this exact request."
+      reference={reference}
+    >
+      <RetryButton onRetry={reset} label="Try again" />
+    </ProblemState>
+  );
+}
+
+function RetryButton({ onRetry, label }: { onRetry: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onRetry}
+      className="tf-tap mt-[22px] h-[48px] px-[24px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px]"
+    >
+      {label}
+    </button>
   );
 }

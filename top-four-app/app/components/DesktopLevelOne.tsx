@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { personInitials } from '@/lib/format';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
+import { ThemeMenu } from './ThemeMenu';
 
 export function DesktopLevelOne() {
   const pathname = usePathname() || '';
@@ -29,7 +31,11 @@ export function DesktopLevelOne() {
 
   return (
     <div className="hidden md:flex flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] h-[56px] w-full z-50 relative">
-    <div className="flex items-center gap-[26px] px-[24px] h-full max-w-[1080px] w-full mx-auto">
+    {/* No inner column. The design runs level one and level two edge to edge
+        with the same 24px padding, so the brand mark sits directly above the
+        league's crest. Capping this one at 1080 and centring it pushed the
+        brand 166px in on a 1365px window while the bar below started at 24. */}
+    <div className="flex items-center gap-[26px] px-[24px] h-full w-full">
       <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
         TOPFOUR<span className="text-[var(--nav-accent)]">/</span>
       </div>
@@ -55,6 +61,8 @@ export function DesktopLevelOne() {
         </Link>
       </div>
       
+      <ThemeMenu />
+
       <Link
         href="/alerts"
         className={`relative flex items-center justify-center w-[36px] h-[36px] rounded-full flex-none cursor-pointer ${pathname.startsWith('/alerts') ? 'bg-[var(--nav-fill)]' : 'opacity-[0.8] hover:opacity-100'}`}
@@ -73,9 +81,12 @@ export function DesktopLevelOne() {
 
       <Link href="/me" className="flex items-center gap-[8px] p-[4px_11px_4px_4px] rounded-full bg-[var(--nav-fill)] flex-none cursor-pointer hover:bg-[rgba(255,255,255,0.15)] transition-colors">
         <div className="w-[26px] h-[26px] rounded-full bg-[var(--avatar-surface)] text-[var(--avatar-text)] grid place-items-center font-heading font-bold text-[10px]">
-          {user?.displayName?.substring(0, 2).toUpperCase() || 'U'}
+          {user?.displayName ? personInitials(user.displayName) : ''}
         </div>
-        <span className="font-heading font-semibold text-[11.5px]">{user?.displayName || 'User'}</span>
+        {/* Nothing rather than "User": the name arrives with the session a tick
+            after paint, and a placeholder that looks like a real account is
+            worse than a gap that fills in. */}
+        <span className="font-heading font-semibold text-[11.5px] min-w-[54px]">{user?.displayName ?? ''}</span>
         <span className="text-[9px] text-[var(--nav-text-faint)]">▼</span>
       </Link>
     </div>

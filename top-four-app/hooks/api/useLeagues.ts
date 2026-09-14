@@ -28,12 +28,12 @@ import {
   transferOwnership,
   leaveLeague,
   fetchLeagueDashboard,
+  fetchLeagueRuleset,
+  LeagueRuleset,
   LeagueDashboard,
   updateLeague,
   UpdateLeaguePayload,
-  cancelJoinRequest,
-  fetchOwnPendingJoinRequests,
-  OwnPendingJoinRequest,
+  cancelJoinRequest
 } from '@/lib/api/leagues';
 
 export function useMyLeagues() {
@@ -48,6 +48,19 @@ export function useLeague(id: string) {
     queryKey: ['leagues', id],
     queryFn: () => fetchLeagueDetails(id),
     enabled: !!id, // Only run the query if we have an ID
+  });
+}
+
+/**
+ * The ruleset freezes at publication and cannot change while the league runs,
+ * so it is worth caching for far longer than ordinary league data.
+ */
+export function useLeagueRuleset(leagueId: string) {
+  return useQuery<LeagueRuleset | null, Error>({
+    queryKey: ['leagues', leagueId, 'ruleset'],
+    queryFn: () => fetchLeagueRuleset(leagueId),
+    enabled: !!leagueId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -157,24 +170,15 @@ export function useProcessJoinRequest(leagueId: string) {
 }
 
 export function useCancelJoinRequest() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ leagueId, requestId }: { leagueId: string; requestId: string }) => cancelJoinRequest(leagueId, requestId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me', 'join-requests'] }),
-  });
-}
-
-export function useOwnPendingJoinRequests() {
-  return useQuery<OwnPendingJoinRequest[], Error>({
-    queryKey: ['me', 'join-requests'],
-    queryFn: () => fetchOwnPendingJoinRequests(),
   });
 }
 
 export function useCreateInvitation(leagueId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ useLimit = 100, label }: { useLimit?: number; label?: string } = {}) => createInvitation(leagueId, useLimit, label),
+    mutationFn: (useLimit: number = 100) => createInvitation(leagueId, useLimit),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'invitations'] }),
   });
 }

@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Breadcrumb } from '../../components/Breadcrumb';
 import { useRequestEmailChange, useResendVerificationEmail } from '@/hooks/api/useAccount';
 import { useAuth } from '@/context/auth-context';
+import { failureMessage } from '@/lib/api/failure';
 
 export default function EmailPage() {
   const { user } = useAuth();
@@ -27,19 +29,19 @@ export default function EmailPage() {
         onSuccess: () => {
           setSuccess(true);
         },
-        onError: (err: any) => {
-          setError(err.message || 'Failed to request email change');
-        }
+        onError: error => setError(failureMessage(error, 'Failed to request the email change.')),
       }
     );
   };
 
   return (
-    <div className="flex-1 bg-[var(--surface-canvas)] flex flex-col min-h-0 text-[var(--text-primary)] font-['Sora',sans-serif] overflow-y-auto">
+    <div className="flex-1 bg-[var(--surface-canvas)] flex flex-col min-h-0 text-[var(--text-primary)] font-['Sora',sans-serif] overflow-hidden">
+      <Breadcrumb trail={[{ label: 'Me', href: '/me' }, { label: 'Email address' }]} />
+      <div className="flex-1 min-h-0 overflow-y-auto tf-scroll">
       <div className="max-w-[700px] w-full mx-auto p-[24px_20px] md:p-[40px_32px] flex flex-col gap-[24px]">
         {/* Header / Breadcrumbs */}
         <div className="flex items-center gap-[12px] pb-[16px] border-b border-[var(--surface-border)]">
-          <Link href="/me" className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-[6px] transition-colors">
+          <Link href="/me" className="tf-hit text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-[6px] transition-colors">
             <span>‹</span> Account Settings
           </Link>
           <span className="text-[var(--surface-border-strong)]">/</span>
@@ -68,10 +70,11 @@ export default function EmailPage() {
 
           <div className="mt-[24px] space-y-[18px]">
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="current-password" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 Current Password (for verification)
               </label>
               <input 
+                id="current-password"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -81,10 +84,11 @@ export default function EmailPage() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
+              <label htmlFor="new-email" className="block text-[12px] font-heading font-semibold text-[var(--text-secondary)] mb-[6px]">
                 New Email Address
               </label>
               <input 
+                id="new-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -108,7 +112,7 @@ export default function EmailPage() {
                 <button 
                   onClick={handleSave}
                   disabled={!email.trim() || email === user?.email || requestEmailChange.isPending}
-                  className="h-[46px] px-[24px] rounded-[11px] bg-[var(--color-brand)] hover:bg-[var(--color-brand)]/90 text-white font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)] disabled:opacity-50 transition-all cursor-pointer"
+                  className="h-[46px] px-[24px] rounded-[11px] bg-[var(--brand-fill)] hover:bg-[var(--color-brand-hover)] text-white font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)] disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {requestEmailChange.isPending ? 'Requesting...' : 'Request Change'}
                 </button>
@@ -123,6 +127,7 @@ export default function EmailPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

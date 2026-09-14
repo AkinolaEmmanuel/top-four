@@ -1,152 +1,123 @@
 import { apiFetch } from './fetcher';
-import { fetchFixturesResultsBatch, FixtureResultsResponse } from './predictions-fixture';
+import type { Api } from './types';
+import { fetchFixtureResultsBatch, type FixtureAvailability } from './predictions-fixture';
 import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
+import { landedScoreFor } from '@/lib/predict/fixture-predict';
 
-export interface LeagueRulesetMarket {
-  marketType: string;
-  enabled: boolean;
-  points: number;
-}
+export type LeagueRulesetMarket = Api<'MarketConfigurationDto'>;
+/** Every market a ruleset can price — the six standard ones plus `lineup`. */
+export type RulesetMarketType = LeagueRulesetMarket['marketType'];
+export type LeagueRuleset = Api<'LeagueRulesetResponseDto'>;
+export type LeagueCompetitionScope = Api<'LeagueScopeResponseDto'>;
 
-export interface LeagueRuleset {
-  state: string;
-  revision: number;
-  lateJoinPolicy: 'allow' | 'close_at_start';
-  totalGoalsLine: number;
-  standardLock: { kind: string; offsetMinutes: number };
-  markets: LeagueRulesetMarket[];
-  tiebreakers: string[];
-}
+/**
+ * A competition scope with its names resolved for display. The scope itself
+ * (season, kind, round bounds) is the league's own; `displayName`/`slug` come
+ * from the league read, and `seasonLabel` from the season catalogue.
+ */
+export type LeagueCompetition = LeagueCompetitionScope & {
+  displayName: string;
+  seasonLabel: string;
+  slug: string;
+};
 
-export interface League {
-  id: string;
-  name: string;
-  description: string;
-  lifecycleState: 'draft' | 'published' | 'in_progress' | 'completed' | 'archived' | 'cancelled';
-  membership: {
-    role: 'owner' | 'admin' | 'participant';
-    state: 'active' | 'former';
-  };
-  version: number;
-  competitions: {
-    supportedCompetitionId: string;
-    seasonId: string;
-    kind: string;
-    firstRound: number | null;
-    lastRound: number | null;
-    displayName: string;
-    seasonLabel: string;
-    slug: string;
-  }[];
-  ruleset?: LeagueRuleset;
-  ownStanding?: any;
-  memberCount?: number;
-  invitationSettings?: any;
-  createdAt: string;
-  updatedAt: string;
-}
+/**
+ * The single-league read. The list endpoint returns a genuinely different and
+ * narrower shape — see `LeagueListItem` — so the two are no longer one type
+ * with everything optional.
+ */
+export type League = Omit<Api<'LeagueReadResponseDto'>, 'competitions'> & {
+  competitions: LeagueCompetition[];
+};
 
-export interface LeaguesPage {
-  items: League[];
-  unfinishedLeagueCount: number;
-  unfinishedLeagueLimit: number;
-  nextCursor: string | null;
-}
-
-export interface OwnPendingJoinRequest {
-  id: string;
-  leagueId: string;
-  leagueName: string;
-  invitationId: string;
-  membershipId: string | null;
-  state: 'pending' | 'approved' | 'rejected' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
-  decidedAt: string | null;
-}
-
-interface OwnPendingJoinRequestsPage {
-  data: OwnPendingJoinRequest[];
-  nextCursor: string | null;
-}
-
-async function fetchOwnPendingJoinRequestsPage(cursor?: string): Promise<OwnPendingJoinRequestsPage> {
-  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-  return apiFetch<OwnPendingJoinRequestsPage>(`/me/join-requests${query}`);
-}
-
-// The "Waiting on approval" section on the Leagues list used to be
-// permanently empty: GET /leagues only ever returns active memberships, so
-// a pending join request could never appear there no matter what. This
-// endpoint is the real fix -- it lists the caller's own pending requests
-// across every league, by design, independent of active membership.
-export async function fetchOwnPendingJoinRequests(): Promise<OwnPendingJoinRequest[]> {
-  const first = await fetchOwnPendingJoinRequestsPage();
-  const items = [...first.data];
-  let cursor = first.nextCursor;
-  while (cursor) {
-    const page = await fetchOwnPendingJoinRequestsPage(cursor);
-    items.push(...page.data);
-    cursor = page.nextCursor;
-  }
-  return items;
-}
+export type LeagueListItem = Api<'LeagueListItemResponseDto'>;
+export type LeaguesPage = Api<'LeagueListResponseDto'>;
 
 async function fetchMyLeaguesPage(cursor?: string): Promise<LeaguesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   return apiFetch<LeaguesPage>(`/leagues${query}`);
 }
 
-// The list endpoint is cursor-paginated at 20 per page -- the same 20 that
-// caps *unfinished* leagues, but archived/cancelled/completed ones don't
-// count against that limit, so an account active for a while can easily
-// have more than 20 leagues total. Every consumer (Leagues page, Me page)
-// expects the complete set to group and count client-side, so follow every
-// page here rather than silently handing back only the first 20.
+/**
+ * Every league the member is in, following the cursor to the end.
+ *
+ * The list is twenty per page — the same twenty that caps *unfinished* leagues,
+ * but completed, cancelled and archived ones do not count against that cap, so
+ * a long-running account holds more than one page. Callers group and count the
+ * whole set client-side, and this used to hand back only the first page, so
+ * anything past twenty was invisible with nothing to say it was missing.
+ *
+ * Bounded, because an unbounded follow is a denial of service against our own
+ * API if a cursor ever stops terminating. `nextCursor` is reported as the page
+ * envelope found it, so a caller can tell a complete list from a stopped one.
+ */
+const MAX_LEAGUE_PAGES = 10;
+
 export async function fetchMyLeagues(): Promise<LeaguesPage> {
   const first = await fetchMyLeaguesPage();
   const items = [...first.items];
   let cursor = first.nextCursor;
-  while (cursor) {
-    const page = await fetchMyLeaguesPage(cursor);
-    items.push(...page.items);
-    cursor = page.nextCursor;
+
+  for (let page = 1; cursor && page < MAX_LEAGUE_PAGES; page++) {
+    const next = await fetchMyLeaguesPage(cursor);
+    items.push(...next.items);
+    cursor = next.nextCursor;
   }
-  return {
-    items,
-    unfinishedLeagueCount: first.unfinishedLeagueCount,
-    unfinishedLeagueLimit: first.unfinishedLeagueLimit,
-    nextCursor: null,
-  };
+
+  if (cursor) console.warn(`[fetchMyLeagues] stopped at ${MAX_LEAGUE_PAGES} pages; more remain`);
+  return { ...first, items, nextCursor: cursor };
 }
 
-// The single-league read (unlike the leagues list) carries no embedded
-// competition names — only `ruleset.competitionScopes`, which is IDs only.
-// Join against the (small, cached) catalogue to give every consumer a real
-// `competitions[].displayName` instead of silently-undefined data.
+/**
+ * The league, with each competition scope carrying the names the screens show.
+ *
+ * The read now names its own competitions, so the only thing still missing is
+ * the season label. When the server omits `competitions` — an API older than
+ * that change — the catalogue is consulted instead, which is what this used to
+ * do for every field. Drop that branch once no such server is deployed.
+ */
 export async function fetchLeagueDetails(id: string): Promise<League> {
-  const [league, catalogue] = await Promise.all([
-    apiFetch<any>(`/leagues/${id}`),
-    fetchCatalogueCompetitions().catch(() => []),
-  ]);
-  const scopes: Array<{ supportedCompetitionId: string; seasonId: string; kind: string; firstRound: number | null; lastRound: number | null }> =
-    league.ruleset?.competitionScopes || [];
+  const league = await apiFetch<Api<'LeagueReadResponseDto'>>(`/leagues/${id}`);
+  const scopes = league.ruleset?.competitionScopes ?? [];
+  const named = league.competitions ?? [];
+
+  const catalogue = named.length > 0 ? [] : await fetchCatalogueCompetitions().catch(() => []);
+
   const competitions = await Promise.all(scopes.map(async (scope) => {
-    const match = catalogue.find((c) => c.id === scope.supportedCompetitionId);
+    const fromServer = named.find(c => c.supportedCompetitionId === scope.supportedCompetitionId);
+    const fromCatalogue = catalogue.find(c => c.id === scope.supportedCompetitionId);
     const seasons = await fetchCompetitionSeasons(scope.supportedCompetitionId).catch(() => []);
-    const season = seasons.find((s) => s.id === scope.seasonId);
     return {
-      supportedCompetitionId: scope.supportedCompetitionId,
-      seasonId: scope.seasonId,
-      kind: scope.kind,
-      firstRound: scope.firstRound,
-      lastRound: scope.lastRound,
-      displayName: match?.displayName || 'Competition',
-      seasonLabel: season?.label || '',
-      slug: match?.slug || '',
+      ...scope,
+      displayName: fromServer?.displayName || fromCatalogue?.displayName || 'Competition',
+      slug: fromServer?.slug || fromCatalogue?.slug || '',
+      seasonLabel: seasons.find(s => s.id === scope.seasonId)?.label || '',
     };
   }));
+
   return { ...league, competitions };
+}
+
+/**
+ * The frozen ruleset only — no catalogue join, so this costs one request rather
+ * than the three `fetchLeagueDetails` needs to name competitions. Screens that
+ * price a market or explain a tiebreaker want this, not the whole league.
+ */
+export async function fetchLeagueRuleset(leagueId: string): Promise<LeagueRuleset | null> {
+  const league = await apiFetch<{ ruleset?: LeagueRuleset }>(`/leagues/${leagueId}`);
+  return league.ruleset ?? null;
+}
+
+export type OwnPendingJoinRequest = Api<'OwnPendingJoinRequestResponseDto'>;
+
+/**
+ * The member's own outstanding join requests, across every league. Every other
+ * join-request endpoint is scoped to a league id a requester does not have yet,
+ * so this is the only way to show them what they are waiting on.
+ */
+export async function fetchOwnJoinRequests(): Promise<OwnPendingJoinRequest[]> {
+  const response = await apiFetch<Api<'OwnPendingJoinRequestPageDto'>>('/me/join-requests');
+  return response.data;
 }
 
 export interface LeagueFixture {
@@ -162,9 +133,22 @@ export interface LeagueFixture {
   status: 'upcoming' | 'live' | 'finished' | 'voided';
   score?: { home: number; away: number };
   markets: Array<{ type: string; status: string; }>;
-  predictionState?: 'open' | 'ready' | 'syncing' | 'won' | 'part' | 'lost' | 'void';
+  /**
+   * `missed` is settled with nothing of yours in it; `undefined` is not settled
+   * yet. They looked the same from the client — both arrive as an empty set of
+   * viewer outcomes — and the row said "pending" for both, which told a member
+   * to wait for a result that had already happened without them.
+   */
+  predictionState?: 'open' | 'ready' | 'syncing' | 'won' | 'part' | 'lost' | 'void' | 'missed';
   predictionNote?: string;
   pointsAwarded?: number;
+  /** This fixture's own markets, not the league's season. */
+  answered?: number;
+  required?: number;
+  /** The earliest market deadline, for the "locks in" column. */
+  deadlineAt?: string | null;
+  /** What landed, once it has: the settled markets in the design's words. */
+  landed?: string | null;
 }
 
 export interface LeagueFixturesPage {
@@ -181,75 +165,77 @@ function mapFixtureStatus(fixtureState: string): LeagueFixture['status'] {
 
 export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Promise<LeagueFixturesPage> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-  const response = await apiFetch<{ data: any[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
+  const response = await apiFetch<{ data: FixtureAvailability[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
 
-  const bases = response.data.map((f) => {
-    const status = mapFixtureStatus(f.fixtureState);
-    const base: LeagueFixture = {
-      id: f.leagueFixtureId,
-      leagueId,
-      homeTeam: f.homeTeam?.displayName || 'Home',
-      homeTeamCode: f.homeTeam?.code || 'HOM',
-      homeTeamLogoUrl: f.homeTeam?.logoUrl || null,
-      awayTeam: f.awayTeam?.displayName || 'Away',
-      awayTeamCode: f.awayTeam?.code || 'AWA',
-      awayTeamLogoUrl: f.awayTeam?.logoUrl || null,
-      kickoffAt: f.kickoff?.at || '',
-      status,
-      markets: [],
-      predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
-    };
-    // A postponed/cancelled/abandoned fixture has no result to fetch and never
-    // scores anything -- without this, it fell through to the same
-    // ready/open/undefined logic as an upcoming fixture and showed up in
-    // "Past Fixtures" mislabeled "NO POINTS", implying a graded loss on a
-    // match that never happened.
-    if (status === 'voided') return { ...base, predictionState: 'void' as const };
-    return base;
-  });
+  const base: LeagueFixture[] = response.data.map(f => ({
+    id: f.leagueFixtureId,
+    leagueId,
+    homeTeam: f.homeTeam?.displayName || 'Home',
+    homeTeamCode: f.homeTeam?.code || 'HOM',
+    homeTeamLogoUrl: f.homeTeam?.logoUrl || null,
+    awayTeam: f.awayTeam?.displayName || 'Away',
+    awayTeamCode: f.awayTeam?.code || 'AWA',
+    awayTeamLogoUrl: f.awayTeam?.logoUrl || null,
+    kickoffAt: f.kickoff?.at || '',
+    status: mapFixtureStatus(f.fixtureState),
+    markets: [],
+    predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
+  }));
 
-  // Availability only carries market *state*, not the resolved outcome, so a
-  // finished fixture's score and points need a separate call. This used to
-  // be one request per finished fixture (an N+1 pattern); the backend now
-  // has a batch endpoint that reads up to 50 fixtures' results in one call.
-  const finishedIds = bases
-    .filter((b) => b.status === 'finished')
-    .map((b) => b.id);
+  // Availability carries market *state*, never the resolved outcome, so a
+  // finished fixture's score and points need a second read. That used to be one
+  // request per finished fixture; the batch endpoint answers for all of them at
+  // once. A failure here costs the outcomes, not the fixtures.
+  const finishedIds = base.filter(f => f.status === 'finished').map(f => f.id);
+  const results = await fetchFixtureResultsBatch(leagueId, finishedIds).catch(() => []);
+  const byFixture = new Map(results.map(r => [r.leagueFixtureId, r]));
 
-  let resultsById = new Map<string, FixtureResultsResponse>();
-  if (finishedIds.length > 0) {
-    try {
-      const batch = await fetchFixturesResultsBatch(leagueId, finishedIds);
-      resultsById = new Map(batch.map((r) => [r.leagueFixtureId, r]));
-    } catch {
-      // Leave resultsById empty; affected fixtures fall back to their base
-      // (scoreless) shape below, matching the old per-fixture catch behavior.
-    }
-  }
+  const items = base.map(fixture => {
+    const result = byFixture.get(fixture.id);
+    if (!result) return fixture;
 
-  const items: LeagueFixture[] = bases.map((base) => {
-    if (base.status !== 'finished') return base;
-    const results = resultsById.get(base.id);
-    if (!results) return base;
-    const exactScoreMarket = results.markets.find((m) => m.marketType === 'exact_score');
-    const resolvedScore = exactScoreMarket?.resolvedAnswer as { homeGoals?: number; awayGoals?: number } | null | undefined;
-    const settled = results.markets.filter((m) => m.viewerOutcome !== null);
-    const totalPoints = settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0);
-    const anyCorrect = settled.some((m) => m.viewerOutcome?.outcome === 'correct');
-    const allVoid = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'void');
-    const allCorrect = settled.length > 0 && settled.every((m) => m.viewerOutcome?.outcome === 'correct');
+    const exactScore = result.markets.find(m => m.marketType === 'exact_score');
+    const resolved = landedScoreFor(exactScore?.resolvedAnswer);
+    const settled = result.markets.filter(m => m.viewerOutcome !== null);
+    const allVoid = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'void');
+    const allCorrect = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'correct');
+    const anyCorrect = settled.some(m => m.viewerOutcome?.outcome === 'correct');
+
     return {
-      ...base,
-      score: resolvedScore && typeof resolvedScore.homeGoals === 'number' && typeof resolvedScore.awayGoals === 'number'
-        ? { home: resolvedScore.homeGoals, away: resolvedScore.awayGoals }
+      ...fixture,
+      score: resolved ? { home: resolved[0], away: resolved[1] } : undefined,
+      pointsAwarded: settled.length > 0
+        ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0)
         : undefined,
-      pointsAwarded: settled.length > 0 ? totalPoints : undefined,
-      predictionState: settled.length === 0 ? undefined : allVoid ? 'void' : allCorrect ? 'won' : anyCorrect ? 'part' : 'lost',
+      predictionState: settled.length === 0 ? undefined
+        : allVoid ? 'void' as const
+          : allCorrect ? 'won' as const
+            : anyCorrect ? 'part' as const
+              : 'lost' as const,
     };
   });
 
   return { items, nextCursor: response.nextCursor };
 }
+
+/** A stage and round the server can resolve, for scoping a league to a span. */
+export type RoundBoundary = Api<'RoundBoundaryDto'>;
+
+/** How much of a competition a league covers. */
+export type CompetitionSpanKind = Api<'CompetitionScopeDto'>['kind'];
+
+/**
+ * One competition a league covers, optionally narrowed to a round or a span.
+ *
+ * The server's own type. This was mirrored by hand while two unrelated classes
+ * shared the name `CompetitionScopeDto` upstream and only the catalogue's got
+ * registered, so the published schema described a body the server would reject.
+ * The catalogue's is now `CatalogueCompetitionScopeDto` and this is the real one.
+ *
+ * `round` is required by `single_round` and mutually exclusive with the pair
+ * below it — a rule the schema cannot express, so it stays a comment.
+ */
+export type CreateLeagueScope = Api<'CompetitionScopeDto'>;
 
 export interface CreateLeaguePayload {
   name: string;
@@ -259,17 +245,13 @@ export interface CreateLeaguePayload {
     enabled: boolean;
   };
   configuration: {
-    competitionScopes: {
-      supportedCompetitionId: string;
-      seasonId: string;
-      kind: string;
-    }[];
-    markets: { marketType: string; enabled: boolean; points: number }[];
-    tiebreakers: string[];
-    standardLock: {
-      kind: string;
-      offsetMinutes?: number;
-    };
+    lateJoinPolicy?: Api<'LeagueConfigurationDto'>['lateJoinPolicy'];
+    totalGoalsLine?: Api<'LeagueConfigurationDto'>['totalGoalsLine'];
+    competitionScopes: CreateLeagueScope[];
+    /** Omit entirely to take the server's defaults for all seven. */
+    markets?: Api<'MarketConfigurationDto'>[];
+    tiebreakers: Api<'MarketConfigurationDto'>['marketType'][];
+    standardLock: Api<'StandardLockDto'>;
   };
 }
 
@@ -330,30 +312,30 @@ export async function consumeInvitationIntent(): Promise<InvitationConsumeOutcom
   return response.data;
 }
 
-export async function fetchLeagueMembers(leagueId: string, state: 'active' | 'former' | 'all' = 'active'): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/members?state=${state}`);
+export async function fetchLeagueMembers(leagueId: string, state: 'active' | 'former' | 'all' = 'active'): Promise<Api<'MembershipPageResponseDto'>> {
+  return apiFetch<Api<'MembershipPageResponseDto'>>(`/leagues/${leagueId}/members?state=${state}`);
 }
 
-export async function fetchJoinRequests(leagueId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/join-requests`);
+export async function fetchJoinRequests(leagueId: string): Promise<Api<'JoinRequestPageResponseDto'>> {
+  return apiFetch<Api<'JoinRequestPageResponseDto'>>(`/leagues/${leagueId}/join-requests`);
 }
 
-export async function updateMemberRole(leagueId: string, membershipId: string, newRole: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/members/${membershipId}/role`, {
+export async function updateMemberRole(leagueId: string, membershipId: string, newRole: string): Promise<Api<'MembershipEnvelopeDto'>> {
+  return apiFetch<Api<'MembershipEnvelopeDto'>>(`/leagues/${leagueId}/members/${membershipId}/role`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ role: newRole }),
   });
 }
 
-export async function removeMember(leagueId: string, membershipId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/members/${membershipId}`, {
+export async function removeMember(leagueId: string, membershipId: string): Promise<void> {
+  await apiFetch<void>(`/leagues/${leagueId}/members/${membershipId}`, {
     method: 'DELETE',
   });
 }
 
-export async function processJoinRequest(leagueId: string, requestId: string, action: 'approve' | 'reject'): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/join-requests/${requestId}/${action}`, {
+export async function processJoinRequest(leagueId: string, requestId: string, action: 'approve' | 'reject'): Promise<Api<'JoinRequestEnvelopeDto'>> {
+  return apiFetch<Api<'JoinRequestEnvelopeDto'>>(`/leagues/${leagueId}/join-requests/${requestId}/${action}`, {
     method: 'POST',
   });
 }
@@ -364,59 +346,65 @@ export async function cancelJoinRequest(leagueId: string, requestId: string): Pr
   });
 }
 
-export async function createInvitation(leagueId: string, useLimit: number = 100, label?: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/invitations`, {
+export async function createInvitation(leagueId: string, useLimit: number = 100): Promise<Api<'InvitationCreatedEnvelopeDto'>> {
+  return apiFetch<Api<'InvitationCreatedEnvelopeDto'>>(`/leagues/${leagueId}/invitations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ useLimit, label: label || undefined }),
+    body: JSON.stringify({ useLimit }),
   });
 }
 
-export async function fetchLeagueInvitations(leagueId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/invitations`);
+export async function fetchLeagueInvitations(leagueId: string): Promise<Api<'InvitationPageResponseDto'>> {
+  return apiFetch<Api<'InvitationPageResponseDto'>>(`/leagues/${leagueId}/invitations`);
 }
 
-export async function publishLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/publication`, {
+/**
+ * The lifecycle transitions. Each declares a 200 upstream but publishes no
+ * schema for its body, so there is no server type to adopt; callers treat these
+ * as commands and refetch the league afterwards. Give them a real return type
+ * once the API describes one.
+ */
+export async function publishLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<unknown> {
+  return apiFetch<unknown>(`/leagues/${leagueId}/publication`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ expectedVersion })
   });
 }
 
-export async function deleteLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}?expectedVersion=${expectedVersion}`, {
+export async function deleteLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<void> {
+  await apiFetch<void>(`/leagues/${leagueId}?expectedVersion=${expectedVersion}`, {
     method: 'DELETE',
     headers: { 'Idempotency-Key': idempotencyKey }
   });
 }
 
-export async function cloneLeague(leagueId: string, idempotencyKey: string, payload: { name: string; description?: string; }): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/clone`, {
+export async function cloneLeague(leagueId: string, idempotencyKey: string, payload: { name: string; description?: string; }): Promise<Api<'LeagueResponseDto'>> {
+  return apiFetch<Api<'LeagueResponseDto'>>(`/leagues/${leagueId}/clone`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
 }
 
-export async function archiveLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/archival`, {
+export async function archiveLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<unknown> {
+  return apiFetch<unknown>(`/leagues/${leagueId}/archival`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ expectedVersion })
   });
 }
 
-export async function cancelLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/cancellation`, {
+export async function cancelLeague(leagueId: string, idempotencyKey: string, expectedVersion: number): Promise<unknown> {
+  return apiFetch<unknown>(`/leagues/${leagueId}/cancellation`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ expectedVersion })
   });
 }
 
-export async function revokeInvitation(leagueId: string, invitationId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/invitations/${invitationId}/revoke`, {
+export async function revokeInvitation(leagueId: string, invitationId: string): Promise<Api<'InvitationResponseDto'>> {
+  return apiFetch<Api<'InvitationResponseDto'>>(`/leagues/${leagueId}/invitations/${invitationId}/revoke`, {
     method: 'POST',
   });
 }
@@ -431,16 +419,16 @@ export interface UpdateLeaguePayload {
   };
 }
 
-export async function updateLeague(leagueId: string, payload: UpdateLeaguePayload): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}`, {
+export async function updateLeague(leagueId: string, payload: UpdateLeaguePayload): Promise<Api<'LeagueResponseDto'>> {
+  return apiFetch<Api<'LeagueResponseDto'>>(`/leagues/${leagueId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 }
 
-export async function transferOwnership(leagueId: string, targetMembershipId: string): Promise<any> {
-  return apiFetch<any>(`/leagues/${leagueId}/ownership-transfer`, {
+export async function transferOwnership(leagueId: string, targetMembershipId: string): Promise<Api<'OwnershipTransferResponseDto'>> {
+  return apiFetch<Api<'OwnershipTransferResponseDto'>>(`/leagues/${leagueId}/ownership-transfer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ targetMembershipId }),
@@ -453,39 +441,21 @@ export async function leaveLeague(leagueId: string): Promise<void> {
   });
 }
 
+/**
+ * `summary` and `competitionScopes` are the server's own types now — the latter
+ * gained `DashboardCompetitionScopeDto` and no longer needs the league's shape
+ * borrowed for it.
+ *
+ * UNTYPED UPSTREAM: `league` and `ownStanding` still publish as objects with no
+ * properties, so they generate as open records. `league` is the league's own
+ * shape, already typed in this file; `ownStanding` is the same payload the
+ * standings endpoint returns, so it borrows that DTO rather than being guessed.
+ */
 export interface LeagueDashboard {
   league: League;
-  competitionScopes: any[];
-  summary: {
-    activeMemberCount: number;
-    fixtureCount: number;
-    enabledMarketCount: number;
-    marketStates: {
-      open: number;
-      locked: number;
-      pendingData: number;
-      pendingReview: number;
-      settled: number;
-      void: number;
-    };
-    predictionCompleteness: {
-      required: number;
-      answered: number;
-      unanswered: number;
-      complete: boolean;
-    };
-    nextFixtureDeadlineAt: string | null;
-  };
-  ownStanding: {
-    standingVersion: number;
-    position: number;
-    membershipId: string;
-    totalPoints: number;
-    counters: Record<string, unknown>;
-    competitionPoints: any[];
-    marketPoints: any[];
-    customQuestionPoints: any;
-  } | null;
+  competitionScopes: Api<'DashboardCompetitionScopeDto'>[];
+  summary: Api<'LeagueDashboardSummaryDto'>;
+  ownStanding: Api<'OwnStandingDataDto'> | null;
 }
 
 export async function fetchLeagueDashboard(leagueId: string): Promise<LeagueDashboard> {

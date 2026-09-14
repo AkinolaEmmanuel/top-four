@@ -1,622 +1,518 @@
 'use client';
 
+import { useState } from 'react';
+import { LeagueColumn } from './LeagueColumn';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import {
+  useUpdateMemberRole, useRemoveMember, useTransferOwnership, useProcessJoinRequest,
+  useCreateInvitation, useRevokeInvitation, usePublishLeague, useDeleteLeague,
+  useCloneLeague, useArchiveLeague, useCancelLeague,
+} from '@/hooks/api/useLeagues';
+import type { AdminAction, AdminInvite, AdminMember, AdminRequest, AdminTab, LifecycleStep, MemberRole } from '@/lib/leagues/league-admin';
+import { toAdminInvites } from '@/lib/leagues/league-admin';
+import type { Api } from '@/lib/api/types';
 
-// Merged from LeagueAdminMobile/LeagueAdminDesktop. Desktop's own top nav
-// (rootNav/avatarInitials/avatarName) was dead -- DesktopLevelOne in the
-// root layout is the real one, this never rendered.
-//
-// Merging surfaced two real hardcoded-text bugs in the Requests tab: Mobile
-// showed a literal "2 PENDING · 1 ALREADY IN" regardless of how many
-// requests actually existed, next to an "APPROVE ALL" button with no
-// handler at all -- clicking it did nothing. Desktop's equivalent showed a
-// literal "Oldest asked yesterday" regardless of when anything was actually
-// asked. Both now use real values computed in page.tsx (requestsSummary,
-// oldestRequestLabel), and "Approve all" now actually approves every
-// pending request (with a confirmation, since it's a bulk action).
+
+/**
+ * League admin — one component for both platforms.
+ *
+ * Every write on this screen reports failure. The version it replaces attached
+ * only `onSuccess` to the role change and the member removal, so a rejected one
+ * closed the sheet and looked as though it had worked.
+ *
+ * Destructive actions — delete a draft, cancel a league — ask twice: once to
+ * open the confirmation, and again by typing the league's name.
+ */
+
+const TABS: Array<{ id: AdminTab; label: string }> = [
+  { id: 'members', label: 'Members' },
+  { id: 'invites', label: 'Invites' },
+  { id: 'requests', label: 'Requests' },
+  { id: 'lifecycle', label: 'Lifecycle' },
+];
+
+function Toast({ message }: { message: string }) {
+  return (
+    <div role="status" className="fixed bottom-[86px] md:bottom-[24px] left-1/2 -translate-x-1/2 z-50 bg-[var(--nav-surface)] text-[var(--nav-text)] px-[18px] h-[42px] rounded-[21px] flex items-center font-heading font-bold text-[12.5px] shadow-[0_12px_24px_rgba(0,0,0,.2)]">
+      {message}
+    </div>
+  );
+}
+
 export function LeagueAdminScreen({
-  theme, params, tab, setTab, setSheet, setWho, setRole,
-  headSub, HERO, loading, onMembers, onInvites, onRequests, onLifecycle,
-  members, memberFilters, invites, requests, lifecycle, actions,
-  hasMoreMembers, fresh, setFresh, empty, invitesOpen, setInvitesOpen,
-  sheetSpec, roles, toast, leagueName, leagueAbbr,
-  memberCount, inviteCount, pendingCount, heroRole,
-  inviteCode, createInviteAction, copyInviteAction, exportMembersAction,
-  requestsSummary, oldestRequestLabel, approveAllAction, hasPendingRequests,
-  contextTabs, heroStyle, heroBig, heroTone, heroLabel, heroSub,
-}: any) {
-  const segStyleMobile = (on: boolean) =>
-    `box-border flex-1 min-w-[88px] flex items-center justify-center gap-[6px] h-[38px] rounded-t-[9px] cursor-pointer font-heading font-bold text-[11px] ${on ? 'bg-[var(--surface-canvas)] text-[var(--text-primary)] border border-b-0 border-[var(--surface-border-strong)] pb-[1px]' : 'text-[var(--nav-text-faint)]'}`;
+  leagueId, leagueName, lifecycleState, version, isOwner, canManage,
+  members, invites, requests, lifecycle, actions, memberCount,
+}: {
+  leagueId: string;
+  leagueName: string;
+  lifecycleState: string;
+  version: number;
+  isOwner: boolean;
+  canManage: boolean;
+  members: AdminMember[];
+  invites: AdminInvite[];
+  requests: AdminRequest[];
+  lifecycle: LifecycleStep[];
+  actions: AdminAction[];
+  memberCount: number;
+}) {
+  const router = useRouter();
+  const [tab, setTab] = useState<AdminTab>('members');
+  const [openMember, setOpenMember] = useState<AdminMember | null>(null);
+  const [pendingAction, setPendingAction] = useState<AdminAction | null>(null);
+  const [confirmText, setConfirmText] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  /*
+   * The invitation just made, held here rather than refetched.
+   *
+   * `router.refresh()` on success re-suspended this screen's Suspense boundary,
+   * which read as the page reloading the moment the link was made. The created
+   * invitation is already in the response, so it is kept and prepended to the
+   * list instead — the server's own list is a page behind until the next
+   * navigation, and it will carry the same row then.
+   */
+  const [created, setCreated] = useState<Api<'InvitationCreatedResponseDto'> | null>(null);
+  /** Which row's link was just copied, so only that row says so. */
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  /* The server list is a page behind until the next navigation, so the new one
+     is prepended here rather than refetched. */
+  const shownInvites = created && !invites.some(i => i.id === created.id)
+    ? [...toAdminInvites([created]), ...invites]
+    : invites;
 
-  const tabDefsMobile = [
-    { id: "members", label: "Members", count: String(memberCount ?? '') },
-    { id: "invites", label: "Invites", count: String(inviteCount ?? '') },
-    { id: "requests", label: "Requests", count: String(pendingCount ?? '') },
-    { id: "lifecycle", label: "Lifecycle", count: "" }
-  ].map(t => {
-    const on = tab === t.id;
-    return {
-      label: t.label, count: t.count, style: segStyleMobile(on),
-      countStyle: `font-[tabular-nums] font-semibold ${t.count ? (t.id === "requests" && !on ? "text-[var(--danger-text)]" : "opacity-[0.55]") : "hidden"}`,
-      pick: () => { setTab(t.id); setSheet(null); }
-    };
-  });
+  const updateRole = useUpdateMemberRole(leagueId);
+  const removeMember = useRemoveMember(leagueId);
+  const transfer = useTransferOwnership(leagueId);
+  const processRequest = useProcessJoinRequest(leagueId);
+  const createInvite = useCreateInvitation(leagueId);
+  const revokeInvite = useRevokeInvitation(leagueId);
+  const publish = usePublishLeague();
+  const remove = useDeleteLeague();
+  const clone = useCloneLeague(leagueId);
+  const archive = useArchiveLeague(leagueId);
+  const cancel = useCancelLeague(leagueId);
 
-  const segStyleDesktop = (on: boolean) =>
-    `flex items-center gap-[7px] h-[38px] px-[16px] rounded-[8px] cursor-pointer font-heading font-bold text-[12px] ${on ? 'bg-[var(--surface-card)] text-[var(--text-primary)] border border-[var(--surface-border-strong)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`;
+  const say = (message: string) => { setFailed(null); setToast(message); setTimeout(() => setToast(null), 2600); };
+  const blame = (what: string) => setFailed(`${what} did not go through — nothing changed.`);
+  const done = (message: string) => { setOpenMember(null); setPendingAction(null); setConfirmText(''); say(message); router.refresh(); };
 
-  const tabDefsDesktop = [
-    { id: "members", label: "Members", count: String(memberCount ?? '') },
-    { id: "invites", label: "Invites", count: String(inviteCount ?? '') },
-    { id: "requests", label: "Requests", count: String(pendingCount ?? '') },
-    { id: "lifecycle", label: "Lifecycle", count: "" }
-  ].map(t => {
-    const on = tab === t.id;
-    return {
-      label: t.label, count: t.count, style: segStyleDesktop(on),
-      countStyle: `font-heading text-[11px] ml-[3px] ${t.count ? (t.id === "requests" && !on ? "text-[var(--danger-text)]" : "text-[var(--text-muted)]") : "hidden"}`,
-      pick: () => { setTab(t.id); setSheet(null); }
-    };
-  });
+  const idempotencyKey = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+
+  const runAction = (action: AdminAction) => {
+    setFailed(null);
+    const key = idempotencyKey();
+    switch (action.id) {
+      case 'publish':
+        return publish.mutate({ leagueId, idempotencyKey: key, expectedVersion: version },
+          { onSuccess: () => done('League published'), onError: () => blame('Publishing') });
+      case 'delete-draft':
+        return remove.mutate({ leagueId, idempotencyKey: key, expectedVersion: version },
+          { onSuccess: () => router.push('/leagues'), onError: () => blame('Deleting the draft') });
+      case 'clone':
+        return clone.mutate({ idempotencyKey: key, payload: { name: `${leagueName} (copy)` } },
+          { onSuccess: created => router.push(`/leagues/${created.id}`), onError: () => blame('Cloning') });
+      case 'archive':
+        return archive.mutate({ idempotencyKey: key, expectedVersion: version },
+          { onSuccess: () => done('League archived'), onError: () => blame('Archiving') });
+      case 'cancel':
+        return cancel.mutate({ idempotencyKey: key, expectedVersion: version },
+          { onSuccess: () => done('League cancelled'), onError: () => blame('Cancelling') });
+    }
+  };
+
+  const tabCount = (id: AdminTab) =>
+    id === 'members' ? memberCount
+      : id === 'invites' ? invites.filter(i => i.isActive).length
+        : id === 'requests' ? requests.filter(r => r.isPending).length : 0;
+
+  const adminCount = members.filter(m => !m.hasLeft && ['owner', 'admin'].includes(m.roleLabel.toLowerCase())).length;
 
   return (
-    <>
-      {/* ============ MOBILE ============ */}
-      <div className={`md:hidden flex flex-col flex-1 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] ${theme === 'dark' ? 'dark' : ''}`}>
-        <header className="flex-none bg-[var(--nav-surface)] text-[var(--nav-text)] p-[8px_var(--gutter)_0]">
-          <div className="flex items-center gap-[11px]">
-            <Link href={`/leagues/${params.id}/more`} className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]">‹</Link>
-            <div className="min-w-0 flex-1">
-              <div className="font-heading font-[650] text-[16px] leading-[1.1] tracking-[-0.3px] whitespace-nowrap overflow-hidden text-ellipsis">{leagueName || 'League'}</div>
-              <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[4px]">{headSub}</div>
-            </div>
+    <LeagueColumn className="md:pt-[20px]">
+      {/* The design leads with the size of the thing being administered. This
+          went straight to the tabs, so the screen opened without saying how
+          many people it was about. */}
+      <section className="flex items-end gap-[12px] p-[16px_var(--gutter)_18px] md:px-0 md:pt-[4px]">
+        <span className="tf-num font-heading font-bold text-[40px] md:text-[46px] leading-[0.88] tracking-[-1.8px]">
+          {memberCount}
+        </span>
+        <div className="pb-[5px]">
+          <div className="font-heading font-semibold text-[12.5px]">{memberCount === 1 ? 'member' : 'members'}</div>
+          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">
+            {adminCount === 1 ? '1 of them runs it' : `${adminCount} of them run it`}
+            {requests.length > 0 ? ` · ${requests.length} waiting to join` : ''}
           </div>
+        </div>
+      </section>
 
-          <div className="flex items-end gap-[11px] mt-[16px]">
-            <div className="tf-num font-heading font-bold text-[40px] leading-[0.88] tracking-[-1.8px]" style={{ color: HERO[3] }}>{HERO[0]}</div>
-            <div className="pb-[5px] min-w-0">
-              <div className="text-[11.5px] leading-[1.35]">{HERO[1]}</div>
-              <div className="text-[10.5px] text-[var(--nav-text-faint)] mt-[3px]">{HERO[2]}</div>
-            </div>
-          </div>
 
-          <div className="tf-scroll flex gap-[2px] mt-[16px] overflow-x-auto shadow-[inset_0_-1px_0_0_var(--surface-border-strong)]">
-            {tabDefsMobile.map((t, i) => (
-              <div key={i} onClick={t.pick} className={t.style}>{t.label}<span className={t.countStyle}>{t.count}</span></div>
-            ))}
-          </div>
-        </header>
 
-        <main className="tf-scroll flex-1 overflow-auto bg-[var(--surface-canvas)]">
+      <div className="tf-scroll flex-none flex gap-[2px] px-[var(--gutter)] md:px-0 overflow-x-auto border-b border-[var(--surface-border)]">
+        {TABS.map(t => {
+          const on = tab === t.id;
+          const count = tabCount(t.id);
+          return (
+            <button
+              key={t.id}
+              type="button"
+              aria-current={on ? 'true' : undefined}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-[6px] h-[42px] px-[14px] font-heading font-bold text-[12px] border-b-2 whitespace-nowrap ${on ? 'border-[var(--color-brand)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)]'}`}
+            >
+              {t.label}
+              {count > 0 && <span className={`tf-num text-[11px] ${t.id === 'requests' && !on ? 'text-[var(--danger-text)]' : 'opacity-55'}`}>{count}</span>}
+            </button>
+          );
+        })}
+      </div>
 
-          {loading && (
-            <div>
-              {[0, 1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="flex items-center gap-[12px] p-[14px_var(--gutter)] border-t border-[var(--surface-border)] animate-[tfpulse_1.4s_ease-in-out_infinite]">
-                  <div className="w-[34px] h-[34px] rounded-full bg-[var(--surface-subtle)] flex-none"></div>
-                  <div className="flex-1">
-                    <div className="h-[11px] rounded-[4px] bg-[var(--surface-subtle)]" style={{ width: `${62 - i * 5}%` }}></div>
-                    <div className="h-[8px] w-[32%] rounded-full bg-[var(--surface-subtle)] mt-[7px]"></div>
-                  </div>
+
+          {tab === 'members' && members.map(member => (
+            <button
+              key={member.membershipId}
+              type="button"
+              onClick={() => canManage && setOpenMember(member)}
+              disabled={!canManage}
+              className={`w-full text-left flex md:grid md:grid-cols-[38px_minmax(0,1fr)_120px_96px_170px] items-center gap-[11px] md:gap-[14px] p-[12px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)] ${member.isYou ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} ${member.hasLeft ? 'opacity-55' : ''}`}
+            >
+              <span className="w-[34px] h-[34px] rounded-full flex-none grid place-items-center font-heading font-bold text-[11px] text-[var(--text-primary)]" style={{ background: `var(--ident-${member.tint})` }}>{member.initials}</span>
+              <div className="flex-1 md:flex-none min-w-0">
+                <div className="flex items-center gap-[7px]">
+                  <span className="font-heading font-semibold text-[13.5px] truncate">{member.name}</span>
+                  {member.isYou && <span className="font-heading font-bold text-[8.5px] tracking-[0.08em] px-[5px] py-[2px] rounded-[4px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] flex-none">YOU</span>}
                 </div>
-              ))}
-            </div>
-          )}
-
-          {onMembers && (
-            <div className="animate-[tfin_0.16s_ease]">
-              <div className="tf-scroll flex gap-[6px] p-[12px_var(--gutter)] overflow-x-auto border-b border-[var(--surface-border)]">
-                {memberFilters.map((f: any, i: number) => (
-                  <div key={i} onClick={f.pick} className={f.style}>{f.label}</div>
-                ))}
+                {/* The phone stacks role and joined date under the name because
+                    it has nowhere else; at width each is its own column. */}
+                <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px] md:hidden">
+                  {member.hasLeft ? 'Former member' : `${member.roleLabel} · ${member.joined}`}
+                </div>
               </div>
-              {members.map((m: any, i: number) => (
-                <div key={i} onClick={m.open} className={m.rowStyle}>
-                  <span className={m.avatarStyle}>{m.initials}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-[7px] min-w-0">
-                      <span className={m.nameStyle}>{m.name}</span>
-                      <span className={m.youStyle}>YOU</span>
-                    </div>
-                    <div className="flex items-center gap-[6px] mt-[3px]">
-                      <span className={m.dotStyle} style={{ backgroundColor: m.dotColor }}></span>
-                      <span className="text-[10.5px] text-[var(--text-muted)]">{m.meta}</span>
-                    </div>
-                  </div>
-                  <div className="text-right flex-none">
-                    <div className="tf-num font-heading font-bold text-[13px]">{m.points}</div>
-                    <div className="text-[10px] text-[var(--text-muted)] mt-[3px]">{m.rank}</div>
-                  </div>
-                </div>
-              ))}
-              {hasMoreMembers && (
-                <div className="tf-tap p-[15px] text-center font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] border-b border-[var(--surface-border)]">LOAD 25 MORE</div>
-              )}
-              <div className="p-[18px_var(--gutter)_26px] text-[10.5px] leading-[1.6] text-[var(--text-muted)]">A member who leaves keeps their history and their predictions stay hidden. Rejoining restores the same points — leaving is not a way to reset a score.</div>
-            </div>
-          )}
 
-          {onInvites && (
-            <div className="animate-[tfin_0.16s_ease]">
-              {fresh && (
-                <section className="bg-[var(--tf-navy-800)] text-[var(--tf-white)] p-[18px_var(--gutter)_20px]">
-                  <div className="flex items-center justify-between">
-                    <span className="tf-kicker opacity-70">SHOWN ONCE — COPY IT NOW</span>
-                    <span onClick={() => setFresh(false)} className="tf-tap font-heading font-bold text-[10px] tracking-[0.06em] opacity-70">DONE</span>
-                  </div>
-                  <div className="font-heading font-bold text-[30px] leading-[1] tracking-[2px] mt-[13px]">{inviteCode || '—'}</div>
-                  <div className="flex items-center gap-[10px] mt-[14px] p-[12px_13px] rounded-[11px] bg-[rgba(255,255,255,0.1)]">
-                    <span className="flex-1 text-[11.5px] opacity-85 whitespace-nowrap overflow-hidden text-ellipsis">{inviteCode ? `topfour.app/j/${inviteCode}` : 'Link unavailable'}</span>
-                    <span onClick={copyInviteAction} className="tf-tap font-heading font-bold text-[10.5px] flex-none">COPY</span>
-                  </div>
-                  <div className="text-[11.5px] leading-[1.55] opacity-75 mt-[12px]">TopFour will not show this again. Every list after this carries the label and its status — never the code — so revoking is the only remedy if it gets out.</div>
-                </section>
-              )}
-              <section className="p-[18px_var(--gutter)_0]">
-                <div onClick={createInviteAction} className="tf-tap h-[48px] rounded-[13px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px] shadow-[var(--elev-glow)]">Create an invitation</div>
-              </section>
-              {empty && (
-                <div className="p-[60px_30px] flex flex-col items-center text-center">
-                  <div className="font-heading font-bold text-[20px] leading-[1.2] tracking-[-0.5px]">No invitations yet</div>
-                  <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[265px]">Make one per group you are inviting. A family code and a work code can then be revoked separately.</div>
+              <span className="hidden md:block">
+                {member.hasLeft ? (
+                  <span className="text-[11px] text-[var(--text-muted)]">Former member</span>
+                ) : (
+                  <span className={`inline-flex items-center h-[20px] px-[8px] rounded-[5px] font-heading font-bold text-[9px] tracking-[0.06em] uppercase ${member.roleLabel.toLowerCase() === 'owner' ? 'bg-[var(--accent-surface)] text-[var(--accent-text)]' : member.roleLabel.toLowerCase() === 'admin' ? 'bg-[var(--warn-surface)] text-[var(--warn-text)]' : 'bg-[var(--surface-subtle)] text-[var(--text-muted)]'}`}>
+                    {member.roleLabel}
+                  </span>
+                )}
+              </span>
+
+              <span className="hidden md:block text-[11px] text-[var(--text-muted)] text-right">
+                {member.hasLeft ? '—' : member.joined}
+              </span>
+
+              <div className="text-right flex-none md:flex md:items-baseline md:justify-end md:gap-[10px]">
+                <div className="tf-num font-heading font-bold text-[13px]">{member.hasLeft ? '—' : member.points}</div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-[3px] md:mt-0">{member.hasLeft ? 'not ranked' : member.standing}</div>
+              </div>
+            </button>
+          ))}
+
+          {tab === 'invites' && (
+            <div>
+              {canManage && (
+                <div className="p-[14px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
+                  <button
+                    type="button"
+                    disabled={createInvite.isPending}
+                    onClick={() => {
+                      setFailed(null);
+                      createInvite.mutate(100, {
+                        onSuccess: result => {
+                          setCreated(result.data);
+                          setCopiedId(null);
+                          say('Invite created');
+                        },
+                        onError: () => blame('Creating an invite'),
+                      });
+                    }}
+                    className="h-[42px] px-[18px] rounded-[11px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[12.5px]"
+                  >
+                    {createInvite.isPending ? 'Creating…' : 'Create an invite link'}
+                  </button>
+                  <p className="text-[11px] leading-[1.6] text-[var(--text-muted)] mt-[9px]">
+                    Every link below can be copied again whenever you need it.
+                  </p>
                 </div>
               )}
-              {!empty && (
-                <div>
-                  <div className="tf-kicker text-[var(--text-muted)] p-[22px_var(--gutter)_10px]">ISSUED</div>
-                  {invites.map((iv: any, i: number) => (
-                    <div key={i} className={iv.rowStyle}>
+              {shownInvites.length === 0
+                ? <p className="p-[40px_30px] text-center text-[12.5px] text-[var(--text-secondary)]">No invite links yet.</p>
+                : shownInvites.map(invite => {
+                  /* A const, so the narrowing survives into the copy handler. */
+                  const link = invite.joinUrl;
+                  return (
+                  <div key={invite.id} className="p-[13px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
+                    <div className="flex items-center gap-[12px]">
                       <div className="flex-1 min-w-0">
-                        <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px]">{iv.label}</div>
-                        <div className="text-[10.5px] leading-[1.45] text-[var(--text-muted)] mt-[3px]">{iv.meta}</div>
+                        <div className="font-heading font-semibold text-[13px] truncate">{invite.label}</div>
+                        <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{invite.meta}</div>
                       </div>
-                      <div className="text-right flex-none">
-                        <span className={`tf-chip ${iv.chipStyle}`}>{iv.chip}</span>
-                        <div className={iv.actionStyle} onClick={iv.revoke}>{iv.action}</div>
-                      </div>
-                    </div>
-                  ))}
-                  <div onClick={() => setInvitesOpen(!invitesOpen)} className="flex items-center gap-[12px] p-[16px_var(--gutter)] mt-[22px] border-y border-[var(--surface-border)] cursor-pointer">
-                    <div className={`w-[40px] h-[24px] rounded-full flex-none p-[2px] flex cursor-pointer ${invitesOpen ? 'bg-[var(--color-brand)] justify-end' : 'bg-[var(--surface-border-strong)] justify-start'}`}>
-                      <div className="w-[20px] h-[20px] rounded-full bg-[var(--tf-white)] shadow-[var(--elev-1)]"></div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px]">Accept new members</div>
-                      <div className="text-[10.5px] leading-[1.5] text-[var(--text-muted)] mt-[3px]">{invitesOpen ? "Codes work and requests come through." : "Every code stops working. Existing members are unaffected."}</div>
-                    </div>
-                  </div>
-                  <div className="h-[26px]"></div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {onRequests && (
-            <div className="animate-[tfin_0.16s_ease]">
-              {empty && (
-                <div className="p-[70px_30px] flex flex-col items-center text-center">
-                  <div className="font-heading font-bold text-[20px] leading-[1.2] tracking-[-0.5px]">Nothing waiting</div>
-                  <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[10px] max-w-[265px]">Requests land here when somebody opens your link. You get a notification as well.</div>
-                </div>
-              )}
-              {!empty && (
-                <div>
-                  <div className="flex items-baseline justify-between p-[20px_var(--gutter)_10px]">
-                    <span className="tf-kicker text-[var(--text-muted)]">{requestsSummary}</span>
-                    {hasPendingRequests && (
-                      <span onClick={approveAllAction} className="tf-tap font-heading font-bold text-[10.5px] text-[var(--text-link)]">APPROVE ALL</span>
-                    )}
-                  </div>
-                  {requests.map((r: any, i: number) => (
-                    <div key={i} className={r.blockStyle}>
-                      <div className="flex items-center gap-[11px]">
-                        <span className={r.avatarStyle}>{r.initials}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-heading font-[650] text-[13.5px] tracking-[-0.2px]">{r.name}</div>
-                          <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{r.meta}</div>
-                        </div>
-                        <span className={`tf-chip ${r.stateChipStyle}`}>{r.stateChip}</span>
-                      </div>
-                      {r.pending && (
-                        <div className="flex gap-[8px] mt-[12px]">
-                          <div onClick={r.approve} className="tf-tap flex-1 h-[44px] rounded-[11px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12.5px]">Approve</div>
-                          <div onClick={r.reject} className="tf-tap flex-1 h-[44px] rounded-[11px] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] grid place-items-center font-heading font-bold text-[12.5px]">Decline</div>
-                        </div>
+                      {invite.isActive && canManage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFailed(null);
+                            revokeInvite.mutate(invite.id, {
+                              onSuccess: () => { say('Invite revoked'); router.refresh(); },
+                              onError: () => blame('Revoking that invite'),
+                            });
+                          }}
+                          className="font-heading font-bold text-[10.5px] text-[var(--danger-text)] flex-none"
+                        >
+                          REVOKE
+                        </button>
                       )}
                     </div>
-                  ))}
-                  <div className="p-[18px_var(--gutter)_26px] text-[10.5px] leading-[1.6] text-[var(--text-muted)]">A late joiner starts on zero and cannot answer anything already locked. A pending request does not take up one of the 10,000 places.</div>
-                </div>
-              )}
+
+                    {/* The server's own link, not one built here: it carries the
+                        real domain and the token the join screen expects. Shown
+                        on every row because a link nobody can read again is not
+                        an invitation. The code beneath is for typing by hand. */}
+                    {link && invite.isJoinable && (
+                      <div className="flex items-center gap-[10px] mt-[10px] p-[9px_11px] rounded-[9px] bg-[var(--surface-subtle)]">
+                        <span className="flex-1 min-w-0 text-[11.5px] text-[var(--text-secondary)] truncate">{link}</span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(link);
+                              setCopiedId(invite.id);
+                              setTimeout(() => setCopiedId(null), 2000);
+                            } catch {
+                              // A blocked clipboard leaves the link on screen to
+                              // select by hand, which is why it is shown in full.
+                            }
+                          }}
+                          className="tf-hit font-heading font-bold text-[10.5px] tracking-[0.05em] text-[var(--text-link)] flex-none"
+                        >
+                          {copiedId === invite.id ? 'COPIED ✓' : 'COPY LINK'}
+                        </button>
+                      </div>
+                    )}
+                    {invite.joinCode && invite.isJoinable && (
+                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[6px]">
+                        Or the code <span className="font-heading font-bold tracking-[1px] text-[var(--text-secondary)]">{invite.joinCode}</span>
+                      </div>
+                    )}
+                    {/* Two separate facts, and neither is an error: a link that
+                        has stopped working, and an older one whose credentials
+                        the API never stored. */}
+                    {!invite.isJoinable && (
+                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[8px]">
+                        This link no longer lets anyone in, so it cannot be shared.
+                      </div>
+                    )}
+                    {invite.isJoinable && !link && (
+                      <div className="text-[10.5px] text-[var(--text-muted)] mt-[8px]">
+                        Made before TopFour kept links — create a new one to share.
+                      </div>
+                    )}
+                  </div>
+                  );
+                })}
             </div>
           )}
 
-          {onLifecycle && (
-            <div className="animate-[tfin_0.16s_ease]">
-              <section className="p-[22px_var(--gutter)_0]">
-                <div className="tf-kicker text-[var(--text-muted)]">WHERE IT STANDS</div>
-                <div className="mt-[14px]">
-                  {lifecycle.map((l: any, i: number) => (
-                    <div key={i} className="flex gap-[12px] items-stretch">
-                      <div className="flex flex-col items-center w-[12px] flex-none">
-                        <div className={l.dotStyle}></div>
-                        <div className={l.lineStyle}></div>
-                      </div>
-                      <div className={l.textWrapStyle}>
-                        <div className={l.labelStyle}>{l.label}</div>
-                        <div className="text-[11px] leading-[1.45] text-[var(--text-muted)] mt-[3px]">{l.note}</div>
-                      </div>
-                    </div>
-                  ))}
+          {tab === 'requests' && (
+            requests.filter(r => r.isPending).length === 0
+              ? <p className="p-[40px_30px] text-center text-[12.5px] text-[var(--text-secondary)]">Nobody is waiting to join.</p>
+              : requests.filter(r => r.isPending).map(request => (
+                <div key={request.id} className="flex items-center gap-[11px] p-[13px_var(--gutter)] md:px-[6px] border-b border-[var(--surface-border)]">
+                  <span className="w-[34px] h-[34px] rounded-full flex-none grid place-items-center font-heading font-bold text-[11px] bg-[var(--surface-subtle)] text-[var(--text-secondary)]">{request.initials}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-heading font-semibold text-[13px] truncate">{request.name}</div>
+                    <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{request.meta}</div>
+                  </div>
+                  <div className="flex gap-[8px] flex-none">
+                    {(['approve', 'reject'] as const).map(decision => (
+                      <button
+                        key={decision}
+                        type="button"
+                        disabled={processRequest.isPending}
+                        onClick={() => {
+                          setFailed(null);
+                          processRequest.mutate({ requestId: request.id, action: decision }, {
+                            onSuccess: () => { say(decision === 'approve' ? 'Request approved' : 'Request rejected'); router.refresh(); },
+                            onError: () => blame(decision === 'approve' ? 'Approving' : 'Rejecting'),
+                          });
+                        }}
+                        className={`h-[34px] px-[12px] rounded-[9px] font-heading font-bold text-[11px] ${decision === 'approve' ? 'bg-[var(--brand-fill)] text-[var(--color-on-brand)]' : 'border border-[var(--surface-border-strong)] text-[var(--text-secondary)]'}`}
+                      >
+                        {decision === 'approve' ? 'Approve' : 'Reject'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </section>
-              <section className="mt-[24px]">
-                <div className="tf-kicker text-[var(--text-muted)] p-[0_var(--gutter)_10px]">WHAT YOU CAN DO TO IT</div>
-                {actions.map((a: any, i: number) => (
-                  <div key={i} onClick={a.open} className={a.rowStyle}>
+              ))
+          )}
+
+          {tab === 'lifecycle' && (
+            <div>
+              <ol className="p-[18px_var(--gutter)] md:px-[6px]">
+                {lifecycle.map(step => (
+                  <li key={step.key} className="flex gap-[12px] pb-[18px] last:pb-0">
+                    <span
+                      className={`w-[11px] h-[11px] rounded-full flex-none mt-[4px] ${step.state === 'current' ? 'bg-[var(--color-brand)] shadow-[0_0_0_4px_var(--accent-surface)]' : step.state === 'done' ? 'bg-[var(--color-success)]' : 'border-[1.5px] border-[var(--surface-border-strong)]'}`}
+                    />
+                    <div className="flex-1">
+                      <div className={`font-heading font-[650] text-[13.5px] ${step.state === 'future' ? 'text-[var(--text-muted)]' : ''}`}>{step.label}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">{step.note}</div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+
+              {actions.map(action => (
+                <div key={action.id} className={`p-[15px_var(--gutter)] md:px-[6px] border-t border-[var(--surface-border)] ${action.destructive ? 'shadow-[inset_3px_0_0_0_var(--color-danger)]' : ''} ${action.available ? '' : 'opacity-60'}`}>
+                  <div className="flex items-center gap-[12px]">
                     <div className="flex-1 min-w-0">
-                      <div className={a.titleStyle}>{a.title}</div>
-                      <div className="text-[11.5px] leading-[1.5] text-[var(--text-secondary)] mt-[4px]">{a.note}</div>
-                    </div>
-                    <span className={a.arrowStyle}>›</span>
-                  </div>
-                ))}
-              </section>
-              <div className="h-[26px]"></div>
-            </div>
-          )}
-
-        </main>
-
-        {sheetSpec && (
-          <div onClick={() => setSheet(null)} className="absolute inset-0 z-[5] bg-[var(--scrim)] flex items-end">
-            <div onClick={(e: any) => e.stopPropagation()} className="w-full bg-[var(--surface-card)] rounded-[20px_20px_27px_27px] p-[18px_var(--gutter)_22px] animate-[tfup_0.22s_cubic-bezier(0.2,0.8,0.2,1)] shadow-[var(--elev-4)]">
-              <div className="w-[38px] h-[4px] rounded-full bg-[var(--surface-border-strong)] mx-auto mb-[15px]"></div>
-              <div className="font-heading font-bold text-[18px] leading-[1.2] tracking-[-0.4px]">{sheetSpec.title}</div>
-              <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">{sheetSpec.body}</div>
-              {sheetSpec.roles && (
-                <div className="flex flex-col gap-[7px] mt-[14px]">
-                  {roles.map((r: any, i: number) => (
-                    <div key={i} onClick={r.pick} className={r.rowStyle}>
-                      <div className={r.radioStyle}><div className={r.dotStyle}></div></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-heading font-[650] text-[13px]">{r.label}</div>
-                        <div className="text-[11px] leading-[1.45] text-[var(--text-muted)] mt-[2px]">{r.note}</div>
+                      <div className={`font-heading font-[650] text-[13.5px] ${action.destructive ? 'text-[var(--danger-text)]' : ''}`}>{action.title}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-[3px]">
+                        {action.available ? action.note : action.unavailableReason}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-              {sheetSpec.list && (
-                <div className="mt-[14px]">
-                  {sheetSpec.list.map((l: string, i: number) => (
-                    <div key={i} className="flex gap-[10px] items-start py-[5px]">
-                      <span className="w-[5px] h-[5px] rounded-full bg-[var(--color-danger)] mt-[6px] flex-none"></span>
-                      <span className="text-[12px] leading-[1.5] text-[var(--text-secondary)]">{l}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div onClick={() => {
-                if (sheetSpec.primaryAction) {
-                  sheetSpec.primaryAction();
-                } else {
-                  setSheet(null);
-                }
-              }} className={`h-[47px] rounded-[12px] grid place-items-center cursor-pointer font-heading font-bold text-[13.5px] text-[var(--tf-white)] mt-[16px] ${sheetSpec.danger ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
-                {sheetSpec.primary}
-              </div>
-              {sheetSpec.tertiary && (
-                <div onClick={() => {
-                  if (sheetSpec.tertiaryAction) {
-                    sheetSpec.tertiaryAction();
-                  } else {
-                    setSheet(null);
-                  }
-                }} className="tf-tap h-[46px] rounded-[12px] grid place-items-center font-heading font-bold text-[13px] text-[var(--text-secondary)] mt-[8px]">{sheetSpec.tertiary}</div>
-              )}
-              {sheetSpec.secondary && (
-                <div onClick={() => {
-                  if (sheetSpec.secondaryAction) {
-                    sheetSpec.secondaryAction();
-                  } else {
-                    setSheet(null);
-                  }
-                }} className="tf-tap h-[46px] rounded-[12px] grid place-items-center font-heading font-bold text-[13px] text-[var(--danger-text)] mt-[8px]">{sheetSpec.secondary}</div>
-              )}
-              <div onClick={() => setSheet(null)} className="tf-tap h-[46px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[13px] text-[var(--text-secondary)] mt-[8px]">Cancel</div>
-            </div>
-          </div>
-        )}
-
-        {toast && (
-          <div className="absolute left-[14px] right-[14px] bottom-[20px] z-[6] p-[13px_15px] rounded-[12px] bg-[var(--nav-surface)] text-[var(--nav-text)] flex items-center gap-[10px] text-[12px] shadow-[var(--elev-3)] animate-[tfup_0.2s_ease]">
-            <span className="w-[7px] h-[7px] rounded-full bg-[var(--nav-positive)] flex-none"></span>
-            <span>{toast}</span>
-          </div>
-        )}
-      </div>
-
-      {/* ============ DESKTOP ============ */}
-      <div className={`hidden md:flex flex-col flex-1 h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif] relative ${theme === 'dark' ? 'dark' : ''}`}>
-
-        <div className="flex-none bg-[var(--surface-card)] border-b border-[var(--surface-border)] flex items-end gap-[20px] px-[24px] h-[54px]">
-          <div className="flex items-center gap-[10px] pb-[11px]">
-            <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--color-brand)] grid place-items-center font-heading font-bold text-[10px] text-[var(--color-on-brand)]">
-              {leagueAbbr || (leagueName ? leagueName.substring(0, 2).toUpperCase() : 'LG')}
-            </span>
-            <span className="font-heading font-bold text-[14.5px] tracking-[-0.2px]">{leagueName || 'League'}</span>
-            <span className="text-[11px] text-[var(--text-muted)]">{heroRole === 'OWNER' ? 'You own this league' : 'You help run this league'}</span>
-          </div>
-          <div className="flex items-center gap-[2px] ml-auto">
-            {contextTabs.map((t: any, i: number) => {
-              const leagueId = params?.id || '';
-              const route = t.label === 'Overview' ? `/leagues/${leagueId}` : `/leagues/${leagueId}/${t.label.toLowerCase()}`;
-              return <Link href={route} key={i} style={t.style}>{t.label}<span style={t.badgeStyle}>{t.badge}</span></Link>;
-            })}
-          </div>
-        </div>
-
-        <div className="tf-scroll flex-1 overflow-y-auto">
-          <div style={heroStyle}>
-            <div className="max-w-[1080px] mx-auto px-[24px] flex items-end gap-[22px]">
-              <span className="tf-num font-heading font-bold text-[52px] leading-[0.86] tracking-[-2.2px]" style={{ color: heroTone }}>{heroBig}</span>
-              <div className="flex-1 min-w-0 pb-[5px]">
-                <div className="font-heading font-semibold text-[13.5px]" style={{ color: heroTone }}>{heroLabel}</div>
-                <div className="text-[11.5px] text-[var(--nav-text-faint)] mt-[4px]">{heroSub}</div>
-              </div>
-              <div className="flex-none pb-[5px] font-heading font-bold text-[10px] tracking-[0.09em] text-[var(--nav-text-faint)]">{heroRole}</div>
-            </div>
-          </div>
-
-          <div className="max-w-[1080px] mx-auto px-[24px] pb-[30px]">
-            <div className="flex items-center gap-[6px] pt-[18px]">
-              {tabDefsDesktop.map((t, i) => (
-                <div key={i} onClick={t.pick} className={t.style}>
-                  {t.label}<span className={t.countStyle}>{t.count}</span>
-                </div>
-              ))}
-            </div>
-
-            {loading && (
-              <div className="mt-[24px] border-t border-[var(--surface-border)]">
-                {[0,1,2,3,4,5,6].map(i => (
-                  <div key={i} className="grid gap-[14px] items-center p-[15px_18px] border-b border-[var(--surface-border)]" style={{ gridTemplateColumns: '38px 1fr 120px 90px 150px' }}>
-                    <div className="w-[34px] h-[34px] rounded-full bg-[var(--surface-subtle)] animate-pulse"></div>
-                    <div className="h-[11px] rounded bg-[var(--surface-subtle)] animate-pulse" style={{ width: `${62 - i * 5}%` }}></div>
-                    <div className="h-[11px] rounded bg-[var(--surface-subtle)] animate-pulse"></div>
-                    <div className="h-[11px] rounded bg-[var(--surface-subtle)] animate-pulse"></div>
-                    <div className="h-[11px] rounded bg-[var(--surface-subtle)] animate-pulse"></div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {onMembers && (
-              <div className="animate-[tfin_0.16s_ease]">
-                <div className="flex items-center gap-[9px] mt-[22px]">
-                  {memberFilters.map((f: any, i: number) => (
-                    <div key={i} onClick={f.pick} className={f.style}>{f.label}</div>
-                  ))}
-                  <div className="flex-1"></div>
-                  <button onClick={exportMembersAction} className="h-[36px] px-[14px] rounded-[9px] border border-[var(--surface-border-strong)] bg-[var(--surface-card)] font-heading font-bold text-[11.5px] cursor-pointer">Export members</button>
-                  <button onClick={() => setTab('invites')} className="h-[36px] px-[14px] rounded-[9px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px] cursor-pointer">Invite people</button>
-                </div>
-
-                <div className="mt-[14px]">
-                  <div className="grid gap-[14px] items-center p-[11px_18px] bg-[var(--surface-subtle)] border-b border-[var(--surface-border)]" style={{ gridTemplateColumns: '38px minmax(0,1fr) 120px 96px 170px 44px' }}>
-                    <span></span>
-                    <span className="tf-kicker">Member</span>
-                    <span className="tf-kicker">Role</span>
-                    <span className="tf-kicker text-right">Points</span>
-                    <span className="tf-kicker">Standing</span>
-                    <span></span>
-                  </div>
-                  {members.map((m: any, i: number) => (
-                    <div key={i} onClick={m.open} className="grid gap-[14px] items-center p-[13px_18px] border-b border-[var(--surface-border)] cursor-pointer hover:bg-[var(--surface-subtle)] transition-colors" style={{ gridTemplateColumns: '38px minmax(0,1fr) 120px 96px 170px 44px' }}>
-                      <div className="w-[34px] h-[34px] rounded-full bg-[var(--surface-subtle)] grid place-items-center font-heading font-bold text-[11px] text-[var(--text-secondary)]">{m.initials}</div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-[8px]">
-                          <span className="font-heading font-semibold text-[13.5px] whitespace-nowrap overflow-hidden text-ellipsis">{m.name}</span>
-                          {m.you && <span className="font-heading font-bold text-[8.5px] tracking-[0.08em] px-[5px] py-[2px] rounded bg-[var(--color-brand)] text-[var(--color-on-brand)]">you</span>}
-                        </div>
-                        <div className="text-[10.5px] text-[var(--text-muted)] mt-[3px]">{m.meta}</div>
-                      </div>
-                      <span className="font-heading font-semibold text-[12px]" style={{ color: m.dotColor }}>{m.role}</span>
-                      <span className="tf-num font-heading font-bold text-[13px] text-right">{m.points}</span>
-                      <span className="text-[11.5px] text-[var(--text-muted)]">{m.rank}</span>
-                      <span className="text-[18px] text-[var(--text-muted)] cursor-pointer">⋯</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-[11px] text-[var(--text-muted)] leading-[1.55] mt-[12px]">A former member keeps their points and their place in the table. Removing somebody stops them playing on; it never edits the history they already made.</div>
-              </div>
-            )}
-
-            {onInvites && (
-              <div className="animate-[tfin_0.16s_ease]">
-                <div className="flex items-end justify-between mt-[22px]">
-                  <div>
-                    <div className="font-heading font-bold text-[19px] tracking-[-0.3px]">Invitation links</div>
-                    <div className="text-[12px] text-[var(--text-secondary)] mt-[4px]">Anyone with a live link can request to join. Approval is still yours.</div>
-                  </div>
-                  <button onClick={createInviteAction} className="h-[42px] px-[16px] rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[12px] cursor-pointer">New invite link</button>
-                </div>
-
-                {fresh && (
-                  <div className="mt-[16px] p-[18px_20px] rounded-[12px] bg-[var(--tf-navy-800)] text-[var(--tf-white)]">
-                    <div className="flex items-center justify-between">
-                      <span className="tf-kicker opacity-70">SHOWN ONCE — COPY IT NOW</span>
-                      <span onClick={() => setFresh(false)} className="cursor-pointer font-heading font-bold text-[10px] tracking-[0.06em] opacity-70">DONE</span>
-                    </div>
-                    <div className="font-heading font-bold text-[30px] leading-[1] tracking-[2px] mt-[13px]">{inviteCode || '—'}</div>
-                    <div className="flex items-center gap-[10px] mt-[14px] p-[12px_13px] rounded-[11px] bg-[rgba(255,255,255,0.1)]">
-                      <span className="flex-1 text-[11.5px] opacity-85">{inviteCode ? `topfour.app/j/${inviteCode}` : 'Link unavailable'}</span>
-                      <span onClick={copyInviteAction} className="cursor-pointer font-heading font-bold text-[10.5px] flex-none">COPY</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-[18px] border-t border-[var(--surface-border)]">
-                  {invites.map((iv: any, i: number) => (
-                    <div key={i} className={`flex items-center gap-[16px] py-[14px] border-b border-[var(--surface-border)] ${!iv.active ? 'opacity-55' : ''}`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-heading font-semibold text-[14px]">{iv.label}</div>
-                        <div className="text-[11.5px] text-[var(--text-muted)] mt-[4px]">{iv.meta}</div>
-                      </div>
-                      <span className={`tf-chip ${iv.chipStyle}`}>{iv.chip}</span>
-                      {iv.active && <span onClick={iv.revoke} className="font-heading font-semibold text-[11px] text-[var(--danger-text)] cursor-pointer">Revoke</span>}
-                    </div>
-                  ))}
-                </div>
-                <div className="text-[11px] text-[var(--text-muted)] leading-[1.55] mt-[12px]">Revoking a link stops new requests. It never removes people who already joined through it.</div>
-              </div>
-            )}
-
-            {onRequests && (
-              <div className="animate-[tfin_0.16s_ease]">
-                <div className="flex items-end justify-between mt-[22px]">
-                  <div>
-                    <div className="font-heading font-bold text-[19px] tracking-[-0.3px]">Join requests</div>
-                    <div className="text-[12px] text-[var(--text-secondary)] mt-[4px]">Any owner or admin can act — whoever gets there first.</div>
-                  </div>
-                  <div className="flex items-center gap-[14px]">
-                    <div className="text-[11.5px] text-[var(--text-muted)]">{oldestRequestLabel}</div>
-                    {hasPendingRequests && (
-                      <button onClick={approveAllAction} className="h-[36px] px-[14px] rounded-[9px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[11.5px] cursor-pointer">Approve all</button>
+                    {action.available && (
+                      <button
+                        type="button"
+                        onClick={() => { setPendingAction(action); setConfirmText(''); }}
+                        className="font-heading font-bold text-[10.5px] flex-none text-[var(--text-link)]"
+                      >
+                        OPEN
+                      </button>
                     )}
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
 
-                {empty ? (
-                  <div className="mt-[48px] flex flex-col items-center text-center">
-                    <div className="font-heading font-bold text-[19px] tracking-[-0.3px]">Nothing waiting</div>
-                    <div className="text-[12.5px] text-[var(--text-secondary)] mt-[10px]">Requests land here when somebody opens your link.</div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-[12px] mt-[14px]">
-                    {requests.map((r: any, i: number) => (
-                      <div key={i} className={`tf-card p-[16px_18px] flex items-center gap-[14px] ${r.pending ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)] border-l-0' : ''}`}>
-                        <div className="w-[36px] h-[36px] rounded-full bg-[var(--surface-subtle)] grid place-items-center font-heading font-bold text-[11px] text-[var(--text-secondary)] flex-none">{r.initials}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-heading font-semibold text-[14px]">{r.name}</div>
-                          <div className="text-[11.5px] text-[var(--text-muted)] mt-[4px]">{r.meta}</div>
-                        </div>
-                        {r.stateChip && <span className={`tf-chip ${r.stateChipStyle}`}>{r.stateChip}</span>}
-                        {r.pending && (
-                          <div className="flex gap-[8px] flex-none">
-                            <button onClick={r.approve} className="h-[38px] px-[16px] rounded-[9px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] font-heading font-bold text-[12px] cursor-pointer">Approve</button>
-                            <button onClick={r.reject} className="h-[38px] px-[16px] rounded-[9px] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] font-heading font-bold text-[12px] cursor-pointer">Decline</button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="text-[11px] text-[var(--text-muted)] leading-[1.55] mt-[16px]">A late joiner starts on zero and cannot answer anything already locked. A pending request does not take up one of the 10,000 places.</div>
+          {failed && <p role="alert" className="p-[14px_var(--gutter)] md:px-[6px] text-[11.5px] text-[var(--danger-text)]">{failed}</p>}
+
+      {/* A member's row, opened for a role change, a removal, or a handover. */}
+      {openMember && (
+        <div
+          // Dismisses on its own surface only, so the panel below needs no
+          // click handler of its own to stop the event travelling.
+          role="presentation"
+          className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center"
+          onClick={event => { if (event.target === event.currentTarget) setOpenMember(null); }}
+        >
+          <div role="dialog" aria-modal="true" className="w-full md:w-[420px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]">
+            <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">{openMember.name}</div>
+            <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px]">
+              Change what they can do, or take them out. Their predictions and points stay either way.
+            </p>
+
+            {!openMember.hasLeft && openMember.role !== 'owner' && (
+              <div className="flex flex-col gap-[8px] mt-[16px]">
+                {(['admin', 'participant'] as MemberRole[]).map(role => (
+                  <button
+                    key={role}
+                    type="button"
+                    disabled={updateRole.isPending || role === openMember.role}
+                    onClick={() => {
+                      setFailed(null);
+                      updateRole.mutate({ membershipId: openMember.membershipId, role }, {
+                        onSuccess: () => done(`${openMember.name} is now ${role === 'admin' ? 'an admin' : 'a participant'}`),
+                        onError: () => blame('Changing that role'),
+                      });
+                    }}
+                    className={`p-[12px_13px] rounded-[12px] border text-left ${role === openMember.role ? 'border-[var(--color-brand)] bg-[var(--accent-surface)]' : 'border-[var(--surface-border)]'}`}
+                  >
+                    <div className="font-heading font-semibold text-[13px] capitalize">{role}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] mt-[2px]">
+                      {role === 'admin' ? 'Invitations, approvals, participants and custom questions' : 'Predicts, reads results and standings'}
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
 
-            {onLifecycle && (
-              <div className="animate-[tfin_0.16s_ease] flex gap-[32px] mt-[24px] items-start">
-                <div className="flex-1 min-w-0">
-                  <div className="tf-kicker text-[var(--text-muted)]">WHERE IT STANDS</div>
-                  <div className="mt-[14px]">
-                    {lifecycle.map((l: any, i: number) => (
-                      <div key={i} className="flex gap-[12px] items-stretch">
-                        <div className="flex flex-col items-center w-[12px] flex-none">
-                          <div className={l.dotStyle}></div>
-                          <div className={l.lineStyle}></div>
-                        </div>
-                        <div className={l.textWrapStyle}>
-                          <div className={l.labelStyle}>{l.label}</div>
-                          <div className="text-[11px] leading-[1.45] text-[var(--text-muted)] mt-[3px]">{l.note}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+            <div className="flex flex-col gap-[8px] mt-[16px]">
+              {isOwner && !openMember.isYou && !openMember.hasLeft && openMember.role !== 'owner' && (
+                <button
+                  type="button"
+                  disabled={transfer.isPending}
+                  onClick={() => {
+                    setFailed(null);
+                    transfer.mutate(openMember.membershipId, {
+                      onSuccess: () => done(`${openMember.name} is now the owner`),
+                      onError: () => blame('Transferring ownership'),
+                    });
+                  }}
+                  className="h-[44px] rounded-[11px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px]"
+                >
+                  Transfer ownership to {openMember.name}
+                </button>
+              )}
 
-                <div className="w-[380px] flex-none">
-                  <div className="tf-kicker text-[var(--text-muted)]">WHAT YOU CAN DO TO IT</div>
-                  <div className="mt-[10px] border-t border-[var(--surface-border)]">
-                    {actions.map((a: any, i: number) => (
-                      <div key={i} onClick={a.open} className={a.rowStyle}>
-                        <div className="flex-1 min-w-0">
-                          <div className={a.titleStyle}>{a.title}</div>
-                          <div className="text-[11.5px] leading-[1.5] text-[var(--text-secondary)] mt-[4px]">{a.note}</div>
-                        </div>
-                        <span className={a.arrowStyle}>›</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+              {!openMember.isYou && !openMember.hasLeft && (
+                <button
+                  type="button"
+                  disabled={removeMember.isPending}
+                  onClick={() => {
+                    setFailed(null);
+                    removeMember.mutate(openMember.membershipId, {
+                      onSuccess: () => done(`${openMember.name} removed`),
+                      onError: () => blame('Removing that member'),
+                    });
+                  }}
+                  className="h-[44px] rounded-[11px] border border-[var(--color-danger)] text-[var(--danger-text)] font-heading font-bold text-[12.5px]"
+                >
+                  Remove from league
+                </button>
+              )}
 
-          </div>
-        </div>
-
-        {sheetSpec && (
-          <div onClick={() => setSheet(null)} className="fixed inset-0 z-[10] bg-[var(--control-scrim)] flex items-center justify-center p-[24px]">
-            <div onClick={(e: any) => e.stopPropagation()} className="w-full max-w-[440px] bg-[var(--surface-card)] rounded-[16px] p-[22px_24px] flex flex-col animate-[tfin_0.16s_ease] shadow-[var(--elev-4)]">
-              <div className="font-heading font-bold text-[18px] leading-[1.2] tracking-[-0.4px]">{sheetSpec.title}</div>
-              <div className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[9px]">{sheetSpec.body}</div>
-              {sheetSpec.roles && (
-                <div className="flex flex-col gap-[7px] mt-[14px]">
-                  {roles.map((r: any, i: number) => (
-                    <div key={i} onClick={r.pick} className={r.rowStyle}>
-                      <div className={r.radioStyle}><div className={r.dotStyle}></div></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-heading font-semibold text-[13px]">{r.label}</div>
-                        <div className="text-[11px] text-[var(--text-muted)] mt-[2px] leading-[1.4]">{r.note}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {sheetSpec.list && (
-                <div className="mt-[14px]">
-                  {sheetSpec.list.map((l: string, i: number) => (
-                    <div key={i} className="flex gap-[10px] items-start py-[5px]">
-                      <span className="w-[5px] h-[5px] rounded-full bg-[var(--color-danger)] mt-[6px] flex-none"></span>
-                      <span className="text-[12px] leading-[1.5] text-[var(--text-secondary)]">{l}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-[8px] mt-[18px]">
-                <div onClick={() => setSheet(null)} className="flex-1 h-[44px] rounded-[11px] border border-[var(--surface-border-strong)] grid place-items-center cursor-pointer font-heading font-bold text-[12.5px]">Cancel</div>
-                <div onClick={() => {
-                  if (sheetSpec.primaryAction) sheetSpec.primaryAction();
-                  else setSheet(null);
-                }} className={`flex-1 h-[44px] rounded-[11px] grid place-items-center cursor-pointer font-heading font-bold text-[12.5px] text-white ${sheetSpec.danger ? 'bg-[var(--color-danger)]' : 'bg-[var(--brand-fill)]'}`}>
-                  {sheetSpec.primary}
-                </div>
-              </div>
-              {sheetSpec.tertiary && (
-                <div onClick={() => {
-                  if (sheetSpec.tertiaryAction) sheetSpec.tertiaryAction();
-                  else setSheet(null);
-                }} className="h-[42px] rounded-[11px] grid place-items-center cursor-pointer font-heading font-bold text-[12px] text-[var(--text-secondary)] mt-[8px]">{sheetSpec.tertiary}</div>
-              )}
-              {sheetSpec.secondary && (
-                <div onClick={() => {
-                  if (sheetSpec.secondaryAction) sheetSpec.secondaryAction();
-                  else setSheet(null);
-                }} className="h-[42px] rounded-[11px] grid place-items-center cursor-pointer font-heading font-bold text-[12px] text-[var(--danger-text)] mt-[8px]">{sheetSpec.secondary}</div>
-              )}
+              <button type="button" onClick={() => setOpenMember(null)} className="h-[44px] rounded-[11px] font-heading font-semibold text-[12.5px] text-[var(--text-secondary)]">Close</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {toast && (
-          <div className="absolute left-[24px] bottom-[24px] z-[6] p-[13px_18px] rounded-[12px] bg-[var(--nav-surface)] text-[var(--nav-text)] flex items-center gap-[10px] text-[12px] shadow-[var(--elev-3)] animate-[tfup_0.2s_ease]">
-            <span className="w-[7px] h-[7px] rounded-full bg-[var(--nav-positive)] flex-none"></span>
-            <span>{toast}</span>
+      {/* Lifecycle confirmation. A destructive one also asks for the league's name. */}
+      {pendingAction && (
+        <div
+          // Dismisses on its own surface only, so the panel below needs no
+          // click handler of its own to stop the event travelling.
+          role="presentation"
+          className="fixed inset-0 z-50 bg-[rgba(0,0,0,.45)] flex items-end md:items-center justify-center"
+          onClick={event => { if (event.target === event.currentTarget) setPendingAction(null); }}
+        >
+          <div role="dialog" aria-modal="true" className="w-full md:w-[440px] bg-[var(--surface-card)] rounded-t-[18px] md:rounded-[16px] p-[20px_var(--gutter)_calc(20px+env(safe-area-inset-bottom))] md:p-[22px]">
+            <div className="font-heading font-bold text-[18px] tracking-[-0.4px]">{pendingAction.title}?</div>
+            <p className="text-[12.5px] leading-[1.6] text-[var(--text-secondary)] mt-[8px]">{pendingAction.note}</p>
+
+            {pendingAction.destructive && (
+              <label className="block mt-[16px]">
+                <span className="text-[11.5px] text-[var(--text-secondary)]">Type <strong>{leagueName}</strong> to confirm.</span>
+                <input
+                  autoFocus
+                  value={confirmText}
+                  onChange={e => setConfirmText(e.target.value)}
+                  className="w-full h-[42px] px-[12px] mt-[8px] rounded-[10px] border border-[var(--surface-border-strong)] bg-[var(--surface-canvas)] text-[13px]"
+                />
+              </label>
+            )}
+
+            <div className="flex gap-[9px] mt-[18px]">
+              <button
+                type="button"
+                disabled={pendingAction.destructive && confirmText.trim() !== leagueName}
+                onClick={() => runAction(pendingAction)}
+                className={`flex-1 h-[46px] rounded-[12px] font-heading font-bold text-[12.5px] ${pendingAction.destructive ? 'bg-[var(--color-danger)] text-[var(--tf-white)]' : 'bg-[var(--brand-fill)] text-[var(--color-on-brand)]'} disabled:opacity-40`}
+              >
+                {pendingAction.title}
+              </button>
+              <button type="button" onClick={() => setPendingAction(null)} className="h-[46px] px-[18px] rounded-[12px] border border-[var(--surface-border-strong)] font-heading font-semibold text-[12.5px]">Cancel</button>
+            </div>
           </div>
-        )}
-      </div>
-    </>
+        </div>
+      )}
+
+      {toast && <Toast message={toast} />}
+    </LeagueColumn>
   );
 }

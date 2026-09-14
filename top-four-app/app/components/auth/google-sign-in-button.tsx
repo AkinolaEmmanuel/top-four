@@ -2,11 +2,38 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { googleChallenge } from '@/lib/api/auth';
+import { failureMessage } from '@/lib/api/failure';
 import { useAuth } from '@/context/auth-context';
+
+/**
+ * The slice of Google Identity Services this button actually calls.
+ *
+ * Declared rather than pulled in as a dependency: the library is a script tag,
+ * and these three members are the whole of our contact with it. A wider `any`
+ * would let a typo through at the one place the compiler cannot check.
+ */
+interface GoogleIdentity {
+  accounts: {
+    id: {
+      initialize(config: {
+        client_id: string;
+        nonce: string;
+        callback: (response: { credential: string }) => void;
+      }): void;
+      renderButton(parent: HTMLElement, options: {
+        type: 'standard' | 'icon';
+        theme: 'outline' | 'filled_blue' | 'filled_black';
+        size: 'small' | 'medium' | 'large';
+        width?: number;
+        text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+      }): void;
+    };
+  };
+}
 
 declare global {
   interface Window {
-    google?: any;
+    google?: GoogleIdentity;
   }
 }
 
@@ -59,8 +86,8 @@ export function GoogleSignInButton({
             try {
               await signInWithGoogle(response.credential);
               window.location.href = redirectTarget;
-            } catch (err: any) {
-              onError(err?.message || 'Google sign-in failed. Please try again.');
+            } catch (error) {
+              onError(failureMessage(error, 'Google sign-in failed. Please try again.'));
             }
           },
         });
@@ -73,8 +100,8 @@ export function GoogleSignInButton({
           text: 'continue_with',
         });
         setLoading(false);
-      } catch (err: any) {
-        if (!cancelled) onError(err?.message || 'Could not start Google sign-in.');
+      } catch (error) {
+        if (!cancelled) onError(failureMessage(error, 'Could not start Google sign-in.'));
       }
     })();
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../../components/auth/auth-shell';
 import { useRequestPasswordReset } from '@/hooks/api/useAccount';
+import { failureMessage } from '@/lib/api/failure';
 
 export default function ForgotPasswordPage() {
   const requestReset = useRequestPasswordReset();
@@ -14,14 +15,14 @@ export default function ForgotPasswordPage() {
 
   const inputClasses = "flex h-11 w-full rounded-md border border-[var(--border-base)] bg-[var(--surface-canvas)] px-3 py-2 text-sm ring-offset-[var(--surface-canvas)] placeholder:text-[var(--text-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-[var(--text-primary)]";
   const labelClasses = "text-sm font-medium leading-none text-[var(--text-primary)]";
-  const buttonClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-[var(--surface-canvas)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)]/90 h-11 px-8 py-2 w-full font-bold tracking-wide";
+  const buttonClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-[var(--surface-canvas)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] h-11 px-8 py-2 w-full font-bold tracking-wide";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     requestReset.mutate(email, {
       onSuccess: () => setSubmitted(true),
-      onError: (err: any) => setError(err?.message || 'Something went wrong.'),
+      onError: error => setError(failureMessage(error, 'Something went wrong.')),
     });
   }
 
