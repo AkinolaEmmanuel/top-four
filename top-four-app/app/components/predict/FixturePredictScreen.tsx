@@ -967,8 +967,14 @@ export function FixturePredictScreen({
       )}
 
       {editingLineup && (
-        <div className="absolute inset-0 z-50 bg-[var(--surface-canvas)] md:bg-[rgba(0,0,0,0.5)] md:flex md:items-center md:justify-center md:p-[20px]">
-          <div className="bg-[var(--surface-canvas)] w-full max-w-[500px] h-full md:h-auto rounded-[16px] overflow-hidden flex flex-col md:max-h-[86vh]">
+        <div className="absolute inset-0 z-50 flex justify-center bg-[var(--surface-canvas)] md:bg-[rgba(0,0,0,0.5)] md:items-center md:p-[20px]">
+          {/* The 500px cap belongs to the wide dialog, not to a phone.
+              Applied at every width it capped the sheet on any viewport between
+              500 and 768px — a large phone or a tablet held upright — and since
+              the wrapper only centred at `md`, the panel sat against the left
+              edge with a dead strip beside it. Below `md` this is full-bleed,
+              which is what every other sheet on the app already does. */}
+          <div className="bg-[var(--surface-canvas)] w-full h-full md:h-auto md:max-w-[500px] rounded-[16px] overflow-hidden flex flex-col md:max-h-[86vh]">
             <div className="flex justify-between items-center p-[16px] border-b border-[var(--surface-border)]">
               <h2 className="font-heading font-bold text-[18px]">{editingLineup === 'home' ? homeName : awayName} Starting XI</h2>
               <button type="button" aria-label="Close" onClick={() => setEditingLineup(null)} className="w-[32px] h-[32px] -mr-[6px] grid place-items-center text-[24px] leading-none text-[var(--text-muted)]">×</button>

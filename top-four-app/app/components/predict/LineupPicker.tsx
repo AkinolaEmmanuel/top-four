@@ -222,12 +222,16 @@ export function LineupPicker({
         </div>
       )}
 
-      {/* The pitch keeps its own proportions — it is a pitch, and squashing it
-          to fit reads as a broken graphic. What changed is that this scrolls and
-          the footer below does not, so Save is never the thing pushed off. */}
+      {/* 3:4 is the pitch's floor, not its shape.
+          Sized from width alone it came out 507px on a 412px phone inside a
+          709px space, leaving 202px of empty scroll below it — a fifth of the
+          screen — while the eleven places were squeezed above. `min-h-full`
+          lets it take the height that is there; the rows are distributed with
+          `justify-between`, so the extra height goes between them. Where there
+          is less room than 3:4 the aspect still wins and this scrolls. */}
       <div className="flex-1 min-h-0 overflow-y-auto tf-scroll">
       <div
-        className="relative w-full aspect-[3/4] rounded-[12px] overflow-hidden border border-[var(--surface-border)]"
+        className="relative w-full aspect-[3/4] min-h-full rounded-[12px] overflow-hidden border border-[var(--surface-border)]"
         style={{ background: 'linear-gradient(to bottom, var(--pitch-bg-top), var(--pitch-bg-bottom))' }}
       >
         {/* Markings, drawn together so they read as a pitch. */}
