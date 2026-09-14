@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Sora:wght@100..800&display=swap');
+@import './fig-tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-dm-sans: 'DM Sans', sans-serif;
+  --font-sora: 'Sora', sans-serif;
+
+  /* Compat aliases: these six names are referenced across the app (mainly
+     the auth screens) but were never defined anywhere in fig-tokens.css, so
+     var() resolved to nothing and the declaration using it fell back to
+     inherited/currentColor. fig-tokens.css is a pristine design-system
+     export and shouldn't gain invented names, so the aliases live here
+     instead, pointed at the nearest real semantic token. */
+  --border-base: var(--surface-border);
+  --text-tertiary: var(--text-muted);
+  --surface-layer-1: var(--surface-card);
+  --surface-card-hover: var(--surface-subtle);
+  --nav-muted: var(--nav-text-faint);
+  --color-brand-rgb: 69, 188, 235; /* --color-brand, i.e. --tf-blue-400, as an r,g,b triplet for rgba() */
+}
+
+body {
+  font-family: var(--font-sora);
+  background-color: var(--surface-canvas);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-dm-sans);
+}
+
+.num-tabular, .tf-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.tf-scroll { scrollbar-width: none; }
+.tf-scroll::-webkit-scrollbar { display: none; }
+
+.tf-crest {
+  display: grid;
+  place-items: center;
+  clip-path: var(--crest-clip);
+  font: 700 10px/1 'DM Sans', sans-serif;
+  color: var(--tf-white);
+  flex: none;
+  filter: var(--crest-saturation) drop-shadow(0 0 .8px var(--crest-edge)) drop-shadow(0 0 .8px var(--crest-edge));
+}
+
+.tf-tap { cursor: pointer; }
+.tf-kicker { font: 700 9.5px/1 'DM Sans', sans-serif; letter-spacing: .13em; text-transform: uppercase; }
+
+.tf-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font: 700 9px/1 'DM Sans', sans-serif;
+  letter-spacing: .05em;
+}
+
+.tf-role {
+  font: 700 8.5px 'DM Sans', sans-serif;
+  letter-spacing: .07em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  flex: none;
+}
+
+@keyframes tfpulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* tfin/tfup/tfsheet/tfmodal/tfsaved were referenced throughout the app
+   (animate-[tfin_...] etc.) but only tfpulse was ever actually defined --
+   every other one was inert, including tfsaved, the save-confirmation
+   receipt. */
+@keyframes tfin {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tfup {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tfsheet {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tfmodal {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tfsaved {
+  0% { opacity: 0; transform: scale(0.9); }
+  10%, 80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Fix autofill styles without breaking Tailwind borders/focus rings */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s, border-color 5000s ease-in-out 0s;
+}

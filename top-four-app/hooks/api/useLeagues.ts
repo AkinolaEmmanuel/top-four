@@ -1,0 +1,290 @@
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import {
+  fetchMyLeagues,
+  fetchLeagueDetails,
+  createLeague,
+  establishInvitationIntent,
+  fetchCurrentInvitationIntent,
+  consumeInvitationIntent,
+  League,
+  LeaguesPage,
+  CreateLeaguePayload,
+  fetchLeagueMembers,
+  fetchJoinRequests,
+  updateMemberRole,
+  removeMember,
+  processJoinRequest,
+  createInvitation,
+  fetchLeagueInvitations,
+  revokeInvitation,
+  fetchLeagueFixtures,
+  LeagueFixture,
+  LeagueFixturesPage,
+  publishLeague,
+  deleteLeague,
+  cloneLeague,
+  archiveLeague,
+  cancelLeague,
+  transferOwnership,
+  leaveLeague,
+  fetchLeagueDashboard,
+  LeagueDashboard,
+  updateLeague,
+  UpdateLeaguePayload,
+  cancelJoinRequest,
+  fetchOwnPendingJoinRequests,
+  OwnPendingJoinRequest,
+} from '@/lib/api/leagues';
+
+export function useMyLeagues() {
+  return useQuery<LeaguesPage, Error>({
+    queryKey: ['leagues', 'mine'],
+    queryFn: () => fetchMyLeagues(),
+  });
+}
+
+export function useLeague(id: string) {
+  return useQuery<League, Error>({
+    queryKey: ['leagues', id],
+    queryFn: () => fetchLeagueDetails(id),
+    enabled: !!id, // Only run the query if we have an ID
+  });
+}
+
+export function useLeagueFixtures(leagueId: string) {
+  return useQuery<LeagueFixturesPage, Error>({
+    queryKey: ['leagues', leagueId, 'fixtures'],
+    queryFn: () => fetchLeagueFixtures(leagueId),
+    enabled: !!leagueId,
+  });
+}
+
+export function useLeagueFixturesInfinite(leagueId: string) {
+  return useInfiniteQuery<LeagueFixturesPage, Error>({
+    queryKey: ['leagues', leagueId, 'fixtures', 'infinite'],
+    queryFn: ({ pageParam }) => fetchLeagueFixtures(leagueId, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
+    enabled: !!leagueId,
+  });
+}
+
+export function useCreateLeague() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ idempotencyKey, payload }: { idempotencyKey: string, payload: CreateLeaguePayload }) => 
+      createLeague(idempotencyKey, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] });
+    }
+  });
+}
+
+// Step 1 of joining a league: turns a join code or link token into an
+// httpOnly-cookie-backed intent. Works whether the caller is signed in yet or not.
+export function useEstablishInvitationIntent() {
+  return useMutation({
+    mutationFn: (credential: { joinCode: string } | { linkToken: string }) => establishInvitationIntent(credential),
+  });
+}
+
+// Reads back a previously-established intent using only the cookie already
+// on the browser — used to resume the invitation after sign-up/sign-in.
+export function useCurrentInvitationIntent(enabled: boolean) {
+  return useQuery({
+    queryKey: ['invitation-intents', 'current'],
+    queryFn: () => fetchCurrentInvitationIntent(),
+    enabled,
+    retry: false,
+  });
+}
+
+// Step 2: consumes the intent established above. Must be called while
+// authenticated. Resolves to 'joined' | 'already_active' | 'pending'.
+export function useConsumeInvitationIntent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => consumeInvitationIntent(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] });
+    }
+  });
+}
+
+export function useLeagueMembers(leagueId: string, state: 'active' | 'former' | 'all' = 'active') {
+  return useQuery({
+    queryKey: ['leagues', leagueId, 'members', state],
+    queryFn: () => fetchLeagueMembers(leagueId, state),
+    enabled: !!leagueId,
+  });
+}
+
+export function useJoinRequests(leagueId: string) {
+  return useQuery({
+    queryKey: ['leagues', leagueId, 'join-requests'],
+    queryFn: () => fetchJoinRequests(leagueId),
+    enabled: !!leagueId,
+  });
+}
+
+export function useUpdateMemberRole(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ membershipId, role }: { membershipId: string, role: string }) => updateMemberRole(leagueId, membershipId, role),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'members'] }),
+  });
+}
+
+export function useRemoveMember(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (membershipId: string) => removeMember(leagueId, membershipId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'members'] }),
+  });
+}
+
+export function useProcessJoinRequest(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ requestId, action }: { requestId: string, action: 'approve' | 'reject' }) => processJoinRequest(leagueId, requestId, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'join-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'members'] });
+    },
+  });
+}
+
+export function useCancelJoinRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leagueId, requestId }: { leagueId: string; requestId: string }) => cancelJoinRequest(leagueId, requestId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me', 'join-requests'] }),
+  });
+}
+
+export function useOwnPendingJoinRequests() {
+  return useQuery<OwnPendingJoinRequest[], Error>({
+    queryKey: ['me', 'join-requests'],
+    queryFn: () => fetchOwnPendingJoinRequests(),
+  });
+}
+
+export function useCreateInvitation(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ useLimit = 100, label }: { useLimit?: number; label?: string } = {}) => createInvitation(leagueId, useLimit, label),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'invitations'] }),
+  });
+}
+
+export function useLeagueInvitations(leagueId: string) {
+  return useQuery({
+    queryKey: ['leagues', leagueId, 'invitations'],
+    queryFn: () => fetchLeagueInvitations(leagueId),
+    enabled: !!leagueId,
+  });
+}
+
+export function useRevokeInvitation(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (invitationId: string) => revokeInvitation(leagueId, invitationId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'invitations'] }),
+  });
+}
+
+export function useLeagueDashboard(leagueId: string) {
+  return useQuery<LeagueDashboard, Error>({
+    queryKey: ['leagues', leagueId, 'dashboard'],
+    queryFn: () => fetchLeagueDashboard(leagueId),
+    enabled: !!leagueId,
+  });
+}
+
+export function usePublishLeague() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leagueId, idempotencyKey, expectedVersion }: { leagueId: string, idempotencyKey: string, expectedVersion: number }) =>
+      publishLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', variables.leagueId] });
+      queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] });
+    },
+  });
+}
+
+export function useDeleteLeague() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leagueId, idempotencyKey, expectedVersion }: { leagueId: string, idempotencyKey: string, expectedVersion: number }) =>
+      deleteLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
+  });
+}
+
+export function useCloneLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idempotencyKey, payload }: { idempotencyKey: string, payload: { name: string; description?: string } }) =>
+      cloneLeague(leagueId, idempotencyKey, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
+  });
+}
+
+export function useArchiveLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idempotencyKey, expectedVersion }: { idempotencyKey: string, expectedVersion: number }) =>
+      archiveLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] }),
+  });
+}
+
+export function useCancelLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ idempotencyKey, expectedVersion }: { idempotencyKey: string, expectedVersion: number }) =>
+      cancelLeague(leagueId, idempotencyKey, expectedVersion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] }),
+  });
+}
+
+export function useUpdateLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateLeaguePayload) => updateLeague(leagueId, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] }),
+  });
+}
+
+export function useTransferOwnership(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (targetMembershipId: string) => transferOwnership(leagueId, targetMembershipId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leagues', leagueId] });
+      queryClient.invalidateQueries({ queryKey: ['leagues', leagueId, 'members'] });
+    },
+  });
+}
+
+export function useLeaveLeague(leagueId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => leaveLeague(leagueId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
+  });
+}
+
+// Same call, but for contexts (e.g. the "pick one of your 20 leagues to
+// leave" list) where the target league is chosen at click time rather than
+// fixed for the life of the component.
+export function useLeaveAnyLeague() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leagueId }: { leagueId: string }) => leaveLeague(leagueId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leagues', 'mine'] }),
+  });
+}

@@ -1,0 +1,193 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEstablishInvitationIntent, useConsumeInvitationIntent, useCancelJoinRequest, useMyLeagues, useLeaveAnyLeague } from '@/hooks/api/useLeagues';
+import { JoinLeagueScreen } from '@/app/components/leagues/JoinLeagueScreen';
+
+const CLUB: Record<string, string> = { PP: "#0879bf", OL: "#7f56d9", AL: "#0e7a5f", SS: "#1746a2", FC: "#b7152b" };
+
+export default function JoinLeaguePage() {
+  const router = useRouter();
+  const establishIntent = useEstablishInvitationIntent();
+  const consumeIntent = useConsumeInvitationIntent();
+  const cancelJoinRequestMutation = useCancelJoinRequest();
+  const { data: myLeaguesData } = useMyLeagues();
+  const leaveAnyLeague = useLeaveAnyLeague();
+
+  // The app is dark-only (see app/layout.tsx); this was dead state with no
+  // real toggle anywhere.
+  const theme = 'dark';
+  const [outcome, setOutcome] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState('');
+  const [joinedLeague, setJoinedLeague] = useState<any>(null);
+  const [pendingRequest, setPendingRequest] = useState<{ leagueId: string; requestId: string } | null>(null);
+
+  const joinedLeagueName = joinedLeague?.name || joinedLeague?.league?.name || "Your league";
+
+  const OUTCOMES: any = {
+    verify: {
+      tone: "var(--color-brand)", icon: "✉",
+      title: "Check your inbox",
+      body: "We sent a verification link. The account exists but is not verified yet, so you are not signed in and the join has not happened.",
+      secondary: "Resend the email", secondaryOff: true,
+      note: "The invitation is still held while you verify."
+    },
+    pending: {
+      tone: "var(--color-warning)", icon: "◷",
+      title: "Your request is with the owner",
+      body: "This league approves every join by hand. We will tell you the moment somebody decides — until then you cannot see its fixtures or its table.",
+      primary: "Back to my leagues", secondary: "Withdraw the request",
+      note: "An approved request survives the invitation later being switched off or used up."
+    },
+    limit: {
+      tone: "var(--color-danger)", icon: "!",
+      title: "You are in twenty leagues already",
+      body: "Twenty unfinished leagues is the limit. Leagues that have finished do not count and stay in your history, so finishing or leaving one makes room.",
+      list: true,
+      primary: "Choose one to leave",
+      note: "Nothing about this invitation is lost. Come back to the link once you have room."
+    },
+    closed: {
+      tone: "var(--text-muted)", icon: "✕",
+      title: "This league is not taking anyone new",
+      body: "It is already under way and its rules do not allow joining late. That was fixed when the league was published, so it will not change this season.",
+      primary: "Enter a different code",
+      note: "Ask whoever invited you whether they run another league you could join."
+    },
+    dead: {
+      tone: "var(--text-muted)", icon: "⊘",
+      title: "This invitation cannot be used",
+      body: "It has expired, been used up, or been withdrawn. For safety we do not say which, and nothing else about the league is revealed.",
+      primary: "Enter a code instead",
+      note: "Ask whoever invited you for a fresh link."
+    },
+    welcome: {
+      tone: "var(--color-success)", icon: "✓",
+      title: `${joinedLeagueName} is yours to play`,
+      body: "You have joined the league. Fixtures and questions are ready for predictions.",
+      primary: "Start predicting",
+      note: "You are in. The next round of fixtures will be scored for you."
+    }
+  };
+
+  const MY_LEAGUES: [string, string, string, string, string, string][] = (myLeaguesData?.items || [])
+    .filter((l) => !['completed', 'archived', 'cancelled'].includes(l.lifecycleState))
+    .map((l) => {
+      const initials = l.name.substring(0, 2).toUpperCase();
+      return [l.name, l.competitions?.[0]?.displayName || 'League', 'Leave', CLUB[initials] || CLUB.PP, initials, l.id];
+    });
+
+  const handleLeaveLeague = (leagueId: string) => {
+    if (leaveAnyLeague.isPending) return;
+    if (!window.confirm('Leave this league to make room for the one you are trying to join?')) return;
+    leaveAnyLeague.mutate({ leagueId }, {
+      onSuccess: () => setOutcome(null),
+      onError: () => window.alert("Couldn't leave that league"),
+    });
+  };
+
+  const onOutcome = outcome !== null;
+  const o = outcome ? OUTCOMES[outcome] : {};
+
+  const concealed = outcome === "dead";
+  const dead = concealed || outcome === "closed";
+  const joined = outcome === "welcome";
+  const byCode = !onOutcome;
+
+  const INVITE = joined ? ["YOU ARE IN", "var(--nav-positive)"]
+    : dead ? ["INVITATION NO LONGER VALID", "var(--nav-text-faint)"]
+    : ["YOU HAVE BEEN INVITED TO", "var(--nav-accent)"];
+
+  const facts: [string, string][] = [];
+
+  const TAGS = joined
+    ? [["JOINED TODAY", "ok"]]
+    : concealed ? []
+    : dead ? [["NOT ACCEPTING JOINS", "muted"]]
+    : [];
+
+  const tags = TAGS.map(([label, kind]) => ({
+    label,
+    style: kind === "warn" ? "bg-[var(--nav-warn,rgba(217,119,6,.22))] text-[var(--state-provisional)]"
+      : kind === "ok" ? "bg-[var(--nav-positive)] text-[var(--nav-surface)]"
+      : kind === "plain" ? "bg-[rgba(255,255,255,.1)] text-[var(--nav-text-quiet)]"
+      : "border border-[var(--nav-border)] text-[var(--nav-text-faint)]"
+  }));
+
+  const chromeRight = onOutcome ? "" : "Join by code";
+  const leagueName = concealed ? "This invitation" : (byCode ? "Which league?" : joinedLeagueName);
+
+  const handleJoinCode = () => {
+    if (inviteCode.length !== 10 || establishIntent.isPending || consumeIntent.isPending) return;
+    establishIntent.mutate({ joinCode: inviteCode }, {
+      onSuccess: (preview) => {
+        consumeIntent.mutate(undefined, {
+          onSuccess: (outcome) => {
+            if (outcome.outcome === 'pending') {
+              setJoinedLeague({ name: preview.league.name });
+              setPendingRequest({ leagueId: outcome.leagueId, requestId: outcome.joinRequestId });
+              setOutcome("pending");
+            } else {
+              setJoinedLeague({ name: preview.league.name, id: outcome.leagueId });
+              setOutcome("welcome");
+            }
+          },
+          onError: (err: any) => {
+            setOutcome(err?.data?.code === 'USER_LEAGUE_LIMIT_REACHED' ? "limit" : "dead");
+          }
+        });
+      },
+      onError: () => {
+        // The backend deliberately collapses expired/used-up/withdrawn/closed
+        // invitations into one generic error — nothing to disambiguate here.
+        setOutcome("dead");
+      }
+    });
+  };
+
+  const handleNavigateHome = () => {
+    router.push('/home');
+  };
+
+  const handleWithdrawRequest = () => {
+    if (!pendingRequest || cancelJoinRequestMutation.isPending) return;
+    cancelJoinRequestMutation.mutate(pendingRequest, {
+      onSuccess: () => {
+        setPendingRequest(null);
+        setOutcome(null);
+        setInviteCode('');
+      }
+    });
+  };
+
+  const sharedProps = {
+    leagueName,
+    concealed,
+    byCode,
+    chromeRight,
+    joined,
+    dead,
+    INVITE,
+    facts,
+    tags,
+    onOutcome,
+    outcome,
+    setOutcome,
+    o,
+    inviteCode,
+    setInviteCode,
+    joinLeaguePending: establishIntent.isPending || consumeIntent.isPending,
+    secondaryAction: outcome === 'pending' ? handleWithdrawRequest : undefined,
+    onJoinCode: handleJoinCode,
+    onNavigateHome: handleNavigateHome,
+    onLeaveLeague: handleLeaveLeague,
+    MY_LEAGUES
+  };
+
+  return (
+    <div className={`flex flex-col flex-1 h-[100dvh] md:h-auto overflow-hidden bg-[var(--surface-canvas)] relative ${theme === 'dark' ? 'dark' : ''}`}>
+      <JoinLeagueScreen {...sharedProps} />
+    </div>
+  );
+}
