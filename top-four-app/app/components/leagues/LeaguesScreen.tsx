@@ -8,6 +8,7 @@ import {
   pointsLabel,
   standingLabel,
   toLeagueSections,
+  unansweredLabel,
   type LeagueListEntry,
   type LeagueSection,
 } from '@/lib/leagues/league-list';
@@ -67,7 +68,7 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
               {!!entry.unansweredCount && (
                 <span className="md:hidden">
                   {entry.competitions ? ' · ' : ''}
-                  <span className="text-[var(--accent-text)] font-semibold tf-num">{entry.unansweredCount} to predict</span>
+                  <span className="text-[var(--accent-text)] font-semibold tf-num">{unansweredLabel(entry.unansweredCount)} to predict</span>
                 </span>
               )}
             </>
@@ -87,7 +88,7 @@ function LeagueRow({ entry, isLast }: { entry: LeagueListEntry; isLast: boolean 
       <span className="hidden md:block text-right">
         {entry.unansweredCount ? (
           <span className="font-heading font-bold text-[11px] tf-num p-[3px_9px] rounded-[6px] bg-[var(--accent-surface)] text-[var(--accent-text)]">
-            {entry.unansweredCount}
+            {unansweredLabel(entry.unansweredCount)}
           </span>
         ) : (
           <span className="tf-num text-[13px] text-[var(--text-muted)]">—</span>

@@ -35,6 +35,14 @@ export function LeagueContextBar({
   return (
     <div className="hidden md:flex flex-none items-end gap-[20px] h-[54px] px-[24px] bg-[var(--surface-card)] border-b border-[var(--surface-border)]">
       <div className="flex items-center gap-[10px] pb-[11px] min-w-0">
+        {/* The way out. A phone has the header's back chevron, but that header
+            is `md:hidden`, so on a wide screen a league was a room with no door
+            — every tab led further in and none led back to the list. */}
+        <Link
+          href="/leagues"
+          aria-label="Back to my leagues"
+          className="w-[24px] h-[24px] rounded-[7px] grid place-items-center flex-none text-[14px] leading-none text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-primary)] transition-colors"
+        >‹</Link>
         <span className="w-[26px] h-[26px] rounded-[8px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[10px] flex-none">
           {leagueInitials(leagueName)}
         </span>

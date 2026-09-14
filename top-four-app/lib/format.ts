@@ -28,6 +28,27 @@ export function pluralise(count: number, singular: string, plural = `${singular}
  * kickoff, so "13:00" beside a fixture reads as kickoff even when it is the
  * lock two hours earlier — two screens quoting the same fixture differently.
  */
+/**
+ * A countdown, in the largest units that still say something.
+ *
+ * Hours alone stop being readable somewhere around the second day: "100h 28m"
+ * is four days away and reads as a fault. Days lead once there is a day to
+ * lead with, and seconds only appear in the last minute, where they are the
+ * only thing still moving.
+ */
+export function countdownLabel(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${seconds}s`;
+}
+
 export function timeUntilLabel(deadlineAt: string | null, nowMs: number): string {
   if (!deadlineAt) return '—';
   const deadline = Date.parse(deadlineAt);

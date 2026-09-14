@@ -13,7 +13,7 @@ import { usePredictionHistory } from '@/hooks/api/usePredictionHistory';
 import { failureMessage } from '@/lib/api/failure';
 import { ApiError } from '@/lib/api/fetcher';
 import { fetchOwnPredictions } from '@/lib/api/predictions-fixture';
-import { lockLabel } from '@/lib/format';
+import { lockLabel, countdownLabel } from '@/lib/format';
 import { Breadcrumb } from '../Breadcrumb';
 import { TeamCrest } from '../TeamCrest';
 import { PlayerFace } from '../PlayerFace';
@@ -54,13 +54,6 @@ const HERO_COPY: Record<FixturePhase, [kicker: string, caption: string, blurb: s
   settled: ['PROVISIONAL', 'so far', 'Provisional until review closes. A voided market scores nothing for everyone.'],
 };
 
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}:${String(s).padStart(2, '0')}`;
-}
 
 const timeOfDay = (at: string | null) =>
   at ? new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
@@ -163,7 +156,7 @@ export function FixturePredictScreen({
 
   const countdown = (at: string | null) => {
     if (!at) return '—';
-    return formatDuration(Math.max(0, Math.round((Date.parse(at) - now) / 1000)));
+    return countdownLabel(Date.parse(at) - now);
   };
 
   const progress = progressOf(markets, answers);
