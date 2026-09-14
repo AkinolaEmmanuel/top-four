@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { timeUntilLabel, personInitials } from '@/lib/format';
+import { timeUntilLabel, personInitials, pluralise } from '@/lib/format';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
@@ -10,7 +10,7 @@ import { tintFor } from '@/lib/crest';
 import { heroGradient } from '@/lib/crest-colour';
 import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import { ThemeMenu } from '../ThemeMenu';
-import type { HomeLeagueEntry, HomeQueueEntry, TeamIdentity } from '@/lib/home/home-data';
+import type { HomeLeagueEntry, HomeQueueEntry, QueueLeague, TeamIdentity } from '@/lib/home/home-data';
 
 /**
  * The home screen — one component for both platforms.
@@ -97,26 +97,103 @@ function QueueMark({ entry }: { entry: HomeQueueEntry }) {
   return <span className="tf-crest flex-none w-[22px] h-[24px] text-[8px]" style={{ background: 'var(--surface-border-strong)' }}>Q</span>;
 }
 
+/** One league a shared match can be answered in, as its own target. */
+function LeagueChip({ league }: { league: QueueLeague }) {
+  return (
+    <Link
+      href={league.href}
+      title={`${league.name} — ${league.openLabel}`}
+      /* Not `tf-hit`: its negative margins exist to inflate a small target
+         invisibly, and here they ate the flex gap and overlapped the next chip
+         by 9px. The padding below already clears the 24px minimum on its own. */
+      className="inline-block max-w-[140px] truncate font-heading font-semibold text-[10px] px-[9px] py-[6px] rounded-[6px] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] hover:border-[var(--color-brand)] hover:text-[var(--text-link)] transition-colors"
+    >
+      {league.name}
+    </Link>
+  );
+}
+
+/**
+ * The leagues a shared match is open in, and the overflow behind a count.
+ *
+ * The wide layout gives this column 150px, which two short chips fill exactly —
+ * three would truncate every name to a few characters, and one truncated name
+ * cannot be told from another. So past two only the soonest is named: the same
+ * league the row's title already links to, so the chip and the link agree.
+ *
+ * `+N` reveals the rest in place rather than linking anywhere. There is no
+ * page for one match across several leagues, and inventing one to hold a list
+ * this small would cost more than it returns.
+ */
+function LeagueChips({ leagues, expanded, onExpand }: {
+  leagues: QueueLeague[];
+  expanded: boolean;
+  onExpand: () => void;
+}) {
+  const shown = expanded || leagues.length <= 2 ? leagues : leagues.slice(0, 1);
+  const hidden = leagues.length - shown.length;
+
+  return (
+    <span className="flex flex-wrap gap-[5px]">
+      {shown.map(league => <LeagueChip key={league.id} league={league} />)}
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={onExpand}
+          aria-expanded={expanded}
+          aria-label={`Show ${pluralise(hidden, 'more league')}`}
+          className="inline-block font-heading font-semibold text-[10px] px-[9px] py-[6px] rounded-[6px] border border-[var(--surface-border-strong)] text-[var(--text-muted)] hover:border-[var(--color-brand)] hover:text-[var(--text-link)] transition-colors cursor-pointer"
+        >
+          +{hidden}
+        </button>
+      )}
+    </span>
+  );
+}
+
 function QueueRow({ entry, nowMs }: { entry: HomeQueueEntry; nowMs: number }) {
   /* One row. The phone's stacked line and the wide table's columns are the same
      element with `md:` on it — rendering both and hiding one put 40KB of this
-     screen into the document for a width nobody was looking at. */
-  return (
-    <Link
-      href={entry.href}
-      className={`flex items-center gap-[11px] py-[11px] border-b border-[var(--surface-border)] last:border-b-0 ${QUEUE_GRID} md:gap-[14px] md:border-b-0 md:px-[10px] md:-mx-[10px] md:py-[13px] md:rounded-[10px] md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
-    >
+     screen into the document for a width nobody was looking at.
+
+     A match open in one league is the whole row: one link, one target. Open in
+     several, the row cannot be a link at all — a chip per league is itself a
+     link, and a link inside a link is neither valid nor reachable by keyboard.
+     The title stays the primary action and takes whichever locks first. */
+  const shared = entry.leagues.length > 1;
+  /* Held here, not in the chip list: the phone and the wide layout each render
+     their own copy of it, and they must open together. */
+  const [expanded, setExpanded] = useState(false);
+  const rowClass = `flex items-center gap-[11px] py-[11px] border-b border-[var(--surface-border)] last:border-b-0 ${QUEUE_GRID} md:gap-[14px] md:border-b-0 md:px-[10px] md:-mx-[10px] md:py-[13px] md:rounded-[10px] md:hover:bg-[var(--surface-subtle)] md:transition-colors`;
+
+  const body = (
+    <>
       <QueueMark entry={entry} />
 
       <div className="flex-1 md:flex-none min-w-0">
-        <div className="font-heading font-semibold text-[12.5px] md:text-[13.5px] md:tracking-[-0.2px] truncate">{entry.title}</div>
+        <div className="font-heading font-semibold text-[12.5px] md:text-[13.5px] md:tracking-[-0.2px] truncate">
+          {shared ? <Link href={entry.href} className="hover:underline">{entry.title}</Link> : entry.title}
+        </div>
         <div className="text-[9.5px] md:text-[10.5px] text-[var(--text-muted)] mt-[3px] truncate">
-          <span className="md:hidden">{entry.competition} · {entry.league}</span>
+          <span className="md:hidden">
+            {entry.competition}
+            {shared ? '' : ` · ${entry.leagues[0].name}`}
+          </span>
           <span className="hidden md:inline">{entry.competition}</span>
         </div>
+        {/* On a phone the league column does not exist, so the chips live here. */}
+        {shared && (
+          <div className="md:hidden mt-[6px]">
+            <LeagueChips leagues={entry.leagues} expanded={expanded} onExpand={() => setExpanded(true)} />
+          </div>
+        )}
       </div>
 
-      <div className="hidden md:block text-[11.5px] text-[var(--text-secondary)] truncate">{entry.league}</div>
+      <div className="hidden md:block text-[11.5px] text-[var(--text-secondary)] min-w-0">
+        {shared
+          ? <LeagueChips leagues={entry.leagues} expanded={expanded} onExpand={() => setExpanded(true)} />
+          : <span className="block truncate">{entry.leagues[0].name}</span>}
+      </div>
 
       <div className="text-right flex-none md:flex-auto">
         <div className="md:hidden tf-num font-heading font-bold text-[12px]">{timeUntilLabel(entry.deadlineAt, nowMs)}</div>
@@ -127,8 +204,12 @@ function QueueRow({ entry, nowMs }: { entry: HomeQueueEntry; nowMs: number }) {
       <div className="hidden md:block tf-num text-right font-heading font-bold text-[12px]">
         {timeUntilLabel(entry.deadlineAt, nowMs)}
       </div>
-    </Link>
+    </>
   );
+
+  return shared
+    ? <div className={rowClass}>{body}</div>
+    : <Link href={entry.href} className={rowClass}>{body}</Link>;
 }
 
 function LeagueRow({ entry }: { entry: HomeLeagueEntry }) {
@@ -275,7 +356,7 @@ export function HomeScreen({
               <div className="mt-[20px] md:mt-0 md:flex-1 md:min-w-0 rounded-[14px] bg-[rgba(255,255,255,0.06)] md:bg-transparent p-[14px_16px] md:p-0">
                 <div className="flex items-center gap-[12px]">
                   <span className="font-heading font-bold text-[8.5px] md:text-[9.5px] tracking-[0.11em] px-[8px] py-[3px] md:py-[4px] rounded-[5px] md:rounded-[6px] bg-[var(--nav-fill)] text-[var(--nav-text)]">
-                    {next.league.toUpperCase()}
+                    {next.leagues[0].name.toUpperCase()}
                   </span>
                   <span className="font-heading font-semibold text-[9.5px] md:text-[10px] text-[var(--nav-text-faint)]">{next.competition}</span>
                 </div>

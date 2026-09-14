@@ -5,7 +5,7 @@ import {
   serverFetch, serverFetchOrNull, serverFetchAllPages, NotAuthenticatedError,
 } from '@/lib/api/server-fetch';
 import { ApiError } from '@/lib/api/fetcher';
-import { toHomeLeague, toQueueEntry } from '@/lib/home/home-data';
+import { toHomeLeague, toQueueEntries } from '@/lib/home/home-data';
 import { HomePayoffSection, HomePayoffSkeleton } from '../components/home/HomePayoff';
 import type { Api } from '@/lib/api/types';
 import type { PredictionTask } from '@/lib/api/predictions';
@@ -53,7 +53,7 @@ export default async function HomePage() {
     throw error;
   }
 
-  const queue = tasks.items.map(toQueueEntry);
+  const queue = toQueueEntries(tasks.items);
 
   // Home shows the first few and links the rest to Predict; sending the whole
   // queue would serialise a season of tasks into the payload to render five.

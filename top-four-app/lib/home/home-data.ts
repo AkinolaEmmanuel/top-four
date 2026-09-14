@@ -21,17 +21,34 @@ export interface TeamIdentity {
   logoUrl: string | null;
 }
 
+/** One league a queue row can be answered in. */
+export interface QueueLeague {
+  id: string;
+  name: string;
+  href: string;
+  deadlineAt: string | null;
+  openLabel: string;
+}
+
 export interface HomeQueueEntry {
   id: string;
   kind: 'fixture' | 'custom_question';
   title: string;
   competition: string;
-  league: string;
-  /** The deadline, ISO, so the screen can format it in the viewer's zone. */
+  /**
+   * Every league this same match is still open in, soonest deadline first.
+   *
+   * The feed is keyed per (league, fixture), so a member in three leagues that
+   * all run the same match had three full-size rows for one game. One row now
+   * carries them all and names each.
+   */
+  leagues: QueueLeague[];
+  /** The soonest deadline across those leagues — what the row counts down to. */
   deadlineAt: string | null;
   openLabel: string;
   home: TeamIdentity | null;
   away: TeamIdentity | null;
+  /** The soonest league's link: the row's primary action. */
   href: string;
 }
 
@@ -61,32 +78,88 @@ export function toTeamIdentity(team: { code: string | null; logoUrl: string | nu
 export function toQueueEntry(task: PredictionTask): HomeQueueEntry {
   if (task.kind === 'fixture') {
     const open = task.missingPredictions?.length ?? 0;
+    const league: QueueLeague = {
+      id: task.league.id,
+      name: task.league.name,
+      href: `/predict/fixture/${task.leagueFixtureId}?leagueId=${task.league.id}`,
+      deadlineAt: task.nextDeadlineAt ?? null,
+      openLabel: open > 0 ? pluralise(open, 'market') : 'Open',
+    };
     return {
-      id: task.leagueFixtureId,
+      // The real-world match, not the per-league row, so two leagues running it
+      // land on the same entry.
+      id: task.fixtureId,
       kind: 'fixture',
       title: `${task.homeTeam.displayName} v ${task.awayTeam.displayName}`,
       competition: task.competition?.displayName || 'Match',
-      league: task.league.name,
-      deadlineAt: task.nextDeadlineAt ?? null,
-      openLabel: open > 0 ? pluralise(open, 'market') : 'Open',
+      leagues: [league],
+      deadlineAt: league.deadlineAt,
+      openLabel: league.openLabel,
       home: toTeamIdentity(task.homeTeam),
       away: toTeamIdentity(task.awayTeam),
-      href: `/predict/fixture/${task.leagueFixtureId}?leagueId=${task.league.id}`,
+      href: league.href,
     };
   }
 
+  const league: QueueLeague = {
+    id: task.league.id,
+    name: task.league.name,
+    href: `/leagues/${task.league.id}/questions`,
+    deadlineAt: task.question.deadlineAt ?? null,
+    openLabel: 'Open',
+  };
   return {
     id: task.question.id,
     kind: 'custom_question',
     title: task.question.questionText,
     competition: 'Custom question',
-    league: task.league.name,
-    deadlineAt: task.question.deadlineAt ?? null,
-    openLabel: 'Open',
+    leagues: [league],
+    deadlineAt: league.deadlineAt,
+    openLabel: league.openLabel,
     home: null,
     away: null,
-    href: `/leagues/${task.league.id}/questions`,
+    href: league.href,
   };
+}
+
+/** Sorts null last: a row with no deadline cannot be the soonest. */
+function soonest(a: string | null, b: string | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return Date.parse(a) - Date.parse(b);
+}
+
+/**
+ * The queue, one row per real match.
+ *
+ * A custom question is a per-league thing of its own — two leagues never share
+ * one — so questions are never grouped. Fixtures are, on the canonical
+ * `fixtureId`; the row then counts down to whichever league locks first and
+ * links there, and names every league it is open in.
+ *
+ * Order is preserved from the feed, which is already deadline-ordered: a match
+ * takes the position of its first appearance.
+ */
+export function toQueueEntries(tasks: PredictionTask[]): HomeQueueEntry[] {
+  const byId = new Map<string, HomeQueueEntry>();
+
+  for (const task of tasks) {
+    const entry = toQueueEntry(task);
+    const existing = task.kind === 'fixture' ? byId.get(entry.id) : undefined;
+    if (!existing) {
+      byId.set(entry.id, entry);
+      continue;
+    }
+    if (existing.leagues.some(l => l.id === entry.leagues[0].id)) continue;
+    existing.leagues = [...existing.leagues, ...entry.leagues]
+      .sort((a, b) => soonest(a.deadlineAt, b.deadlineAt));
+    existing.deadlineAt = existing.leagues[0].deadlineAt;
+    existing.openLabel = existing.leagues[0].openLabel;
+    existing.href = existing.leagues[0].href;
+  }
+
+  return [...byId.values()];
 }
 
 export function toHomeLeague(league: LeagueListItem): HomeLeagueEntry {
