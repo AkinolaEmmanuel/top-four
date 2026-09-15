@@ -75,7 +75,22 @@ export function JoinLeagueScreen({
                 a link to it.
               </p>
 
-              <div className="flex gap-[5px] md:gap-[7px] mt-[22px]">
+              {/* The real field only ever got focus once, from `autoFocus` on
+                  mount -- mobile browsers routinely ignore that outright, and
+                  even where they honour it, tapping anywhere else (including
+                  the boxes right here, which is exactly where a person tries
+                  to interact with a code) blurs it with nothing on screen to
+                  bring it back. There was then no way left to focus a field
+                  that was never visible in the first place, so paste (and
+                  typing) simply stopped working after the first tap.
+                  A <label> wrapping the boxes fixes it without any JS: a
+                  click anywhere inside natively focuses its associated
+                  input, the same as clicking a checkbox's text does. */}
+              <label
+                htmlFor="join-code"
+                className="flex gap-[5px] md:gap-[7px] mt-[22px] cursor-text"
+              >
+                <span className="sr-only">Invitation code</span>
                 {boxes.map((char, i) => (
                   <div
                     key={i}
@@ -91,11 +106,8 @@ export function JoinLeagueScreen({
                     {char}
                   </div>
                 ))}
-              </div>
+              </label>
 
-              {/* The boxes are decoration over one real field, so a password
-                  manager, a paste and a screen reader all still work. */}
-              <label className="sr-only" htmlFor="join-code">Invitation code</label>
               <input
                 id="join-code"
                 value={inviteCode}

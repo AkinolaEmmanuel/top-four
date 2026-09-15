@@ -147,6 +147,7 @@ export default async function FixturePredictPage({ params, searchParams }: {
       pointsAtStake={pointsAtStake(markets)}
       pointsEarned={pointsEarned(marketResults)}
       otherLeagueCount={otherLeagues}
+      totalGoalsLine={league?.ruleset?.totalGoalsLine ?? 2.5}
     />
   );
 }

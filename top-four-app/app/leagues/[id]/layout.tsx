@@ -60,7 +60,7 @@ export default async function LeagueLayout({
             className="tf-tap w-[40px] h-[40px] rounded-full border border-[var(--nav-border)] grid place-items-center flex-none text-[var(--nav-text-quiet)] text-[15px]"
           >‹</Link>
           <div className="min-w-0 flex-1">
-            <div className="font-heading font-[650] text-[17px] leading-[1.1] tracking-[-0.3px] truncate">
+            <div className="font-heading font-[650] text-[14px] md:text-[17px] leading-[1.1] tracking-[-0.3px] truncate">
               {league.name}
             </div>
             <div className="flex items-center gap-[7px] mt-[5px] min-w-0">
