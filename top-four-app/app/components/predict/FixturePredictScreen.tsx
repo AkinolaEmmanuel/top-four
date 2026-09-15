@@ -95,7 +95,7 @@ export function FixturePredictScreen({
   homeName, awayName, homeCode, awayCode, homeLogo, awayLogo,
   kickoffAt, nextDeadlineAt, lineupDeadlineAt, serverTime,
   phase, markets, initialAnswers, versions, lineupVersions, snapshotId, squads,
-  pointsAtStake, pointsEarned, otherLeagueCount,
+  pointsAtStake, pointsEarned, otherLeagueCount, totalGoalsLine,
 }: {
   leagueId: string;
   fixtureId: string;
@@ -123,6 +123,8 @@ export function FixturePredictScreen({
   pointsAtStake: number;
   pointsEarned: number;
   otherLeagueCount: number;
+  /** The league's own frozen over/under line, e.g. 2.5. */
+  totalGoalsLine: number;
 }) {
   const router = useRouter();
   const [answers, setAnswers] = useState<FixtureAnswers>(initialAnswers);
@@ -316,6 +318,30 @@ export function FixturePredictScreen({
     writeMarket(market, value, snapshot);
   };
 
+  /**
+   * A scoreline settles both teams to score and the over/under line on its
+   * own — 2-1 can only mean both teams scored, and, on the league's own
+   * line, over. Left independent, a 2-1 sat next to a "No" for both teams to
+   * score not as a second opinion but as a mistake nobody caught until
+   * settlement halved what the market should have paid. Only touches a
+   * market that disagrees with the score and is still open — `answerMarket`
+   * itself is the guard for a market that has locked or that this fixture
+   * does not carry at all.
+   */
+  const syncDerivedMarkets = (score: [number, number]) => {
+    const [home, away] = score;
+    const btts = markets.find(m => m.key === 'both_teams_to_score');
+    if (btts) {
+      const derived = home > 0 && away > 0 ? 'yes' : 'no';
+      if (answersRef.current.both_teams_to_score !== derived) answerMarket(btts, derived);
+    }
+    const totalGoals = markets.find(m => m.key === 'total_goals');
+    if (totalGoals) {
+      const derived = home + away > totalGoalsLine ? 'over' : 'under';
+      if (answersRef.current.total_goals !== derived) answerMarket(totalGoals, derived);
+    }
+  };
+
   /*
    * Read from the ref, not from render state: three taps in a row all see the
    * same `answers` from the same render, so each one computed its result from
@@ -327,6 +353,7 @@ export function FixturePredictScreen({
     const next: [number, number] = [current[0], current[1]];
     next[index] = Math.max(0, Math.min(9, next[index] + delta));
     answerMarket(market, next);
+    syncDerivedMarkets(next);
   };
 
   const saveLineup = (side: 'home' | 'away', playerIds: string[]) => {

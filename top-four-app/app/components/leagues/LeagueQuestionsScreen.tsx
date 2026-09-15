@@ -142,6 +142,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
   const withdrawQuestion = useWithdrawCustomQuestion(leagueId);
 
   const sections = toQuestionSections(cards);
+  const hasReference = sections.some(s => s.group !== 'open' && s.cards.length > 0);
   const open = cards.filter(c => c.canAnswer);
   const owing = open.filter(c => !c.answered);
   const unclaimed = owing.reduce((n, c) => n + c.points, 0);
@@ -248,10 +249,14 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
                 </p>
               </div>
             ) : (
-            /* Two columns at width: the open questions are the work, and the
-               closed and settled ones are reference beside it rather than a
-               scroll past it. */
-            <div className="md:grid md:grid-cols-[minmax(0,1fr)_330px] md:gap-[28px] md:items-start">
+            /* Two columns at width, but only when there is a second thing
+               to put in the second one: the fixed 330px + 28px gap was
+               reserved even with nothing closed or settled to show there
+               yet, which is most leagues most of the season, so "OPEN NOW"
+               sat in a column roughly half the page with the other half
+               empty. Full width until there is real reference material to
+               show beside the open questions. */
+            <div className={hasReference ? 'md:grid md:grid-cols-[minmax(0,1fr)_330px] md:gap-[28px] md:items-start' : ''}>
             <div>
             {sections.filter(s => s.group === 'open').map(section => (
               <section key={section.group} className="mt-[18px]">
@@ -285,6 +290,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
             ))}
             </div>
 
+            {hasReference && (
             <div className="md:mt-[18px]">
             {sections.filter(s => s.group !== 'open').map(section => (
               <section key={section.group} className="mt-[18px] md:mt-0 md:mb-[20px]">
@@ -306,6 +312,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
               </section>
             ))}
             </div>
+            )}
             </div>
             )
           )}
