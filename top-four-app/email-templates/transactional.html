@@ -1,0 +1,211 @@
+<!--
+  TopFour transactional email template
+  =====================================
+  One layout for every message the backend sends (verification, password
+  reset, league membership, reminders, security notices, …) — matching the
+  "one layout, many messages" design already in topfour-api's
+  src/email/email-content.ts. This file is a drop-in visual replacement for
+  the plain template built in that file's `render()` function; it is NOT
+  wired into the backend itself (that repo is a separate, read-only
+  reference) — hand this markup to whoever maintains email-content.ts.
+
+  How the slots map onto EmailCopy (src/email/email-content.ts):
+    {{PREHEADER}}      -> a one-line summary, no direct EmailCopy field today;
+                          use `copy.introduction` truncated to ~90 chars.
+    "TopFour" wordmark  -> static, not data-driven.
+    {{HEADING}}        -> copy.heading
+    {{INTRODUCTION}}   -> copy.introduction
+    {{BULLETS block}}  -> copy.bullets (repeat the <tr> for each item; omit
+                          the whole block when copy.bullets is undefined/empty)
+    {{ACTION_LABEL}}   -> copy.action
+    {{ACTION_URL}}     -> copy.actionUrl (used twice: button href + the
+                          plain-text fallback link)
+    {{EXPIRY block}}   -> copy.expiry (omit the block entirely when undefined)
+    {{IGNORE block}}   -> copy.ignore (omit the block entirely when undefined)
+    {{FOOTER block}}   -> copy.unsubscribeUrl present -> "unsubscribe" footer;
+                          absent -> the plain "transactional account email" line
+
+  Every value must go through the same HTML-escaping the current
+  escapeHtmlText/escapeHtmlAttribute helpers already do — nothing here
+  changes that requirement, only the markup and styling around it.
+
+  Built for real-world email clients, not browsers: table-based layout,
+  every style attribute inlined (no <style> block relied on for anything
+  structural — the one <style> block below is progressive enhancement only
+  and every client that ignores it still renders correctly), a bulletproof
+  button (real <a> padded inside a <td>, not a <div>/<button>), and a 600px
+  fixed-width center column with an MSO conditional wrapper for Outlook's
+  Word rendering engine, which ignores max-width otherwise.
+
+  Sample content below is the "Verify your email address" message, filled
+  in so this previews correctly as-is. Swap the placeholders for a live
+  send.
+-->
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <title>Verify your TopFour email</title>
+  <style>
+    /* Progressive enhancement only — every rule below is safe to lose.
+       Structural spacing/color/layout all live as inline attributes further
+       down, so a client that strips <style> (old Outlook, some webmail)
+       still renders a correct, on-brand email. */
+    @media (max-width: 620px) {
+      .tf-container { width: 100% !important; }
+      .tf-px { padding-left: 20px !important; padding-right: 20px !important; }
+      .tf-stack { display: block !important; width: 100% !important; }
+    }
+    a.tf-btn:hover { background-color: #055685 !important; }
+    body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+  </style>
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#F7F8F9;">
+  <!-- Preheader: shows in the inbox list next to the subject, hidden in the body. Keep it under ~100 characters and specific to the message. -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">
+    Confirm your email address to finish setting up your TopFour account.
+  </div>
+  <!-- Zero-width-space padding so mail clients don't pull in trailing body text as part of the preheader. -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">
+    &#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#F7F8F9;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <!--[if mso]>
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td>
+        <![endif]-->
+        <table role="presentation" class="tf-container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+          <!-- Brand header -->
+          <tr>
+            <td style="background-color:#020617; border-radius:12px 12px 0 0; padding:24px 32px;" class="tf-px">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:'DM Sans', Arial, Helvetica, sans-serif; font-size:18px; font-weight:700; letter-spacing:-0.3px; color:#F8FAFC;">
+                    TOPFOUR<span style="color:#38BDF8;">/</span>
+                  </td>
+                </tr>
+              </table>
+              <!-- Pitch-line accent — a nod to the app's football motif without relying on background-image/SVG, which many clients strip. -->
+              <div style="height:3px; margin-top:16px; background-color:#38BDF8; border-radius:2px; font-size:1px; line-height:1px;">&nbsp;</div>
+            </td>
+          </tr>
+
+          <!-- Content card -->
+          <tr>
+            <td style="background-color:#FFFFFF; border-left:1px solid #DFE3E8; border-right:1px solid #DFE3E8;" class="tf-px">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:40px 32px 8px;" class="tf-px">
+
+                    <h1 style="margin:0 0 16px; font-family:'DM Sans', Arial, Helvetica, sans-serif; font-size:26px; line-height:1.3; font-weight:800; color:#111827;">
+                      Verify your email address
+                    </h1>
+
+                    <p style="margin:0 0 28px; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:15px; line-height:1.65; color:#3A4453;">
+                      Welcome to TopFour. Confirm your email address to finish setting up your account.
+                    </p>
+
+                    <!-- Optional bullet block — present on message kinds like round_reminder. Omit the whole <tr> when copy.bullets is undefined/empty. -->
+                    <!--
+                    <tr>
+                      <td style="padding:0 0 28px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td style="font-family:'Sora', Arial, Helvetica, sans-serif; font-size:15px; line-height:1.8; color:#3A4453; padding-left:4px;">
+                              &bull;&nbsp;&nbsp;Smoke Test League — 2 unanswered
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    -->
+
+                    <!-- Bulletproof button: a padded, colored table cell holding the link — renders correctly in Outlook, which does not support padding/border-radius on an <a> directly. -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+                      <tr>
+                        <td style="border-radius:8px; background-color:#06699E;">
+                          <a href="https://topfour.app/verify-email?token=REPLACE_WITH_VERIFICATION_TOKEN" class="tf-btn" style="display:inline-block; padding:14px 28px; font-family:'DM Sans', Arial, Helvetica, sans-serif; font-size:15px; font-weight:700; color:#FFFFFF; text-decoration:none; border-radius:8px;">
+                            Verify email address
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Optional expiry note — present when copy.expiry is set. -->
+                    <p style="margin:0 0 20px; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:13px; line-height:1.6; color:#636D80;">
+                      This verification link expires in 24 hours.
+                    </p>
+
+                    <p style="margin:0 0 6px; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:13px; line-height:1.6; color:#636D80;">
+                      If the button doesn't work, copy and paste this URL into your browser:
+                    </p>
+                    <p style="margin:0 0 28px; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:13px; line-height:1.6; word-break:break-all;">
+                      <a href="https://topfour.app/verify-email?token=REPLACE_WITH_VERIFICATION_TOKEN" style="color:#06699E;">https://topfour.app/verify-email?token=REPLACE_WITH_VERIFICATION_TOKEN</a>
+                    </p>
+
+                    <!-- Optional "if this wasn't you" note — present when copy.ignore is set. -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F7F8F9; border-radius:8px;">
+                      <tr>
+                        <td style="padding:14px 18px; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:13px; line-height:1.6; color:#636D80;">
+                          If you did not create a TopFour account, you can safely ignore this email.
+                        </td>
+                      </tr>
+                    </table>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#FFFFFF; border:1px solid #DFE3E8; border-top:none; border-radius:0 0 12px 12px; padding:24px 32px 32px; text-align:center;" class="tf-px">
+              <p style="margin:0 0 6px; font-family:'DM Sans', Arial, Helvetica, sans-serif; font-size:13px; font-weight:700; color:#3A4453;">
+                TOPFOUR<span style="color:#06699E;">/</span>
+              </p>
+              <!-- Transactional variant (no unsubscribeUrl on the message): -->
+              <p style="margin:0; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:12px; line-height:1.6; color:#8A93A3;">
+                TopFour transactional account email.
+              </p>
+              <!-- Notification variant (unsubscribeUrl present) — use this <p> instead of the one above when copy.unsubscribeUrl is set:
+              <p style="margin:0; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:12px; line-height:1.6; color:#8A93A3;">
+                You are getting this because of your TopFour notification settings.
+                <a href="REPLACE_WITH_UNSUBSCRIBE_URL" style="color:#8A93A3; text-decoration:underline;">Stop these emails</a>.
+              </p>
+              -->
+              <p style="margin:16px 0 0; font-family:'Sora', Arial, Helvetica, sans-serif; font-size:11px; line-height:1.6; color:#AFB6C2;">
+                TopFour &middot; REPLACE_WITH_COMPANY_ADDRESS
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]>
+        </td></tr></table>
+        <![endif]-->
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
