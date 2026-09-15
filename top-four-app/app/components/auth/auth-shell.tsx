@@ -14,9 +14,9 @@ type AuthShellProps = {
 
 export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps) {
   return (
-    <div className="flex min-h-[100dvh] w-full bg-[var(--surface-canvas)] text-[var(--text-primary)]">
+    <div className="flex flex-1 min-h-0 h-full w-full bg-[var(--surface-canvas)] text-[var(--text-primary)]">
       {/* Left: Pitch & Football Panel */}
-      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-slate-950 lg:flex border-r border-slate-800 min-h-[100dvh]">
+      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-slate-950 lg:flex border-r border-slate-800 h-full">
         {/* dot grid backdrop */}
         <div
           aria-hidden
@@ -43,7 +43,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
               TOPFOUR<span className="text-[var(--color-brand)]">/</span>
             </Link>
 
-            <Link href="/how-to-play" className="text-lg text-gray-400 hover:text-white font-heading">
+            <Link href="/how-to-play" className="text-base text-gray-800 hover:text-white font-heading">
               How to play
             </Link>
           </div>
@@ -72,9 +72,11 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         </div>
       </div>
 
-      {/* Right: Form Panel */}
-      <div className="flex flex-1 min-h-[100dvh] items-center justify-center bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
-        <div className="w-full max-w-sm rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm">
+      {/* Right: Form Panel. Its own scroll region — if a tall form plus an
+          error banner ever outgrows a short phone's viewport, this scrolls
+          in place instead of the whole page growing past the fold. */}
+      <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
+        <div className="w-full max-w-sm rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm my-auto">
           {/* Mobile brand mark */}
           <div className="mb-6 flex items-center gap-2 lg:hidden">
             <Link href="/" className="flex items-center text-[var(--text-primary)]">
