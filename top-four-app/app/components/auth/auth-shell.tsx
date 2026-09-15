@@ -38,7 +38,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         </svg>
 
         <div className="relative flex flex-1 flex-col justify-between p-10">
-          <div className="flex items-center gap-2 text-white">
+          <div className="w-full flex items-center justify-between gap-2 text-white">
             <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
               TOPFOUR<span className="text-[var(--color-brand)]">/</span>
             </Link>
