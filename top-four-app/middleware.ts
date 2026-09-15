@@ -16,6 +16,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/confirm-email-change') ||
     pathname.startsWith('/join') ||
     pathname.startsWith('/j/') || // invite landing page
+    pathname.startsWith('/how-to-play') ||
     pathname.match(/\.(png|jpg|jpeg|svg|ico)$/) // static assets
   ) {
     return NextResponse.next();

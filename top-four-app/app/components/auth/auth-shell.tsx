@@ -38,11 +38,15 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         </svg>
 
         <div className="relative flex flex-1 flex-col justify-between p-10">
-          <Link href="/" className="flex items-center gap-2 text-white">
-            <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
+          <div className="flex items-center gap-2 text-white">
+            <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
               TOPFOUR<span className="text-[var(--color-brand)]">/</span>
-            </div>
-          </Link>
+            </Link>
+
+            <Link href="/how-to-play" className="text-lg text-gray-400 hover:text-white font-heading">
+              How to play
+            </Link>
+          </div>
 
           <div>
             <motion.div
@@ -72,14 +76,16 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
       <div className="flex flex-1 min-h-[100dvh] items-center justify-center bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
         <div className="w-full max-w-sm rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm">
           {/* Mobile brand mark */}
-          <Link
-            href="/"
-            className="mb-6 flex items-center gap-2 text-[var(--text-primary)] lg:hidden"
-          >
-            <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-              TOPFOUR<span className="text-[var(--color-brand)]">/</span>
-            </div>
-          </Link>
+          <div className="mb-6 flex items-center gap-2 lg:hidden">
+            <Link href="/" className="flex items-center text-[var(--text-primary)]">
+              <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
+                TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+              </div>
+            </Link>
+            <Link href="/how-to-play" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-heading">
+              How to play
+            </Link>
+          </div>
 
           <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--color-brand)]">
             {eyebrow}
