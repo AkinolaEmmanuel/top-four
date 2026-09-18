@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { LegalShell, Section, P, Bullets, Callout } from './LegalShell';
 
 /*
- * The "no gambling" section is load-bearing: it is what distinguishes a free
+ * The "no gambling" section is load-bearing. It is what distinguishes a free
  * prediction game from a betting product to Google, an app store or a regulator.
- * Keep the product honest to it — no entry fee, no stake, no prize of value, and
+ * Keep the product honest to it: no entry fee, no stake, no prize of value, and
  * no "bet", "stake", "odds" or "winnings" in the interface.
  */
 
@@ -21,36 +21,31 @@ export function TermsScreen() {
             These are the rules for using TopFour. By creating an account or using the service you
             accept them. If you do not, please do not use TopFour.
           </P>
-          <P>
-            We have kept them as short and readable as we can. Nothing here is designed to catch you
-            out.
-          </P>
         </>
       }
     >
       <Section id="who" title="Who you are agreeing with">
         <P>
-          TopFour is run by <strong>Kolade Amire</strong> and <strong>Emmanuel Akinola</strong>, two
-          individuals based in Nigeria, operating jointly. There is no company — your agreement is
-          with us personally. Contact:{' '}
+          TopFour is run by Kolade Amire and Emmanuel Akinola, two individuals based in Nigeria,
+          operating jointly. There is no company, so your agreement is with us personally. Contact:{' '}
           <a href="mailto:support@topfour.app" className="text-[var(--text-link)] font-semibold">support@topfour.app</a>.
         </P>
       </Section>
 
       <Section id="eligibility" title="Who can use TopFour">
         <P>
-          You must be <strong>18 or over</strong> and able to enter into a contract where you live.
+          You must be 18 or over and able to enter into a contract where you live.
         </P>
         <P>
           We do not collect dates of birth and we do not verify age. The rule is a condition of using
-          TopFour, not a check we carry out. If we find out an account belongs to someone under 18 we
-          will close it.
+          TopFour rather than a check we carry out. If we find out an account belongs to someone
+          under 18 we will close it.
         </P>
       </Section>
 
       <Section id="account" title="Your account">
         <Bullets items={[
-          <>Give accurate details, and keep your email address current — it is how we reach you about your account.</>,
+          <>Give accurate details, and keep your email address current. It is how we reach you about your account.</>,
           <>Keep your password to yourself. You are responsible for what happens under your account.</>,
           <>Tell us at once if you think someone else has got into it.</>,
           <>One account per person. Extra accounts used to gain an advantage in a league are not allowed.</>,
@@ -62,10 +57,9 @@ export function TermsScreen() {
         <P>
           TopFour is a free football prediction game. You create or join a private league with people
           you know, predict match results, exact scores, lineups and other outcomes, answer questions
-          your league invents, and collect points. The points produce a table. The table settles the
-          argument.
+          your league invents, and collect points. The points produce a table, and the table settles
+          the argument. It is for entertainment.
         </P>
-        <P>That is the whole product. It is for entertainment.</P>
       </Section>
 
       <Section id="no-gambling" title="No gambling, stakes, entry fees or prizes">
@@ -74,10 +68,10 @@ export function TermsScreen() {
           involves risking anything of value to win anything of value.
         </Callout>
         <Bullets items={[
-          <>We charge <strong>no entry fee</strong> to create or join a league, or to predict.</>,
-          <>We accept and hold <strong>no stake, wager, deposit or betting balance</strong>. There is no wallet.</>,
-          <>We award <strong>no prizes</strong> — no cash, no cryptocurrency, no goods, no gift cards, nothing of real-world monetary value.</>,
-          <>Points have <strong>no monetary value</strong>. They cannot be bought, sold, transferred, exchanged, withdrawn or redeemed for anything.</>,
+          <>We charge no entry fee to create or join a league, or to predict.</>,
+          <>We accept and hold no stake, wager, deposit or betting balance. There is no wallet.</>,
+          <>We award no prizes. No cash, no cryptocurrency, no goods, no gift cards, nothing of real-world monetary value.</>,
+          <>Points have no monetary value. They cannot be bought, sold, transferred, exchanged, withdrawn or redeemed for anything.</>,
           <>You may not use TopFour to organise or settle bets between yourselves. Leagues are for bragging rights.</>,
           <>TopFour is not a bookmaker, a betting exchange, a lottery, a prize competition or a prediction market, and does not act as an intermediary for any of them.</>,
         ]} />
@@ -85,14 +79,14 @@ export function TermsScreen() {
 
       <Section id="leagues" title="Leagues, scoring and football data">
         <P>
-          Each league sets its own rules when it is created — which competitions count, what each
+          Each league sets its own rules when it is created: which competitions count, what each
           market is worth, and how ties are broken. Those rules freeze when the league is published,
           so everyone plays the same game.
         </P>
         <Bullets items={[
           <>Predictions lock at the deadline shown. A prediction not saved before the deadline does not count.</>,
           <>Match results come from a third-party football data provider. That data is usually right and occasionally late or wrong.</>,
-          <>Where a result is corrected, a match is postponed or abandoned, or a market cannot be settled fairly, we may re-settle or void that market and recalculate points. We will do this only where it is needed to keep the league accurate, not at whim.</>,
+          <>Where a result is corrected, a match is postponed or abandoned, or a market cannot be settled fairly, we may re-settle or void that market and recalculate points. We will do this only where it is needed to keep the league accurate.</>,
           <>Standings are calculated automatically. Where scoring is disputed, the rules published in your league govern, and our determination of how they apply is final for the purposes of the game.</>,
         ]} />
       </Section>
@@ -119,23 +113,23 @@ export function TermsScreen() {
           <>Do not use more than one account to gain an advantage, or share an account to do so.</>,
           <>Do not attempt to interfere with scoring, settlement, another member&apos;s account, or the service itself.</>,
           <>Do not scrape TopFour or try to get at data you are not a member of a league to see.</>,
-          <>Do not probe, attack or overload our systems. If you find a security problem, tell us — we would much rather hear from you.</>,
+          <>Do not probe, attack or overload our systems. If you find a security problem, tell us. We would much rather hear from you.</>,
         ]} />
       </Section>
 
       <Section id="third-party" title="Things we depend on">
         <P>
-          TopFour runs on services we do not control — hosting, email delivery, Google sign-in and a
+          TopFour runs on services we do not control: hosting, email delivery, Google sign-in and a
           football data feed. When one of them has a problem, TopFour may too. We are responsible for
-          our own obligations to you; we cannot guarantee someone else&apos;s service.
+          our own obligations to you, and we cannot guarantee someone else&apos;s service.
         </P>
       </Section>
 
       <Section id="privacy" title="Privacy">
         <P>
           Our <Link href="/privacy" className="text-[var(--text-link)] font-semibold">privacy policy</Link> explains what we
-          collect and why. It is information, not a consent form — accepting these terms is not you
-          consenting to data processing.
+          collect and why. It is information rather than a consent form, and accepting these terms is
+          not you consenting to data processing.
         </P>
       </Section>
 
@@ -143,7 +137,7 @@ export function TermsScreen() {
         <P>
           We own the TopFour software, design and name. You own what you write. Club names, crests,
           competition names and player data belong to their respective owners, and appear here to
-          describe real football — we claim no rights in them and are not affiliated with, endorsed
+          describe real football. We claim no rights in them and are not affiliated with, endorsed
           by, or connected to any club or competition.
         </P>
       </Section>
@@ -155,7 +149,7 @@ export function TermsScreen() {
         </P>
         <P>
           We may add, change or remove features. Where a change materially harms how existing leagues
-          work, we will give notice rather than spring it on you mid-season.
+          work, we will give notice.
         </P>
       </Section>
 
@@ -164,7 +158,7 @@ export function TermsScreen() {
           You can stop using TopFour whenever you like, and ask us to delete your account at{' '}
           <a href="mailto:support@topfour.app" className="text-[var(--text-link)] font-semibold">support@topfour.app</a>. What
           happens to your data then is set out in the{' '}
-          <Link href="/privacy#retention" className="text-[var(--text-link)] font-semibold">privacy policy</Link> — in short,
+          <Link href="/privacy#retention" className="text-[var(--text-link)] font-semibold">privacy policy</Link>. In short,
           your personal details go and the league&apos;s historical table stays, with your name replaced.
         </P>
         <P>
@@ -180,7 +174,7 @@ export function TermsScreen() {
           We may add optional paid features in the future. If we do:
         </P>
         <Bullets items={[
-          <>you will never be charged without first seeing the price, the billing period, any taxes, and how to cancel — and agreeing to it;</>,
+          <>you will never be charged without first seeing the price, the billing period, any taxes, and how to cancel, and agreeing to it;</>,
           <>free leagues will stay free, and we will not put an existing league behind a payment;</>,
           <>any payment will be for functionality. It will never be an entry fee, a stake, a contribution to a prize, or a purchase of points that can be redeemed for anything.</>,
         ]} />
@@ -200,8 +194,8 @@ export function TermsScreen() {
           for anything beyond the game.
         </P>
         <P>
-          None of this affects rights you have under the law that cannot be excluded — and if you are
-          a consumer in the UK or EU, you have several. We are not trying to sign those away.
+          None of this affects rights you have under the law that cannot be excluded. If you are a
+          consumer in the UK or EU, you have several, and we are not trying to sign those away.
         </P>
       </Section>
 
@@ -214,8 +208,8 @@ export function TermsScreen() {
         <P>
           We do not limit our liability for death or personal injury caused by our negligence, for
           fraud, or for anything else the law does not allow us to limit. Where the law permits a
-          limit, our total liability to you is limited to a reasonable amount — and because TopFour is
-          free, we will not attempt to argue that this is therefore nothing.
+          limit, our total liability to you is limited to a reasonable amount. Because TopFour is
+          free, we will not argue that this amount is therefore nothing.
         </P>
       </Section>
 
@@ -249,7 +243,7 @@ export function TermsScreen() {
 
       <Section id="contact" title="Contact">
         <P>
-          <a href="mailto:support@topfour.app" className="text-[var(--text-link)] font-semibold">support@topfour.app</a> — for
+          <a href="mailto:support@topfour.app" className="text-[var(--text-link)] font-semibold">support@topfour.app</a>, for
           anything at all, including the things in these terms.
         </P>
       </Section>

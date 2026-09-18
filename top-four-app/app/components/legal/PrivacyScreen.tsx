@@ -5,8 +5,8 @@ import { LegalShell, Section, P, Bullets, Pairs, Callout } from './LegalShell';
 
 /*
  * Every claim here is checked against what the code actually does. Before
- * changing the product in a way this describes — the data stored, the providers
- * used, what league members can see, or what deletion does — change this too.
+ * changing the product in a way this describes (the data stored, the providers
+ * used, what league members can see, or what deletion does), change this too.
  */
 
 export function PrivacyScreen() {
@@ -18,12 +18,10 @@ export function PrivacyScreen() {
         <>
           <P>
             This explains what TopFour collects about you, why, who else sees it, and what you can
-            ask us to do about it. We have tried to write it in plain language rather than legal
-            boilerplate, and to describe what the service actually does rather than what a template
-            assumes.
+            ask us to do about it.
           </P>
           <P>
-            It covers topfour.app and the TopFour service behind it — your account, signing in,
+            It covers topfour.app and the TopFour service behind it: your account, signing in,
             leagues, predictions, lineups, questions and notifications.
           </P>
         </>
@@ -31,10 +29,10 @@ export function PrivacyScreen() {
     >
       <Section id="who-we-are" title="Who controls your data">
         <P>
-          TopFour is operated by <strong>Kolade Amire</strong> and <strong>Emmanuel Akinola</strong>,
-          two individuals based in Nigeria. There is no company behind TopFour. We are joint data
-          controllers for the purposes of the Nigeria Data Protection Act 2023, and — where it
-          applies to you — the UK GDPR and the EU GDPR.
+          TopFour is operated by Kolade Amire and Emmanuel Akinola, two individuals based in
+          Nigeria. There is no company behind TopFour. We are joint data controllers under the
+          Nigeria Data Protection Act 2023 and, where they apply to you, the UK GDPR and the EU
+          GDPR.
         </P>
         <P>
           You can reach us at{' '}
@@ -44,16 +42,14 @@ export function PrivacyScreen() {
 
       <Section id="joint-control" title="How joint control works">
         <P>
-          Because two people run TopFour together, data protection law asks us to tell you the
-          substance of how we divide it between us. We share responsibility for every decision about
-          why and how your data is used. In practice we handle it jointly: requests about your data,
-          security matters, our agreements with service providers, retention, and contact with
-          regulators.
+          Because two people run TopFour together, data protection law asks us to tell you how we
+          divide that responsibility. We share every decision about why and how your data is used,
+          and we handle the work jointly: requests about your data, security matters, our agreements
+          with service providers, retention, and contact with regulators.
         </P>
         <P>
-          <strong>support@topfour.app</strong> reaches both of us and is the single place to send
-          anything. You are not required to work out which of us to approach — you may exercise your
-          rights against either of us, and against both.
+          support@topfour.app reaches both of us. You do not have to work out which of us to
+          approach, and you may exercise your rights against either of us or against both.
         </P>
       </Section>
 
@@ -63,11 +59,11 @@ export function PrivacyScreen() {
           caption="Data we hold"
           rows={[
             ['Account', 'Your email address, your display name, whether your email has been verified, your account status, and when the account was created and last changed.'],
-            ['Sign-in', 'A cryptographic hash of your password — never the password itself. If you use Google sign-in, the identifier Google assigns you.'],
+            ['Sign-in', 'A cryptographic hash of your password. We never store the password itself. If you use Google sign-in, the identifier Google assigns you.'],
             ['Sessions and security', 'Your IP address and browser user-agent string for each signed-in session, along with expiry and revocation times, and records of failed sign-in attempts used for rate limiting. We store digests of session tokens, not the tokens.'],
             ['Email verification', 'Digests of the one-time links used to verify your email, reset your password, or confirm an email change.'],
             ['What you do on TopFour', 'Your leagues and memberships, your predictions, lineups and points, the custom questions you write and the answers you give, and your notifications.'],
-            ['Audit records', 'A record of significant actions — who did what, to what, and when — kept so we can investigate problems and disputes.'],
+            ['Audit records', 'A record of significant actions: who did what, to what, and when. We keep these so we can investigate problems and disputes.'],
           ]}
         />
         <P>
@@ -78,25 +74,24 @@ export function PrivacyScreen() {
 
       <Section id="sources" title="Where it comes from">
         <Bullets items={[
-          <>Directly from you — when you create an account, set a display name, join or create a league, predict, or write a question.</>,
+          <>Directly from you, when you create an account, set a display name, join or create a league, predict, or write a question.</>,
           <>From Google, if you choose to sign in with Google. Only the claims listed below.</>,
-          <>Automatically from your device when you are signed in — your IP address and user agent, recorded against your session.</>,
-          <>Generated by TopFour as you play — points, standings and notifications calculated from your predictions and real match results.</>,
+          <>Automatically from your device when you are signed in: your IP address and user agent, recorded against your session.</>,
+          <>Generated by TopFour as you play: points, standings and notifications calculated from your predictions and real match results.</>,
         ]} />
       </Section>
 
       <Section id="why" title="Why we use it, and our legal basis">
         <P>
-          We rely on the bases below. We do <strong>not</strong> rely on consent to run your account:
-          agreeing to our terms is not the same thing as consenting to data processing, and we think
-          it would be misleading to pretend otherwise.
+          We rely on the bases below. We do not rely on consent to run your account: agreeing to our
+          terms is not the same as consenting to data processing.
         </P>
         <Pairs
           caption="Purpose and basis"
           rows={[
             ['Creating your account and signing you in', 'Performance of our contract with you.'],
             ['Running leagues, recording predictions, calculating points, and sending notifications you need to play', 'Performance of our contract with you.'],
-            ['Showing your display name, points and settled predictions to the other members of your league', 'Performance of our contract with you — it is the point of a league.'],
+            ['Showing your display name, points and settled predictions to the other members of your league', 'Performance of our contract with you. Showing them is the point of a league.'],
             ['Verifying your email, resetting passwords, confirming email changes', 'Performance of our contract with you.'],
             ['Protecting accounts, rate-limiting abuse, investigating incidents, keeping audit records', 'Our legitimate interests in keeping TopFour secure and its competitions fair.'],
             ['Responding to lawful requests and meeting legal duties', 'Compliance with a legal obligation.'],
@@ -105,28 +100,28 @@ export function PrivacyScreen() {
       </Section>
 
       <Section id="google" title="If you sign in with Google">
-        <P>Google sign-in is optional. If you use it, here is exactly what happens.</P>
+        <P>Google sign-in is optional. If you use it:</P>
         <Bullets items={[
           <>We ask Google for three scopes: <code className="text-[12.5px] text-[var(--text-primary)]">openid</code>, <code className="text-[12.5px] text-[var(--text-primary)]">email</code> and <code className="text-[12.5px] text-[var(--text-primary)]">profile</code>.</>,
-          <>From what Google returns, we use and keep only four things: the account identifier Google assigns you, your email address, whether Google has verified that email, and your name — which becomes your starting display name.</>,
+          <>From what Google returns, we use and keep only four things: the account identifier Google assigns you, your email address, whether Google has verified that email, and your name, which becomes your starting display name.</>,
           <>We do not use or store your Google profile picture.</>,
           <>We never see your Google password.</>,
           <>We do not access your Gmail, Google Drive, contacts, calendar or any other Google service, and we do not ask for permission to.</>,
           <>We use this only to create, link, sign in to and secure your TopFour account.</>,
           <>Your leagues, predictions and points are not sent to Google because you signed in with Google.</>,
-          <>You can disconnect TopFour from your Google account at any time in your Google account settings. Doing so does not delete your TopFour account — email us if that is what you want.</>,
+          <>You can disconnect TopFour from your Google account at any time in your Google account settings. That does not delete your TopFour account. Email us if that is what you want.</>,
         ]} />
       </Section>
 
       <Section id="visibility" title="What other people can see">
         <P>
-          A league is private in the sense that non-members cannot see it. It is not private from the
-          other people in it — that is what makes it a competition.
+          A league is private from non-members. It is not private from the other people in it, which
+          is what makes it a competition.
         </P>
         <Bullets items={[
-          <>Everyone in a league can see every other member&apos;s <strong>display name and points</strong> on that league&apos;s table.</>,
+          <>Everyone in a league can see every other member&apos;s display name and points on that league&apos;s table.</>,
           <>Answers to a custom question stay hidden from other members until that question&apos;s deadline passes. After that, members can see who answered what.</>,
-          <>Your predictions on a match become visible to other members once the market has locked and the fixture has settled — never before.</>,
+          <>Your predictions on a match become visible to other members once the market has locked and the fixture has settled, and not before.</>,
           <>Leagues are joined with an invitation link or a join code. Anyone who has a valid link or code and uses it becomes a member, and can then see everything above. Share them only with people you mean to let in.</>,
           <>If you leave a league or delete your account, the league&apos;s completed history remains, with your name replaced. See <a href="#retention" className="text-[var(--text-link)] font-semibold">how long we keep things</a>.</>,
         ]} />
@@ -143,13 +138,13 @@ export function PrivacyScreen() {
             ['Railway', 'Hosts the TopFour API and database. The database is in their EU West region.'],
             ['Vercel', 'Hosts the TopFour website.'],
             ['Cloudflare', 'Delivery and protection against attacks.'],
-            ['Resend', 'Sends transactional email — verification links, password resets and notifications.'],
+            ['Resend', 'Sends transactional email: verification links, password resets and notifications.'],
             ['Google', 'Sign-in, if you choose it. For its own handling of your Google account, Google acts on its own behalf rather than ours, under its own privacy policy.'],
           ]}
         />
         <P>
           We also take fixture, team and player data from a football data provider. That is a one-way
-          feed into TopFour — <strong>no information about you is sent to them</strong>.
+          feed into TopFour, and no information about you is sent to them.
         </P>
         <P>
           We may disclose data if the law requires it, or where it is necessary to investigate abuse
@@ -159,13 +154,12 @@ export function PrivacyScreen() {
 
       <Section id="where" title="Where your data is stored">
         <P>
-          The main TopFour database is hosted in the European Union. We want to be straightforward
-          about what that does and does not mean: it does not mean your data never leaves the EU. We
-          run TopFour from Nigeria and access it from there, and the providers above may process data
-          in other countries, including the United States.
+          The main TopFour database is hosted in the European Union. That does not mean your data
+          never leaves the EU. We run TopFour from Nigeria and access it from there, and the
+          providers above may process data in other countries, including the United States.
         </P>
         <P>
-          Where data moves between countries we rely on the protections available for that route —
+          Where data moves between countries we rely on the protections available for that route:
           adequacy decisions where they exist, and contractual safeguards with our providers
           otherwise. If you want to know the position for a particular provider, ask us and we will
           tell you what we have.
@@ -174,8 +168,8 @@ export function PrivacyScreen() {
 
       <Section id="retention" title="How long we keep things">
         <P>
-          Completed and cancelled leagues stay readable for as long as TopFour operates. That is
-          deliberate — a league&apos;s history is the record of who called what, and members rely on it.
+          Completed and cancelled leagues stay readable for as long as TopFour operates. A
+          league&apos;s history is the record of who called what, and members rely on it.
         </P>
         <Pairs
           caption="Retention"
@@ -190,37 +184,36 @@ export function PrivacyScreen() {
           ]}
         />
         <P>
-          <strong>If you ask us to delete your account:</strong> we unlink and remove your account and
-          your personal details, and replace your name in any league history with &ldquo;Former
-          member&rdquo;. We keep the final position and points of that former member, because removing
-          a row would make everyone else&apos;s historical table wrong. We keep that under our legitimate
-          interest in accurate league history.
+          If you ask us to delete your account, we unlink and remove your account and your personal
+          details, and replace your name in any league history with &ldquo;Former member&rdquo;. We
+          keep the final position and points of that former member, because removing a row would make
+          everyone else&apos;s historical table wrong. We keep that under our legitimate interest in
+          accurate league history.
         </P>
         <Callout>
           We will not call that remaining row anonymous, because it is not. Other members of your
           league may still work out who it was from the position and the history. It stays personal
-          data, your rights still apply to it, and you can object to us keeping it — tell us and we
-          will consider it properly rather than refusing on principle.
+          data, your rights still apply to it, and you can object to us keeping it. Tell us and we
+          will consider the objection.
         </Callout>
         <P>
-          Where a dispute or legal claim is genuinely live, we keep what is relevant to it for as long
-          as it takes to resolve. Backups are overwritten on their own cycle, so deleted data can
-          persist in a backup for a short period after it has gone from the live service.
+          Where a dispute or legal claim is live, we keep what is relevant to it for as long as it
+          takes to resolve. Backups are overwritten on their own cycle, so deleted data can persist
+          in a backup for a short period after it has gone from the live service.
         </P>
       </Section>
 
       <Section id="cookies" title="Cookies">
         <P>
-          TopFour sets <strong>one</strong> cookie, called <code className="text-[13px] text-[var(--text-primary)]">__Host-tf.sid</code>.
+          TopFour sets one cookie, called <code className="text-[13px] text-[var(--text-primary)]">__Host-tf.sid</code>.
           It holds your signed-in session, so the service knows it is you as you move between pages.
           It expires when your session does.
         </P>
         <P>
-          That is the only cookie. <strong>We use no analytics, no advertising and no tracking
-          cookies of any kind</strong>, and no third party sets a cookie through TopFour. Because our
-          one cookie is strictly necessary to provide a service you have asked for, and is not used to
-          track you, we do not need to ask your permission for it — which is why you will not see a
-          cookie banner. We still think you should know it is there.
+          That is the only cookie. We use no analytics, advertising or tracking cookies, and no third
+          party sets a cookie through TopFour. Our one cookie is strictly necessary to provide a
+          service you asked for and is not used to track you, so we do not need your permission for
+          it, which is why you will not see a cookie banner.
         </P>
       </Section>
 
@@ -232,44 +225,43 @@ export function PrivacyScreen() {
           <>Traffic between you and TopFour is encrypted in transit.</>,
         ]} />
         <P>
-          No service can promise it will never suffer a breach, and we are not going to. If one happens
-          that puts you at risk, we will tell you and the relevant regulator as the law requires.
+          We cannot promise TopFour will never suffer a breach. If one happens that puts you at risk,
+          we will tell you and the relevant regulator as the law requires.
         </P>
       </Section>
 
       <Section id="rights" title="Your rights">
         <P>
           Depending on where you live, you have rights over your data. In Nigeria these come from the
-          Nigeria Data Protection Act 2023; in the UK and the EU, from the UK and EU GDPR. In practice
-          we offer the same to everyone:
+          Nigeria Data Protection Act 2023; in the UK and the EU, from the UK and EU GDPR. In
+          practice we offer the same to everyone:
         </P>
         <Bullets items={[
-          <><strong>See</strong> what we hold about you.</>,
-          <><strong>Correct</strong> anything wrong.</>,
-          <><strong>Delete</strong> your account and personal data, subject to the league-history point above.</>,
-          <><strong>Restrict</strong> or <strong>object to</strong> what we do with it, including anything we do on the basis of our legitimate interests.</>,
-          <><strong>Receive a copy</strong> of the data you gave us, in a machine-readable form, where the law requires it.</>,
-          <><strong>Complain</strong> to a regulator.</>,
+          <>See what we hold about you.</>,
+          <>Correct anything wrong.</>,
+          <>Delete your account and personal data, subject to the league-history point above.</>,
+          <>Restrict or object to what we do with it, including anything we do on the basis of our legitimate interests.</>,
+          <>Receive a copy of the data you gave us, in a machine-readable form, where the law requires it.</>,
+          <>Complain to a regulator.</>,
         ]} />
         <Callout>
-          <strong>How to ask:</strong> email{' '}
-          <a href="mailto:support@topfour.app" className="underline font-semibold">support@topfour.app</a>. There is no
-          button in the app for this yet — we handle every request by hand. We will confirm we have it,
-          may need to check you are who you say you are, and will respond within 30 days.
+          To ask, email{' '}
+          <a href="mailto:support@topfour.app" className="underline font-semibold">support@topfour.app</a>. There is
+          no button in the app for this yet, so we handle every request by hand. We will confirm we
+          have it, may need to check you are who you say you are, and will respond within 30 days.
         </Callout>
         <P>
           If you are unhappy with how we have handled something, you can complain to the Nigeria Data
-          Protection Commission, to the UK Information Commissioner&apos;s Office if you are in the UK,
-          or to your national supervisory authority if you are in the EU. You do not have to come to
-          us first.
+          Protection Commission, to the UK Information Commissioner&apos;s Office if you are in the
+          UK, or to your national supervisory authority if you are in the EU. You do not have to come
+          to us first.
         </P>
       </Section>
 
       <Section id="representatives" title="UK and EU representatives">
         <P>
           Rules in the UK and EU can require an organisation based outside them to appoint a local
-          representative. <strong>We have not yet appointed one.</strong> We would rather say that
-          plainly than leave you looking for a contact that does not exist.
+          representative. We have not yet appointed one.
         </P>
         <P>
           Until we do, send anything about your data to{' '}
@@ -281,8 +273,8 @@ export function PrivacyScreen() {
 
       <Section id="automated" title="Automated processing">
         <P>
-          Scoring is automatic: when a match settles, TopFour works out points and re-orders the table
-          without anyone reviewing it. That is the game working as intended.
+          Scoring is automatic. When a match settles, TopFour works out points and re-orders the
+          table without anyone reviewing it.
         </P>
         <P>
           We do not use your data to make automated decisions that have legal effects or similarly
@@ -292,8 +284,8 @@ export function PrivacyScreen() {
 
       <Section id="age" title="Age">
         <P>
-          TopFour is for people aged <strong>18 or over</strong>. We do not ask for your date of birth
-          and we do not verify anyone&apos;s age, so please do not read the rule as a check we perform.
+          TopFour is for people aged 18 or over. We do not ask for your date of birth and we do not
+          verify anyone&apos;s age.
         </P>
         <P>
           If we learn that an account belongs to someone under 18, we will suspend it and delete the
@@ -306,8 +298,7 @@ export function PrivacyScreen() {
       <Section id="changes" title="Changes to this policy">
         <P>
           When we change this policy we update the date at the top. If a change materially affects
-          your rights or what we do with your data, we will make it visible in the app rather than
-          relying on you to re-read this page.
+          your rights or what we do with your data, we will make it visible in the app.
         </P>
         <P>
           Our <Link href="/terms" className="text-[var(--text-link)] font-semibold">terms of service</Link> cover the rest
