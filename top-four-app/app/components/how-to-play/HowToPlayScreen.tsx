@@ -1,10 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import Image, { type StaticImageData } from 'next/image';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/auth-context';
 import { FootballBall } from '../brand/football-ball';
+
+/*
+ * Imported, not referenced by a path under `public/`.
+ *
+ * A public path is stable, so Next will not let it be cached — these shipped
+ * with `max-age=0, must-revalidate` and were refetched on every page load.
+ * Imported, each one is emitted with a content hash and served immutable for a
+ * year; replacing a shot changes the hash, so nothing can go stale either.
+ */
+import leaguesShot from './shots/leagues.png';
+import predictShot from './shots/predict.png';
+import lineupsShot from './shots/lineups-filled.png';
+import questionsShot from './shots/questions.png';
+import tableShot from './shots/table.png';
+import homeMobileShot from './shots/home-mobile.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -16,7 +31,7 @@ const STEPS: {
   eyebrow: string;
   title: string;
   body: string;
-  image: string;
+  image: StaticImageData;
   alt: string;
   /** Overrides the default 16:10 shot frame where a screen needs a wider crop. */
   aspect?: string;
@@ -26,7 +41,7 @@ const STEPS: {
       eyebrow: 'Start here',
       title: 'Create a league, or join one with a code',
       body: "Set up your own league around any competition in a couple of taps, or drop in the invite code a friend sent you. Every league runs its own table, so the same friends can run five leagues at once and never mix them up.",
-      image: '/how-to-play/leagues.png',
+      image: leaguesShot,
       alt: 'The Leagues screen, showing a league card with member count and a Join or Create a league button',
     },
     {
@@ -34,7 +49,7 @@ const STEPS: {
       eyebrow: 'Every fixture',
       title: 'Predict scores, results and more — pick the score once, we do the rest',
       body: "Call the match result, the exact score, both teams to score, total goals and who scores first. Pick an exact score and TopFour fills in both teams to score and total goals to match it automatically, so a 2-1 doesn't leave you disagreeing with yourself on the market underneath it.",
-      image: '/how-to-play/predict.png',
+      image: predictShot,
       alt: 'The fixture prediction screen for Brentford v Chelsea, showing match result, exact score, and both teams to score markets',
     },
     {
@@ -42,7 +57,7 @@ const STEPS: {
       eyebrow: 'Starting XI',
       title: 'Name a lineup in one tap with Auto-fill',
       body: "Pick a formation, then hit Auto-fill to drop in a sensible XI from the real squad instantly — swap in whoever you actually rate, or leave it exactly as it landed. Either way, the shape is picked and the eleven are named before kickoff.",
-      image: '/how-to-play/lineups-filled.png',
+      image: lineupsShot,
       alt: 'The lineup picker showing a completed 4-3-3 Brentford starting XI on a pitch diagram, filled in with one tap',
     },
     {
@@ -50,7 +65,7 @@ const STEPS: {
       eyebrow: "This week's debate",
       title: 'Answer the questions only your league is asking',
       body: 'Every league can add its own questions on top of the fixtures — who finishes top four, whether there\'s a red card this weekend, whatever your group actually argues about. They score onto the same table as everything else.',
-      image: '/how-to-play/questions.png',
+      image: questionsShot,
       alt: 'The Questions screen showing two open custom questions worth points, including club and yes/no picks',
     },
     {
@@ -58,9 +73,10 @@ const STEPS: {
       eyebrow: 'Bragging rights',
       title: 'Watch the table settle every argument',
       body: "Points land the moment results are confirmed, and the table updates live. No more he-said-she-said about who actually called it — the standings remember for you.",
-      image: '/how-to-play/table.png',
+      image: tableShot,
       alt: 'The league table showing member standings ranked by points',
-      aspect: 'aspect-[2/1]',
+      // The shot's own ratio, so a short table is neither cropped nor padded.
+      aspect: 'aspect-[36/13]',
     },
   ];
 
@@ -204,11 +220,14 @@ export function HowToPlayScreen() {
                       <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
                     </div>
                     <div className={`relative w-full ${step.aspect ?? 'aspect-[16/10]'} overflow-hidden`}>
+                      {/* Blurred until it lands. Available only because the
+                          import carries the dimensions and a placeholder. */}
                       <Image
                         src={step.image}
                         alt={step.alt}
                         fill
                         sizes="(max-width: 768px) 100vw, 50vw"
+                        placeholder="blur"
                         className="object-cover object-top"
                         priority={i === 0}
                       />
@@ -233,10 +252,11 @@ export function HowToPlayScreen() {
               >
                 <div className="relative w-full aspect-[390/844] overflow-hidden rounded-[1.4rem]">
                   <Image
-                    src="/how-to-play/home-mobile.png"
+                    src={homeMobileShot}
                     alt="The TopFour home screen on a phone, showing the next lock countdown and what's waiting on you"
                     fill
                     sizes="280px"
+                    placeholder="blur"
                     className="object-cover object-top"
                   />
                 </div>
