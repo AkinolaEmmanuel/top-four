@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { timeUntilLabel, personInitials, pluralise } from '@/lib/format';
+import { timeUntilLabel, personInitials, pluralise, countdownLabel } from '@/lib/format';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MobileNav } from '../MobileNav';
@@ -30,11 +30,12 @@ const URGENT_WITHIN_SECONDS = 15 * 60;
 /** Crest tints for teams the catalogue did not resolve a logo for. */
 
 
+/* Past an hour this is the shared countdown, so three days out reads `2d 23h
+   16m` rather than `71h 16m`. Under an hour the seconds keep ticking, which is
+   the whole point of the last hour. */
 function formatRemaining(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}:${String(s).padStart(2, '0')}`;
+  if (seconds >= 3600) return countdownLabel(seconds * 1000);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 /**

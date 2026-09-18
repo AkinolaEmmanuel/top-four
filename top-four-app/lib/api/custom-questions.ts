@@ -105,10 +105,34 @@ export async function resolveCustomQuestion(leagueId: string, questionId: string
   return response.data;
 }
 
-// Only available once the question's own deadline has passed.
+/*
+ * Every member's answer, not the first page of them.
+ *
+ * Only available once the question's own deadline has passed. The screen shows
+ * the whole list at once with no paging of its own, so stopping at the first
+ * page silently dropped members with nothing to say they were missing.
+ *
+ * Bounded, because an unbounded follow is a denial of service against our own
+ * API if a cursor ever stops terminating — same rule as `fetchMyLeagues`.
+ */
+const MAX_ANSWER_PAGES = 10;
+
 export async function fetchDisclosedAnswers(leagueId: string, questionId: string): Promise<DisclosedCustomAnswersData> {
-  const response = await apiFetch<{ data: DisclosedCustomAnswersData; nextCursor: string | null }>(`/leagues/${leagueId}/custom-questions/${questionId}/answers`);
-  return response.data;
+  const path = `/leagues/${leagueId}/custom-questions/${questionId}/answers`;
+  type Page = { data: DisclosedCustomAnswersData; nextCursor: string | null };
+
+  const first = await apiFetch<Page>(path);
+  const answers = [...first.data.answers];
+  let cursor = first.nextCursor;
+
+  for (let page = 1; cursor && page < MAX_ANSWER_PAGES; page++) {
+    const next: Page = await apiFetch<Page>(`${path}?cursor=${encodeURIComponent(cursor)}`);
+    answers.push(...next.data.answers);
+    cursor = next.nextCursor;
+  }
+
+  if (cursor) console.warn(`[fetchDisclosedAnswers] stopped at ${MAX_ANSWER_PAGES} pages; more remain`);
+  return { ...first.data, answers };
 }
 
 /**
