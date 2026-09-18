@@ -49,6 +49,18 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   font-variant-numeric: tabular-nums;
 }
 
+/* Google renders its own sign-in button and exposes only two shapes through
+   `renderButton`: rectangular, which is 4px, or a full pill. Neither matches the
+   6px on the inputs it sits beneath. Matched here instead, keyed on the button's
+   role rather than on Google's class names, which are obfuscated and change. */
+.tf-google-button [role="button"] {
+  border-radius: 6px !important;
+  background-color: var(--surface-canvas) !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: none !important;
+}
+.tf-google-button [role="button"] span { color: var(--text-primary) !important; }
+
 .tf-scroll { scrollbar-width: none; }
 .tf-scroll::-webkit-scrollbar { display: none; }
 

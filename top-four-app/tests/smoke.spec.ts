@@ -395,3 +395,86 @@ test('the legal pages are reachable signed out, and say the things they must', a
   await expect(page.getByRole('heading', { name: /No gambling/ })).toBeVisible();
   await expect(page.getByText(/no entry fee/i).first()).toBeVisible();
 });
+
+/**
+ * Public, and deliberately never submits: the point is the gate, and a spec that
+ * registered an account would leave one behind on every run.
+ *
+ * The terms set 18 as a condition of use, and this checkbox is the only place
+ * anyone says so. Delete it, or drop `!accepted` from the button's disabled
+ * expression, and the claim in the terms becomes decorative with nothing failing.
+ */
+test('sign-up will not proceed until age and terms are confirmed', async ({ page }) => {
+  await visit(page, '/sign-up');
+  await expectNoProblemState(page);
+
+  const confirm = page.getByRole('checkbox');
+  const create = page.getByRole('button', { name: 'Create account' });
+
+  // Unticked to start. A pre-ticked box would be no evidence anyone read it.
+  await expect(confirm, 'the age and terms checkbox is missing').toBeVisible();
+  await expect(confirm).not.toBeChecked();
+  await expect(create, 'Create account is reachable without confirming age').toBeDisabled();
+
+  await confirm.check();
+  await expect(create, 'confirming age did not release the button').toBeEnabled();
+
+  // And back, so the gate is a real binding rather than a one-way latch.
+  await confirm.uncheck();
+  await expect(create).toBeDisabled();
+
+  // Opening the terms must not discard a part-filled form, so both links leave
+  // this tab alone.
+  const label = page.locator('label').filter({ hasText: 'I am 18 or over' });
+  for (const name of ['terms of service', 'privacy policy']) {
+    await expect(label.getByRole('link', { name })).toHaveAttribute('target', '_blank');
+  }
+});
+
+/**
+ * Google sign-in creates an account when none exists, so the button is a sign-up
+ * path too. It carries a statement rather than a tick, because a returning
+ * member should not confirm their age on every sign-in.
+ *
+ * The appearance is checked as well, because it is not ours to keep. Google
+ * renders that button and offers only a white or a neutral-grey preset, neither
+ * of which belongs on this form, so its surface is set from our own tokens in
+ * `globals.css`, keyed on the button's role. Google owns that markup: if they
+ * restructure it the rules stop matching and their grey button returns, looking
+ * wrong on every auth screen with nothing to say so. Hence this.
+ *
+ * Skips where no Google client is configured, since nothing is offered then.
+ */
+test('where Google sign-up is offered, it states the age and matches the form', async ({ page }) => {
+  await visit(page, '/sign-up');
+
+  const offered = page.locator('span').filter({ hasText: /^or$/ });
+  test.skip(await offered.count() === 0, 'No Google client configured here.');
+
+  await expect(
+    page.getByText(/By continuing with Google you confirm you are 18 or over/),
+    'Google sign-up is offered without stating the age requirement',
+  ).toBeVisible();
+
+  /* Google has to draw its button before there is anything to compare, and it
+     will not if the challenge behind it was refused. That endpoint allows 30
+     requests per quarter hour per IP, which a few suite runs from one machine
+     will exhaust, so a skip here is worth telling apart from a real absence. */
+  const button = page.locator('.tf-google-button [role="button"]');
+  const rendered = await button.first().waitFor({ state: 'visible', timeout: 15_000 }).then(() => true, () => false);
+  test.skip(
+    !rendered,
+    'Google drew no button: its challenge was refused (rate limited at 30/15min per IP) or its script did not load.',
+  );
+
+  // Against the field above it: same surface, same edge, same corner.
+  const field = page.locator('input[type="email"]');
+  const seen = async (locator: ReturnType<typeof page.locator>) =>
+    locator.first().evaluate(el => {
+      const s = getComputedStyle(el);
+      return { background: s.backgroundColor, border: s.borderColor, radius: s.borderRadius };
+    });
+
+  const [onField, onButton] = [await seen(field), await seen(button)];
+  expect(onButton, 'the Google button no longer matches the form around it').toEqual(onField);
+});
