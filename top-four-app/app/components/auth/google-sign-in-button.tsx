@@ -80,9 +80,8 @@ export function GoogleSignInButton({
   const rearm = useCallback(() => setAttempt(n => n + 1), []);
 
   /* Drawing is separated from initialising: initialising spends a challenge,
-     `renderButton` is free, and the button is redrawn when the theme flips. */
+     `renderButton` is free, and the button is redrawn on re-arm. */
   const [ready, setReady] = useState(false);
-  const [dark, setDark] = useState(false);
 
   /* Held in refs, and deliberately out of the effect's dependencies. Neither is
      memoised by its caller, so depending on them re-ran this effect on every
@@ -98,20 +97,6 @@ export function GoogleSignInButton({
   const onErrorRef = useRef(onError);
   signInRef.current = signInWithGoogle;
   onErrorRef.current = onError;
-
-  /* In production Google draws this button inside a cross-origin iframe, so its
-     appearance cannot be reached from our stylesheet at any specificity. The
-     only dark button available is Google's own, chosen here and passed in.
-     The theme is an attribute on <html> with nothing broadcasting its changes,
-     so it is watched rather than subscribed to. */
-  useEffect(() => {
-    if (!clientId) return;
-    const read = () => setDark(document.documentElement.dataset.theme === 'dark');
-    read();
-    const observer = new MutationObserver(read);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
-  }, [clientId]);
 
   useEffect(() => {
     if (!clientId) return;
@@ -158,9 +143,14 @@ export function GoogleSignInButton({
        column it lives in and capped at Google's own 400 maximum. Measured on
        draw: a rotation leaves it a little narrow rather than broken. */
     const available = containerRef.current.parentElement?.clientWidth ?? 320;
+    /* White in both themes, on purpose. Google draws this inside a cross-origin
+       iframe in production, so no stylesheet of ours reaches it, and its three
+       presets are all fixed greys that miss our navy. `filled_black` came
+       closest and read as a near-miss; a white button reads as Google's button,
+       which is what it is. */
     window.google.accounts.id.renderButton(containerRef.current, {
       type: 'standard',
-      theme: dark ? 'filled_black' : 'outline',
+      theme: 'outline',
       size: 'large',
       width: Math.min(400, Math.max(200, Math.round(available))),
       text: 'continue_with',
@@ -168,7 +158,7 @@ export function GoogleSignInButton({
       logo_alignment: 'center',
     });
     setLoading(false);
-  }, [ready, dark, attempt]);
+  }, [ready, attempt]);
 
   /* Coming back to a tab is the ordinary way a nonce goes stale: open sign-in,
      go elsewhere, return after the ten minutes are up. Refreshing on the way

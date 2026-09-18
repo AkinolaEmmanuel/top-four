@@ -86,9 +86,14 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
       {/* Right: Form Panel. Its own scroll region — if a tall form plus an
           error banner ever outgrows a short phone's viewport, this scrolls
           in place instead of the whole page growing past the fold. */}
-      <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
-        <div className="w-full max-w-sm my-auto">
-          <div className="rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm">
+      <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-[var(--gutter)] pt-8 pb-10 sm:px-6 sm:py-12">
+        {/* Top-aligned on a phone, centred once there is room to centre in. */}
+        <div className="w-full max-w-sm sm:my-auto">
+          {/* No card on a phone. A bordered panel inset from the edges is a
+              desktop device: on a screen the form already fills, it reads as a
+              box drawn around the whole page for no reason. The chrome starts
+              at sm, where the form stops being the entire screen. */}
+          <div className="sm:rounded-2xl sm:border sm:border-[var(--border-base)] sm:bg-[var(--surface-layer-1)] sm:p-8 sm:shadow-sm">
             {/* Mobile brand mark */}
             <div className="mb-6 flex items-center justify-between gap-2 lg:hidden">
               <Link href="/" className="flex items-center text-[var(--text-primary)]">
