@@ -143,6 +143,11 @@ export function GoogleSignInButton({
        column it lives in and capped at Google's own 400 maximum. Measured on
        draw: a rotation leaves it a little narrow rather than broken. */
     const available = containerRef.current.parentElement?.clientWidth ?? 320;
+    /* White in both themes, on purpose. Google draws this inside a cross-origin
+       iframe in production, so no stylesheet of ours reaches it, and its three
+       presets are all fixed greys that miss our navy. `filled_black` came
+       closest and read as a near-miss; a white button reads as Google's button,
+       which is what it is. */
     window.google.accounts.id.renderButton(containerRef.current, {
       type: 'standard',
       theme: 'outline',
@@ -173,7 +178,7 @@ export function GoogleSignInButton({
   if (!clientId) return null;
 
   return (
-    <div className="tf-google-button w-full flex flex-col items-center gap-[10px]">
+    <div className="w-full flex flex-col items-center gap-[10px]">
       {loading && <div className="h-11 w-full max-w-[320px] rounded-md bg-[var(--surface-subtle)] animate-pulse" />}
       <div ref={containerRef} className={loading ? 'hidden' : ''} />
 
