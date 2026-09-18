@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { googleChallenge } from '@/lib/api/auth';
 import { failureMessage } from '@/lib/api/failure';
 import { useAuth } from '@/context/auth-context';
@@ -113,9 +114,22 @@ export function GoogleSignInButton({
   if (!clientId) return null;
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex flex-col items-center gap-[10px]">
       {loading && <div className="h-11 w-full max-w-[320px] rounded-md bg-[var(--surface-subtle)] animate-pulse" />}
       <div ref={containerRef} className={loading ? 'hidden' : ''} />
+
+      {/* Google sign-in creates an account when none exists, so this button is a
+          sign-up path on the sign-in screen too. The terms are stated here
+          rather than gated behind a tick: a returning member should not have to
+          confirm their age every time they sign in. */}
+      {!loading && (
+        <p className="max-w-[320px] text-center text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+          By continuing with Google you confirm you are 18 or over and accept our{' '}
+          <Link href="/terms" target="_blank" rel="noreferrer" className="underline hover:text-[var(--text-secondary)]">terms</Link>
+          {' '}and{' '}
+          <Link href="/privacy" target="_blank" rel="noreferrer" className="underline hover:text-[var(--text-secondary)]">privacy policy</Link>.
+        </p>
+      )}
     </div>
   );
 }
