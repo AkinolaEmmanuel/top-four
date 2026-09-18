@@ -21,6 +21,8 @@ import type { CustomQuestion, OwnCustomAnswerData } from '@/lib/api/custom-quest
 
 type LeagueRead = Api<'LeagueReadResponseDto'>;
 type Questions = Api<'CustomQuestionPageResponseDto'>;
+type Member = Api<'MembershipResponseDto'>;
+type Members = Api<'MembershipPageResponseDto'>;
 
 export default function LeagueQuestionsPage({ params }: { params: { id: string } }) {
   return (
@@ -35,11 +37,17 @@ async function Questions({ params }: { params: { id: string } }) {
 
   let league: LeagueRead;
   let questions: { items: CustomQuestion[] };
+  let members: { items: Member[] };
 
   try {
-    [league, questions] = await Promise.all([
+    [league, questions, members] = await Promise.all([
       getLeague(id),
       serverFetchAllPagesOrEmpty<CustomQuestion, Questions>(`/leagues/${id}/custom-questions`),
+      // Named members only — a closed question's disclosed answers still carry
+      // a former member's, and that membershipId won't resolve to a name here.
+      // toQuestionAnswerRows falls back to "Former member" rather than hiding
+      // the row, so the count of who answered stays honest either way.
+      serverFetchAllPagesOrEmpty<Member, Members>(`/leagues/${id}/members?state=active`),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=/leagues/${id}/questions`);
@@ -66,6 +74,8 @@ async function Questions({ params }: { params: { id: string } }) {
         return toQuestionCard(q, stored?.answer ?? null, stored?.version);
       })}
       canAdmin={role === 'owner' || role === 'admin'}
+      members={members.items.map(m => ({ id: m.id, name: m.displayName }))}
+      viewerMembershipId={league.membership?.id ?? ''}
     />
   );
 }

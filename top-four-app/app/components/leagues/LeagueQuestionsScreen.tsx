@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSubmitCustomAnswer, useCreateCustomQuestion, useResolveCustomQuestion, useVoidCustomQuestion, useWithdrawCustomQuestion } from '@/hooks/api/useCustomQuestions';
 import { failureMessage } from '@/lib/api/failure';
-import { toAnswerValue, toQuestionSections, type QuestionCard } from '@/lib/leagues/league-questions';
+import { toAnswerValue, toQuestionSections, toQuestionAnswerRows, type QuestionCard, type QuestionAnswerRow } from '@/lib/leagues/league-questions';
+import { fetchDisclosedAnswers } from '@/lib/api/custom-questions';
 import { pluralise } from '@/lib/format';
 
 /**
@@ -123,11 +124,87 @@ function Card({ card, onAnswer, pending, canResolve, onResolve, onVoid, onWithdr
   );
 }
 
-export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }: {
+/** One member's disclosed answer to a settled or closed question. */
+function AnswerRow({ row }: { row: QuestionAnswerRow }) {
+  return (
+    <div className={`flex items-center gap-[8px] py-[5px] ${row.isViewer ? 'font-bold' : ''}`}>
+      <span
+        className="w-[22px] h-[22px] rounded-full grid place-items-center flex-none font-heading font-bold text-[9px]"
+        style={{ background: row.isViewer ? 'var(--brand-fill)' : 'var(--surface-subtle)', color: row.isViewer ? 'var(--color-on-brand)' : 'var(--text-primary)' }}
+      >
+        {row.initials}
+      </span>
+      <span className="flex-1 min-w-0 truncate text-[11.5px]">{row.name}</span>
+      <span className="text-[11px] font-heading font-semibold text-[var(--text-secondary)] flex-none">{row.answerLabel}</span>
+    </div>
+  );
+}
+
+/**
+ * Toggles between "see who answered" and the disclosed list.
+ *
+ * Fetched on demand rather than up front with every question — most closed
+ * or settled questions in a league are never opened again, so loading every
+ * member's answer for all of them on page load would be work nobody reads.
+ * The API itself only allows the read once the question is no longer open,
+ * which is also exactly when this button is offered, so it never has to
+ * handle the "too early" refusal.
+ */
+function AnswerReveal({ leagueId, card, members, viewerMembershipId }: {
+  leagueId: string;
+  card: QuestionCard;
+  members: { id: string; name: string }[];
+  viewerMembershipId: string;
+}) {
+  const [state, setState] = useState<'closed' | 'loading' | 'error' | QuestionAnswerRow[]>('closed');
+
+  if (state === 'closed') {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setState('loading');
+          fetchDisclosedAnswers(leagueId, card.id)
+            .then(data => setState(toQuestionAnswerRows(data.answers, card.answerKind, members, viewerMembershipId)))
+            .catch(() => setState('error'));
+        }}
+        className="mt-[6px] font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)]"
+      >
+        SEE WHO ANSWERED
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-[6px]">
+      <button
+        type="button"
+        onClick={() => setState('closed')}
+        className="font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)]"
+      >
+        HIDE ANSWERS
+      </button>
+      {state === 'loading' && <p className="text-[10.5px] text-[var(--text-muted)] mt-[6px]">Loading…</p>}
+      {state === 'error' && <p className="text-[10.5px] text-[var(--danger-text)] mt-[6px]">Could not load answers.</p>}
+      {Array.isArray(state) && (
+        <div className="mt-[6px] flex flex-col">
+          {state.length === 0
+            ? <p className="text-[10.5px] text-[var(--text-muted)]">Nobody answered this one.</p>
+            : state.map(row => <AnswerRow key={row.membershipId} row={row} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin, members, viewerMembershipId }: {
   leagueId: string;
   leagueName: string;
   cards: QuestionCard[];
   canAdmin: boolean;
+  /** For naming a disclosed answer's membershipId — see AnswerReveal. */
+  members: { id: string; name: string }[];
+  viewerMembershipId: string;
 }) {
   const router = useRouter();
   const [view, setView] = useState<View>('list');
@@ -307,6 +384,7 @@ export function LeagueQuestionsScreen({ leagueId, leagueName, cards, canAdmin }:
                           : 'Waiting on the outcome'}
                       {card.answered ? ` · you said ${card.answered}` : ''}
                     </div>
+                    <AnswerReveal leagueId={leagueId} card={card} members={members} viewerMembershipId={viewerMembershipId} />
                   </div>
                 ))}
               </section>

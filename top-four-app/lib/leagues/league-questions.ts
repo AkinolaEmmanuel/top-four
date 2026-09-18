@@ -1,5 +1,5 @@
-import type { CustomAnswerValue, CustomQuestion } from '@/lib/api/custom-questions';
-import { pluralise } from '@/lib/format';
+import type { CustomAnswerValue, CustomQuestion, DisclosedCustomAnswer } from '@/lib/api/custom-questions';
+import { personInitials, pluralise } from '@/lib/format';
 
 /**
  * Custom questions, shaped once on the server.
@@ -137,4 +137,49 @@ export function unclaimedPoints(cards: QuestionCard[]): number {
 /** Points already committed — answered, and not yet settled against. */
 export function committedPoints(cards: QuestionCard[]): number {
   return cards.filter(c => c.canAnswer && c.answered).reduce((n, c) => n + c.points, 0);
+}
+
+export interface QuestionAnswerRow {
+  membershipId: string;
+  name: string;
+  initials: string;
+  isViewer: boolean;
+  answerLabel: string;
+}
+
+/**
+ * One member's disclosed answer, in words.
+ *
+ * There is no "what landed" here the way a fixture market has one — the API
+ * never exposes a custom question's correct answer or a per-member outcome,
+ * only the raw answer each member gave. So unlike the fixture results screen,
+ * nothing here is marked as right or wrong.
+ */
+function answerLabelFor(answerKind: CustomQuestion['answerKind'], answer: CustomAnswerValue): string {
+  if ('value' in answer) return answerKind === 'true_false' ? (answer.value ? 'True' : 'False') : (answer.value ? 'Yes' : 'No');
+  if ('option' in answer) return answer.option;
+  if ('text' in answer) return answer.text;
+  return '—';
+}
+
+/** Everyone's disclosed answer to one question, in the league's own name order. */
+export function toQuestionAnswerRows(
+  disclosed: DisclosedCustomAnswer[],
+  answerKind: CustomQuestion['answerKind'],
+  members: { id: string; name: string }[],
+  viewerMembershipId: string,
+): QuestionAnswerRow[] {
+  const nameOf = new Map(members.map(m => [m.id, m.name]));
+  return disclosed
+    .map(a => {
+      const name = nameOf.get(a.membershipId) ?? 'Former member';
+      return {
+        membershipId: a.membershipId,
+        name,
+        initials: personInitials(name),
+        isViewer: a.membershipId === viewerMembershipId,
+        answerLabel: answerLabelFor(answerKind, a.answer),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
