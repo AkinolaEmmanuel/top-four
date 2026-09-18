@@ -179,7 +179,27 @@ export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Pr
     kickoffAt: f.kickoff?.at || '',
     status: mapFixtureStatus(f.fixtureState),
     markets: [],
-    predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
+    /*
+     * `complete`/`hasOpenMarkets` alone collapsed two very different fixtures
+     * into the same "not answered" chip once every market locked: one where
+     * the member never touched it, and one where they answered four of five
+     * markets and the deadline passed before they got to the fifth. Both read
+     * `complete: false, hasOpenMarkets: false` — the only difference is
+     * `answered`, so that is what tells them apart now.
+     */
+    predictionState: f.predictionCompleteness?.complete
+      ? 'ready'
+      : f.hasOpenMarkets
+        ? 'open'
+        : (f.predictionCompleteness?.answered ?? 0) > 0
+          ? 'part'
+          : 'missed',
+    // Previously left unset here, so every upcoming row's progress column
+    // read "—" and its deadline countdown never appeared regardless of what
+    // had actually been answered.
+    answered: f.predictionCompleteness?.answered,
+    required: f.predictionCompleteness?.required,
+    deadlineAt: f.nextDeadlineAt,
   }));
 
   // Availability carries market *state*, never the resolved outcome, so a

@@ -17,9 +17,13 @@ import { groupByDay, stateLabel, stateChip, type FixtureCounts, type FixtureRow,
  */
 
 
-/** Green once something landed, muted when nothing did or nothing is settled. */
+/** Green once something landed, amber for a partial answer, muted otherwise. */
 const stateTone = (state: FixtureRow['state'], view: FixtureView) => {
-  if (view !== 'results') return state === 'ready' ? 'text-[var(--success-text)]' : 'text-[var(--text-muted)]';
+  if (view !== 'results') {
+    if (state === 'ready') return 'text-[var(--success-text)]';
+    if (state === 'part') return 'text-[var(--warn-text)]';
+    return 'text-[var(--text-muted)]';
+  }
   return state === 'won' || state === 'part' ? 'text-[var(--success-text)]' : 'text-[var(--text-muted)]';
 };
 
