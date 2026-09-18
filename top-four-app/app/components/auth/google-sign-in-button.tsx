@@ -79,6 +79,10 @@ export function GoogleSignInButton({
   const [attempt, setAttempt] = useState(0);
   const rearm = useCallback(() => setAttempt(n => n + 1), []);
 
+  /* Drawing is separated from initialising: initialising spends a challenge,
+     `renderButton` is free, and the button is redrawn on re-arm. */
+  const [ready, setReady] = useState(false);
+
   /* Held in refs, and deliberately out of the effect's dependencies. Neither is
      memoised by its caller, so depending on them re-ran this effect on every
      unrelated render of the auth context and fetched a challenge each time.
@@ -121,22 +125,7 @@ export function GoogleSignInButton({
           },
         });
 
-        /* Google's button takes a pixel width, not a percentage, so it sat at a
-           fixed 320 and stopped short of the fields above it. Measured from the
-           column it lives in and capped at Google's own 400 maximum. Measured
-           once: a rotation leaves it a little narrow rather than broken, and
-           re-rendering on every resize would spend a fresh nonce each time. */
-        const available = containerRef.current.parentElement?.clientWidth ?? 320;
-        window.google.accounts.id.renderButton(containerRef.current, {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-          width: Math.min(400, Math.max(200, Math.round(available))),
-          text: 'continue_with',
-          shape: 'rectangular',
-          logo_alignment: 'center',
-        });
-        setLoading(false);
+        setReady(true);
       } catch (error) {
         if (!cancelled) onErrorRef.current(failureMessage(error, 'Could not start Google sign-in.'));
       }
@@ -146,6 +135,25 @@ export function GoogleSignInButton({
       cancelled = true;
     };
   }, [clientId, redirectTarget, rearm, attempt]);
+
+  useEffect(() => {
+    if (!ready || !containerRef.current || !window.google) return;
+    /* Google's button takes a pixel width, not a percentage, so it sat at a
+       fixed 320 and stopped short of the fields above it. Measured from the
+       column it lives in and capped at Google's own 400 maximum. Measured on
+       draw: a rotation leaves it a little narrow rather than broken. */
+    const available = containerRef.current.parentElement?.clientWidth ?? 320;
+    window.google.accounts.id.renderButton(containerRef.current, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      width: Math.min(400, Math.max(200, Math.round(available))),
+      text: 'continue_with',
+      shape: 'rectangular',
+      logo_alignment: 'center',
+    });
+    setLoading(false);
+  }, [ready, attempt]);
 
   /* Coming back to a tab is the ordinary way a nonce goes stale: open sign-in,
      go elsewhere, return after the ten minutes are up. Refreshing on the way
