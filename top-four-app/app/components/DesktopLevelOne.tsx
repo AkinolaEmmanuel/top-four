@@ -18,7 +18,9 @@ export function DesktopLevelOne() {
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/verify-email') ||
     pathname.startsWith('/confirm-email-change') ||
-    pathname.startsWith('/how-to-play');
+    pathname.startsWith('/how-to-play') ||
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/terms');
   const { data: unreadCount = 0 } = useUnreadNotifications(!isAuthScreen && !!user);
 
   if (isAuthScreen) {

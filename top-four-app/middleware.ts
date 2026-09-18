@@ -17,6 +17,9 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/join') ||
     pathname.startsWith('/j/') || // invite landing page
     pathname.startsWith('/how-to-play') ||
+    // Google's OAuth consent screen fetches these, signed out.
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/terms') ||
     pathname.match(/\.(png|jpg|jpeg|svg|ico)$/) // static assets
   ) {
     return NextResponse.next();

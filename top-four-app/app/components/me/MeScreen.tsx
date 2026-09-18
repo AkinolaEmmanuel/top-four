@@ -235,6 +235,14 @@ export function MeScreen({
               )}
             </section>
 
+            {/* The only route to these from inside the app — everywhere else
+                they are linked lives behind the sign-in screen. */}
+            <section className="mt-[24px]">
+              <div className="tf-kicker px-[var(--gutter)] md:px-0 pb-[8px]">Legal</div>
+              <Row title="Privacy policy" note="What we collect, who sees it, and how to have it removed." href="/privacy" />
+              <Row title="Terms of service" note="The rules for using TopFour." href="/terms" />
+            </section>
+
             <section className="mt-[24px] pb-[26px]">
               <div className="tf-kicker px-[var(--gutter)] md:px-0 pb-[8px]">Signing out</div>
               <Row title="Sign out" note="This device only. Your other sessions stay signed in." onClick={signOut} />
