@@ -135,11 +135,12 @@ export function HowToPlayScreen() {
             preserveAspectRatio="xMidYMid slice"
             fill="none"
           >
+            {/* Halfway line and centre circle only. The penalty boxes used to
+                be here, but `slice` crops their tops and bottoms away at this
+                width, leaving two bare verticals that read as stray lines. */}
             <line x1="0" y1="200" x2="800" y2="200" stroke="white" strokeWidth="2" />
             <circle cx="400" cy="200" r="90" stroke="white" strokeWidth="2" />
             <circle cx="400" cy="200" r="3" fill="white" />
-            <rect x="0" y="60" width="140" height="280" stroke="white" strokeWidth="2" />
-            <rect x="660" y="60" width="140" height="280" stroke="white" strokeWidth="2" />
           </svg>
 
           <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 text-center">
