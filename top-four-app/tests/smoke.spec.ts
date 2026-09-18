@@ -425,7 +425,26 @@ test('sign-up will not proceed until age and terms are confirmed', async ({ page
 
   // Opening the terms must not discard a part-filled form, so both links leave
   // this tab alone.
+  const label = page.locator('label').filter({ hasText: 'I am 18 or over' });
   for (const name of ['terms of service', 'privacy policy']) {
-    await expect(page.getByRole('link', { name })).toHaveAttribute('target', '_blank');
+    await expect(label.getByRole('link', { name })).toHaveAttribute('target', '_blank');
   }
+});
+
+/**
+ * Google sign-in creates an account when none exists, so the button is a sign-up
+ * path too. It carries a statement rather than a tick, because a returning
+ * member should not confirm their age on every sign-in. Skips where no Google
+ * client is configured, since nothing is offered then.
+ */
+test('where Google sign-up is offered, it states the age and terms', async ({ page }) => {
+  await visit(page, '/sign-up');
+
+  const offered = page.locator('span').filter({ hasText: /^or$/ });
+  test.skip(await offered.count() === 0, 'No Google client configured here.');
+
+  await expect(
+    page.getByText(/By continuing with Google you confirm you are 18 or over/),
+    'Google sign-up is offered without stating the age requirement',
+  ).toBeVisible();
 });

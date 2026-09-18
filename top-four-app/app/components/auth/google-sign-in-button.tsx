@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { googleChallenge } from '@/lib/api/auth';
 import { failureMessage } from '@/lib/api/failure';
@@ -69,6 +69,22 @@ export function GoogleSignInButton({
   const { signInWithGoogle } = useAuth();
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [loading, setLoading] = useState(true);
+  /* Bumped to fetch a fresh nonce and re-arm the button. The challenge the API
+     issues lasts ten minutes and is spent on first use, while this button can
+     sit on an open tab far longer than that and has to survive a failed
+     attempt. Without this the nonce is only refreshed by an unrelated re-render
+     of the auth context, which is luck rather than design. */
+  const [attempt, setAttempt] = useState(0);
+  const rearm = useCallback(() => setAttempt(n => n + 1), []);
+
+  /* Held in refs, and deliberately out of the effect's dependencies. Neither is
+     memoised by its caller, so depending on them re-ran this effect on every
+     unrelated render of the auth context and fetched a challenge each time.
+     Keeping them here leaves the three refresh points below as the only ones. */
+  const signInRef = useRef(signInWithGoogle);
+  const onErrorRef = useRef(onError);
+  signInRef.current = signInWithGoogle;
+  onErrorRef.current = onError;
 
   useEffect(() => {
     if (!clientId) return;
@@ -85,10 +101,13 @@ export function GoogleSignInButton({
           nonce,
           callback: async (response: { credential: string }) => {
             try {
-              await signInWithGoogle(response.credential);
+              await signInRef.current(response.credential);
               window.location.href = redirectTarget;
             } catch (error) {
-              onError(failureMessage(error, 'Google sign-in failed. Please try again.'));
+              onErrorRef.current(failureMessage(error, 'Google sign-in failed. Please try again.'));
+              // The nonce is spent either way, so a second click on the same one
+              // would fail for a reason the member cannot see or act on.
+              rearm();
             }
           },
         });
@@ -102,14 +121,26 @@ export function GoogleSignInButton({
         });
         setLoading(false);
       } catch (error) {
-        if (!cancelled) onError(failureMessage(error, 'Could not start Google sign-in.'));
+        if (!cancelled) onErrorRef.current(failureMessage(error, 'Could not start Google sign-in.'));
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [clientId, redirectTarget, onError, signInWithGoogle]);
+  }, [clientId, redirectTarget, rearm, attempt]);
+
+  /* Coming back to a tab is the ordinary way a nonce goes stale: open sign-in,
+     go elsewhere, return after the ten minutes are up. Refreshing on the way
+     back costs one request and saves a failure the member cannot diagnose. */
+  useEffect(() => {
+    if (!clientId) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') rearm();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [clientId, rearm]);
 
   if (!clientId) return null;
 
@@ -123,18 +154,15 @@ export function GoogleSignInButton({
           rather than gated behind a tick: a returning member should not have to
           confirm their age every time they sign in.
 
-          This shares the button's own `loading` condition on purpose, so the
-          offer and its terms appear together or not at all. Keep them on one
-          condition; a test cannot hold that invariant, because Google's own
-          rendered button carries no attribute worth targeting. */}
-      {!loading && (
-        <p className="max-w-[320px] text-center text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
-          By continuing with Google you confirm you are 18 or over and accept our{' '}
-          <Link href="/terms" target="_blank" rel="noreferrer" className="underline hover:text-[var(--text-secondary)]">terms</Link>
-          {' '}and{' '}
-          <Link href="/privacy" target="_blank" rel="noreferrer" className="underline hover:text-[var(--text-secondary)]">privacy policy</Link>.
-        </p>
-      )}
+          Shown whenever we offer the button, not only once Google's script has
+          answered. Tying it to that made the terms disappear exactly when the
+          script was slow or blocked. */}
+      <p className="max-w-[320px] text-center text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+        By continuing with Google you confirm you are 18 or over and accept our{' '}
+        <Link href="/terms" target="_blank" rel="noreferrer" className="underline hover:text-[var(--text-secondary)]">terms</Link>
+        {' '}and{' '}
+        <Link href="/privacy" target="_blank" rel="noreferrer" className="underline hover:text-[var(--text-secondary)]">privacy policy</Link>.
+      </p>
     </div>
   );
 }
