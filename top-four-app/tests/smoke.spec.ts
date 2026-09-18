@@ -310,3 +310,45 @@ test('the theme follows the stored choice, and light mode is reachable', async (
   await visit(page, '/home');
   await expect(html).toHaveAttribute('data-theme', 'dark');
 });
+
+/**
+ * Public, so no `requireSession` — this page is reachable from the sign-in
+ * screen and must render for someone with no account at all.
+ *
+ * `next/image` draws its frame whether or not the file behind it exists, so a
+ * missing or renamed screenshot is invisible to a locator. `naturalWidth` is
+ * the only thing that separates a loaded shot from an empty box.
+ */
+test('how to play renders every step, with its screenshots actually loaded', async ({ page }) => {
+  await visit(page, '/how-to-play');
+  await expectNoProblemState(page);
+
+  for (const title of [
+    'Create a league, or join one with a code',
+    'Name a lineup in one tap with Auto-fill',
+    'Answer the questions only your league is asking',
+    'Watch the table settle every argument',
+  ]) {
+    await expect(page.getByRole('heading', { name: title }), `"${title}" is missing`).toBeVisible();
+  }
+
+  const shots = page.locator('main img');
+  await expect(shots, 'five step screenshots plus the phone mock-up').toHaveCount(6);
+
+  for (let i = 0; i < 6; i++) {
+    const shot = shots.nth(i);
+    // Every shot but the first is lazy, so it has to be on screen to load.
+    await shot.scrollIntoViewIfNeeded();
+    await expect(shot).toHaveJSProperty('complete', true);
+    const width = await shot.evaluate((el: HTMLImageElement) => el.naturalWidth);
+    expect(width, `${await shot.getAttribute('alt')} — image did not load`).toBeGreaterThan(0);
+  }
+
+  // The app's own nav hides itself on this page, so the header is the only way
+  // onward: "Get started" signed out, "Back to TopFour" for a member who
+  // followed the link and would otherwise be stranded on a marketing page.
+  await expect(
+    page.getByRole('link', { name: /Back to TopFour|Get started/ }).first(),
+    'no way onward from how to play',
+  ).toBeVisible();
+});
