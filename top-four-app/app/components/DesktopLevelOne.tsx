@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useUnreadNotifications } from '@/hooks/api/useNotifications';
 import { ThemeMenu } from './ThemeMenu';
+import { TopFourLogo } from './brand/top-four-logo';
 
 export function DesktopLevelOne() {
   const pathname = usePathname() || '';
@@ -39,9 +40,7 @@ export function DesktopLevelOne() {
         league's crest. Capping this one at 1080 and centring it pushed the
         brand 166px in on a 1365px window while the bar below started at 24. */}
     <div className="flex items-center gap-[26px] px-[24px] h-full w-full">
-      <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-        TOPFOUR<span className="text-[var(--nav-accent)]">/</span>
-      </div>
+      <TopFourLogo size={17} accent="var(--nav-accent)" />
 
       <div className="flex items-center gap-[3px] flex-1">
         <Link 

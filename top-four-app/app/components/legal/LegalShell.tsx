@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/context/auth-context';
+import { TopFourLogo } from '../brand/top-four-logo';
 
 /*
  * Chrome and typography for the two legal pages.
@@ -99,8 +100,8 @@ export function LegalShell({ title, updated, intro, children }: {
     <div className="flex flex-col flex-1 min-h-0 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)]">
       <header className="flex-none z-20 border-b border-[var(--border-base)] bg-[var(--surface-canvas)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-[var(--gutter)] py-4 sm:px-6">
-          <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px] text-[var(--text-primary)]">
-            TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+          <Link href="/" className="text-[var(--text-primary)]">
+            <TopFourLogo size={17} />
           </Link>
           <Link
             href={user ? '/home' : '/sign-up'}

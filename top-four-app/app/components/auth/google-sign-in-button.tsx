@@ -27,6 +27,8 @@ interface GoogleIdentity {
         size: 'small' | 'medium' | 'large';
         width?: number;
         text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+        shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+        logo_alignment?: 'left' | 'center';
       }): void;
     };
   };
@@ -81,6 +83,12 @@ export function GoogleSignInButton({
      memoised by its caller, so depending on them re-ran this effect on every
      unrelated render of the auth context and fetched a challenge each time.
      Keeping them here leaves the three refresh points below as the only ones. */
+  /* When the current nonce was issued. The challenge endpoint is rate limited,
+     and refreshing on every return to the tab trips that limit for anyone who
+     switches tabs a few times, which leaves them unable to sign in at all. The
+     nonce is good for ten minutes, so a refresh is only worth making when it is
+     old enough to be worth replacing. */
+  const issuedAtRef = useRef(0);
   const signInRef = useRef(signInWithGoogle);
   const onErrorRef = useRef(onError);
   signInRef.current = signInWithGoogle;
@@ -94,6 +102,7 @@ export function GoogleSignInButton({
       try {
         await loadGoogleIdentityScript();
         const { nonce } = await googleChallenge();
+        issuedAtRef.current = Date.now();
         if (cancelled || !containerRef.current || !window.google) return;
 
         window.google.accounts.id.initialize({
@@ -112,12 +121,20 @@ export function GoogleSignInButton({
           },
         });
 
+        /* Google's button takes a pixel width, not a percentage, so it sat at a
+           fixed 320 and stopped short of the fields above it. Measured from the
+           column it lives in and capped at Google's own 400 maximum. Measured
+           once: a rotation leaves it a little narrow rather than broken, and
+           re-rendering on every resize would spend a fresh nonce each time. */
+        const available = containerRef.current.parentElement?.clientWidth ?? 320;
         window.google.accounts.id.renderButton(containerRef.current, {
           type: 'standard',
           theme: 'outline',
           size: 'large',
-          width: 320,
+          width: Math.min(400, Math.max(200, Math.round(available))),
           text: 'continue_with',
+          shape: 'rectangular',
+          logo_alignment: 'center',
         });
         setLoading(false);
       } catch (error) {
@@ -135,8 +152,11 @@ export function GoogleSignInButton({
      back costs one request and saves a failure the member cannot diagnose. */
   useEffect(() => {
     if (!clientId) return;
+    const STALE_AFTER = 5 * 60 * 1000;
     const onVisible = () => {
-      if (document.visibilityState === 'visible') rearm();
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - issuedAtRef.current < STALE_AFTER) return;
+      rearm();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
@@ -145,7 +165,7 @@ export function GoogleSignInButton({
   if (!clientId) return null;
 
   return (
-    <div className="w-full flex flex-col items-center gap-[10px]">
+    <div className="tf-google-button w-full flex flex-col items-center gap-[10px]">
       {loading && <div className="h-11 w-full max-w-[320px] rounded-md bg-[var(--surface-subtle)] animate-pulse" />}
       <div ref={containerRef} className={loading ? 'hidden' : ''} />
 

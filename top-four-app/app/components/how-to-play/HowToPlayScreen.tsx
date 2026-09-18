@@ -5,6 +5,7 @@ import Image, { type StaticImageData } from 'next/image';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/auth-context';
 import { FootballBall } from '../brand/football-ball';
+import { TopFourLogo } from '../brand/top-four-logo';
 
 /*
  * Imported, not referenced by a path under `public/`.
@@ -92,8 +93,8 @@ export function HowToPlayScreen() {
       {/* Top bar — stays outside the scroll region so it reads as a fixed nav, not just sticky. */}
       <header className="flex-none z-20 border-b border-[var(--border-base)] bg-[var(--surface-canvas)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px] text-[var(--text-primary)]">
-            TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+          <Link href="/" className="text-[var(--text-primary)]">
+            <TopFourLogo size={17} />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             {user ? (

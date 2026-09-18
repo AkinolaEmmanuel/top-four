@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 import { FootballBall } from '../brand/football-ball';
+import { TopFourLogo } from '../brand/top-four-logo';
 
 type AuthShellProps = {
   eyebrow: string;
@@ -40,8 +41,8 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
 
         <div className="relative flex flex-1 flex-col justify-between p-10">
           <div className="w-full flex items-center justify-between gap-2 text-white">
-            <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-              TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+            <Link href="/">
+              <TopFourLogo size={17} />
             </Link>
 
             {/* A plain text link here used to read as part of the header, not
@@ -91,9 +92,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
             {/* Mobile brand mark */}
             <div className="mb-6 flex items-center justify-between gap-2 lg:hidden">
               <Link href="/" className="flex items-center text-[var(--text-primary)]">
-                <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-                  TOPFOUR<span className="text-[var(--color-brand)]">/</span>
-                </div>
+                <TopFourLogo size={17} />
               </Link>
               <Link
                 href="/how-to-play"

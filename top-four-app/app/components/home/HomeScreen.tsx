@@ -10,6 +10,7 @@ import { tintFor } from '@/lib/crest';
 import { heroGradient } from '@/lib/crest-colour';
 import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import { ThemeMenu } from '../ThemeMenu';
+import { TopFourLogo } from '../brand/top-four-logo';
 import type { HomeLeagueEntry, HomeQueueEntry, QueueLeague, TeamIdentity } from '@/lib/home/home-data';
 
 /**
@@ -297,7 +298,7 @@ export function HomeScreen({
 
       {/* Phone header. The wide layout gets its chrome from DesktopLevelOne. */}
       <header className="md:hidden bg-[var(--nav-surface)] text-[var(--nav-text)] pt-[calc(14px+env(safe-area-inset-top))] px-[var(--gutter)] pb-[16px] flex-none flex items-center justify-between">
-        <div className="font-heading font-bold text-[19px] leading-[1] tracking-[-0.7px]">TOPFOUR<span className="text-[var(--nav-accent)]">/</span></div>
+        <TopFourLogo size={19} accent="var(--nav-accent)" />
         <div className="flex items-center gap-[9px]">
           {/* Beside the bell here too: the phone has no level-one bar, and
               burying appearance in Me is the thing this was meant to fix. */}
