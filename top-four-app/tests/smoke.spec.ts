@@ -290,7 +290,12 @@ test('every screen below the root offers a way back on wide screens', async ({ p
 
 test('the theme follows the stored choice, and light mode is reachable', async ({ page }) => {
   await requireSession(page);
-  await visit(page, '/me');
+  // Not `visit()`: that waits only for domcontentloaded, which fires before
+  // React has hydrated and attached the radios' click handlers. A click that
+  // lands in that window is not queued or retried — it is simply lost, no
+  // error either. /me carries no remote images, so there is nothing here for
+  // `load` to go hostage to, and it fires late enough that hydration is done.
+  await page.goto('/me', { waitUntil: 'load' });
 
   const html = page.locator('html');
   await expect(html).toHaveAttribute('data-theme', /^(light|dark)$/);

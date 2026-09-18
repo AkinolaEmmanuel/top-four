@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import { HelpCircle } from 'lucide-react';
 import { FootballBall } from '../brand/football-ball';
 
 type AuthShellProps = {
@@ -14,9 +15,9 @@ type AuthShellProps = {
 
 export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps) {
   return (
-    <div className="flex min-h-[100dvh] w-full bg-[var(--surface-canvas)] text-[var(--text-primary)]">
+    <div className="flex flex-1 min-h-0 h-full w-full bg-[var(--surface-canvas)] text-[var(--text-primary)]">
       {/* Left: Pitch & Football Panel */}
-      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-slate-950 lg:flex border-r border-slate-800 min-h-[100dvh]">
+      <div className="relative hidden w-1/2 shrink-0 overflow-hidden bg-slate-950 lg:flex border-r border-slate-800 h-full">
         {/* dot grid backdrop */}
         <div
           aria-hidden
@@ -38,11 +39,22 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         </svg>
 
         <div className="relative flex flex-1 flex-col justify-between p-10">
-          <Link href="/" className="flex items-center gap-2 text-white">
-            <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
+          <div className="w-full flex items-center justify-between gap-2 text-white">
+            <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
               TOPFOUR<span className="text-[var(--color-brand)]">/</span>
-            </div>
-          </Link>
+            </Link>
+
+            {/* A plain text link here used to read as part of the header, not
+                as something to click — a pill with its own border and fill
+                gives it the weight of a real CTA instead of decorative copy. */}
+            <Link
+              href="/how-to-play"
+              className="inline-flex items-center gap-[6px] rounded-full border border-white/30 bg-white/10 px-[14px] py-[7px] font-heading text-[12.5px] font-bold uppercase tracking-wide text-white transition-colors hover:border-white/60 hover:bg-white/20"
+            >
+              <HelpCircle className="h-[14px] w-[14px] text-[var(--color-brand)]" strokeWidth={2.5} />
+              How to play
+            </Link>
+          </div>
 
           <div>
             <motion.div
@@ -68,18 +80,26 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
         </div>
       </div>
 
-      {/* Right: Form Panel */}
-      <div className="flex flex-1 min-h-[100dvh] items-center justify-center bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
-        <div className="w-full max-w-sm rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm">
+      {/* Right: Form Panel. Its own scroll region — if a tall form plus an
+          error banner ever outgrows a short phone's viewport, this scrolls
+          in place instead of the whole page growing past the fold. */}
+      <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
+        <div className="w-full max-w-sm rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm my-auto">
           {/* Mobile brand mark */}
-          <Link
-            href="/"
-            className="mb-6 flex items-center gap-2 text-[var(--text-primary)] lg:hidden"
-          >
-            <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-              TOPFOUR<span className="text-[var(--color-brand)]">/</span>
-            </div>
-          </Link>
+          <div className="mb-6 flex items-center justify-between gap-2 lg:hidden">
+            <Link href="/" className="flex items-center text-[var(--text-primary)]">
+              <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
+                TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+              </div>
+            </Link>
+            <Link
+              href="/how-to-play"
+              className="inline-flex items-center gap-[5px] rounded-full border border-[var(--accent-border)] bg-[var(--accent-surface)] px-[11px] py-[6px] font-heading text-[11px] font-bold uppercase tracking-wide text-[var(--accent-text-strong)]"
+            >
+              <HelpCircle className="h-[13px] w-[13px]" strokeWidth={2.5} />
+              How to play
+            </Link>
+          </div>
 
           <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--color-brand)]">
             {eyebrow}

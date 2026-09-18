@@ -36,6 +36,29 @@ function quotasFor(formation: string): Record<Bucket, number> {
 }
 
 /**
+ * The formation this squad can actually fill the most of, not just the first
+ * in the list. A squad running short at one position (a real catalogue gap,
+ * not a hypothetical) should not have Auto-fill hand it an unfillable shape
+ * when a nearby one would go all the way.
+ */
+function bestFormation(players: PlayerOption[]): (typeof FORMATIONS)[number] {
+  const counts: Record<Bucket, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+  for (const p of players) {
+    const bucket = bucketOf(p.position);
+    if (bucket) counts[bucket]++;
+  }
+  let best: (typeof FORMATIONS)[number] = FORMATIONS[0];
+  let bestScore = -1;
+  for (const f of FORMATIONS) {
+    const q = quotasFor(f);
+    const score = Math.min(q.GK, counts.GK) + Math.min(q.DEF, counts.DEF)
+      + Math.min(q.MID, counts.MID) + Math.min(q.FWD, counts.FWD);
+    if (score > bestScore) { bestScore = score; best = f; }
+  }
+  return best;
+}
+
+/**
  * The catalogue's position, mapped to a line.
  *
  * Deliberately does not guess. An earlier version fell through to 'MID', so
@@ -186,6 +209,41 @@ export function LineupPicker({
     });
   };
 
+  /**
+   * Completes whatever is already picked rather than replacing it — a member
+   * who has hand-picked three players and taps this once should still see
+   * those three, not a fresh eleven that happens to overlap them. Fills each
+   * remaining place with the lowest available shirt number in its line,
+   * since nothing in the catalogue ranks a player over another; the whole
+   * point is a real, reviewable starting point, not a final answer.
+   */
+  const autoFill = () => {
+    const chosenFormation = formation ?? bestFormation(players);
+    const quotasNext = quotasFor(chosenFormation);
+    const slotsNext = slotsFor(quotasNext);
+    const nextPicks: Record<SlotKey, string> = { ...picks };
+    const taken = new Set(Object.values(nextPicks));
+
+    for (const bucket of ROWS) {
+      const available = players
+        .filter(p => bucketOf(p.position) === bucket && !taken.has(p.id))
+        .sort((a, b) => (a.shirtNumber ?? 999) - (b.shirtNumber ?? 999));
+      let next = 0;
+      for (const key of slotsNext[bucket]) {
+        if (nextPicks[key]) continue;
+        const candidate = available[next];
+        if (!candidate) break;
+        nextPicks[key] = candidate.id;
+        taken.add(candidate.id);
+        next++;
+      }
+    }
+
+    setFormation(chosenFormation);
+    setPicks(nextPicks);
+    setFillingSlot(null);
+  };
+
   /*
    * A column that fills its container rather than one that grows.
    *
@@ -199,8 +257,18 @@ export function LineupPicker({
     <div className="flex flex-col h-full min-h-0">
       {editable && (
         <div className="flex-none mb-[14px]">
-          <div className="tf-kicker text-[var(--text-muted)] mb-[8px]">
-            {formation ? 'Formation' : 'Choose a shape to start picking'}
+          <div className="flex items-center justify-between mb-[8px]">
+            <span className="tf-kicker text-[var(--text-muted)]">
+              {formation ? 'Formation' : 'Choose a shape to start picking'}
+            </span>
+            <button
+              type="button"
+              onClick={autoFill}
+              disabled={isComplete}
+              className="font-heading font-bold text-[10.5px] tracking-[0.04em] text-[var(--text-link)] disabled:opacity-40 disabled:cursor-default"
+            >
+              AUTO-FILL
+            </button>
           </div>
           <div className="flex flex-wrap gap-[6px]">
             {FORMATIONS.map(f => (

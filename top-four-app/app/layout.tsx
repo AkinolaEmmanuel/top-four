@@ -17,15 +17,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="h-[100dvh] overflow-hidden overscroll-none">
       <head>
         {/* Runs before paint, so a stored dark choice does not flash white. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       {/* The viewport is the page. Screens bound their own scroll region, so the
           body must not grow past the fold — when it did, the root tab bar sat
-          209px below it on a 812px phone and the app had no visible navigation. */}
-      <body className="h-[100dvh] overflow-hidden bg-[var(--surface-canvas)] text-[var(--text-primary)] antialiased flex flex-col">
+          209px below it on a 812px phone and the app had no visible navigation.
+          `html` needs the same height/overflow lock as `body`: without it, a
+          screen whose content runs long (e.g. an auth form plus an error
+          banner on a short phone) grows the document past the viewport and
+          mobile Safari rubber-band scrolls the whole page instead of a screen's
+          own scroll region taking it. `overscroll-none` on both then stops the
+          bounce/pull-to-refresh gesture at the edges of whatever *does* scroll. */}
+      <body className="h-[100dvh] overflow-hidden overscroll-none bg-[var(--surface-canvas)] text-[var(--text-primary)] antialiased flex flex-col">
         <ReactQueryProvider>
           <AuthProvider>
             <DesktopLevelOne />
