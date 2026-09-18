@@ -87,27 +87,30 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
           error banner ever outgrows a short phone's viewport, this scrolls
           in place instead of the whole page growing past the fold. */}
       <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-[var(--gutter)] pt-8 pb-10 sm:px-6 sm:py-12">
-        {/* Top-aligned on a phone, centred once there is room to centre in. */}
-        <div className="w-full max-w-sm sm:my-auto">
-          {/* No card on a phone. A bordered panel inset from the edges is a
-              desktop device: on a screen the form already fills, it reads as a
-              box drawn around the whole page for no reason. The chrome starts
-              at sm, where the form stops being the entire screen. */}
-          <div className="sm:rounded-2xl sm:border sm:border-[var(--border-base)] sm:bg-[var(--surface-layer-1)] sm:p-8 sm:shadow-sm">
-            {/* Mobile brand mark */}
-            <div className="mb-6 flex items-center justify-between gap-2 lg:hidden">
-              <Link href="/" className="flex items-center text-[var(--text-primary)]">
-                <TopFourLogo size={17} />
-              </Link>
-              <Link
-                href="/how-to-play"
-                className="inline-flex items-center gap-[5px] rounded-full border border-[var(--accent-border)] bg-[var(--accent-surface)] px-[11px] py-[6px] font-heading text-[11px] font-bold uppercase tracking-wide text-[var(--accent-text-strong)]"
-              >
-                <HelpCircle className="h-[13px] w-[13px]" strokeWidth={2.5} />
-                How to play
-              </Link>
-            </div>
+        {/* Fills the height on a phone so the three parts can spread: brand at
+            the top, form in the middle, links at the foot. Sitting the lot at
+            the top left the bottom half of the screen empty. */}
+        <div className="w-full max-w-sm flex flex-col min-h-full sm:min-h-0 sm:my-auto">
+          {/* Mobile brand mark. Outside the card: on a phone there is no card,
+              and on a tablet it reads better above one than inside it. */}
+          <div className="flex-none mb-6 flex items-center justify-between gap-2 lg:hidden">
+            <Link href="/" className="flex items-center text-[var(--text-primary)]">
+              <TopFourLogo size={17} />
+            </Link>
+            <Link
+              href="/how-to-play"
+              className="inline-flex items-center gap-[5px] rounded-full border border-[var(--accent-border)] bg-[var(--accent-surface)] px-[11px] py-[6px] font-heading text-[11px] font-bold uppercase tracking-wide text-[var(--accent-text-strong)]"
+            >
+              <HelpCircle className="h-[13px] w-[13px]" strokeWidth={2.5} />
+              How to play
+            </Link>
+          </div>
 
+          {/* No card on a phone. A bordered panel inset from the edges is a
+              desktop device; on a screen the form already fills it reads as a
+              box drawn round the whole page. `my-auto` centres it in whatever
+              the brand row and the links leave over. */}
+          <div className="my-auto sm:my-0 sm:rounded-2xl sm:border sm:border-[var(--border-base)] sm:bg-[var(--surface-layer-1)] sm:p-8 sm:shadow-sm">
             <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--color-brand)]">
               {eyebrow}
             </p>
@@ -122,7 +125,7 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
           {/* The wide layout carries these in the left panel, which is hidden below
               lg — so on a phone nobody signing up could reach the terms they were
               agreeing to. */}
-          <div className="lg:hidden mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-mono text-[var(--text-muted)]">
+          <div className="lg:hidden flex-none mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-mono text-[var(--text-muted)]">
             <Link href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">Terms</Link>
             <span>&copy; {new Date().getFullYear()} topfour.app</span>
