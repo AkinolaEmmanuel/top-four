@@ -74,9 +74,11 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
             </p>
           </div>
 
-          <p className="text-xs text-slate-500 font-mono">
-            &copy; {new Date().getFullYear()} topfour.app • All rights reserved
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-mono text-slate-500">
+            <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
+            <span>&copy; {new Date().getFullYear()} topfour.app</span>
+          </div>
         </div>
       </div>
 
@@ -84,32 +86,43 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
           error banner ever outgrows a short phone's viewport, this scrolls
           in place instead of the whole page growing past the fold. */}
       <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
-        <div className="w-full max-w-sm rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm my-auto">
-          {/* Mobile brand mark */}
-          <div className="mb-6 flex items-center justify-between gap-2 lg:hidden">
-            <Link href="/" className="flex items-center text-[var(--text-primary)]">
-              <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-                TOPFOUR<span className="text-[var(--color-brand)]">/</span>
-              </div>
-            </Link>
-            <Link
-              href="/how-to-play"
-              className="inline-flex items-center gap-[5px] rounded-full border border-[var(--accent-border)] bg-[var(--accent-surface)] px-[11px] py-[6px] font-heading text-[11px] font-bold uppercase tracking-wide text-[var(--accent-text-strong)]"
-            >
-              <HelpCircle className="h-[13px] w-[13px]" strokeWidth={2.5} />
-              How to play
-            </Link>
+        <div className="w-full max-w-sm my-auto">
+          <div className="rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm">
+            {/* Mobile brand mark */}
+            <div className="mb-6 flex items-center justify-between gap-2 lg:hidden">
+              <Link href="/" className="flex items-center text-[var(--text-primary)]">
+                <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
+                  TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+                </div>
+              </Link>
+              <Link
+                href="/how-to-play"
+                className="inline-flex items-center gap-[5px] rounded-full border border-[var(--accent-border)] bg-[var(--accent-surface)] px-[11px] py-[6px] font-heading text-[11px] font-bold uppercase tracking-wide text-[var(--accent-text-strong)]"
+              >
+                <HelpCircle className="h-[13px] w-[13px]" strokeWidth={2.5} />
+                How to play
+              </Link>
+            </div>
+
+            <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--color-brand)]">
+              {eyebrow}
+            </p>
+            <h1 className="mt-1.5 text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase font-heading">
+              {title}
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)] font-sans">{subtitle}</p>
+
+            <div className="mt-6">{children}</div>
           </div>
 
-          <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--color-brand)]">
-            {eyebrow}
-          </p>
-          <h1 className="mt-1.5 text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase font-heading">
-            {title}
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)] font-sans">{subtitle}</p>
-
-          <div className="mt-6">{children}</div>
+          {/* The wide layout carries these in the left panel, which is hidden below
+              lg — so on a phone nobody signing up could reach the terms they were
+              agreeing to. */}
+          <div className="lg:hidden mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-mono text-[var(--text-muted)]">
+            <Link href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">Terms</Link>
+            <span>&copy; {new Date().getFullYear()} topfour.app</span>
+          </div>
         </div>
       </div>
     </div>

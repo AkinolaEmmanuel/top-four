@@ -9,9 +9,20 @@ import { test, expect, type Page } from '@playwright/test';
  * place of real ones.
  */
 
-const signedIn = (page: Page) => page.context().cookies().then(
-  cookies => cookies.some(c => c.name === 'tf.sid' || c.name === '__Host-tf.sid'),
-);
+/*
+ * Scoped to the base URL, not to any cookie of that name.
+ *
+ * A saved state file holds cookies for the host it signed in to. Reused against
+ * a different base URL — a production session against localhost — an unscoped
+ * check reports a session that will not be sent, so every signed-in spec runs
+ * against the sign-in redirect instead of skipping. Some then fail; worse, the
+ * ones asserting an absence pass while proving nothing.
+ */
+const signedIn = async (page: Page) => {
+  const base = test.info().project.use.baseURL ?? 'http://localhost:5173';
+  const cookies = await page.context().cookies(base);
+  return cookies.some(c => c.name === 'tf.sid' || c.name === '__Host-tf.sid');
+};
 
 /**
  * Skips a spec that needs a member. Called per test rather than in a
@@ -115,6 +126,11 @@ test('me renders the account', async ({ page }) => {
   await expectNoProblemState(page);
   // It once greeted every member as "Your Name".
   await expect(page.getByText('Your Name')).toHaveCount(0);
+
+  // Settings is the only route to the legal pages from inside the app: every
+  // other link to them sits on a screen you only see before signing in.
+  await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Terms of service' })).toBeVisible();
 });
 
 test('league overview shows a real fixture, not the prototype’s', async ({ page }) => {
@@ -351,4 +367,31 @@ test('how to play renders every step, with its screenshots actually loaded', asy
     page.getByRole('link', { name: /Back to TopFour|Get started/ }).first(),
     'no way onward from how to play',
   ).toBeVisible();
+});
+
+/**
+ * Public, and deliberately so: Google's OAuth consent screen fetches both pages
+ * signed out. A middleware change that sends them to sign-in would break the
+ * Google client without touching anything that looks related.
+ */
+test('the legal pages are reachable signed out, and say the things they must', async ({ page }) => {
+  for (const [path, heading] of [['/privacy', 'Privacy policy'], ['/terms', 'Terms of service']] as const) {
+    await visit(page, path);
+    await expectNoProblemState(page);
+    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible();
+    // Not redirected to sign-in — the actual failure mode this guards.
+    expect(new URL(page.url()).pathname, `${path} redirected away`).toBe(path);
+  }
+
+  // Google requires the disclosure to match what the app really does with Google
+  // data. These two claims are the ones review looks for.
+  await visit(page, '/privacy');
+  await expect(page.getByRole('heading', { name: 'If you sign in with Google' })).toBeVisible();
+  await expect(page.getByText('We do not use or store your Google profile picture.')).toBeVisible();
+
+  // The no-gambling section is what keeps a free prediction game out of the
+  // real-money category. Losing it is a compliance regression, not a copy edit.
+  await visit(page, '/terms');
+  await expect(page.getByRole('heading', { name: /No gambling/ })).toBeVisible();
+  await expect(page.getByText(/no entry fee/i).first()).toBeVisible();
 });

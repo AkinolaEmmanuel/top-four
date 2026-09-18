@@ -309,9 +309,11 @@ export function HowToPlayScreen() {
                 Sign in
               </Link>
             </div>
-            <p className="mt-10 text-xs text-slate-500 font-mono">
-              &copy; {new Date().getFullYear()} topfour.app • All rights reserved
-            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-mono text-slate-500">
+              <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
+              <span>&copy; {new Date().getFullYear()} topfour.app</span>
+            </div>
           </div>
         </section>
       </main>
