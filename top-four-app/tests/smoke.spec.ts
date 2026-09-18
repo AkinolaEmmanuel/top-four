@@ -395,3 +395,37 @@ test('the legal pages are reachable signed out, and say the things they must', a
   await expect(page.getByRole('heading', { name: /No gambling/ })).toBeVisible();
   await expect(page.getByText(/no entry fee/i).first()).toBeVisible();
 });
+
+/**
+ * Public, and deliberately never submits: the point is the gate, and a spec that
+ * registered an account would leave one behind on every run.
+ *
+ * The terms set 18 as a condition of use, and this checkbox is the only place
+ * anyone says so. Delete it, or drop `!accepted` from the button's disabled
+ * expression, and the claim in the terms becomes decorative with nothing failing.
+ */
+test('sign-up will not proceed until age and terms are confirmed', async ({ page }) => {
+  await visit(page, '/sign-up');
+  await expectNoProblemState(page);
+
+  const confirm = page.getByRole('checkbox');
+  const create = page.getByRole('button', { name: 'Create account' });
+
+  // Unticked to start. A pre-ticked box would be no evidence anyone read it.
+  await expect(confirm, 'the age and terms checkbox is missing').toBeVisible();
+  await expect(confirm).not.toBeChecked();
+  await expect(create, 'Create account is reachable without confirming age').toBeDisabled();
+
+  await confirm.check();
+  await expect(create, 'confirming age did not release the button').toBeEnabled();
+
+  // And back, so the gate is a real binding rather than a one-way latch.
+  await confirm.uncheck();
+  await expect(create).toBeDisabled();
+
+  // Opening the terms must not discard a part-filled form, so both links leave
+  // this tab alone.
+  for (const name of ['terms of service', 'privacy policy']) {
+    await expect(page.getByRole('link', { name })).toHaveAttribute('target', '_blank');
+  }
+});

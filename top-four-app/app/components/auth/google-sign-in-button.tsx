@@ -121,7 +121,12 @@ export function GoogleSignInButton({
       {/* Google sign-in creates an account when none exists, so this button is a
           sign-up path on the sign-in screen too. The terms are stated here
           rather than gated behind a tick: a returning member should not have to
-          confirm their age every time they sign in. */}
+          confirm their age every time they sign in.
+
+          This shares the button's own `loading` condition on purpose, so the
+          offer and its terms appear together or not at all. Keep them on one
+          condition; a test cannot hold that invariant, because Google's own
+          rendered button carries no attribute worth targeting. */}
       {!loading && (
         <p className="max-w-[320px] text-center text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
           By continuing with Google you confirm you are 18 or over and accept our{' '}
