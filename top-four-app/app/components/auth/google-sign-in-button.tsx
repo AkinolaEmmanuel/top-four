@@ -80,8 +80,9 @@ export function GoogleSignInButton({
   const rearm = useCallback(() => setAttempt(n => n + 1), []);
 
   /* Drawing is separated from initialising: initialising spends a challenge,
-     `renderButton` is free, and the button is redrawn on re-arm. */
+     `renderButton` is free, and the button is redrawn when the theme flips. */
   const [ready, setReady] = useState(false);
+  const [dark, setDark] = useState(false);
 
   /* Held in refs, and deliberately out of the effect's dependencies. Neither is
      memoised by its caller, so depending on them re-ran this effect on every
@@ -97,6 +98,20 @@ export function GoogleSignInButton({
   const onErrorRef = useRef(onError);
   signInRef.current = signInWithGoogle;
   onErrorRef.current = onError;
+
+  /* In production Google draws this button inside a cross-origin iframe, so its
+     appearance cannot be reached from our stylesheet at any specificity. The
+     only dark button available is Google's own, chosen here and passed in.
+     The theme is an attribute on <html> with nothing broadcasting its changes,
+     so it is watched rather than subscribed to. */
+  useEffect(() => {
+    if (!clientId) return;
+    const read = () => setDark(document.documentElement.dataset.theme === 'dark');
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, [clientId]);
 
   useEffect(() => {
     if (!clientId) return;
@@ -145,7 +160,7 @@ export function GoogleSignInButton({
     const available = containerRef.current.parentElement?.clientWidth ?? 320;
     window.google.accounts.id.renderButton(containerRef.current, {
       type: 'standard',
-      theme: 'outline',
+      theme: dark ? 'filled_black' : 'outline',
       size: 'large',
       width: Math.min(400, Math.max(200, Math.round(available))),
       text: 'continue_with',
@@ -153,7 +168,7 @@ export function GoogleSignInButton({
       logo_alignment: 'center',
     });
     setLoading(false);
-  }, [ready, attempt]);
+  }, [ready, dark, attempt]);
 
   /* Coming back to a tab is the ordinary way a nonce goes stale: open sign-in,
      go elsewhere, return after the ten minutes are up. Refreshing on the way
@@ -173,7 +188,7 @@ export function GoogleSignInButton({
   if (!clientId) return null;
 
   return (
-    <div className="tf-google-button w-full flex flex-col items-center gap-[10px]">
+    <div className="w-full flex flex-col items-center gap-[10px]">
       {loading && <div className="h-11 w-full max-w-[320px] rounded-md bg-[var(--surface-subtle)] animate-pulse" />}
       <div ref={containerRef} className={loading ? 'hidden' : ''} />
 

@@ -89,7 +89,7 @@ function SignupForm() {
             required
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Alex Morgan"
+            placeholder="Shown on every leaderboard"
             className={inputClasses}
           />
         </div>

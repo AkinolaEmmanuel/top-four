@@ -60,7 +60,7 @@ export default function NamePage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-[var(--surface-canvas)] border border-[var(--surface-border-strong)] rounded-[10px] h-[46px] px-[14px] text-[14px] text-[var(--text-primary)] outline-none focus:border-[var(--color-brand)] focus:shadow-[0_0_0_1px_var(--color-brand)] transition-all"
-                placeholder="Your display name"
+                placeholder="Shown on every leaderboard"
                 autoFocus
               />
               <span className="block text-[11px] text-[var(--text-muted)] mt-[6px]">
