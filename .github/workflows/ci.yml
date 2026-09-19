@@ -126,6 +126,11 @@ jobs:
       # any http:// origin in the allowlist, which is what makes a localhost
       # frontend impossible to test against the deployed API. The keys are
       # generated here and die with the job.
+      #
+      # The list is the validator's, not .env.example's, which is missing
+      # several of these. To find what a newer API wants, run its built
+      # dist/api/main.js from a directory holding no .env: locally Nest picks
+      # up the repo's own .env and hides everything absent here.
       - name: Start the API
         working-directory: api
         env:
@@ -135,6 +140,7 @@ jobs:
           FRONTEND_ORIGIN: http://localhost:5173
           ASSET_PUBLIC_ORIGIN: https://assets.topfour.app
           GOOGLE_OIDC_CLIENT_ID: 000000000000-ci.apps.googleusercontent.com
+          API_PUBLIC_ORIGIN: https://api.topfour.test
         run: |
           export FRONTEND_ALLOWED_ORIGINS='["http://localhost:5173"]'
           export CSRF_DERIVATION_SECRET="$(openssl rand -base64 32)"
@@ -142,6 +148,9 @@ jobs:
           export RATE_LIMIT_HMAC_SECRET="$(openssl rand -base64 32)"
           export INVITATION_SHORT_CODE_HMAC_SECRET="$(openssl rand -base64 32)"
           export UNSUBSCRIBE_TOKEN_SECRET_V1="$(openssl rand -base64 32)"
+          export INVITATION_ENCRYPTION_SECRET_V1="$(openssl rand -base64 32)"
+          export PASSWORD_RESET_TOKEN_SECRET_V1="$(openssl rand -base64 32)"
+          export VERIFICATION_TOKEN_SECRET_V1="$(openssl rand -base64 32)"
           node dist/api/main.js &
           api=$!
           for i in $(seq 1 60); do
