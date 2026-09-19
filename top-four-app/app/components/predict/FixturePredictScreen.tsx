@@ -250,14 +250,15 @@ export function FixturePredictScreen({
         setMarketVersions(prev => ({ ...prev, [market.marketType]: result.version }));
         showReceipt(market.key);
         router.refresh();
-        drain();
       },
       error => {
         recordFailure(market.key, snapshot, error);
         if (error instanceof ApiError && error.status === 409) void openConflict(market, value);
-        drain();
       },
-    );
+      // Unconditional: as the tail of each handler it was skipped if anything
+      // above it threw, and a market that never drains is the stall this whole
+      // function exists to prevent.
+    ).finally(drain);
   };
 
   /*
@@ -671,7 +672,16 @@ export function FixturePredictScreen({
                         </div>
                       )}
 
-                      <div className={`flex items-center gap-[10px] min-h-[20px] mt-[10px] ${(saved !== market.key && !failed[market.key]) ? 'hidden' : ''}`}>
+                      {/* Held open wherever a receipt could land, empty or not.
+                          It used to be `hidden` when empty, so a save pushed
+                          everything below it down for its two seconds and let
+                          it spring back on the way out — the row moving under
+                          the hand that had just tapped it. Only markets that
+                          can still be answered hold the space: on a locked
+                          fixture nothing will ever appear here, and six empty
+                          strips were a fifth of that page's height. */}
+                      {(canAnswer || failed[market.key]) && (
+                      <div className="flex items-center gap-[10px] min-h-[20px] mt-[10px]">
                         {failed[market.key] && (
                           <span className="font-heading font-semibold text-[10.5px] leading-[1.45] text-[var(--danger-text)]" role="alert">
                             {failed[market.key]}
@@ -679,9 +689,14 @@ export function FixturePredictScreen({
                         )}
                         <span className="flex-1" />
                         {saved === market.key && (
-                          <span className="font-heading font-bold text-[9.5px] tracking-[0.05em] p-[4px_8px] rounded-[6px] bg-[var(--color-success)] text-[var(--tf-white)] animate-[tfsaved_2.2s_ease_forwards]">SAVED</span>
+                          /* Sized to the strip above rather than padded to whatever the font
+                             gives it: 4px of padding round a 9.5px line came out two
+                             pixels taller than the space held for it, so the row still
+                             nudged when the receipt arrived. */
+                          <span className="inline-grid place-items-center h-[20px] px-[8px] font-heading font-bold text-[9.5px] tracking-[0.05em] rounded-[6px] bg-[var(--color-success)] text-[var(--tf-white)] animate-[tfsaved_2.2s_ease_forwards]">SAVED</span>
                         )}
                       </div>
+                      )}
                     </div>
 
                     <div className="hidden md:flex md:flex-col md:items-end md:gap-[6px]">

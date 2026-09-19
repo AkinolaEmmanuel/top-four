@@ -31,16 +31,19 @@ function Mark({ code, logo }: { code: string | null; logo: string | null }) {
   );
 }
 
+/* `pointer-events-none` throughout: these are decoration, and `Image fill`
+   positions itself, which put the crests above the link filling the row and
+   made them the one part of it that answered no tap. */
 function Marks({ entry }: { entry: PredictEntry }) {
   if (entry.kind === 'custom_question') {
     return (
-      <span className="w-[26px] h-[59px] md:w-[34px] md:h-[36px] rounded-[7px] md:rounded-[9px] bg-[var(--surface-subtle)] grid place-items-center font-heading font-bold text-[14px] md:text-[15px] text-[var(--text-muted)] flex-none">
+      <span className="pointer-events-none w-[26px] h-[59px] md:w-[34px] md:h-[36px] rounded-[7px] md:rounded-[9px] bg-[var(--surface-subtle)] grid place-items-center font-heading font-bold text-[14px] md:text-[15px] text-[var(--text-muted)] flex-none">
         ?
       </span>
     );
   }
   return (
-    <div className="flex flex-col gap-[3px] flex-none w-[26px] md:w-[30px]">
+    <div className="pointer-events-none flex flex-col gap-[3px] flex-none w-[26px] md:w-[30px]">
       <Mark code={entry.homeCode} logo={entry.homeLogo} />
       <Mark code={entry.awayCode} logo={entry.awayLogo} />
     </div>
@@ -58,13 +61,17 @@ function LeagueChip({ league }: { league: PredictEntryLeague }) {
   return (
     <Link
       href={league.href}
-      className="inline-flex items-center gap-[6px] max-w-[190px] font-heading font-semibold text-[10px] px-[9px] py-[6px] rounded-[6px] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] hover:border-[var(--color-brand)] hover:text-[var(--text-link)] transition-colors"
+      /* Above the link that fills the row; the gaps around it are not, so a
+         tap that misses a chip still opens the match. */
+      className="relative z-10 inline-flex items-center gap-[6px] max-w-[190px] font-heading font-semibold text-[10px] px-[9px] py-[6px] rounded-[6px] border border-[var(--surface-border-strong)] text-[var(--text-secondary)] hover:border-[var(--color-brand)] hover:text-[var(--text-link)] transition-colors"
     >
       <span className="truncate">{league.name}</span>
       <span className="tf-num flex-none text-[var(--text-muted)]">{league.progressLabel}</span>
     </Link>
   );
 }
+
+const ANSWER_PILL = 'hidden md:grid w-[66px] h-[31px] flex-none rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] place-items-center font-heading font-bold text-[11px]';
 
 function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolean; nowMs: number }) {
   /* Time remaining, not a clock. A bare "15:30" in a queue reads as kick-off —
@@ -76,10 +83,13 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
      hide one of them, which put half of this screen's markup — 322KB of it —
      into the document for a width the reader is not on. The columns the width
      earns appear with `md:`; nothing is duplicated to get them. */
-  /* Shared across leagues, the row cannot be one link: each chip is a link of
-     its own, and a link inside a link is neither valid nor reachable by
-     keyboard. The title becomes the primary target and takes whichever locks
-     first — the same league the Answer button goes to. */
+  /* Shared across leagues, the row cannot *wrap* a link: each chip is a link
+     of its own, and an anchor inside an anchor is neither valid nor reachable
+     by keyboard. So the link sits behind the row instead, filling it, with the
+     chips lifted above it. The whole row is the target either way, which on a
+     phone is the difference between 86px of row and the 17px line of the title
+     — the only thing that answered a tap while the row was an inert div. It
+     goes to whichever league locks first, as the Answer button does. */
   const shared = entry.leagues.length > 1;
   const rowClass = `flex items-center gap-[13px] md:gap-[16px] p-[13px_var(--gutter)] md:px-[18px] md:py-[15px] border-t border-[var(--surface-border)] ${isLast ? 'border-b md:border-b' : ''} ${entry.urgent ? 'bg-[var(--accent-surface)] shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''} md:hover:bg-[var(--surface-subtle)] md:transition-colors`;
 
@@ -89,7 +99,7 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
 
       <div className="flex-1 min-w-0">
         <div className="font-heading font-semibold text-[13px] md:text-[14px] truncate">
-          {shared ? <Link href={entry.href} className="hover:underline">{entry.title}</Link> : entry.title}
+          {entry.title}
         </div>
         {shared ? (
           <div className="flex flex-wrap gap-[5px] mt-[5px]">
@@ -134,14 +144,21 @@ function TaskRow({ entry, isLast, nowMs }: { entry: PredictEntry; isLast: boolea
         <div className="md:hidden text-[10px] text-[var(--text-link)] mt-[3px] font-bold tf-num">{entry.progressLabel}</div>
       </div>
 
-      <span className="hidden md:grid w-[66px] h-[31px] flex-none rounded-[10px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] place-items-center font-heading font-bold text-[11px]">
-        Answer
-      </span>
+      {/* A label, not a control: the row is the link on both branches, so a
+          second anchor to the same fixture would only repeat itself to anyone
+          reading the page aloud. */}
+      <span className={ANSWER_PILL}>Answer</span>
     </>
   );
 
   return shared
-    ? <div className={rowClass}>{body}</div>
+    ? (
+      <div className={`relative ${rowClass}`}>
+        {/* Named here because it has no text of its own. */}
+        <Link href={entry.href} aria-label={`Answer ${entry.title}`} className="absolute inset-0" />
+        {body}
+      </div>
+    )
     : <Link href={entry.href} className={rowClass}>{body}</Link>;
 }
 
