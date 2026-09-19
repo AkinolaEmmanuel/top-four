@@ -49,6 +49,27 @@ async function visit(page: Page, url: string) {
   ).toHaveCount(0);
 }
 
+/**
+ * `visit`, plus time for hydration to settle before the first click.
+ *
+ * A screen with a live countdown ("2h 20m until lineups lock") computes that
+ * text server-side at request time and again client-side a moment later at
+ * hydration — almost never the same value, which is a hydration mismatch on
+ * a screen that needs to be interactive within it. React abandons the
+ * mismatched subtree rather than reuse it, so a click landing inside that
+ * window can hit a node whose handlers never attached — intermittently: it
+ * depends on exactly how the click race lands, which is why the very same
+ * "click Starting XI" step both passed and timed out waiting on AUTO-FILL
+ * across otherwise-identical runs. `domcontentloaded` is still right (this
+ * screen carries remote club crests `load` would go hostage to, see
+ * `visit`); the fix is giving hydration a moment to finish, not waiting for
+ * more of the page.
+ */
+async function visitAndSettle(page: Page, url: string) {
+  await visit(page, url);
+  await page.waitForTimeout(800);
+}
+
 /** The app's own failure screens, which must never be what a smoke test sees. */
 async function expectNoProblemState(page: Page) {
 
@@ -216,7 +237,7 @@ test('the lineup dialog keeps its save control on screen', async ({ page }) => {
   );
   test.skip(!withLineups, 'no fixture with an open lineup in this league');
 
-  await visit(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
   await expectNoProblemState(page);
   await page.locator('button', { hasText: /Starting XI/i }).first().click();
 
@@ -246,7 +267,7 @@ test('the formation steppers reach a split none of the four presets can', async 
   );
   test.skip(!withLineups, 'no fixture with an open lineup in this league');
 
-  await visit(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
   await expectNoProblemState(page);
   await page.locator('button', { hasText: /Starting XI/i }).first().click();
 
@@ -274,7 +295,7 @@ test('dragging a filled place onto another swaps who is there', async ({ page })
   );
   test.skip(!withLineups, 'no fixture with an open lineup in this league');
 
-  await visit(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
   await expectNoProblemState(page);
   await page.locator('button', { hasText: /Starting XI/i }).first().click();
   await page.getByRole('button', { name: /AUTO-FILL/i }).click();
@@ -286,11 +307,24 @@ test('dragging a filled place onto another swaps who is there', async ({ page })
 
   const fwdBefore = await fwdSlot.getAttribute('aria-label');
   const defBefore = await defSlot.getAttribute('aria-label');
-  const fwdBox = (await fwdSlot.boundingBox())!;
-  const defBox = (await defSlot.boundingBox())!;
 
+  /* boundingBox() reports layout geometry even for a place scrolled out of
+     the pitch's own overflow-y-auto region — real, but not what is actually
+     on screen, so a coordinate drag onto it can land on whatever the browser
+     paints at that pixel instead (the Save button sitting right below the
+     pitch, in one run of this). Scrolling FWD into view, reading its box and
+     pressing there — then only scrolling to DEF, and reading *its* box —
+     after: scrolling either after both boxes are read would move the other
+     one, since both cannot fit on screen together in a short window. This
+     mirrors a real drag anyway: scroll to where you are, press, scroll to
+     where you are going, release. */
+  await fwdSlot.scrollIntoViewIfNeeded();
+  const fwdBox = (await fwdSlot.boundingBox())!;
   await page.mouse.move(fwdBox.x + fwdBox.width / 2, fwdBox.y + fwdBox.height / 2);
   await page.mouse.down();
+
+  await defSlot.scrollIntoViewIfNeeded();
+  const defBox = (await defSlot.boundingBox())!;
   await page.mouse.move(defBox.x + defBox.width / 2, defBox.y + defBox.height / 2, { steps: 12 });
   await page.mouse.up();
 
@@ -308,7 +342,7 @@ test('dropping a drag on bare pitch is a no-op, not a tap that reopens the squad
   );
   test.skip(!withLineups, 'no fixture with an open lineup in this league');
 
-  await visit(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
   await expectNoProblemState(page);
   await page.locator('button', { hasText: /Starting XI/i }).first().click();
   await page.getByRole('button', { name: /AUTO-FILL/i }).click();
@@ -316,14 +350,18 @@ test('dropping a drag on bare pitch is a no-op, not a tap that reopens the squad
   const fwdSlot = page.locator('button[data-slot^="FWD"]').first();
   await expect(fwdSlot).toBeVisible();
   const fwdBefore = await fwdSlot.getAttribute('aria-label');
+  await fwdSlot.scrollIntoViewIfNeeded();
   const fwdBox = (await fwdSlot.boundingBox())!;
-  // The pitch container itself — its centre sits in the gap between rows,
-  // clear of every place's own clickable area.
-  const pitchBox = (await page.locator('div[style*="linear-gradient"]').first().boundingBox())!;
+  // The dialog's own title bar — always on screen (it is above the pitch's
+  // scroll region, not inside it) and definitely not a `[data-slot]` place,
+  // which a coordinate computed from the pitch's own full, possibly
+  // off-screen layout geometry is not guaranteed to be.
+  const title = page.getByRole('heading', { name: /Starting XI$/ });
+  const titleBox = (await title.boundingBox())!;
 
   await page.mouse.move(fwdBox.x + fwdBox.width / 2, fwdBox.y + fwdBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(pitchBox.x + pitchBox.width / 2, pitchBox.y + pitchBox.height / 2, { steps: 12 });
+  await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2, { steps: 12 });
   await page.mouse.up();
 
   // Nothing moved...
