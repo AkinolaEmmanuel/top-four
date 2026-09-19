@@ -50,20 +50,19 @@ async function visit(page: Page, url: string) {
 }
 
 /**
- * `visit`, plus time for hydration to settle before the first click.
+ * `visit`, plus a short pause before the first click.
  *
- * A screen with a live countdown ("2h 20m until lineups lock") computes that
- * text server-side at request time and again client-side a moment later at
- * hydration — almost never the same value, which is a hydration mismatch on
- * a screen that needs to be interactive within it. React abandons the
- * mismatched subtree rather than reuse it, so a click landing inside that
- * window can hit a node whose handlers never attached — intermittently: it
- * depends on exactly how the click race lands, which is why the very same
- * "click Starting XI" step both passed and timed out waiting on AUTO-FILL
- * across otherwise-identical runs. `domcontentloaded` is still right (this
- * screen carries remote club crests `load` would go hostage to, see
- * `visit`); the fix is giving hydration a moment to finish, not waiting for
- * more of the page.
+ * Not standing in for a diagnosed defect — unlike everything else in this
+ * file, this one is precautionary. `domcontentloaded` (see `visit`) fires
+ * before hydration necessarily finishes, and this screen has a live
+ * countdown ("2h 20m until lineups lock") whose server- and client-rendered
+ * text can disagree, which is the kind of thing that could race a click
+ * against hydration on paper. It was the wrong explanation for a real
+ * failure seen while this test was being written, though — that one was the
+ * test opening a fixture whose lineup was already saved from earlier in the
+ * session, so Auto-fill was correctly disabled and the test kept clicking
+ * it anyway. `domcontentloaded` is still right regardless (this screen
+ * carries remote club crests `load` would go hostage to).
  */
 async function visitAndSettle(page: Page, url: string) {
   await visit(page, url);
@@ -298,7 +297,11 @@ test('dragging a filled place onto another swaps who is there', async ({ page })
   await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
   await expectNoProblemState(page);
   await page.locator('button', { hasText: /Starting XI/i }).first().click();
-  await page.getByRole('button', { name: /AUTO-FILL/i }).click();
+  // Disabled once the XI is already complete — an account with a lineup
+  // already saved for this fixture opens straight on eleven of eleven, and
+  // Auto-fill has nothing left to do.
+  const autoFill = page.getByRole('button', { name: /AUTO-FILL/i });
+  if (await autoFill.isEnabled()) await autoFill.click();
 
   const fwdSlot = page.locator('button[data-slot^="FWD"]').first();
   const defSlot = page.locator('button[data-slot^="DEF"]').first();
@@ -345,7 +348,10 @@ test('dropping a drag on bare pitch is a no-op, not a tap that reopens the squad
   await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
   await expectNoProblemState(page);
   await page.locator('button', { hasText: /Starting XI/i }).first().click();
-  await page.getByRole('button', { name: /AUTO-FILL/i }).click();
+  // Disabled once the XI is already complete — see the equivalent guard
+  // above in the drag-swap test.
+  const autoFill = page.getByRole('button', { name: /AUTO-FILL/i });
+  if (await autoFill.isEnabled()) await autoFill.click();
 
   const fwdSlot = page.locator('button[data-slot^="FWD"]').first();
   await expect(fwdSlot).toBeVisible();
