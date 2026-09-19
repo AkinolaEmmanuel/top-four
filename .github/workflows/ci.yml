@@ -53,7 +53,18 @@ jobs:
           ssh-key: ${{ secrets.TOPFOUR_API_DEPLOY_KEY }}
           path: api
 
+      # Pointed at the API's package.json: the pnpm version is pinned there in
+      # `packageManager`, and this repository's root holds no package.json at
+      # all — the frontend's lives in top-four-app. Without this the action
+      # exits with "No pnpm version is specified".
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: api/package.json
+          # The API is a large Nest tree, and its install is the slowest thing
+          # in this job. Keyed on its lockfile, so it is thrown away the moment
+          # a dependency there changes.
+          cache: true
+          cache_dependency_path: api/pnpm-lock.yaml
 
       # 24 for both. The API declares `node >=24 <25`; the frontend declares
       # no engines and is built and tested on 24 locally.
