@@ -55,7 +55,7 @@ function Row({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: 
       /* `last:border-b-0` on both layouts: the final row of a day used to close
          with a rule, and the next date heading opened with one, so every
          boundary between groups was drawn twice. The heading is the separator. */
-      className={`flex items-center gap-[11px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${GRID_MD} md:gap-[16px] md:py-[14px] md:px-[4px] md:border-t-0 md:border-b md:last:border-b-0 md:hover:bg-[var(--surface-subtle)] md:transition-colors ${urgent ? 'md:bg-[var(--accent-surface)] md:shadow-[inset_3px_0_0_0_var(--color-brand)]' : ''}`}
+      className={`flex items-center gap-[11px] p-[13px_var(--gutter)] border-t border-[var(--surface-border)] ${GRID_MD} md:gap-[16px] md:py-[14px] md:px-[4px] md:border-t-0 md:border-b md:last:border-b-0 md:hover:bg-[var(--surface-subtle)] md:transition-colors`}
     >
       <span className="hidden md:inline-flex items-center justify-self-start h-[19px] px-[7px] rounded-[4px] font-heading font-bold text-[8.5px] tracking-[0.06em] flex-none bg-[var(--surface-subtle)]">
         <span className={`${stateTone(row.state, view)} whitespace-nowrap`}>{stateChip(row.state, view)}</span>
