@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push supersedes the run before it; nobody reads the older one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: top-four-app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: top-four-app/package-lock.json
+
+      - run: npm ci
+
+      - name: Types
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Both are build-time only. The /api rewrite is baked into
+      # routes-manifest.json here and `next start` reads the manifest, so
+      # setting API_TARGET_URL on the server step does nothing. An unset
+      # repository variable arrives as an empty string, which falls through to
+      # the deployed API; an absent client id renders no Google button and its
+      # spec skips. So this is clean on a fork with access to neither.
+      - name: Build
+        run: npm run build
+        env:
+          API_TARGET_URL: ${{ vars.API_TARGET_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Against the production build rather than `next dev`: dev compiles each
+      # route on first hit, which is what forces the suite down to two workers
+      # locally, and it is not the code that ships anyway. Starting the server
+      # here rather than through Playwright's `webServer`, which is wired to
+      # `npm run dev`; TF_BASE_URL tells the config to leave it alone.
+      - name: Start the app
+        run: |
+          npx next start -p 5173 &
+          server=$!
+          for i in $(seq 1 60); do
+            # Watch the process, not just the port. A server that dies on
+            # startup leaves the poll to answer from whatever else is
+            # listening, and the suite then tests something nobody built.
+            if ! kill -0 "$server" 2>/dev/null; then
+              echo "the app exited before it was ready"
+              exit 1
+            fi
+            curl -sf -o /dev/null http://localhost:5173/sign-in && exit 0
+            sleep 1
+          done
+          echo "the app never came up on :5173"
+          exit 1
+
+      # Without TF_TEST_EMAIL and TF_TEST_PASSWORD the signed-in specs skip
+      # rather than fail, so this is green on a fork and on any PR opened before
+      # the secrets exist. See the note at the bottom of this file for what the
+      # skipped ones need.
+      - name: Smoke tests
+        run: npm run test:smoke
+        env:
+          TF_BASE_URL: http://localhost:5173
+          TF_TEST_EMAIL: ${{ secrets.TF_TEST_EMAIL }}
+          TF_TEST_PASSWORD: ${{ secrets.TF_TEST_PASSWORD }}
+
+      # Traces, screenshots and videos from the retry. The CI reporter is
+      # `github`, which annotates the diff and writes no HTML report, so
+      # test-results is the whole of what there is to keep.
+      - name: Keep the traces when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: top-four-app/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+# Two thirds of the suite is signed in, and those specs skip here until three
+# things are true:
+#
+#   1. An API that accepts this runner's origin. api.topfour.app allows only
+#      https://topfour.app today — every localhost origin comes back
+#      REQUEST_ORIGIN_NOT_ALLOWED — so either add the CI origin to the API's
+#      FRONTEND_ALLOWED_ORIGINS, or point the API_TARGET_URL repository
+#      variable at a staging API that already allows it.
+#   2. TF_TEST_EMAIL and TF_TEST_PASSWORD as repository secrets, for an account
+#      that exists on whichever API step 1 chose.
+#   3. That account holding at least one league with fixtures. The signed-in
+#      specs read their own league rather than seeding one, and skip with a
+#      message when there is nothing to read.
+#
+# Nothing in this file changes when those land. The specs stop skipping.
