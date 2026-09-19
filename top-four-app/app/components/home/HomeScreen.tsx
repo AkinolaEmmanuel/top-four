@@ -11,6 +11,7 @@ import { heroGradient } from '@/lib/crest-colour';
 import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import { ThemeMenu } from '../ThemeMenu';
 import { TopFourLogo } from '../brand/top-four-logo';
+import { TopFourMark } from '../brand/top-four-mark';
 import type { HomeLeagueEntry, HomeQueueEntry, QueueLeague, TeamIdentity } from '@/lib/home/home-data';
 
 /**
@@ -277,7 +278,9 @@ export function HomeScreen({
       <div className="flex flex-col flex-1 min-h-0 h-[100dvh] md:h-full bg-[var(--surface-canvas)] text-[var(--text-primary)] font-['Sora',sans-serif]">
         <div className="flex-1 grid place-items-center p-[var(--gutter)]">
           <div className="flex flex-col items-center text-center max-w-[440px]">
-            <div className="w-[54px] h-[54px] rounded-[15px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[18px]">T/</div>
+            <div className="w-[54px] h-[54px] rounded-[15px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center">
+              <TopFourMark className="w-[26px] h-[26px]" />
+            </div>
             <h1 className="font-heading font-bold text-[24px] md:text-[30px] leading-[1.12] tracking-[-0.7px] mt-[20px]">Join or create a league to begin</h1>
             <p className="text-[13.5px] md:text-[14px] leading-[1.6] text-[var(--text-secondary)] mt-[10px]">
               You need to join or create a league to start predicting. You can be in up to twenty at once — finished leagues give their place back.

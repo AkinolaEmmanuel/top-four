@@ -1,5 +1,5 @@
 import type { SelectablePlayer } from '@/lib/api/predictions-fixture';
-import { personInitials } from '@/lib/format';
+import { personInitials, decodeHtmlEntities } from '@/lib/format';
 
 /**
  * The player picker's squad lists, shaped once on the server.
@@ -51,12 +51,13 @@ function initialsOf(name: string): string {
 }
 
 export function toPickerPlayer(player: SelectablePlayer): PickerPlayer {
+  const name = decodeHtmlEntities(player.displayName);
   return {
     id: player.playerId,
-    name: player.displayName,
+    name,
     shirt: player.shirtNumber,
     position: player.position,
-    initials: initialsOf(player.displayName),
+    initials: initialsOf(name),
     photoUrl: player.photoUrl ?? null,
     side: player.side === 'away' ? 'away' : 'home',
   };

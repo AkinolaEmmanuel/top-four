@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/auth-context';
+import { TopFourLogo } from '@/app/components/brand/top-four-logo';
 import {
   useSettlementReviews, useResolveSettlementDecision,
   useFactConflicts, useKeepCurrentFacts,
@@ -282,7 +283,7 @@ export default function OperatorConsolePage() {
       <div className="w-[1280px] h-[760px] rounded-[14px] overflow-hidden relative flex flex-col bg-[var(--surface-card)] border border-[var(--surface-border)] shadow-[var(--elev-4)] text-[var(--text-primary)]">
 
         <div className="flex-none flex items-center gap-[14px] p-[12px_20px] bg-[var(--nav-surface)] border-b border-[var(--surface-border)]">
-          <div className="font-heading font-bold text-[15px] text-white">TopFour</div>
+          <TopFourLogo size={15} accent="var(--nav-accent)" className="text-white" />
           <div className="text-[10px] tracking-[0.12em] uppercase p-[3px_9px] rounded-full bg-[rgba(255,255,255,0.14)] text-white">Operator</div>
           <div className="flex-1"></div>
           <div className="text-[11.5px] text-[rgba(255,255,255,0.65)]">{user?.email || ''}</div>
