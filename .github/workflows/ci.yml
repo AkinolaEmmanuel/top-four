@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, new-setup]
+    branches: [main]
   push:
-    branches: [main, new-setup]
+    branches: [main]
 
 defaults:
   run:
