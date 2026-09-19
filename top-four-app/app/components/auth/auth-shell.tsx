@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 import { FootballBall } from '../brand/football-ball';
+import { TopFourLogo } from '../brand/top-four-logo';
 
 type AuthShellProps = {
   eyebrow: string;
@@ -40,8 +41,8 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
 
         <div className="relative flex flex-1 flex-col justify-between p-10">
           <div className="w-full flex items-center justify-between gap-2 text-white">
-            <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-              TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+            <Link href="/">
+              <TopFourLogo size={17} />
             </Link>
 
             {/* A plain text link here used to read as part of the header, not
@@ -74,23 +75,27 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
             </p>
           </div>
 
-          <p className="text-xs text-slate-500 font-mono">
-            &copy; {new Date().getFullYear()} topfour.app • All rights reserved
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-mono text-slate-500">
+            <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
+            <span>&copy; {new Date().getFullYear()} topfour.app</span>
+          </div>
         </div>
       </div>
 
       {/* Right: Form Panel. Its own scroll region — if a tall form plus an
           error banner ever outgrows a short phone's viewport, this scrolls
           in place instead of the whole page growing past the fold. */}
-      <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-4 py-8 sm:px-6 sm:py-12">
-        <div className="w-full max-w-sm rounded-2xl border border-[var(--border-base)] bg-[var(--surface-layer-1)] p-6 sm:p-8 shadow-sm my-auto">
-          {/* Mobile brand mark */}
-          <div className="mb-6 flex items-center justify-between gap-2 lg:hidden">
+      <div className="flex flex-1 h-full justify-center overflow-y-auto tf-scroll bg-[var(--surface-canvas)] px-[var(--gutter)] pt-8 pb-10 sm:px-6 sm:py-12">
+        {/* Fills the height on a phone so the three parts can spread: brand at
+            the top, form in the middle, links at the foot. Sitting the lot at
+            the top left the bottom half of the screen empty. */}
+        <div className="w-full max-w-sm flex flex-col min-h-full sm:min-h-0 sm:my-auto">
+          {/* Mobile brand mark. Outside the card: on a phone there is no card,
+              and on a tablet it reads better above one than inside it. */}
+          <div className="flex-none mb-6 flex items-center justify-between gap-2 lg:hidden">
             <Link href="/" className="flex items-center text-[var(--text-primary)]">
-              <div className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px]">
-                TOPFOUR<span className="text-[var(--color-brand)]">/</span>
-              </div>
+              <TopFourLogo size={17} />
             </Link>
             <Link
               href="/how-to-play"
@@ -101,15 +106,30 @@ export function AuthShell({ eyebrow, title, subtitle, children }: AuthShellProps
             </Link>
           </div>
 
-          <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--color-brand)]">
-            {eyebrow}
-          </p>
-          <h1 className="mt-1.5 text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase font-heading">
-            {title}
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)] font-sans">{subtitle}</p>
+          {/* No card on a phone. A bordered panel inset from the edges is a
+              desktop device; on a screen the form already fills it reads as a
+              box drawn round the whole page. `my-auto` centres it in whatever
+              the brand row and the links leave over. */}
+          <div className="my-auto sm:my-0 sm:rounded-2xl sm:border sm:border-[var(--border-base)] sm:bg-[var(--surface-layer-1)] sm:p-8 sm:shadow-sm">
+            <p className="text-xs font-mono font-bold uppercase tracking-widest text-[var(--color-brand)]">
+              {eyebrow}
+            </p>
+            <h1 className="mt-1.5 text-2xl font-black tracking-tight text-[var(--text-primary)] uppercase font-heading">
+              {title}
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)] font-sans">{subtitle}</p>
 
-          <div className="mt-6">{children}</div>
+            <div className="mt-6">{children}</div>
+          </div>
+
+          {/* The wide layout carries these in the left panel, which is hidden below
+              lg — so on a phone nobody signing up could reach the terms they were
+              agreeing to. */}
+          <div className="lg:hidden flex-none mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-mono text-[var(--text-muted)]">
+            <Link href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">Terms</Link>
+            <span>&copy; {new Date().getFullYear()} topfour.app</span>
+          </div>
         </div>
       </div>
     </div>

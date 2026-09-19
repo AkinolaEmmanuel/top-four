@@ -20,6 +20,10 @@ function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
+  /* Unticked to start: a pre-ticked box is no evidence that anyone read it. The
+     terms set 18 as a condition of use, and this is the one place a person
+     actually says so. */
+  const [accepted, setAccepted] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -85,7 +89,7 @@ function SignupForm() {
             required
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Alex Morgan"
+            placeholder="Shown on every leaderboard"
             className={inputClasses}
           />
         </div>
@@ -138,7 +142,29 @@ function SignupForm() {
           </p>
         )}
 
-        <button type="submit" className={buttonClasses} disabled={isSubmitting}>
+        {/* The links open in a new tab on purpose: navigating away in this one
+            would discard the name, email and password already typed. */}
+        <label className="flex items-start gap-[10px] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={accepted}
+            onChange={event => setAccepted(event.target.checked)}
+            className="mt-[2px] h-4 w-4 flex-none accent-[var(--color-brand)] cursor-pointer"
+          />
+          <span className="text-[12.5px] leading-[1.5] text-[var(--text-secondary)]">
+            I am 18 or over and I accept the{' '}
+            <Link href="/terms" target="_blank" rel="noreferrer" className="font-semibold text-[var(--text-primary)] underline hover:text-[var(--color-brand)]">
+              terms of service
+            </Link>
+            . We handle your data as described in our{' '}
+            <Link href="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-[var(--text-primary)] underline hover:text-[var(--color-brand)]">
+              privacy policy
+            </Link>
+            .
+          </span>
+        </label>
+
+        <button type="submit" className={buttonClasses} disabled={isSubmitting || !accepted}>
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Create account
         </button>

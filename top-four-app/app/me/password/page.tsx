@@ -76,7 +76,7 @@ export default function PasswordPage() {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="w-full bg-[var(--surface-canvas)] border border-[var(--surface-border-strong)] rounded-[10px] h-[46px] px-[14px] text-[14px] text-[var(--text-primary)] outline-none focus:border-[var(--color-brand)] focus:shadow-[0_0_0_1px_var(--color-brand)] transition-all"
-                placeholder="Enter current password"
+                placeholder="••••••••"
               />
             </div>
 
@@ -90,7 +90,7 @@ export default function PasswordPage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full bg-[var(--surface-canvas)] border border-[var(--surface-border-strong)] rounded-[10px] h-[46px] px-[14px] text-[14px] text-[var(--text-primary)] outline-none focus:border-[var(--color-brand)] focus:shadow-[0_0_0_1px_var(--color-brand)] transition-all"
-                placeholder="Enter new password"
+                placeholder="••••••••"
               />
               <span className="block text-[11px] text-[var(--text-muted)] mt-[6px]">
                 Must be at least 12 characters.
@@ -107,7 +107,7 @@ export default function PasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full bg-[var(--surface-canvas)] border border-[var(--surface-border-strong)] rounded-[10px] h-[46px] px-[14px] text-[14px] text-[var(--text-primary)] outline-none focus:border-[var(--color-brand)] focus:shadow-[0_0_0_1px_var(--color-brand)] transition-all"
-                placeholder="Confirm new password"
+                placeholder="••••••••"
               />
             </div>
 

@@ -1,9 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import Image, { type StaticImageData } from 'next/image';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/auth-context';
 import { FootballBall } from '../brand/football-ball';
+import { TopFourLogo } from '../brand/top-four-logo';
+
+/*
+ * Imported, not referenced by a path under `public/`.
+ *
+ * A public path is stable, so Next will not let it be cached — these shipped
+ * with `max-age=0, must-revalidate` and were refetched on every page load.
+ * Imported, each one is emitted with a content hash and served immutable for a
+ * year; replacing a shot changes the hash, so nothing can go stale either.
+ */
+import leaguesShot from './shots/leagues.png';
+import predictShot from './shots/predict.png';
+import lineupsShot from './shots/lineups-filled.png';
+import questionsShot from './shots/questions.png';
+import tableShot from './shots/table.png';
+import homeMobileShot from './shots/home-mobile.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -15,81 +32,94 @@ const STEPS: {
   eyebrow: string;
   title: string;
   body: string;
-  image: string;
+  image: StaticImageData;
   alt: string;
-  crop?: string;
-  frame: 'desktop' | 'phone';
+  /** Overrides the default 16:10 shot frame where a screen needs a wider crop. */
+  aspect?: string;
 }[] = [
     {
       n: '01',
       eyebrow: 'Start here',
       title: 'Create a league, or join one with a code',
       body: "Set up your own league around any competition in a couple of taps, or drop in the invite code a friend sent you. Every league runs its own table, so the same friends can run five leagues at once and never mix them up.",
-      image: '/how-to-play/leagues.png',
+      image: leaguesShot,
       alt: 'The Leagues screen, showing a league card with member count and a Join or Create a league button',
-      frame: 'desktop',
     },
     {
       n: '02',
       eyebrow: 'Every fixture',
       title: 'Predict scores, results and more — pick the score once, we do the rest',
       body: "Call the match result, the exact score, both teams to score, total goals and who scores first. Pick an exact score and TopFour fills in both teams to score and total goals to match it automatically, so a 2-1 doesn't leave you disagreeing with yourself on the market underneath it.",
-      image: '/how-to-play/predict.png',
+      image: predictShot,
       alt: 'The fixture prediction screen for Brentford v Chelsea, showing match result, exact score, and both teams to score markets',
-      frame: 'desktop',
     },
     {
       n: '03',
       eyebrow: 'Starting XI',
       title: 'Name a lineup in one tap with Auto-fill',
       body: "Pick a formation, then hit Auto-fill to drop in a sensible XI from the real squad instantly — swap in whoever you actually rate, or leave it exactly as it landed. Either way, the shape is picked and the eleven are named before kickoff.",
-      image: '/how-to-play/lineups-filled.png',
+      image: lineupsShot,
       alt: 'The lineup picker showing a completed 4-3-3 Brentford starting XI on a pitch diagram, filled in with one tap',
-      frame: 'desktop',
     },
     {
       n: '04',
       eyebrow: "This week's debate",
       title: 'Answer the questions only your league is asking',
       body: 'Every league can add its own questions on top of the fixtures — who finishes top four, whether there\'s a red card this weekend, whatever your group actually argues about. They score onto the same table as everything else.',
-      image: '/how-to-play/questions.png',
+      image: questionsShot,
       alt: 'The Questions screen showing two open custom questions worth points, including club and yes/no picks',
-      frame: 'desktop',
     },
     {
       n: '05',
       eyebrow: 'Bragging rights',
       title: 'Watch the table settle every argument',
       body: "Points land the moment results are confirmed, and the table updates live. No more he-said-she-said about who actually called it — the standings remember for you.",
-      image: '/how-to-play/table.png',
+      image: tableShot,
       alt: 'The league table showing member standings ranked by points',
-      frame: 'desktop',
-      crop: 'aspect-[2/1] object-top',
+      // The shot's own ratio, so a short table is neither cropped nor padded.
+      aspect: 'aspect-[36/13]',
     },
   ];
 
 export function HowToPlayScreen() {
+  /* This page is public and the root nav hides itself here, so a signed-in
+     reader who followed the link has no way back into the app — the sign-up
+     pair is a dead end for them. `user` is null until auth resolves, which is
+     the right default: the page is mostly read by people who aren't members. */
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col flex-1 min-h-0 h-[100dvh] bg-[var(--surface-canvas)] text-[var(--text-primary)]">
       {/* Top bar — stays outside the scroll region so it reads as a fixed nav, not just sticky. */}
       <header className="flex-none z-20 border-b border-[var(--border-base)] bg-[var(--surface-canvas)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="font-heading font-bold text-[17px] leading-[1] tracking-[-0.6px] text-[var(--text-primary)]">
-            TOPFOUR<span className="text-[var(--color-brand)]">/</span>
+          <Link href="/" className="text-[var(--text-primary)]">
+            <TopFourLogo size={17} />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/"
-              className="hidden sm:inline-flex items-center justify-center rounded-md h-9 px-4 text-sm font-bold text-[var(--text-primary)] hover:text-[var(--color-brand)] transition-colors"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/sign-up"
-              className="inline-flex items-center justify-center rounded-md h-9 px-4 sm:px-5 text-sm font-bold tracking-wide text-white bg-[var(--brand-fill)] hover:bg-[var(--color-brand-hover)] transition-colors"
-            >
-              Get started
-            </Link>
+            {user ? (
+              <Link
+                href="/home"
+                className="inline-flex items-center justify-center rounded-md h-9 px-4 sm:px-5 text-sm font-bold tracking-wide text-white bg-[var(--brand-fill)] hover:bg-[var(--color-brand-hover)] transition-colors"
+              >
+                Back to TopFour
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/"
+                  className="hidden sm:inline-flex items-center justify-center rounded-md h-9 px-4 text-sm font-bold text-[var(--text-primary)] hover:text-[var(--color-brand)] transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="inline-flex items-center justify-center rounded-md h-9 px-4 sm:px-5 text-sm font-bold tracking-wide text-white bg-[var(--brand-fill)] hover:bg-[var(--color-brand-hover)] transition-colors"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -106,11 +136,12 @@ export function HowToPlayScreen() {
             preserveAspectRatio="xMidYMid slice"
             fill="none"
           >
+            {/* Halfway line and centre circle only. The penalty boxes used to
+                be here, but `slice` crops their tops and bottoms away at this
+                width, leaving two bare verticals that read as stray lines. */}
             <line x1="0" y1="200" x2="800" y2="200" stroke="white" strokeWidth="2" />
             <circle cx="400" cy="200" r="90" stroke="white" strokeWidth="2" />
             <circle cx="400" cy="200" r="3" fill="white" />
-            <rect x="0" y="60" width="140" height="280" stroke="white" strokeWidth="2" />
-            <rect x="660" y="60" width="140" height="280" stroke="white" strokeWidth="2" />
           </svg>
 
           <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 text-center">
@@ -190,13 +221,16 @@ export function HowToPlayScreen() {
                       <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
                       <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
                     </div>
-                    <div className={`relative w-full ${step.crop ? step.crop.split(' ')[0] : 'aspect-[16/10]'} overflow-hidden`}>
+                    <div className={`relative w-full ${step.aspect ?? 'aspect-[16/10]'} overflow-hidden`}>
+                      {/* Blurred until it lands. Available only because the
+                          import carries the dimensions and a placeholder. */}
                       <Image
                         src={step.image}
                         alt={step.alt}
                         fill
                         sizes="(max-width: 768px) 100vw, 50vw"
-                        className={`object-cover ${step.crop ? step.crop.split(' ')[1] : 'object-top'}`}
+                        placeholder="blur"
+                        className="object-cover object-top"
                         priority={i === 0}
                       />
                     </div>
@@ -220,10 +254,11 @@ export function HowToPlayScreen() {
               >
                 <div className="relative w-full aspect-[390/844] overflow-hidden rounded-[1.4rem]">
                   <Image
-                    src="/how-to-play/home-mobile.png"
+                    src={homeMobileShot}
                     alt="The TopFour home screen on a phone, showing the next lock countdown and what's waiting on you"
                     fill
                     sizes="280px"
+                    placeholder="blur"
                     className="object-cover object-top"
                   />
                 </div>
@@ -275,9 +310,11 @@ export function HowToPlayScreen() {
                 Sign in
               </Link>
             </div>
-            <p className="mt-10 text-xs text-slate-500 font-mono">
-              &copy; {new Date().getFullYear()} topfour.app • All rights reserved
-            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-mono text-slate-500">
+              <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
+              <span>&copy; {new Date().getFullYear()} topfour.app</span>
+            </div>
           </div>
         </section>
       </main>

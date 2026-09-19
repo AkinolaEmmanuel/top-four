@@ -9,9 +9,20 @@ import { test, expect, type Page } from '@playwright/test';
  * place of real ones.
  */
 
-const signedIn = (page: Page) => page.context().cookies().then(
-  cookies => cookies.some(c => c.name === 'tf.sid' || c.name === '__Host-tf.sid'),
-);
+/*
+ * Scoped to the base URL, not to any cookie of that name.
+ *
+ * A saved state file holds cookies for the host it signed in to. Reused against
+ * a different base URL — a production session against localhost — an unscoped
+ * check reports a session that will not be sent, so every signed-in spec runs
+ * against the sign-in redirect instead of skipping. Some then fail; worse, the
+ * ones asserting an absence pass while proving nothing.
+ */
+const signedIn = async (page: Page) => {
+  const base = test.info().project.use.baseURL ?? 'http://localhost:5173';
+  const cookies = await page.context().cookies(base);
+  return cookies.some(c => c.name === 'tf.sid' || c.name === '__Host-tf.sid');
+};
 
 /**
  * Skips a spec that needs a member. Called per test rather than in a
@@ -115,6 +126,11 @@ test('me renders the account', async ({ page }) => {
   await expectNoProblemState(page);
   // It once greeted every member as "Your Name".
   await expect(page.getByText('Your Name')).toHaveCount(0);
+
+  // Settings is the only route to the legal pages from inside the app: every
+  // other link to them sits on a screen you only see before signing in.
+  await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Terms of service' })).toBeVisible();
 });
 
 test('league overview shows a real fixture, not the prototype’s', async ({ page }) => {
@@ -406,4 +422,131 @@ test('the theme follows the stored choice, and light mode is reachable', async (
   // The choice must survive a reload, which is the whole point of storing it.
   await visit(page, '/home');
   await expect(html).toHaveAttribute('data-theme', 'dark');
+});
+
+/**
+ * Public, so no `requireSession` — this page is reachable from the sign-in
+ * screen and must render for someone with no account at all.
+ *
+ * `next/image` draws its frame whether or not the file behind it exists, so a
+ * missing or renamed screenshot is invisible to a locator. `naturalWidth` is
+ * the only thing that separates a loaded shot from an empty box.
+ */
+test('how to play renders every step, with its screenshots actually loaded', async ({ page }) => {
+  await visit(page, '/how-to-play');
+  await expectNoProblemState(page);
+
+  for (const title of [
+    'Create a league, or join one with a code',
+    'Name a lineup in one tap with Auto-fill',
+    'Answer the questions only your league is asking',
+    'Watch the table settle every argument',
+  ]) {
+    await expect(page.getByRole('heading', { name: title }), `"${title}" is missing`).toBeVisible();
+  }
+
+  const shots = page.locator('main img');
+  await expect(shots, 'five step screenshots plus the phone mock-up').toHaveCount(6);
+
+  for (let i = 0; i < 6; i++) {
+    const shot = shots.nth(i);
+    // Every shot but the first is lazy, so it has to be on screen to load.
+    await shot.scrollIntoViewIfNeeded();
+    await expect(shot).toHaveJSProperty('complete', true);
+    const width = await shot.evaluate((el: HTMLImageElement) => el.naturalWidth);
+    expect(width, `${await shot.getAttribute('alt')} — image did not load`).toBeGreaterThan(0);
+  }
+
+  // The app's own nav hides itself on this page, so the header is the only way
+  // onward: "Get started" signed out, "Back to TopFour" for a member who
+  // followed the link and would otherwise be stranded on a marketing page.
+  await expect(
+    page.getByRole('link', { name: /Back to TopFour|Get started/ }).first(),
+    'no way onward from how to play',
+  ).toBeVisible();
+});
+
+/**
+ * Public, and deliberately so: Google's OAuth consent screen fetches both pages
+ * signed out. A middleware change that sends them to sign-in would break the
+ * Google client without touching anything that looks related.
+ */
+test('the legal pages are reachable signed out, and say the things they must', async ({ page }) => {
+  for (const [path, heading] of [['/privacy', 'Privacy policy'], ['/terms', 'Terms of service']] as const) {
+    await visit(page, path);
+    await expectNoProblemState(page);
+    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible();
+    // Not redirected to sign-in — the actual failure mode this guards.
+    expect(new URL(page.url()).pathname, `${path} redirected away`).toBe(path);
+  }
+
+  // Google requires the disclosure to match what the app really does with Google
+  // data. These two claims are the ones review looks for.
+  await visit(page, '/privacy');
+  await expect(page.getByRole('heading', { name: 'If you sign in with Google' })).toBeVisible();
+  await expect(page.getByText('We do not use or store your Google profile picture.')).toBeVisible();
+
+  // The no-gambling section is what keeps a free prediction game out of the
+  // real-money category. Losing it is a compliance regression, not a copy edit.
+  await visit(page, '/terms');
+  await expect(page.getByRole('heading', { name: /No gambling/ })).toBeVisible();
+  await expect(page.getByText(/no entry fee/i).first()).toBeVisible();
+});
+
+/**
+ * Public, and deliberately never submits: the point is the gate, and a spec that
+ * registered an account would leave one behind on every run.
+ *
+ * The terms set 18 as a condition of use, and this checkbox is the only place
+ * anyone says so. Delete it, or drop `!accepted` from the button's disabled
+ * expression, and the claim in the terms becomes decorative with nothing failing.
+ */
+test('sign-up will not proceed until age and terms are confirmed', async ({ page }) => {
+  await visit(page, '/sign-up');
+  await expectNoProblemState(page);
+
+  const confirm = page.getByRole('checkbox');
+  const create = page.getByRole('button', { name: 'Create account' });
+
+  // Unticked to start. A pre-ticked box would be no evidence anyone read it.
+  await expect(confirm, 'the age and terms checkbox is missing').toBeVisible();
+  await expect(confirm).not.toBeChecked();
+  await expect(create, 'Create account is reachable without confirming age').toBeDisabled();
+
+  await confirm.check();
+  await expect(create, 'confirming age did not release the button').toBeEnabled();
+
+  // And back, so the gate is a real binding rather than a one-way latch.
+  await confirm.uncheck();
+  await expect(create).toBeDisabled();
+
+  // Opening the terms must not discard a part-filled form, so both links leave
+  // this tab alone.
+  const label = page.locator('label').filter({ hasText: 'I am 18 or over' });
+  for (const name of ['terms of service', 'privacy policy']) {
+    await expect(label.getByRole('link', { name })).toHaveAttribute('target', '_blank');
+  }
+});
+
+/**
+ * Google sign-in creates an account when none exists, so the button is a sign-up
+ * path too. It carries a statement rather than a tick, because a returning
+ * member should not confirm their age on every sign-in.
+ *
+ * Only the statement is asserted. The button itself is Google's, drawn in
+ * production inside a cross-origin iframe whose contents no test of ours can
+ * read and no stylesheet of ours can reach.
+ *
+ * Skips where no Google client is configured, since nothing is offered then.
+ */
+test('where Google sign-up is offered, it states the age and terms', async ({ page }) => {
+  await visit(page, '/sign-up');
+
+  const offered = page.locator('span').filter({ hasText: /^or$/ });
+  test.skip(await offered.count() === 0, 'No Google client configured here.');
+
+  await expect(
+    page.getByText(/By continuing with Google you confirm you are 18 or over/),
+    'Google sign-up is offered without stating the age requirement',
+  ).toBeVisible();
 });

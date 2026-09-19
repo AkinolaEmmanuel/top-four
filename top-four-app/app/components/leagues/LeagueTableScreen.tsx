@@ -81,12 +81,18 @@ export function LeagueTableScreen({
     }
   }
   const anyCustom = table.rows.some(row => row.customQuestionPoints !== 0);
+  const middleColumns = splitColumns.length + (anyCustom ? 1 : 0);
   /* Injected as a custom property, not as a class name: the column count is
      only known at runtime, and Tailwind generates classes by scanning source
      text — a `grid-cols-[...]` built from a template literal is a class that
-     never exists. The static class below reads this variable instead. */
+     never exists. The static class below reads this variable instead.
+
+     `repeat()` takes a *positive* integer, so `repeat(0, 92px)` invalidates the
+     whole declaration and the grid collapses to one column — position, name and
+     points each on their own line. Nothing has scored in a new league, so there
+     are no middle columns, which is exactly when the table looked broken. */
   const wideGrid = {
-    '--tf-table-grid': `46px minmax(0,1fr) repeat(${splitColumns.length + (anyCustom ? 1 : 0)}, 92px) 110px 24px`,
+    '--tf-table-grid': `46px minmax(0,1fr)${middleColumns > 0 ? ` repeat(${middleColumns}, 92px)` : ''} 110px 24px`,
   } as React.CSSProperties;
 
   const pageHref = (page: number) =>
