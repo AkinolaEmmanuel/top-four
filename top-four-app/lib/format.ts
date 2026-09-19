@@ -87,6 +87,30 @@ export function lockLabel(deadlineAt: string, nowMs: number = Date.now()): strin
 }
 
 /**
+ * Reverses HTML-entity escaping.
+ *
+ * The football data provider's own player names sometimes arrive already
+ * escaped — the API returns `"M. O&apos;Riley"` verbatim, not `"M. O'Riley"`
+ * — presumably from wherever the provider last rendered the name as HTML
+ * before storing it. React does not decode entities in text content (that
+ * is what `dangerouslySetInnerHTML` is for, and using it here over a name
+ * would be a real XSS hole for the sake of an apostrophe), so left alone
+ * the literal six characters `&apos;` are what a member sees. This runs
+ * once, at the point each name enters the app, rather than downstream at
+ * every place a name is displayed.
+ */
+export function decodeHtmlEntities(value: string): string {
+  return value
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', '\'')
+    .replaceAll('&#x27;', '\'')
+    .replaceAll('&apos;', '\'');
+}
+
+/**
  * The two letters on someone's avatar.
  *
  * First letters of the first two words — "Kolade Amire" is KA, which is what

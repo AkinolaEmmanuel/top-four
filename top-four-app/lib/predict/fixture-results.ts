@@ -1,6 +1,6 @@
 import { landedAnswerFor, landedScoreFor, type ResolvedAnswer } from './fixture-predict';
 import { MARKET_LABELS } from '@/lib/constants/markets';
-import { personInitials } from '@/lib/format';
+import { personInitials, decodeHtmlEntities } from '@/lib/format';
 import type { Api } from '@/lib/api/types';
 import type { MemberMarketResult, PlayerSummary } from '@/lib/api/predictions-fixture';
 
@@ -144,7 +144,7 @@ export function answerInWords(
     // The answer itself carries only an id. The name comes from the server
     // beside it; the screen used to hold a lookup map that nothing ever filled,
     // so every player answer in the league read "A player".
-    return selectedPlayer?.displayName ?? 'A player';
+    return selectedPlayer ? decodeHtmlEntities(selectedPlayer.displayName) : 'A player';
   }
   return null;
 }

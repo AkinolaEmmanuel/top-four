@@ -4,7 +4,7 @@ import type {
 } from '@/lib/api/predictions-fixture';
 import type { LeagueRuleset, RulesetMarketType } from '@/lib/api/leagues';
 import { STANDARD_MARKET_TYPES } from '@/lib/constants/markets';
-import { pluralise, personInitials } from '@/lib/format';
+import { pluralise, personInitials, decodeHtmlEntities } from '@/lib/format';
 
 /**
  * Everything the fixture screen needs to know, decided once on the server.
@@ -116,12 +116,16 @@ function initialsOf(name: string): string {
 }
 
 export function toPlayerOption(player: SelectablePlayer, teamCode: string): PlayerOption {
+  // The catalogue's own name field: some players carry it pre-escaped
+  // ("M. O&apos;Riley"), which React renders as literal text rather than
+  // decoding, so this is fixed once here rather than at every display site.
+  const name = decodeHtmlEntities(player.displayName);
   // Without the trim a player with no shirt number renders a trailing space.
   return {
     id: player.playerId,
-    name: player.displayName,
+    name,
     meta: `${teamCode} ${player.shirtNumber ?? ''}`.trim(),
-    initials: initialsOf(player.displayName),
+    initials: initialsOf(name),
     photoUrl: player.photoUrl ?? null,
     position: player.position ?? null,
     shirtNumber: player.shirtNumber ?? null,
@@ -187,12 +191,15 @@ export function landedPlayersFor(
 
   const named = summaries
     .filter(player => ids.has(player.playerId))
-    .map(player => ({
-      id: player.playerId,
-      name: player.displayName,
-      initials: initialsOf(player.displayName),
-      photoUrl: player.photoUrl ?? null,
-    }));
+    .map(player => {
+      const name = decodeHtmlEntities(player.displayName);
+      return {
+        id: player.playerId,
+        name,
+        initials: initialsOf(name),
+        photoUrl: player.photoUrl ?? null,
+      };
+    });
   return named.length > 0 ? named : null;
 }
 
