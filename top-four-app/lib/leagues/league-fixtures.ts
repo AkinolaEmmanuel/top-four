@@ -170,8 +170,13 @@ export function stateLabel(state: LeagueFixture['predictionState'], view: Fixtur
     case 'ready': return 'All answered';
     case 'open': return 'Still open';
     case 'syncing': return 'Waiting on the squad list';
-    case 'part': return 'Answered some of it — the rest locked before you finished';
-    case 'missed': return 'Locked before you answered anything';
+    // Short on purpose: this is the only spot either string renders — a
+    // `flex-none`, ~92px-wide column on the mobile row (see Row in
+    // LeagueFixturesScreen.tsx) with nothing capping how tall it can wrap
+    // to. The full sentences this used to be wrapped across five-plus lines
+    // and blew the row's height out.
+    case 'part': return 'Locked — partly answered';
+    case 'missed': return 'Locked — unanswered';
     default: return 'Not answered';
   }
 }
