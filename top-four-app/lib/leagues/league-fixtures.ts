@@ -25,7 +25,10 @@ export function matchesFilter(state: LeagueFixture['predictionState'], filter: F
   if (filter === 'all') return true;
   if (filter === 'unanswered') return state === 'open';
   if (filter === 'open') return state === 'open' || state === 'ready';
-  return state === 'syncing';
+  // Locked before it was finished, not never touched — 'missed'/'part' are
+  // the states that mean that now. 'syncing' is only ever declared on the
+  // type, never assigned anywhere, so this always matched nothing.
+  return state === 'missed' || state === 'part';
 }
 
 export interface FixtureRow {

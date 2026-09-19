@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchMyLeagues,
   fetchLeagueDetails,
@@ -17,9 +17,6 @@ import {
   createInvitation,
   fetchLeagueInvitations,
   revokeInvitation,
-  fetchLeagueFixtures,
-  LeagueFixture,
-  LeagueFixturesPage,
   publishLeague,
   deleteLeague,
   cloneLeague,
@@ -61,24 +58,6 @@ export function useLeagueRuleset(leagueId: string) {
     queryFn: () => fetchLeagueRuleset(leagueId),
     enabled: !!leagueId,
     staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useLeagueFixtures(leagueId: string) {
-  return useQuery<LeagueFixturesPage, Error>({
-    queryKey: ['leagues', leagueId, 'fixtures'],
-    queryFn: () => fetchLeagueFixtures(leagueId),
-    enabled: !!leagueId,
-  });
-}
-
-export function useLeagueFixturesInfinite(leagueId: string) {
-  return useInfiniteQuery<LeagueFixturesPage, Error>({
-    queryKey: ['leagues', leagueId, 'fixtures', 'infinite'],
-    queryFn: ({ pageParam }) => fetchLeagueFixtures(leagueId, pageParam as string | undefined),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
-    enabled: !!leagueId,
   });
 }
 

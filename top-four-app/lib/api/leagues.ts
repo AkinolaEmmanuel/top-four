@@ -1,8 +1,6 @@
 import { apiFetch } from './fetcher';
 import type { Api } from './types';
-import { fetchFixtureResultsBatch, type FixtureAvailability } from './predictions-fixture';
 import { fetchCatalogueCompetitions, fetchCompetitionSeasons } from './catalogue';
-import { landedScoreFor } from '@/lib/predict/fixture-predict';
 
 export type LeagueRulesetMarket = Api<'MarketConfigurationDto'>;
 /** Every market a ruleset can price — the six standard ones plus `lineup`. */
@@ -149,93 +147,6 @@ export interface LeagueFixture {
   deadlineAt?: string | null;
   /** What landed, once it has: the settled markets in the design's words. */
   landed?: string | null;
-}
-
-export interface LeagueFixturesPage {
-  items: LeagueFixture[];
-  nextCursor: string | null;
-}
-
-function mapFixtureStatus(fixtureState: string): LeagueFixture['status'] {
-  if (fixtureState === 'finished' || fixtureState === 'awarded' || fixtureState === 'walkover') return 'finished';
-  if (fixtureState === 'postponed' || fixtureState === 'cancelled' || fixtureState === 'abandoned') return 'voided';
-  if (fixtureState === 'live' || fixtureState === 'suspended' || fixtureState === 'interrupted' || fixtureState === 'under_review') return 'live';
-  return 'upcoming';
-}
-
-export async function fetchLeagueFixtures(leagueId: string, cursor?: string): Promise<LeagueFixturesPage> {
-  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-  const response = await apiFetch<{ data: FixtureAvailability[]; nextCursor: string | null }>(`/leagues/${leagueId}/fixtures/availability${query}`);
-
-  const base: LeagueFixture[] = response.data.map(f => ({
-    id: f.leagueFixtureId,
-    leagueId,
-    homeTeam: f.homeTeam?.displayName || 'Home',
-    homeTeamCode: f.homeTeam?.code || 'HOM',
-    homeTeamLogoUrl: f.homeTeam?.logoUrl || null,
-    awayTeam: f.awayTeam?.displayName || 'Away',
-    awayTeamCode: f.awayTeam?.code || 'AWA',
-    awayTeamLogoUrl: f.awayTeam?.logoUrl || null,
-    kickoffAt: f.kickoff?.at || '',
-    status: mapFixtureStatus(f.fixtureState),
-    markets: [],
-    /*
-     * `complete`/`hasOpenMarkets` alone collapsed two very different fixtures
-     * into the same "not answered" chip once every market locked: one where
-     * the member never touched it, and one where they answered four of five
-     * markets and the deadline passed before they got to the fifth. Both read
-     * `complete: false, hasOpenMarkets: false` — the only difference is
-     * `answered`, so that is what tells them apart now.
-     */
-    predictionState: f.predictionCompleteness?.complete
-      ? 'ready'
-      : f.hasOpenMarkets
-        ? 'open'
-        : (f.predictionCompleteness?.answered ?? 0) > 0
-          ? 'part'
-          : 'missed',
-    // Previously left unset here, so every upcoming row's progress column
-    // read "—" and its deadline countdown never appeared regardless of what
-    // had actually been answered.
-    answered: f.predictionCompleteness?.answered,
-    required: f.predictionCompleteness?.required,
-    deadlineAt: f.nextDeadlineAt,
-  }));
-
-  // Availability carries market *state*, never the resolved outcome, so a
-  // finished fixture's score and points need a second read. That used to be one
-  // request per finished fixture; the batch endpoint answers for all of them at
-  // once. A failure here costs the outcomes, not the fixtures.
-  const finishedIds = base.filter(f => f.status === 'finished').map(f => f.id);
-  const results = await fetchFixtureResultsBatch(leagueId, finishedIds).catch(() => []);
-  const byFixture = new Map(results.map(r => [r.leagueFixtureId, r]));
-
-  const items = base.map(fixture => {
-    const result = byFixture.get(fixture.id);
-    if (!result) return fixture;
-
-    const exactScore = result.markets.find(m => m.marketType === 'exact_score');
-    const resolved = landedScoreFor(exactScore?.resolvedAnswer);
-    const settled = result.markets.filter(m => m.viewerOutcome !== null);
-    const allVoid = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'void');
-    const allCorrect = settled.length > 0 && settled.every(m => m.viewerOutcome?.outcome === 'correct');
-    const anyCorrect = settled.some(m => m.viewerOutcome?.outcome === 'correct');
-
-    return {
-      ...fixture,
-      score: resolved ? { home: resolved[0], away: resolved[1] } : undefined,
-      pointsAwarded: settled.length > 0
-        ? settled.reduce((sum, m) => sum + (m.viewerOutcome?.pointsDelta || 0), 0)
-        : undefined,
-      predictionState: settled.length === 0 ? undefined
-        : allVoid ? 'void' as const
-          : allCorrect ? 'won' as const
-            : anyCorrect ? 'part' as const
-              : 'lost' as const,
-    };
-  });
-
-  return { items, nextCursor: response.nextCursor };
 }
 
 /** A stage and round the server can resolve, for scoping a league to a span. */

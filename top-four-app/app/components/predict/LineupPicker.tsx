@@ -37,14 +37,14 @@ const BUCKET_FILL: Record<Bucket, string> = {
   GK: 'var(--pos-gk)', DEF: 'var(--pos-df)', MID: 'var(--pos-mf)', FWD: 'var(--pos-fw)',
 };
 
-type Counts = Record<OutfieldBucket, number>;
+export type Counts = Record<OutfieldBucket, number>;
 
-function countsForPreset(preset: (typeof PRESETS)[number]): Counts {
+export function countsForPreset(preset: (typeof PRESETS)[number]): Counts {
   const [def, mid, fwd] = preset.split('-').map(Number);
   return { DEF: def, MID: mid, FWD: fwd };
 }
 
-function quotasFor(counts: Counts): Record<Bucket, number> {
+export function quotasFor(counts: Counts): Record<Bucket, number> {
   return { GK: 1, ...counts };
 }
 
@@ -102,7 +102,7 @@ function shortName(name: string): string {
  * seated in MID rather than discarding the whole lineup, since the row was
  * never more than a label to begin with.
  */
-function seatSaved(ids: string[], byId: Map<string, PlayerOption>):
+export function seatSaved(ids: string[], byId: Map<string, PlayerOption>):
 { counts: Counts; picks: Record<SlotKey, string> } {
   const seated: Record<Bucket, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
   const picks: Record<SlotKey, string> = {};
@@ -110,10 +110,20 @@ function seatSaved(ids: string[], byId: Map<string, PlayerOption>):
   for (const id of ids) {
     const player = byId.get(id);
     const bucket = (player && bucketOf(player.position)) || 'MID';
-    // A saved lineup only ever carried one goalkeeper; a second one (data
-    // from before a squad change, say) has nowhere fixed to sit and is
-    // dropped rather than growing the goalkeeper row.
-    if (bucket === 'GK' && seated.GK >= 1) continue;
+    if (bucket === 'GK') {
+      // A saved lineup only ever carried one goalkeeper; a second one (data
+      // from before a squad change, say) has nowhere fixed to sit and is
+      // dropped rather than growing the goalkeeper row.
+      if (seated.GK >= 1) continue;
+    } else if (seated.DEF + seated.MID + seated.FWD >= OUTFIELD_TOTAL) {
+      // The same reason this whole change exists — a catalogue position that
+      // is wrong or missing — can just as easily land the *keeper* in MID
+      // alongside ten outfield picks, for eleven outfield places and zero in
+      // goal. The pitch only ever draws ten outfield slots, so an eleventh
+      // saved id here is dropped rather than handed back a lineup Save
+      // refuses to accept.
+      continue;
+    }
     picks[slotKey(bucket, seated[bucket])] = id;
     seated[bucket]++;
   }
@@ -304,10 +314,13 @@ export function LineupPicker({
   const endDrag = (key: SlotKey) => (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!dragOrigin.current) return;
     if (drag && drag.from === key) {
-      if (drag.overKey && drag.overKey !== key) {
-        swap(key, drag.overKey);
-        suppressNextClick.current = true;
-      }
+      if (drag.overKey && drag.overKey !== key) swap(key, drag.overKey);
+      // Pointer capture means the click this pointerup is about to synthesise
+      // always lands back on the origin slot, wherever the pointer actually
+      // is — including bare pitch with no drop target. Any real drag (past
+      // the threshold) suppresses that click, landed on a slot or not; only
+      // a tap that never became a drag should open the sheet.
+      suppressNextClick.current = true;
     }
     dragOrigin.current = null;
     setDrag(null);
@@ -407,7 +420,7 @@ export function LineupPicker({
       <div className="flex-1 min-h-0 overflow-y-auto tf-scroll">
       <div
         className="relative w-full aspect-[3/4] min-h-full rounded-[12px] overflow-hidden border border-[var(--surface-border)]"
-        style={{ background: 'linear-gradient(to bottom, var(--pitch-bg-top), var(--pitch-bg-bottom))', touchAction: editable ? 'none' : undefined }}
+        style={{ background: 'linear-gradient(to bottom, var(--pitch-bg-top), var(--pitch-bg-bottom))' }}
       >
         {/* Markings, drawn together so they read as a pitch. */}
         <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
@@ -444,6 +457,12 @@ export function LineupPicker({
                       ? `${player.name}, ${BUCKET_LABEL[bucket].toLowerCase()}${editable ? ' — tap to change, or drag onto another place to swap' : ''}`
                       : `Empty ${BUCKET_LABEL[bucket].toLowerCase()} place — add a player`}
                     className={`w-[62px] flex flex-col items-center gap-[4px] ${editable ? 'cursor-pointer' : 'cursor-default'} ${dragging ? 'opacity-40' : ''}`}
+                    /* Only a filled, editable place can start a drag (see
+                       onSlotPointerDown), so this is the only thing that
+                       needs to opt out of touch scrolling — putting it on
+                       the pitch container instead blocked the whole pitch
+                       from scrolling on a phone short enough to need it. */
+                    style={{ touchAction: editable && player ? 'none' : undefined }}
                   >
                     <span className="relative">
                       <span
@@ -624,7 +643,7 @@ export function LineupPicker({
  * *counts*, and only when the ones already on screen cannot be filled from
  * this squad.
  */
-function bestFillCounts(current: Counts, players: PlayerOption[]): Counts {
+export function bestFillCounts(current: Counts, players: PlayerOption[]): Counts {
   const available: Record<Bucket, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
   for (const p of players) {
     const bucket = bucketOf(p.position);
