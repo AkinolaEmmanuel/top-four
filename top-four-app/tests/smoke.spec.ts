@@ -56,11 +56,21 @@ async function expectNoProblemState(page: Page) {
   await expect(page.getByRole('heading', { name: 'Not found, or no longer available' })).toHaveCount(0);
 }
 
+/**
+ * A league that is actually being played, not merely the first one listed.
+ *
+ * Every spec below reads a live league: standings, open markets, a week of
+ * fixtures. An archived or cancelled one draws a notice in place of all of
+ * that, so taking `items[0]` failed for anyone whose first league had
+ * finished — and against a seeded database, where the first league is
+ * archived on purpose, it failed every time.
+ */
 async function firstLeagueId(page: Page): Promise<string> {
   const response = await page.request.get('/api/leagues');
   expect(response.ok()).toBeTruthy();
   const body = await response.json();
-  const id = body.items?.[0]?.id;
+  const leagues = (body.items ?? []) as { id: string; lifecycleState?: string }[];
+  const id = (leagues.find(l => l.lifecycleState === 'published') ?? leagues[0])?.id;
   expect(id, 'the signed-in account needs at least one league').toBeTruthy();
   return id as string;
 }
