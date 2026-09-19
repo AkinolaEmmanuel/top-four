@@ -216,33 +216,46 @@ export function FixturePredictScreen({
   const queued = useRef<Record<string, unknown>>({});
   const versionRef = useRef<Record<string, number>>(versions);
 
+  /*
+   * Awaited through the promise, never through `mutate`'s callbacks.
+   *
+   * Every market shares one mutation, and React Query keeps only the newest:
+   * a second `mutate` detaches the observer from the first, so the first
+   * call's onSuccess/onError/onSettled never run. One score tap writes three
+   * markets at once — the score, and the both-teams and over/under lines it
+   * implies — so the score's own onSettled was cancelled by its siblings,
+   * `inFlight` stayed true for the life of the page, and every later tap
+   * parked itself in `queued` waiting on a callback that would never come.
+   * The stored score stayed at whatever the first tap left. The promise each
+   * call returns belongs to that call and settles whatever starts after it.
+   */
   const writeMarket = (market: FixtureMarket, value: unknown, snapshot: FixtureAnswers) => {
     inFlight.current[market.key] = true;
 
-    submitPrediction.mutate(
-      {
-        marketType: market.marketType,
-        expectedVersion: versionRef.current[market.marketType] ?? 0,
-        answer: toAnswerPayload(market.marketType, value, snapshotId ?? undefined) as StandardAnswerValue,
+    const drain = () => {
+      inFlight.current[market.key] = false;
+      if (!(market.key in queued.current)) return;
+      const next = queued.current[market.key];
+      delete queued.current[market.key];
+      writeMarket(market, next, snapshot);
+    };
+
+    submitPrediction.mutateAsync({
+      marketType: market.marketType,
+      expectedVersion: versionRef.current[market.marketType] ?? 0,
+      answer: toAnswerPayload(market.marketType, value, snapshotId ?? undefined) as StandardAnswerValue,
+    }).then(
+      result => {
+        versionRef.current[market.marketType] = result.version;
+        setMarketVersions(prev => ({ ...prev, [market.marketType]: result.version }));
+        showReceipt(market.key);
+        router.refresh();
+        drain();
       },
-      {
-        onSuccess: result => {
-          versionRef.current[market.marketType] = result.version;
-          setMarketVersions(prev => ({ ...prev, [market.marketType]: result.version }));
-          showReceipt(market.key);
-          router.refresh();
-        },
-        onError: error => {
-          recordFailure(market.key, snapshot, error);
-          if (error instanceof ApiError && error.status === 409) void openConflict(market, value);
-        },
-        onSettled: () => {
-          inFlight.current[market.key] = false;
-          if (!(market.key in queued.current)) return;
-          const next = queued.current[market.key];
-          delete queued.current[market.key];
-          writeMarket(market, next, snapshot);
-        },
+      error => {
+        recordFailure(market.key, snapshot, error);
+        if (error instanceof ApiError && error.status === 409) void openConflict(market, value);
+        drain();
       },
     );
   };
@@ -368,16 +381,16 @@ export function FixturePredictScreen({
     clearFailure(key);
     setEditingLineup(null);
 
-    submitLineup.mutate(
-      { side, expectedVersion: sideVersions[side], playerIds, snapshotId },
-      {
-        onSuccess: result => {
-          setSideVersions(prev => ({ ...prev, [side]: result.version }));
-          showReceipt(key);
-          router.refresh();
-        },
-        onError: error => recordFailure(key, snapshot, error),
+    // Through the promise for the same reason as `writeMarket`: home and away
+    // share one mutation, so saving the second side while the first is still
+    // in flight cancelled the first's callbacks and left its version stale.
+    submitLineup.mutateAsync({ side, expectedVersion: sideVersions[side], playerIds, snapshotId }).then(
+      result => {
+        setSideVersions(prev => ({ ...prev, [side]: result.version }));
+        showReceipt(key);
+        router.refresh();
       },
+      error => recordFailure(key, snapshot, error),
     );
   };
 
