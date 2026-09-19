@@ -1,0 +1,236 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push supersedes the run before it; nobody reads the older one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The database the seed is allowed to touch. `dev:seed` refuses unless this
+  # matches the database it is pointed at, which is the guard that keeps it
+  # away from anything real.
+  CI_DATABASE: topfour_ci
+  # Not a secret, and never leaves the runner: the whole database is thrown
+  # away with the job. The seeded accounts all use it.
+  SEED_PASSWORD: CiSeedPassw0rd!
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out the frontend
+        uses: actions/checkout@v4
+
+      # Private and owned separately, so this needs its own credential. A
+      # read-only deploy key rather than a personal token: it belongs to that
+      # one repository instead of to a person, reaches nothing else, and does
+      # not expire out from under the build.
+      - name: Check out the API
+        uses: actions/checkout@v4
+        with:
+          repository: Kolade-Amire/topfour-api
+          ssh-key: ${{ secrets.TOPFOUR_API_DEPLOY_KEY }}
+          path: api
+
+      # Pointed at the API's package.json: the pnpm version is pinned there in
+      # `packageManager`, and this repository's root holds no package.json at
+      # all — the frontend's lives in top-four-app. Without this the action
+      # exits with "No pnpm version is specified".
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: api/package.json
+          # The API is a large Nest tree, and its install is the slowest thing
+          # in this job. Keyed on its lockfile, so it is thrown away the moment
+          # a dependency there changes.
+          cache: true
+          cache_dependency_path: api/pnpm-lock.yaml
+
+      # 24 for both. The API declares `node >=24 <25`; the frontend declares
+      # no engines and is built and tested on 24 locally.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: top-four-app/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: top-four-app
+        run: npm ci
+
+      # Before anything expensive: a type error should not wait on a database.
+      - name: Types
+        working-directory: top-four-app
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: top-four-app
+        run: npm run lint
+
+      - name: Install API dependencies
+        working-directory: api
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare the database
+        working-directory: api
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres "$CI_DATABASE"
+          export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/$CI_DATABASE"
+          npx node-pg-migrate up
+          # `dev:seed` fails with "The Graphile Worker schema is missing"
+          # without this, and the migrations do not install it.
+          pnpm worker:schema:install
+
+      # Builds 7 accounts, 6 competitions, 18 fixtures and 6 leagues, one
+      # league in each lifecycle state. It refuses to run unless NODE_ENV is
+      # development, every DEV_SEED_* guard is set, and the database name
+      # matches, so it cannot reach anything outside this job.
+      - name: Seed the database
+        working-directory: api
+        env:
+          NODE_ENV: development
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/topfour_ci
+          DEV_SEED_ENABLED: 'true'
+          DEV_SEED_TARGET: shared_frontend_development
+          DEV_SEED_DATABASE_NAME: topfour_ci
+          DEV_SEED_PASSWORD: ${{ env.SEED_PASSWORD }}
+        run: pnpm dev:seed
+
+      - name: Build the API
+        working-directory: api
+        run: pnpm build
+
+      # Development mode is the point: production mode refuses to boot with
+      # any http:// origin in the allowlist, which is what makes a localhost
+      # frontend impossible to test against the deployed API. The keys are
+      # generated here and die with the job.
+      #
+      # The list is the validator's, not .env.example's, which is missing
+      # several of these. To find what a newer API wants, run its built
+      # dist/api/main.js from a directory holding no .env: locally Nest picks
+      # up the repo's own .env and hides everything absent here.
+      - name: Start the API
+        working-directory: api
+        env:
+          NODE_ENV: development
+          PORT: '3000'
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/topfour_ci
+          FRONTEND_ORIGIN: http://localhost:5173
+          ASSET_PUBLIC_ORIGIN: https://assets.topfour.app
+          GOOGLE_OIDC_CLIENT_ID: 000000000000-ci.apps.googleusercontent.com
+          API_PUBLIC_ORIGIN: https://api.topfour.test
+        run: |
+          export FRONTEND_ALLOWED_ORIGINS='["http://localhost:5173"]'
+          export CSRF_DERIVATION_SECRET="$(openssl rand -base64 32)"
+          export IDEMPOTENCY_HMAC_SECRET="$(openssl rand -base64 32)"
+          export RATE_LIMIT_HMAC_SECRET="$(openssl rand -base64 32)"
+          export INVITATION_SHORT_CODE_HMAC_SECRET="$(openssl rand -base64 32)"
+          export UNSUBSCRIBE_TOKEN_SECRET_V1="$(openssl rand -base64 32)"
+          export INVITATION_ENCRYPTION_SECRET_V1="$(openssl rand -base64 32)"
+          export PASSWORD_RESET_TOKEN_SECRET_V1="$(openssl rand -base64 32)"
+          export VERIFICATION_TOKEN_SECRET_V1="$(openssl rand -base64 32)"
+          node dist/api/main.js &
+          api=$!
+          for i in $(seq 1 60); do
+            if ! kill -0 "$api" 2>/dev/null; then
+              echo "the API exited before it was ready"
+              exit 1
+            fi
+            # It serves no health route, so any HTTP answer means it is up.
+            # 000 is curl failing to connect at all.
+            [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/v1)" != "000" ] && exit 0
+            sleep 1
+          done
+          echo "the API never came up on :3000"
+          exit 1
+
+      # Needed at build for the browser's /api rewrite, which is baked into
+      # routes-manifest.json, and again on the server below.
+      - name: Build the frontend
+        working-directory: top-four-app
+        env:
+          API_TARGET_URL: http://localhost:3000/v1
+          # A repository variable, not a secret: anything NEXT_PUBLIC_ is
+          # inlined into the bundle the browser downloads, so there is nothing
+          # here to hide and masking it in the logs only makes them harder to
+          # read.
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+        run: npm run build
+
+      - name: Install Chromium
+        working-directory: top-four-app
+        run: npx playwright install --with-deps chromium
+
+      # Against the production build rather than `next dev`, which compiles
+      # each route on first hit and is not the code that ships. API_TARGET_URL
+      # again because server components read it live (lib/api/server-fetch.ts);
+      # without it here every signed-in screen sits on "Loading" while the
+      # navigation renders perfectly, which is a miserable thing to debug.
+      - name: Start the frontend
+        working-directory: top-four-app
+        env:
+          API_TARGET_URL: http://localhost:3000/v1
+        run: |
+          npx next start -p 5173 &
+          server=$!
+          for i in $(seq 1 60); do
+            # Watch the process, not just the port. A server that dies on
+            # startup leaves the poll to answer from whatever else is
+            # listening, and the suite then tests something nobody built.
+            if ! kill -0 "$server" 2>/dev/null; then
+              echo "the frontend exited before it was ready"
+              exit 1
+            fi
+            curl -sf -o /dev/null http://localhost:5173/sign-in && exit 0
+            sleep 1
+          done
+          echo "the frontend never came up on :5173"
+          exit 1
+
+      # The account comes from the seed, so there are no credentials to store.
+      - name: Smoke tests
+        working-directory: top-four-app
+        env:
+          TF_BASE_URL: http://localhost:5173
+          TF_TEST_EMAIL: frontend-one@demo.topfour.test
+          TF_TEST_PASSWORD: ${{ env.SEED_PASSWORD }}
+        run: npm run test:smoke
+
+      # Traces, screenshots and videos from the retry. The CI reporter is
+      # `github`, which annotates the diff and writes no HTML report, so
+      # test-results is the whole of what there is to keep.
+      - name: Keep the traces when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: top-four-app/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+# Two specs skip by design: each of the two viewport-specific ones skips in
+# the project it does not describe. The Google sign-up spec skips too until
+# NEXT_PUBLIC_GOOGLE_CLIENT_ID is set as a repository variable, which brings
+# the run to 33 of 35.
