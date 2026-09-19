@@ -25,7 +25,10 @@ export function matchesFilter(state: LeagueFixture['predictionState'], filter: F
   if (filter === 'all') return true;
   if (filter === 'unanswered') return state === 'open';
   if (filter === 'open') return state === 'open' || state === 'ready';
-  return state === 'syncing';
+  // Locked before it was finished, not never touched — 'missed'/'part' are
+  // the states that mean that now. 'syncing' is only ever declared on the
+  // type, never assigned anywhere, so this always matched nothing.
+  return state === 'missed' || state === 'part';
 }
 
 export interface FixtureRow {
@@ -143,6 +146,10 @@ export function stateChip(state: LeagueFixture['predictionState'], view: Fixture
     case 'ready': return 'READY';
     case 'open': return 'OPEN';
     case 'syncing': return 'SYNCING';
+    // Locked before it was finished, not never touched — see the comment on
+    // predictionState in lib/api/leagues.ts.
+    case 'part': return 'PARTIAL';
+    case 'missed': return 'LOCKED';
     default: return 'TO ANSWER';
   }
 }
@@ -163,6 +170,8 @@ export function stateLabel(state: LeagueFixture['predictionState'], view: Fixtur
     case 'ready': return 'All answered';
     case 'open': return 'Still open';
     case 'syncing': return 'Waiting on the squad list';
+    case 'part': return 'Answered some of it — the rest locked before you finished';
+    case 'missed': return 'Locked before you answered anything';
     default: return 'Not answered';
   }
 }

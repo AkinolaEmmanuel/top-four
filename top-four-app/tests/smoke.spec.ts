@@ -49,6 +49,26 @@ async function visit(page: Page, url: string) {
   ).toHaveCount(0);
 }
 
+/**
+ * `visit`, plus a short pause before the first click.
+ *
+ * Not standing in for a diagnosed defect — unlike everything else in this
+ * file, this one is precautionary. `domcontentloaded` (see `visit`) fires
+ * before hydration necessarily finishes, and this screen has a live
+ * countdown ("2h 20m until lineups lock") whose server- and client-rendered
+ * text can disagree, which is the kind of thing that could race a click
+ * against hydration on paper. It was the wrong explanation for a real
+ * failure seen while this test was being written, though — that one was the
+ * test opening a fixture whose lineup was already saved from earlier in the
+ * session, so Auto-fill was correctly disabled and the test kept clicking
+ * it anyway. `domcontentloaded` is still right regardless (this screen
+ * carries remote club crests `load` would go hostage to).
+ */
+async function visitAndSettle(page: Page, url: string) {
+  await visit(page, url);
+  await page.waitForTimeout(800);
+}
+
 /** The app's own failure screens, which must never be what a smoke test sees. */
 async function expectNoProblemState(page: Page) {
 
@@ -216,7 +236,7 @@ test('the lineup dialog keeps its save control on screen', async ({ page }) => {
   );
   test.skip(!withLineups, 'no fixture with an open lineup in this league');
 
-  await visit(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
   await expectNoProblemState(page);
   await page.locator('button', { hasText: /Starting XI/i }).first().click();
 
@@ -224,7 +244,7 @@ test('the lineup dialog keeps its save control on screen', async ({ page }) => {
      in a 500px dialog — inside a single scrolling body, so Save sat below the
      fold and the one control the dialog exists to reach was lost. It is pinned
      outside the scroll area now, and this asserts it stays there. */
-  const save = page.getByRole('button', { name: /Save this XI|Choose a shape first|Still \d+ to fill/ }).first();
+  const save = page.getByRole('button', { name: /Save this XI|Finish the formation first|Still \d+ to fill/ }).first();
   await expect(save).toBeVisible();
 
   const box = await save.boundingBox();
@@ -234,6 +254,127 @@ test('the lineup dialog keeps its save control on screen', async ({ page }) => {
     Math.round(box!.y + box!.height),
     'the save control ends below the fold',
   ).toBeLessThanOrEqual(viewport!.height + 1);
+});
+
+test('the formation steppers reach a split none of the four presets can', async ({ page }) => {
+  await requireSession(page);
+  const id = await firstLeagueId(page);
+  const availability = await page.request.get(`/api/leagues/${id}/fixtures/availability?limit=100`);
+  const withLineups = (await availability.json()).data?.find(
+    (f: { markets?: { marketType: string; state: string }[] }) =>
+      f.markets?.some(m => m.marketType === 'lineup' && m.state === 'open'),
+  );
+  test.skip(!withLineups, 'no fixture with an open lineup in this league');
+
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await expectNoProblemState(page);
+  await page.locator('button', { hasText: /Starting XI/i }).first().click();
+
+  // Starts at 4-3-3. Free a midfield place, then add it to defence: 5-2-3 is
+  // not 4-3-3, 4-4-2, 3-5-2 or 5-3-2, so none of the four quick-picks should
+  // read as selected once this lands.
+  await page.getByRole('button', { name: /Fewer midfielders/i }).click();
+  await page.getByRole('button', { name: /More defenders/i }).click();
+
+  for (const preset of ['4-3-3', '4-4-2', '3-5-2', '5-3-2']) {
+    await expect(
+      page.getByRole('button', { name: preset, exact: true }),
+      `${preset} should not read as selected once the shape is 5-2-3`,
+    ).toHaveAttribute('aria-pressed', 'false');
+  }
+});
+
+test('dragging a filled place onto another swaps who is there', async ({ page }) => {
+  await requireSession(page);
+  const id = await firstLeagueId(page);
+  const availability = await page.request.get(`/api/leagues/${id}/fixtures/availability?limit=100`);
+  const withLineups = (await availability.json()).data?.find(
+    (f: { markets?: { marketType: string; state: string }[] }) =>
+      f.markets?.some(m => m.marketType === 'lineup' && m.state === 'open'),
+  );
+  test.skip(!withLineups, 'no fixture with an open lineup in this league');
+
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await expectNoProblemState(page);
+  await page.locator('button', { hasText: /Starting XI/i }).first().click();
+  // Disabled once the XI is already complete — an account with a lineup
+  // already saved for this fixture opens straight on eleven of eleven, and
+  // Auto-fill has nothing left to do.
+  const autoFill = page.getByRole('button', { name: /AUTO-FILL/i });
+  if (await autoFill.isEnabled()) await autoFill.click();
+
+  const fwdSlot = page.locator('button[data-slot^="FWD"]').first();
+  const defSlot = page.locator('button[data-slot^="DEF"]').first();
+  await expect(fwdSlot).toBeVisible();
+  await expect(defSlot).toBeVisible();
+
+  const fwdBefore = await fwdSlot.getAttribute('aria-label');
+  const defBefore = await defSlot.getAttribute('aria-label');
+
+  /* boundingBox() reports layout geometry even for a place scrolled out of
+     the pitch's own overflow-y-auto region — real, but not what is actually
+     on screen, so a coordinate drag onto it can land on whatever the browser
+     paints at that pixel instead (the Save button sitting right below the
+     pitch, in one run of this). Scrolling FWD into view, reading its box and
+     pressing there — then only scrolling to DEF, and reading *its* box —
+     after: scrolling either after both boxes are read would move the other
+     one, since both cannot fit on screen together in a short window. This
+     mirrors a real drag anyway: scroll to where you are, press, scroll to
+     where you are going, release. */
+  await fwdSlot.scrollIntoViewIfNeeded();
+  const fwdBox = (await fwdSlot.boundingBox())!;
+  await page.mouse.move(fwdBox.x + fwdBox.width / 2, fwdBox.y + fwdBox.height / 2);
+  await page.mouse.down();
+
+  await defSlot.scrollIntoViewIfNeeded();
+  const defBox = (await defSlot.boundingBox())!;
+  await page.mouse.move(defBox.x + defBox.width / 2, defBox.y + defBox.height / 2, { steps: 12 });
+  await page.mouse.up();
+
+  await expect(fwdSlot).not.toHaveAttribute('aria-label', fwdBefore!);
+  await expect(defSlot).not.toHaveAttribute('aria-label', defBefore!);
+});
+
+test('dropping a drag on bare pitch is a no-op, not a tap that reopens the squad list', async ({ page }) => {
+  await requireSession(page);
+  const id = await firstLeagueId(page);
+  const availability = await page.request.get(`/api/leagues/${id}/fixtures/availability?limit=100`);
+  const withLineups = (await availability.json()).data?.find(
+    (f: { markets?: { marketType: string; state: string }[] }) =>
+      f.markets?.some(m => m.marketType === 'lineup' && m.state === 'open'),
+  );
+  test.skip(!withLineups, 'no fixture with an open lineup in this league');
+
+  await visitAndSettle(page, `/predict/fixture/${withLineups.leagueFixtureId}?leagueId=${id}`);
+  await expectNoProblemState(page);
+  await page.locator('button', { hasText: /Starting XI/i }).first().click();
+  // Disabled once the XI is already complete — see the equivalent guard
+  // above in the drag-swap test.
+  const autoFill = page.getByRole('button', { name: /AUTO-FILL/i });
+  if (await autoFill.isEnabled()) await autoFill.click();
+
+  const fwdSlot = page.locator('button[data-slot^="FWD"]').first();
+  await expect(fwdSlot).toBeVisible();
+  const fwdBefore = await fwdSlot.getAttribute('aria-label');
+  await fwdSlot.scrollIntoViewIfNeeded();
+  const fwdBox = (await fwdSlot.boundingBox())!;
+  // The dialog's own title bar — always on screen (it is above the pitch's
+  // scroll region, not inside it) and definitely not a `[data-slot]` place,
+  // which a coordinate computed from the pitch's own full, possibly
+  // off-screen layout geometry is not guaranteed to be.
+  const title = page.getByRole('heading', { name: /Starting XI$/ });
+  const titleBox = (await title.boundingBox())!;
+
+  await page.mouse.move(fwdBox.x + fwdBox.width / 2, fwdBox.y + fwdBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2, { steps: 12 });
+  await page.mouse.up();
+
+  // Nothing moved...
+  await expect(fwdSlot).toHaveAttribute('aria-label', fwdBefore!);
+  // ...and pointer capture routing the click back to the origin place did
+  // not fall through to opening the squad list for it.
+  await expect(page.getByText('Whole squad')).toHaveCount(0);
 });
 
 test('a league you cannot see and one that does not exist look the same', async ({ page }) => {
