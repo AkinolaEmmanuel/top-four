@@ -244,7 +244,21 @@ async function Fixtures({
     kickoffAt: f.kickoff?.at || '',
     status: statusOf(f.fixtureState),
     markets: [],
-    predictionState: f.predictionCompleteness?.complete ? 'ready' : f.hasOpenMarkets ? 'open' : undefined,
+    /*
+     * `complete`/`hasOpenMarkets` alone collapsed two very different fixtures
+     * into the same "not answered" chip once every market locked: one where
+     * the member never touched it, and one where they answered four of five
+     * markets before the deadline caught the fifth. Both read
+     * `complete: false, hasOpenMarkets: false` — the only difference is
+     * `answered`, so that is what tells them apart now.
+     */
+    predictionState: f.predictionCompleteness?.complete
+      ? 'ready'
+      : f.hasOpenMarkets
+        ? 'open'
+        : (f.predictionCompleteness?.answered ?? 0) > 0
+          ? 'part'
+          : 'missed',
     // The two columns the design gives this table and the phone folds into one
     // line of note text: what is answered, and when the first market closes.
     answered: f.predictionCompleteness?.answered,
@@ -289,9 +303,20 @@ async function Fixtures({
     return {
       ...f,
       ...outcome,
+      // This used to run unconditionally, so every fixture that was not
+      // finished had its perfectly good `f.predictionState` from `base` —
+      // ready/open/part/missed, computed above from the fixture's own
+      // availability — overwritten with `outcome.predictionState`, which is
+      // `undefined` for anything with no results batch entry. That is every
+      // upcoming fixture: `outcomeOf` only returns fields for a played one.
+      // The result was every upcoming row reading "not answered" regardless
+      // of what had actually been answered, and every upcoming/open/locked
+      // filter count reading zero since none of them matched a real state.
       predictionState: voided
         ? 'void' as const
-        : outcome.predictionState ?? (missed ? 'missed' as const : undefined),
+        : f.status === 'finished'
+          ? (outcome.predictionState ?? (missed ? 'missed' as const : undefined))
+          : f.predictionState,
     };
   });
   const split = splitFixtures(fixtures);
