@@ -162,7 +162,15 @@ export function LineupPicker({
   );
   const [picks, setPicks] = useState<Record<SlotKey, string>>(seated.picks);
   const [fillingSlot, setFillingSlot] = useState<SlotKey | null>(null);
+  // `drag` (state) drives the ghost/highlight render and can lag a frame
+  // behind — fine for a picture. `dragRef` is the same shape but a ref, read
+  // by endDrag for the actual swap: pointerup can fire before React commits
+  // the last pointermove's setDrag, and endDrag is a closure created at the
+  // last render, so reading `drag` there risked swapping against a stale
+  // overKey (typically null, from before the pointer ever reached the target
+  // — the swap silently not happening). A ref has no commit to wait for.
   const [drag, setDrag] = useState<{ from: SlotKey; x: number; y: number; overKey: SlotKey | null } | null>(null);
+  const dragRef = useRef<{ from: SlotKey; overKey: SlotKey | null } | null>(null);
   const dragOrigin = useRef<{ x: number; y: number } | null>(null);
   const suppressNextClick = useRef(false);
 
@@ -304,17 +312,19 @@ export function LineupPicker({
     if (!dragOrigin.current) return;
     const dx = e.clientX - dragOrigin.current.x;
     const dy = e.clientY - dragOrigin.current.y;
-    if (!drag && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    if (!dragRef.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
     e.preventDefault();
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const overKey = el?.closest<HTMLElement>('[data-slot]')?.dataset.slot ?? null;
+    dragRef.current = { from: key, overKey };
     setDrag({ from: key, x: e.clientX, y: e.clientY, overKey });
   };
 
   const endDrag = (key: SlotKey) => (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!dragOrigin.current) return;
-    if (drag && drag.from === key) {
-      if (drag.overKey && drag.overKey !== key) swap(key, drag.overKey);
+    const finished = dragRef.current;
+    if (finished && finished.from === key) {
+      if (finished.overKey && finished.overKey !== key) swap(key, finished.overKey);
       // Pointer capture means the click this pointerup is about to synthesise
       // always lands back on the origin slot, wherever the pointer actually
       // is — including bare pitch with no drop target. Any real drag (past
@@ -323,6 +333,7 @@ export function LineupPicker({
       suppressNextClick.current = true;
     }
     dragOrigin.current = null;
+    dragRef.current = null;
     setDrag(null);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
   };
