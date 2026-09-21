@@ -18,6 +18,8 @@ export interface ResultMarket {
   marketType: string;
   /** Home and away lineups share a market type, so they need their own key. */
   key: string;
+  /** Which side's lineup this is. Null for every market that is not one. */
+  side: 'home' | 'away' | null;
   label: string;
   /** What landed, in the same words the members' answers are rendered in. */
   landedLabel: string | null;
@@ -52,6 +54,7 @@ export function toResultMarkets(
       return {
         marketType: result.marketType,
         key: result.side ? `${result.side}_${result.marketType}` : result.marketType,
+        side: result.side,
         // Both lineup markets are `lineup`; only the side tells them apart, and
         // two chips reading "Starting lineups" name neither team.
         label: result.side
@@ -156,6 +159,43 @@ export function toMemberAnswers(
   context: { homeName: string; awayName: string; totalGoalsLine: number },
 ): MemberAnswer[] {
   return members.map(member => {
+    /*
+     * A lineup is not in `predictions` at all — the API carries it
+     * separately, in `lineups.home`/`lineups.away`, because a roster of
+     * eleven ids is not the same shape as every other market's one-field
+     * answer. `predictions.find(p => p.marketType === 'lineup')` can never
+     * match: `RivalStandardPredictionDto.marketType` is not even typed to
+     * allow the value 'lineup'. Every member's lineup read as "not
+     * answered" here regardless of what they actually named, which is
+     * exactly backwards from what this screen exists to show.
+     */
+    if (market.marketType === 'lineup') {
+      const named = market.side === 'home' ? member.lineups.home
+        : market.side === 'away' ? member.lineups.away
+          : null;
+      if (!named) {
+        return {
+          membershipId: member.membershipId, position: member.position,
+          name: member.displayName, initials: personInitials(member.displayName),
+          isViewer: member.isViewer, answer: null, landed: false,
+        };
+      }
+      const startedCount = market.landedPlayerIds.length > 0
+        ? named.players.filter(p => market.landedPlayerIds.includes(p.playerId)).length
+        : null;
+      return {
+        membershipId: member.membershipId,
+        position: member.position,
+        name: member.displayName,
+        initials: personInitials(member.displayName),
+        isViewer: member.isViewer,
+        answer: startedCount !== null
+          ? `${startedCount} of ${named.players.length} started`
+          : `${named.players.length} named`,
+        landed: startedCount !== null && startedCount === named.players.length,
+      };
+    }
+
     const slot = member.predictions.find(p => p.marketType === market.marketType);
     const answer = answerInWords(
       slot?.answer?.value ?? null,
