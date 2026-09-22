@@ -85,7 +85,12 @@ function Row({ row, view, nowMs }: { row: FixtureRow; view: FixtureView; nowMs: 
       <div className={`flex-none text-right min-w-[92px] md:min-w-0 ${view === 'results'
         ? `font-heading font-bold text-[14px] tf-num ${row.points && row.points !== '0' ? 'md:text-[var(--success-text)]' : 'md:text-[var(--text-muted)]'}`
         : `font-heading font-semibold text-[12px] tf-num ${urgent ? 'md:text-[var(--accent-text-strong)]' : 'md:text-[var(--text-secondary)]'}`}`}>
-        <span className="md:hidden block text-[10.5px] font-normal">
+        {/* line-clamp-2 as a backstop, not the fix — the real fix is the
+            state labels themselves being short. This is a flex-none, ~92px
+            column with nothing else capping how tall wrapped text can grow
+            a row, so whatever a future label says stays contained to two
+            lines rather than reflowing the whole list. */}
+        <span className="md:hidden block text-[10.5px] font-normal leading-[1.3] line-clamp-2">
           <span className={stateTone(row.state, view)}>{stateLabel(row.state, view)}</span>
         </span>
         <span className="md:hidden block mt-[3px]">{view === 'results' ? (row.points ?? '') : ''}</span>
