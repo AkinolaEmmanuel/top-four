@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ApiError } from '@/lib/api/fetcher';
-import { failureMessage } from '@/lib/api/failure';
+import { failureMessage, isEmailVerificationRequired } from '@/lib/api/failure';
+import { useResendVerificationEmail } from '@/hooks/api/useAccount';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../auth/auth-shell';
@@ -13,33 +14,46 @@ import type { InvitationIntentPreview, InvitationConsumeOutcome } from '@/lib/ap
 type Credential = { joinCode: string } | { linkToken: string };
 
 export function InviteLanding({ credential, returnPath }: { credential: Credential; returnPath: string }) {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, refetchUser } = useAuth();
+  const resend = useResendVerificationEmail();
   const establishIntent = useEstablishInvitationIntent();
   const consumeIntent = useConsumeInvitationIntent();
 
   const [preview, setPreview] = useState<InvitationIntentPreview | null>(null);
   const [outcome, setOutcome] = useState<InvitationConsumeOutcome | null>(null);
-  const [status, setStatus] = useState<'loading' | 'invalid' | 'ready' | 'joining' | 'joined' | 'pending' | 'limit' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'invalid' | 'ready' | 'joining' | 'joined' | 'pending' | 'limit' | 'verify' | 'error'>('loading');
   const [failed, setFailed] = useState<string | null>(null);
 
   // Step 1: turn the code/token into an intent. Works whether or not the
   // visitor is signed in -- the capability lives only in an httpOnly cookie.
-  useEffect(() => {
-    let cancelled = false;
+  const establish = (isCancelled: () => boolean = () => false) => {
     establishIntent.mutate(credential, {
       onSuccess: (data) => {
-        if (cancelled) return;
+        if (isCancelled()) return;
         setPreview(data);
         setStatus('ready');
       },
       onError: () => {
-        if (cancelled) return;
+        if (isCancelled()) return;
         setStatus('invalid');
       },
     });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    establish(() => cancelled);
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(credential)]);
+
+  // After verifying, possibly in another browser: reload the account and run
+  // both steps again, since the verify page may already have used the intent.
+  const retryAfterVerifying = async () => {
+    setStatus('loading');
+    await refetchUser();
+    establish();
+  };
 
   // Step 2: once the intent is established AND the visitor is signed in
   // (either already was, or just came back from sign-up/sign-in), consume it.
@@ -52,6 +66,7 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
         setStatus(result.outcome === 'pending' ? 'pending' : 'joined');
       },
       onError: (err: unknown) => {
+        if (isEmailVerificationRequired(err)) { setStatus('verify'); return; }
         const limitReached = err instanceof ApiError && err.code === 'USER_LEAGUE_LIMIT_REACHED';
         setFailed(limitReached ? null : failureMessage(err, 'Something went wrong on our end.'));
         setStatus(limitReached ? 'limit' : 'error');
@@ -95,6 +110,38 @@ export function InviteLanding({ credential, returnPath }: { credential: Credenti
         <Link href="/leagues" className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors">
           Choose one to leave
         </Link>
+      </AuthShell>
+    );
+  }
+
+  if (status === 'verify') {
+    return (
+      <AuthShell
+        eyebrow="Invitation"
+        title="Verify your email to join"
+        subtitle={`${preview?.league.name || 'This league'} is waiting for you.`}
+      >
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+          We sent a link to {user?.email ?? 'your inbox'}. Open it and the join finishes on its own. If it
+          opened somewhere else, come back here and tap the button below.
+        </p>
+        <button
+          type="button"
+          onClick={() => { void retryAfterVerifying(); }}
+          className="mt-6 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full bg-[var(--brand-fill)] text-white hover:bg-[var(--color-brand-hover)] transition-colors"
+        >
+          I&apos;ve verified
+        </button>
+        {user && (
+          <button
+            type="button"
+            onClick={() => resend.mutate(user.email)}
+            disabled={resend.isPending || resend.isSuccess}
+            className="mt-3 inline-flex items-center justify-center rounded-md text-sm font-bold tracking-wide h-11 px-8 w-full border border-[var(--border-base)] text-[var(--text-primary)] hover:bg-[var(--surface-canvas)] transition-colors disabled:opacity-60"
+          >
+            {resend.isSuccess ? 'New link sent' : resend.isPending ? 'Sending…' : 'Resend the email'}
+          </button>
+        )}
       </AuthShell>
     );
   }

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seatSaved, bucketOf } from '@/app/components/predict/LineupPicker';
+import { seatSaved, seatCarried, carriedNote, bucketOf } from '@/app/components/predict/LineupPicker';
 import type { PlayerOption } from '@/lib/predict/fixture-predict';
 
 /**
@@ -65,4 +65,80 @@ test('a saved XI with a real, recognised keeper seats all eleven normally', () =
 
   expect(counts).toEqual({ DEF: 4, MID: 3, FWD: 3 });
   expect(Object.keys(picks)).toHaveLength(11);
+});
+
+/** A 4-3-3 where every player's catalogue position resolves. */
+function squad433(): Map<string, PlayerOption> {
+  return new Map<string, PlayerOption>([
+    ['gk', player('gk', 'Goalkeeper')],
+    ['d1', player('d1', 'Defender')], ['d2', player('d2', 'Defender')],
+    ['d3', player('d3', 'Defender')], ['d4', player('d4', 'Defender')],
+    ['m1', player('m1', 'Midfielder')], ['m2', player('m2', 'Midfielder')], ['m3', player('m3', 'Midfielder')],
+    ['f1', player('f1', 'Forward')], ['f2', player('f2', 'Forward')], ['f3', player('f3', 'Forward')],
+  ]);
+}
+
+test('a carried XI missing two forwards keeps its 4-3-3 with two empty forward places', () => {
+  const byId = squad433();
+  byId.delete('f2');
+  byId.delete('f3');
+  const { counts, picks } = seatCarried({
+    playerIds: ['gk', 'd1', 'd2', 'd3', 'd4', 'm1', 'm2', 'm3', 'f1'],
+    missing: [
+      { id: 'f2', name: 'Bukayo Saka', position: 'Attacker' },
+      { id: 'f3', name: 'Gabriel Martinelli', position: 'Attacker' },
+    ],
+    sourceLabel: 'v Chelsea, 4 Oct',
+  }, byId);
+
+  // Ten outfield places, so the picker asks for two players, not a shape.
+  expect(counts).toEqual({ DEF: 4, MID: 3, FWD: 3 });
+  expect(Object.keys(picks)).toHaveLength(9);
+  expect(picks.FWD0).toBe('f1');
+  expect(picks.FWD1).toBeUndefined();
+});
+
+test('a carried XI missing its keeper leaves the goal empty and the outfield whole', () => {
+  const byId = squad433();
+  byId.delete('gk');
+  const { counts, picks } = seatCarried({
+    playerIds: ['d1', 'd2', 'd3', 'd4', 'm1', 'm2', 'm3', 'f1', 'f2', 'f3'],
+    missing: [{ id: 'gk', name: 'David Raya', position: 'Goalkeeper' }],
+    sourceLabel: 'v Chelsea, 4 Oct',
+  }, byId);
+
+  expect(counts).toEqual({ DEF: 4, MID: 3, FWD: 3 });
+  expect(picks.GK0).toBeUndefined();
+  expect(Object.keys(picks)).toHaveLength(10);
+});
+
+test('a missing player with no usable position still gets a place back', () => {
+  const byId = squad433();
+  byId.delete('m3');
+  const { counts } = seatCarried({
+    playerIds: ['gk', 'd1', 'd2', 'd3', 'd4', 'm1', 'm2', 'f1', 'f2', 'f3'],
+    missing: [{ id: 'm3', name: 'Declan Rice', position: '' }],
+    sourceLabel: 'v Chelsea, 4 Oct',
+  }, byId);
+
+  expect(counts.DEF + counts.MID + counts.FWD).toBe(10);
+});
+
+test('the carried note names who has gone, briefly', () => {
+  const base = { playerIds: [], sourceLabel: 'v Chelsea, 4 Oct' };
+  expect(carriedNote({ ...base, missing: [] }))
+    .toBe('From your last XI, v Chelsea, 4 Oct. Check it and save.');
+  expect(carriedNote({ ...base, missing: [{ id: 'a', name: 'Bukayo Saka', position: 'Attacker' }] }))
+    .toBe('From your last XI, v Chelsea, 4 Oct. B. Saka isn’t in this squad, so that place is empty.');
+  expect(carriedNote({
+    ...base,
+    missing: [
+      { id: 'a', name: 'Bukayo Saka', position: 'Attacker' },
+      { id: 'b', name: 'Declan Rice', position: 'Midfielder' },
+    ],
+  })).toBe('From your last XI, v Chelsea, 4 Oct. B. Saka and D. Rice aren’t in this squad, so their places are empty.');
+  expect(carriedNote({
+    ...base,
+    missing: ['A One', 'B Two', 'C Three', 'D Four'].map((name, i) => ({ id: String(i), name, position: 'Defender' })),
+  })).toBe('From your last XI, v Chelsea, 4 Oct. A. One, B. Two and 2 others aren’t in this squad, so their places are empty.');
 });

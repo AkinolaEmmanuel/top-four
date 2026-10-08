@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { ApiError } from '@/lib/api/fetcher';
+import { isEmailVerificationRequired } from '@/lib/api/failure';
+import { useAuth } from '@/context/auth-context';
+import { useResendVerificationEmail } from '@/hooks/api/useAccount';
 import { useRouter } from 'next/navigation';
 import { useEstablishInvitationIntent, useConsumeInvitationIntent, useCancelJoinRequest, useMyLeagues, useLeaveAnyLeague } from '@/hooks/api/useLeagues';
 import { JoinLeagueScreen, JOIN_CODE_LENGTH, type JoinOutcome } from '@/app/components/leagues/JoinLeagueScreen';
@@ -13,6 +16,9 @@ export default function JoinLeaguePage() {
   const cancelJoinRequestMutation = useCancelJoinRequest();
   const { data: myLeaguesData } = useMyLeagues();
   const leaveAnyLeague = useLeaveAnyLeague();
+  const { user, refetchUser } = useAuth();
+  const resend = useResendVerificationEmail();
+  const [checkingVerified, setCheckingVerified] = useState(false);
 
   const [outcome, setOutcome] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState('');
@@ -35,9 +41,12 @@ export default function JoinLeaguePage() {
   const OUTCOMES: Record<string, JoinOutcome> = {
     verify: {
       tone: "var(--color-brand)", icon: "\u2709",
-      title: "Check your inbox",
-      body: "We sent a verification link. Open it and the join will finish.",
-      secondary: "Resend the email", secondaryOff: true,
+      title: "Verify your email to join",
+      body: resend.isSuccess
+        ? `A new link is on its way to ${user?.email ?? 'your inbox'}. Open it, then come back and tap I\u2019ve verified.`
+        : `We sent a link to ${user?.email ?? 'your inbox'}. Open it, then come back and tap I\u2019ve verified.`,
+      primary: checkingVerified ? "Checking\u2026" : "I\u2019ve verified",
+      secondary: "Resend the email", secondaryOff: resend.isPending || resend.isSuccess,
     },
     pending: {
       tone: "var(--color-warning)", icon: "\u25f7",
@@ -132,6 +141,9 @@ export default function JoinLeaguePage() {
             }
           },
           onError: (err: unknown) => {
+            // Refused before the invitation is touched, so the same code works
+            // again once the email is verified.
+            if (isEmailVerificationRequired(err)) { setOutcome("verify"); return; }
             const limitReached = err instanceof ApiError && err.code === 'USER_LEAGUE_LIMIT_REACHED';
             setOutcome(limitReached ? "limit" : "dead");
           }
@@ -147,6 +159,14 @@ export default function JoinLeaguePage() {
 
   const handleNavigateHome = () => {
     router.push('/home');
+  };
+
+  const handleVerified = async () => {
+    if (checkingVerified) return;
+    setCheckingVerified(true);
+    await refetchUser();
+    setCheckingVerified(false);
+    handleJoinCode();
   };
 
   const handleWithdrawRequest = () => {
@@ -173,9 +193,12 @@ export default function JoinLeaguePage() {
       onPrimary={() => {
         if (outcome === 'welcome') { router.push(joinedLeague?.id ? `/leagues/${joinedLeague.id}` : '/home'); return; }
         if (outcome === 'closed' || outcome === 'dead') { setOutcome(null); setInviteCode(''); return; }
+        if (outcome === 'verify') { void handleVerified(); return; }
         handleNavigateHome();
       }}
-      onSecondary={outcome === 'pending' ? handleWithdrawRequest : undefined}
+      onSecondary={outcome === 'pending' ? handleWithdrawRequest
+        : outcome === 'verify' && user ? () => resend.mutate(user.email)
+          : undefined}
       onLeaveLeague={handleLeaveLeague}
       myLeagues={MY_LEAGUES}
     />

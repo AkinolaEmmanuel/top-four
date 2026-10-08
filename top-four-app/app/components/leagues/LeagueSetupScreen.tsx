@@ -6,6 +6,8 @@ import { Breadcrumb } from '../Breadcrumb';
 import { useCreateLeague, usePublishLeague } from '@/hooks/api/useLeagues';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api/fetcher';
+import { isEmailVerificationRequired } from '@/lib/api/failure';
+import { VerifyEmailBanner } from '../VerifyEmailBanner';
 import type { Api } from '@/lib/api/types';
 import {
   buildCreatePayload, summariseSpan, LOCK_PRESETS, MARKET_PRESETS,
@@ -358,6 +360,7 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
             phone's answer to a small screen; on a screen whose output is frozen
             forever at publication, hiding what the earlier steps decided is the
             wrong trade. */}
+        <VerifyEmailBanner className="flex-none mx-[var(--gutter)] mt-[16px] md:mx-auto md:mt-[20px] md:w-[calc(100%-48px)] md:max-w-[1032px]" />
         <main className="tf-scroll flex-1 min-h-0 overflow-auto bg-[var(--surface-canvas)] w-full max-w-[1080px] mx-auto md:grid md:grid-cols-[220px_minmax(0,1fr)_280px] md:gap-[28px] md:px-[24px] md:pt-[20px] md:items-start">
 
           <nav aria-label="Setup steps" className="hidden md:block md:sticky md:top-[20px]">
@@ -917,9 +920,11 @@ export function LeagueSetupScreen({ competitions, placesUsed, placesLimit }: {
                         }
                       });
                     },
-                    onError: () => {
+                    onError: (error) => {
                       publishingRef.current = false;
-                      setPublishError('Something went wrong creating the league. Try again.');
+                      setPublishError(isEmailVerificationRequired(error)
+                        ? 'Verify your email first, then publish. Everything you set up here is kept.'
+                        : 'Something went wrong creating the league. Try again.');
                     }
                   });
                 }} className={`tf-tap flex-1 h-[48px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[12.5px] shadow-[var(--elev-glow)] ${(createLeague.isPending || publishLeague.isPending) ? 'opacity-50 cursor-not-allowed' : ''}`}>

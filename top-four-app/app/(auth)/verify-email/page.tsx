@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { AuthShell } from '../../components/auth/auth-shell';
 import { useVerifyEmail, useResendVerificationEmail } from '@/hooks/api/useAccount';
+import { useConsumeInvitationIntent, useCurrentInvitationIntent } from '@/hooks/api/useLeagues';
+import type { InvitationConsumeOutcome } from '@/lib/api/leagues';
 import { useAuth } from '@/context/auth-context';
 
 function VerifyEmailForm() {
@@ -16,6 +18,19 @@ function VerifyEmailForm() {
   const { user, refetchUser } = useAuth();
   const [status, setStatus] = useState<'pending' | 'ok' | 'error'>(token ? 'pending' : 'error');
   const attempted = useRef(false);
+
+  // An invitation this browser was holding when the join was refused for an
+  // unverified email. The intent cookie lasts thirty minutes; without one (or
+  // in another browser) the query simply fails and nothing else changes.
+  const intent = useCurrentInvitationIntent(status === 'ok');
+  const consume = useConsumeInvitationIntent();
+  const [joined, setJoined] = useState<InvitationConsumeOutcome | null>(null);
+  const consumed = useRef(false);
+  useEffect(() => {
+    if (!intent.data || consumed.current) return;
+    consumed.current = true;
+    consume.mutate(undefined, { onSuccess: setJoined });
+  }, [intent.data, consume]);
 
   useEffect(() => {
     if (!token || attempted.current) return;
@@ -37,6 +52,33 @@ function VerifyEmailForm() {
         <div className="flex justify-center py-4">
           <Loader2 className="h-6 w-6 animate-spin text-[var(--color-brand)]" />
         </div>
+      </AuthShell>
+    );
+  }
+
+  if (status === 'ok' && (intent.isLoading || consume.isPending)) {
+    return (
+      <AuthShell eyebrow="Email verified" title="Finishing your join" subtitle="One moment.">
+        <div className="flex justify-center py-4">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--color-brand)]" />
+        </div>
+      </AuthShell>
+    );
+  }
+
+  if (status === 'ok' && joined) {
+    const leagueName = intent.data?.league.name || 'The league';
+    return joined.outcome === 'pending' ? (
+      <AuthShell eyebrow="Email verified" title="Your request is with the owner" subtitle={`${leagueName} approves every join by hand.`}>
+        <Link href="/home" className={`${buttonClasses} block text-center`}>
+          Continue to TopFour
+        </Link>
+      </AuthShell>
+    ) : (
+      <AuthShell eyebrow="Email verified" title={`${leagueName} is yours to play`} subtitle="Fixtures and questions are ready for predictions.">
+        <Link href={`/leagues/${joined.leagueId}`} className={`${buttonClasses} block text-center`}>
+          Open the league
+        </Link>
       </AuthShell>
     );
   }

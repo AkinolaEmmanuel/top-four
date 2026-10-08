@@ -12,6 +12,7 @@ import { useTeamPalettes } from '@/hooks/useTeamPalettes';
 import { ThemeMenu } from '../ThemeMenu';
 import { TopFourLogo } from '../brand/top-four-logo';
 import { TopFourMark } from '../brand/top-four-mark';
+import { VerifyEmailBanner } from '../VerifyEmailBanner';
 import type { HomeLeagueEntry, HomeQueueEntry, QueueLeague, TeamIdentity } from '@/lib/home/home-data';
 
 /**
@@ -285,6 +286,8 @@ export function HomeScreen({
             <p className="text-[13.5px] md:text-[14px] leading-[1.6] text-[var(--text-secondary)] mt-[10px]">
               You need to join or create a league to start predicting. You can be in up to twenty at once — finished leagues give their place back.
             </p>
+            {/* A brand-new account is the one most likely to be unverified. */}
+            <VerifyEmailBanner className="w-full text-left mt-[20px]" />
             <div className="flex flex-col md:flex-row w-full md:w-auto gap-[10px] mt-[24px]">
               <Link href="/leagues/setup" className="h-[48px] md:px-[26px] rounded-[12px] bg-[var(--brand-fill)] text-[var(--color-on-brand)] grid place-items-center font-heading font-bold text-[13.5px]">Create a league</Link>
               <Link href="/leagues/join" className="h-[48px] md:px-[26px] rounded-[12px] border border-[var(--surface-border-strong)] grid place-items-center font-heading font-bold text-[13.5px]">Join with a code</Link>
@@ -392,6 +395,8 @@ export function HomeScreen({
             )}
           </div>
         </section>
+
+        <VerifyEmailBanner className="mx-[var(--gutter)] mt-[20px] md:mx-auto md:mt-[26px] md:max-w-[1032px]" />
 
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:grid md:grid-cols-[minmax(0,1fr)_330px] md:gap-[26px] md:pt-[26px] md:pb-[30px]">
 

@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { LeagueContextBar } from '../leagues/LeagueContextBar';
 import { LineupPicker } from './LineupPicker';
+import { VerifyEmailBanner } from '../VerifyEmailBanner';
+import { useAuth } from '@/context/auth-context';
 import { PlayerPickerPanel } from './PlayerPickerPanel';
 import { MARKET_TYPE, type PickerMarket, type PickerSquad } from '@/lib/predict/player-picker';
 import { useSubmitPrediction, useSubmitLineupPrediction, useCopyPredictions } from '@/hooks/api/useFixturePrediction';
@@ -24,6 +26,7 @@ import {
   progressOf,
   toAnswerPayload,
   toCopySummaries,
+  type CarriedLineup,
   type CopyLeagueSummary,
   type FixtureAnswers,
   type FixtureMarket,
@@ -95,7 +98,7 @@ export function FixturePredictScreen({
   homeName, awayName, homeCode, awayCode, homeLogo, awayLogo,
   kickoffAt, nextDeadlineAt, lineupDeadlineAt, serverTime,
   phase, markets, initialAnswers, versions, lineupVersions, snapshotId, squads,
-  pointsAtStake, pointsEarned, otherLeagueCount, totalGoalsLine,
+  pointsAtStake, pointsEarned, otherLeagueCount, totalGoalsLine, carriedLineups,
 }: {
   leagueId: string;
   fixtureId: string;
@@ -125,6 +128,8 @@ export function FixturePredictScreen({
   otherLeagueCount: number;
   /** The league's own frozen over/under line, e.g. 2.5. */
   totalGoalsLine: number;
+  /** The member's last XI per side, offered as a draft when nothing is saved. */
+  carriedLineups: { home: CarriedLineup | null; away: CarriedLineup | null };
 }) {
   const router = useRouter();
   const [answers, setAnswers] = useState<FixtureAnswers>(initialAnswers);
@@ -155,6 +160,11 @@ export function FixturePredictScreen({
   const settled = phase === 'settled';
   const locked = phase === 'locked';
   const editable = !settled && !locked;
+  // Unknown while the session loads, so nothing flickers shut; the API is the
+  // real gate either way.
+  const { user } = useAuth();
+  const verified = user?.emailVerified !== false;
+  const canWrite = editable && verified;
 
   const countdown = (at: string | null) => {
     if (!at) return '—';
@@ -319,7 +329,7 @@ export function FixturePredictScreen({
   };
 
   const answerMarket = (market: FixtureMarket, value: unknown) => {
-    if (!editable || !market.open) return;
+    if (!canWrite || !market.open) return;
     const snapshot = answersRef.current;
     answersRef.current = { ...answersRef.current, [market.key]: value };
     setAnswers(answersRef.current);
@@ -522,6 +532,7 @@ export function FixturePredictScreen({
         </section>
 
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px]">
+          {editable && <VerifyEmailBanner className="mx-[var(--gutter)] mt-[16px] md:mx-0 md:mt-[22px]" />}
 
           <section className="mt-[20px] md:mt-[26px]">
             <div className="flex items-baseline justify-between px-[var(--gutter)] pb-[12px] md:px-0">
@@ -543,7 +554,7 @@ export function FixturePredictScreen({
               const mine = answers[market.key];
               const unanswered = mine === null || mine === undefined;
               const marketLocked = !settled && !market.open;
-              const canAnswer = editable && market.open;
+              const canAnswer = canWrite && market.open;
 
               return (
                 <div
@@ -768,18 +779,26 @@ export function FixturePredictScreen({
                   const count = Array.isArray(picked) ? picked.length : 0;
                   const isSet = count > 0;
                   const code = market.side === 'home' ? homeCode : awayCode;
+                  const blocked = !settled && market.open && !verified && !isSet;
+                  // Saved here or not at all: a draft is only a draft until Save.
+                  const draftReady = canWrite && market.open && !isSet
+                    && !!market.side && (carriedLineups[market.side]?.playerIds.length ?? 0) > 0;
 
                   const sub = settled ? (isSet ? 'Lineup settled' : 'Not set — no points from this one')
                     : !market.open ? (isSet ? '11 named · locked' : 'Not set — this one closed')
-                      : isSet ? `${count} named · you can still change it` : 'Nothing named yet';
+                      : blocked ? 'Verify your email to pick this'
+                        : isSet ? `${count} named · you can still change it`
+                          : draftReady ? 'Last XI ready · not saved yet' : 'Nothing named yet';
 
                   const right = settled ? (market.pointsAwarded !== null ? `+${market.pointsAwarded}` : '0')
                     : !market.open ? (isSet ? 'VIEW' : 'MISSED')
-                      : isSet ? 'EDIT →' : 'PICK →';
+                      : blocked ? 'VERIFY'
+                        : isSet ? 'EDIT →' : draftReady ? 'REVIEW →' : 'PICK →';
 
                   const tone = settled ? (isSet ? 'var(--prediction-correct)' : 'var(--text-muted)')
                     : !market.open ? (isSet ? 'var(--text-muted)' : 'var(--danger-text)')
-                      : isSet ? 'var(--text-link)' : 'var(--accent-text-strong)';
+                      : blocked ? 'var(--text-muted)'
+                        : isSet ? 'var(--text-link)' : 'var(--accent-text-strong)';
 
                   return (
                     <button
@@ -789,9 +808,9 @@ export function FixturePredictScreen({
                          something to say — what was stored, and once the XI is
                          confirmed, which of the eleven actually started. Only a
                          market with nothing behind it is inert. */
-                      disabled={!market.side || (!market.open && !isSet && !settled)}
+                      disabled={!market.side || (!market.open && !isSet && !settled) || blocked}
                       onClick={() => market.side && setEditingLineup(market.side)}
-                      className={`tf-tap w-full text-left flex items-center gap-[12px] p-[14px_var(--gutter)] md:px-[14px] md:rounded-[13px] md:border border-t border-[var(--surface-border)] ${index === lineupMarkets.length - 1 ? 'border-b md:border' : ''} ${(!isSet && editable && market.open) ? 'bg-[var(--surface-subtle)]' : ''}`}
+                      className={`tf-tap w-full text-left flex items-center gap-[12px] p-[14px_var(--gutter)] md:px-[14px] md:rounded-[13px] md:border border-t border-[var(--surface-border)] ${index === lineupMarkets.length - 1 ? 'border-b md:border' : ''} ${(!isSet && canWrite && market.open) ? 'bg-[var(--surface-subtle)]' : ''}`}
                     >
                       <TeamCrest code={code} logoUrl={code === homeCode ? homeLogo : awayLogo} size={30} />
                       <div className="flex-1 min-w-0">
@@ -813,7 +832,7 @@ export function FixturePredictScreen({
             </section>
           )}
 
-          {editable && otherLeagueCount > 0 && carryLabels.length > 0 && (
+          {canWrite && otherLeagueCount > 0 && carryLabels.length > 0 && (
             <button
               type="button"
               onClick={() => setCopyView('confirm')}
@@ -1048,7 +1067,9 @@ export function FixturePredictScreen({
                     onSave={playerIds => saveLineup(editingLineup, playerIds)}
                     isSaving={submitLineup.isPending}
                     initialSelection={(answers[`${editingLineup}_lineup`] as string[] | undefined) ?? []}
-                    phase={settled ? 'scored' : market?.open ? 'editable' : 'locked'}
+                    carried={carriedLineups[editingLineup]}
+                    phase={settled ? 'scored' : market?.open && verified ? 'editable' : 'locked'}
+                    lockedNote={market?.open && !verified ? 'Verify your email to change this lineup.' : undefined}
                     started={market?.startedPlayerIds ?? null}
                     pointsLabel={market && market.pointsAwarded !== null
                       ? (market.pointsAwarded > 0 ? `+${market.pointsAwarded}` : '0')

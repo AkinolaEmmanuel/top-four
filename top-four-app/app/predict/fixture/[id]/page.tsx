@@ -6,13 +6,13 @@ import {
 import { ApiError } from '@/lib/api/fetcher';
 import { toSquads } from '@/lib/predict/player-picker';
 import {
-  fixturePhaseOf, hydrateAnswers, pointsAtStake, pointsEarned, toFixtureMarkets,
+  fixturePhaseOf, hydrateAnswers, pointsAtStake, pointsEarned, toCarriedLineups, toFixtureMarkets,
 } from '@/lib/predict/fixture-predict';
 import type { Api } from '@/lib/api/types';
 import type { LeagueListItem, LeaguesPage } from '@/lib/api/leagues';
 import type {
   FixtureAvailability, FixtureResultsResponse, OwnFixturePredictions,
-  SelectablePlayer, SnapshotRef,
+  PreviousLineups, SelectablePlayer, SnapshotRef,
 } from '@/lib/api/predictions-fixture';
 
 /**
@@ -27,6 +27,7 @@ type Availability = { data: FixtureAvailability; serverTime: string };
 type Predictions = { data: OwnFixturePredictions };
 type Players = { data: { snapshot: SnapshotRef | null; players: SelectablePlayer[] } };
 type Results = { data: FixtureResultsResponse };
+type Previous = { data: PreviousLineups };
 
 export default async function FixturePredictPage({ params, searchParams }: {
   params: { id: string };
@@ -44,19 +45,27 @@ export default async function FixturePredictPage({ params, searchParams }: {
   let predictions: Predictions | null;
   let players: Players | null;
   let results: Results | null;
+  let previous: Previous | null;
   let league: Api<'LeagueReadResponseDto'> | null;
   /* Every page of it: the list is 20 per page and archived leagues do not count
      against the twenty-league cap, so an old account can hold more. */
   let leagues: { items: LeagueListItem[] };
 
   try {
-    [availability, predictions, players, results, league, leagues] = await Promise.all([
+    [availability, predictions, players, results, league, leagues, previous] = await Promise.all([
       serverFetch<Availability>(`/leagues/${leagueId}/fixtures/${fixtureId}/availability`),
       serverFetchOrNull<Predictions>(`/leagues/${leagueId}/fixtures/${fixtureId}/predictions/me`),
       serverFetchOrNull<Players>(`/leagues/${leagueId}/fixtures/${fixtureId}/selectable-players?limit=200`),
       serverFetchOrNull<Results>(`/leagues/${leagueId}/fixtures/${fixtureId}/results`),
       serverFetchOrNull<Api<'LeagueReadResponseDto'>>(`/leagues/${leagueId}`),
       serverFetchAllPagesOrEmpty<LeagueListItem, LeaguesPage>('/leagues'),
+      // Only a suggestion for the lineup picker: if the API cannot answer, the
+      // picker opens empty exactly as it did before this existed.
+      serverFetchOrNull<Previous>(`/leagues/${leagueId}/fixtures/${fixtureId}/lineups/me/previous`)
+        .catch((error: unknown) => {
+          if (error instanceof ApiError) return null;
+          throw error;
+        }),
     ]);
   } catch (error) {
     if (error instanceof NotAuthenticatedError) redirect(`/?redirect=${encodeURIComponent(here)}`);
@@ -148,6 +157,7 @@ export default async function FixturePredictPage({ params, searchParams }: {
       pointsEarned={pointsEarned(marketResults)}
       otherLeagueCount={otherLeagues}
       totalGoalsLine={league?.ruleset?.totalGoalsLine ?? 2.5}
+      carriedLineups={toCarriedLineups(previous?.data ?? null, players?.data.snapshot?.snapshotId ?? null)}
     />
   );
 }

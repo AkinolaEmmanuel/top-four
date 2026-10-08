@@ -45,6 +45,8 @@ export type StoredLineupAnswer = Api<'LineupAnswerResponseDto'>;
 export type OwnLineupSide = Api<'OwnLineupSideDto'>;
 export type OwnLineups = Api<'OwnLineupsDto'>;
 export type OwnFixturePredictions = Api<'OwnFixturePredictionsDataDto'>;
+export type PreviousLineup = Api<'PreviousLineupDto'>;
+export type PreviousLineups = Api<'PreviousLineupsDataDto'>;
 
 export interface PredictionSubmission {
   leagueFixtureId: string;

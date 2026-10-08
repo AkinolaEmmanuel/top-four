@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import type { PlayerOption } from '@/lib/predict/fixture-predict';
+import type { CarriedLineup, PlayerOption } from '@/lib/predict/fixture-predict';
 
 /**
  * The starting XI, picked slot by slot.
@@ -131,19 +131,60 @@ export function seatSaved(ids: string[], byId: Map<string, PlayerOption>):
   return { counts: { DEF: seated.DEF, MID: seated.MID, FWD: seated.FWD }, picks };
 }
 
+/**
+ * Seats a carried XI and keeps its shape.
+ *
+ * Seating only the survivors would shrink the shape to match — nine players
+ * become a nine-place formation, and the member is told to "finish the
+ * formation" rather than shown two places to fill. Each missing player gives
+ * their line its place back instead; a goalkeeper's place is always drawn.
+ */
+export function seatCarried(carried: CarriedLineup, byId: Map<string, PlayerOption>):
+{ counts: Counts; picks: Record<SlotKey, string> } {
+  const seated = seatSaved(carried.playerIds, byId);
+  const counts = { ...seated.counts };
+  let outfield = counts.DEF + counts.MID + counts.FWD;
+  for (const player of carried.missing) {
+    if (outfield >= OUTFIELD_TOTAL) break;
+    const bucket = bucketOf(player.position);
+    if (bucket === 'GK') continue;
+    counts[bucket ?? 'MID']++;
+    outfield++;
+  }
+  // Ten outfield places whatever the data said, so Save can be reached.
+  if (outfield < OUTFIELD_TOTAL) counts.MID += OUTFIELD_TOTAL - outfield;
+  return { counts, picks: seated.picks };
+}
+
+/** The one line above a carried XI. */
+export function carriedNote(carried: CarriedLineup): string {
+  const from = `From your last XI, ${carried.sourceLabel}.`;
+  const gone = carried.missing.map(player => shortName(player.name));
+  if (gone.length === 0) return `${from} Check it and save.`;
+  const named = gone.length <= 3
+    ? gone.length === 1 ? gone[0] : `${gone.slice(0, -1).join(', ')} and ${gone[gone.length - 1]}`
+    : `${gone.slice(0, 2).join(', ')} and ${gone.length - 2} others`;
+  return gone.length === 1
+    ? `${from} ${named} isn’t in this squad, so that place is empty.`
+    : `${from} ${named} aren’t in this squad, so their places are empty.`;
+}
+
 export type LineupPhase = 'editable' | 'locked' | 'scored';
 
 /** How far a press has to travel before it counts as a drag, not a tap. */
 const DRAG_THRESHOLD = 8;
 
 export function LineupPicker({
-  players, onSave, isSaving, initialSelection = [],
+  players, onSave, isSaving, initialSelection = [], carried = null,
   phase = 'editable', started, pointsLabel, failure,
+  lockedNote = 'Lineups closed two hours before kick-off. This is what was stored.',
 }: {
   players: PlayerOption[];
   onSave: (lineup: string[]) => void;
   isSaving: boolean;
   initialSelection?: string[];
+  /** Used only when nothing is saved for this side and it is still editable. */
+  carried?: CarriedLineup | null;
   /** Editable until the lineup deadline; scored once the XI is confirmed. */
   phase?: LineupPhase;
   /** Ids that actually started, for the scored state. Null while unknown. */
@@ -151,9 +192,18 @@ export function LineupPicker({
   /** What the lineup earned, once it has. */
   pointsLabel?: string | null;
   failure?: string | null;
+  /** What a read-only picker says in place of Save. */
+  lockedNote?: string;
 }) {
   const byId = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
-  const seated = useMemo(() => seatSaved(initialSelection, byId), [initialSelection, byId]);
+  const editable = phase === 'editable';
+  // A saved answer always wins; an XI with nobody left in it is no draft.
+  const carry = editable && initialSelection.length === 0 && carried && carried.playerIds.length > 0
+    ? carried : null;
+  const seated = useMemo(
+    () => (carry ? seatCarried(carry, byId) : seatSaved(initialSelection, byId)),
+    [carry, initialSelection, byId],
+  );
 
   const [counts, setCounts] = useState<Counts>(
     seated.counts.DEF + seated.counts.MID + seated.counts.FWD > 0
@@ -161,6 +211,7 @@ export function LineupPicker({
       : countsForPreset('4-3-3'),
   );
   const [picks, setPicks] = useState<Record<SlotKey, string>>(seated.picks);
+  const [showCarried, setShowCarried] = useState(carry !== null);
   const [fillingSlot, setFillingSlot] = useState<SlotKey | null>(null);
   // `drag` (state) drives the ghost/highlight render and can lag a frame
   // behind — fine for a picture. `dragRef` is the same shape but a ref, read
@@ -174,7 +225,6 @@ export function LineupPicker({
   const dragOrigin = useRef<{ x: number; y: number } | null>(null);
   const suppressNextClick = useRef(false);
 
-  const editable = phase === 'editable';
   const quotas = quotasFor(counts);
   const slots = slotsFor(quotas);
   const startedSet = useMemo(() => new Set(started ?? []), [started]);
@@ -345,6 +395,19 @@ export function LineupPicker({
 
   return (
     <div className="flex flex-col h-full min-h-0">
+      {showCarried && carry && (
+        <div className="flex-none mb-[12px] rounded-[11px] bg-[var(--surface-subtle)] p-[10px_12px] flex items-start gap-[12px]">
+          <p className="flex-1 min-w-0 text-[11.5px] leading-[1.5] text-[var(--text-secondary)]">{carriedNote(carry)}</p>
+          <button
+            type="button"
+            onClick={() => { setPicks({}); setFillingSlot(null); setShowCarried(false); }}
+            className="flex-none font-heading font-bold text-[10px] tracking-[0.05em] text-[var(--text-link)] mt-[2px]"
+          >
+            START EMPTY
+          </button>
+        </div>
+      )}
+
       {editable && (
         <div className="flex-none mb-[14px]">
           <div className="flex items-center justify-between mb-[8px]">
@@ -612,7 +675,7 @@ export function LineupPicker({
           </div>
         ) : phase === 'locked' ? (
           <p className="text-[11.5px] leading-[1.55] text-[var(--text-muted)]">
-            Lineups closed two hours before kick-off. This is what was stored.
+            {lockedNote}
           </p>
         ) : (
           <>

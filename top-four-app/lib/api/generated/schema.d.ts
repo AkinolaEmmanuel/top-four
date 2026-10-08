@@ -1027,6 +1027,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/leagues/{leagueId}/fixtures/{leagueFixtureId}/lineups/me/previous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the caller’s last saved XI for each club in this fixture.
+         * @description A starting point for the picker, never a submission. Drawn from any league the caller is still active in, excluding this league fixture, and split into players still in this fixture’s current list and those no longer in it.
+         */
+        get: operations["LineupPredictionController_previous"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/leagues/{leagueId}/fixtures/{leagueFixtureId}/predictions/copy": {
         parameters: {
             query?: never;
@@ -3131,6 +3151,41 @@ export interface components {
             serverTime: string;
             nextCursor: string | null;
         };
+        PreviousLineupMissingPlayerDto: {
+            /** Format: uuid */
+            playerId: string;
+            displayName: string;
+            /** @description From the list the lineup was chosen from. */
+            position: string;
+        };
+        PreviousLineupOpponentDto: {
+            displayName: string;
+            code: string | null;
+        };
+        PreviousLineupSourceDto: {
+            opponent: components["schemas"]["PreviousLineupOpponentDto"];
+            /** Format: date-time */
+            kickoffAt: string;
+        };
+        PreviousLineupDto: {
+            /**
+             * Format: uuid
+             * @description This fixture’s current list, which playerIds were checked against.
+             */
+            snapshotId: string;
+            playerIds: string[];
+            missing: components["schemas"]["PreviousLineupMissingPlayerDto"][];
+            source: components["schemas"]["PreviousLineupSourceDto"];
+        };
+        PreviousLineupsDataDto: {
+            home: components["schemas"]["PreviousLineupDto"] | null;
+            away: components["schemas"]["PreviousLineupDto"] | null;
+        };
+        PreviousLineupsResponseDto: {
+            data: components["schemas"]["PreviousLineupsDataDto"];
+            /** Format: date-time */
+            serverTime: string;
+        };
         CopiedAnswerDto: {
             /** @enum {string} */
             answer: "match_result" | "exact_score" | "both_teams_to_score" | "total_goals" | "anytime_goalscorer" | "player_card" | "lineup_home" | "lineup_away";
@@ -4610,7 +4665,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF_VALIDATION_FAILED. */
+            /** @description CSRF_VALIDATION_FAILED or EMAIL_VERIFICATION_REQUIRED. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5002,7 +5057,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description LEAGUE_OWNER_REQUIRED or CSRF_VALIDATION_FAILED. */
+            /** @description LEAGUE_OWNER_REQUIRED, CSRF_VALIDATION_FAILED, or EMAIL_VERIFICATION_REQUIRED. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5765,7 +5820,11 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF_VALIDATION_FAILED. */
+            /**
+             * @description CSRF_VALIDATION_FAILED.
+             *
+             *     CSRF_VALIDATION_FAILED or EMAIL_VERIFICATION_REQUIRED.
+             */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6344,7 +6403,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF_VALIDATION_FAILED. */
+            /** @description CSRF_VALIDATION_FAILED or EMAIL_VERIFICATION_REQUIRED. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6546,7 +6605,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF_VALIDATION_FAILED. */
+            /** @description CSRF_VALIDATION_FAILED or EMAIL_VERIFICATION_REQUIRED. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6617,6 +6676,43 @@ export interface operations {
             };
         };
     };
+    LineupPredictionController_previous: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                leagueId: string;
+                leagueFixtureId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One suggestion per side, or null for a side with none. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviousLineupsResponseDto"];
+                };
+            };
+            /** @description AUTHENTICATION_REQUIRED. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description LEAGUE_NOT_FOUND or LEAGUE_FIXTURE_NOT_FOUND. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PredictionCopyController_copy: {
         parameters: {
             query?: never;
@@ -6645,7 +6741,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF_VALIDATION_FAILED. */
+            /** @description CSRF_VALIDATION_FAILED or EMAIL_VERIFICATION_REQUIRED. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7167,7 +7263,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description CSRF_VALIDATION_FAILED. */
+            /** @description CSRF_VALIDATION_FAILED or EMAIL_VERIFICATION_REQUIRED. */
             403: {
                 headers: {
                     [name: string]: unknown;
