@@ -1,6 +1,7 @@
 import type {
   FixtureAvailability, MemberMarketResult, OwnFixturePredictions,
   SelectablePlayer, CopyLeagueReport, CopyOutcome, PlayerSummary,
+  PreviousLineup, PreviousLineups,
 } from '@/lib/api/predictions-fixture';
 import type { LeagueRuleset, RulesetMarketType } from '@/lib/api/leagues';
 import { STANDARD_MARKET_TYPES } from '@/lib/constants/markets';
@@ -571,4 +572,46 @@ export function carryLabelsFor(markets: FixtureMarket[], answers: FixtureAnswers
     const label = answerLabelFor(market, answers[market.key]);
     return label ? [label] : [];
   });
+}
+
+/**
+ * The member's last saved XI for this club, offered as a draft. Nothing is
+ * stored until they press Save; players who have since left the squad are
+ * named so their empty places explain themselves.
+ */
+export interface CarriedLineup {
+  /** Still in this fixture's squad list. */
+  playerIds: string[];
+  /** No longer in it, with the position they had then. */
+  missing: { id: string; name: string; position: string }[];
+  /** Where it came from, e.g. "v Chelsea, 4 Oct". */
+  sourceLabel: string;
+}
+
+/**
+ * Both sides' carried XIs, or null for a side with nothing to carry.
+ *
+ * Only offered when it was checked against the same squad list the picker
+ * shows. A refresh between the two reads would otherwise seat an id the
+ * picker cannot draw, and the save would be refused.
+ */
+export function toCarriedLineups(
+  previous: PreviousLineups | null,
+  snapshotId: string | null,
+): { home: CarriedLineup | null; away: CarriedLineup | null } {
+  const carry = (side: PreviousLineup | null | undefined): CarriedLineup | null => {
+    if (!side || snapshotId === null || side.snapshotId !== snapshotId) return null;
+    const date = new Date(side.source.kickoffAt)
+      .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return {
+      playerIds: side.playerIds,
+      missing: side.missing.map(player => ({
+        id: player.playerId,
+        name: decodeHtmlEntities(player.displayName),
+        position: player.position,
+      })),
+      sourceLabel: `v ${side.source.opponent.displayName}, ${date}`,
+    };
+  };
+  return { home: carry(previous?.home), away: carry(previous?.away) };
 }

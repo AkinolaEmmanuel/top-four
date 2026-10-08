@@ -9,6 +9,7 @@ import { ApiError } from './fetcher';
  * general to explain what the person is looking at.
  */
 export function failureMessage(error: unknown, fallback = 'That did not save.'): string {
+  if (isEmailVerificationRequired(error)) return 'Verify your email first. The link is in your inbox.';
   if (error instanceof ApiError) {
     if (error.status === 409) return 'Changed somewhere else — reopen to see what is stored.';
     if (error.status === 429) {
@@ -24,4 +25,12 @@ export function failureMessage(error: unknown, fallback = 'That did not save.'):
   // ("Failed to fetch") that tells a member nothing.
   if (error instanceof TypeError) return 'No connection. Check your network and try again.';
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+/**
+ * The API refuses predictions, joins and new leagues until the email is
+ * verified. Checked by code, not status: a CSRF failure is also a 403.
+ */
+export function isEmailVerificationRequired(error: unknown): boolean {
+  return error instanceof ApiError && error.code === 'EMAIL_VERIFICATION_REQUIRED';
 }

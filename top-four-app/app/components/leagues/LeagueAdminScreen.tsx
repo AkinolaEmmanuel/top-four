@@ -12,6 +12,7 @@ import {
 import type { AdminAction, AdminInvite, AdminMember, AdminRequest, AdminTab, LifecycleStep, MemberRole } from '@/lib/leagues/league-admin';
 import { toAdminInvites } from '@/lib/leagues/league-admin';
 import type { Api } from '@/lib/api/types';
+import { failureMessage, isEmailVerificationRequired } from '@/lib/api/failure';
 
 
 /**
@@ -112,7 +113,10 @@ export function LeagueAdminScreen({
           { onSuccess: () => router.push('/leagues'), onError: () => blame('Deleting the draft') });
       case 'clone':
         return clone.mutate({ idempotencyKey: key, payload: { name: `${leagueName} (copy)` } },
-          { onSuccess: created => router.push(`/leagues/${created.id}`), onError: () => blame('Cloning') });
+          {
+            onSuccess: created => router.push(`/leagues/${created.id}`),
+            onError: error => (isEmailVerificationRequired(error) ? setFailed(failureMessage(error)) : blame('Cloning')),
+          });
       case 'archive':
         return archive.mutate({ idempotencyKey: key, expectedVersion: version },
           { onSuccess: () => done('League archived'), onError: () => blame('Archiving') });

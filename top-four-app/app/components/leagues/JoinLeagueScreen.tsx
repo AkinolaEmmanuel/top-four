@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Breadcrumb } from '../Breadcrumb';
+import { VerifyEmailBanner } from '../VerifyEmailBanner';
 
 /**
  * Join a league by code — one screen at every width.
@@ -67,6 +68,7 @@ export function JoinLeagueScreen({
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:pt-[28px]">
           {outcome === null ? (
             <section className="p-[24px_var(--gutter)] md:px-0 md:max-w-[560px]">
+              <VerifyEmailBanner className="mb-[20px]" />
               <h1 className="font-heading font-bold text-[26px] md:text-[30px] leading-[1.15] tracking-[-1px]">
                 Enter the code you were given
               </h1>

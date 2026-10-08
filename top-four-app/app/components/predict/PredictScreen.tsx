@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { tintFor } from '@/lib/crest';
 import { timeUntilLabel } from '@/lib/format';
 import { MobileNav } from '../MobileNav';
+import { VerifyEmailBanner } from '../VerifyEmailBanner';
 import {
   toPredictGroups, ALL_LEAGUES,
   type PredictEntry, type PredictEntryLeague,
@@ -240,6 +241,7 @@ export function PredictScreen({
 
       <main className="tf-scroll flex-1 min-h-0 overflow-auto">
         <div className="md:max-w-[1080px] md:mx-auto md:px-[24px] md:py-[22px]">
+          <VerifyEmailBanner className="mx-[var(--gutter)] mt-[16px] md:mx-0 md:mt-0 md:mb-[18px]" />
 
           {leagues.length > 1 && (
             <div className="tf-scroll flex gap-[6px] p-[12px_var(--gutter)] md:px-0 md:mb-[18px] overflow-x-auto border-b border-[var(--surface-border)] md:border-b-0">
